@@ -2,14 +2,24 @@ import type { IPart } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { formatBRL, formatDateBR } from "@/shared/utils/format";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
+import { PartSupplierEntryForm } from "../form/PartSupplierEntryForm";
+import type { IPartDraft } from "../../utils/draft";
 
 const COPY = CATALOG_STRINGS.detail.suppliers;
 
 export interface IPartSuppliersTableProps {
   part: IPart;
+  editing?: boolean;
+  draft?: IPartDraft;
+  onDraftChange?: (patch: Partial<IPartDraft>) => void;
 }
 
-export function PartSuppliersTable({ part }: IPartSuppliersTableProps) {
+export function PartSuppliersTable({
+  part,
+  editing = false,
+  draft,
+  onDraftChange,
+}: IPartSuppliersTableProps) {
   const suppliers = part.suppliers ?? [];
 
   return (
@@ -80,6 +90,13 @@ export function PartSuppliersTable({ part }: IPartSuppliersTableProps) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {editing && draft && onDraftChange && (
+        <PartSupplierEntryForm
+          value={draft.newSupplierEntry}
+          onChange={(next) => onDraftChange({ newSupplierEntry: next })}
+        />
       )}
     </div>
   );

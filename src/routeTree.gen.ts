@@ -192,7 +192,6 @@ import { Route as AppConfiguracoesAtendimentoMotivosPerdaRouteImport } from './r
 import { Route as AppConfiguracoesAtendimentoLifecycleRouteImport } from './routes/app.configuracoes.atendimento.lifecycle'
 import { Route as AppConfiguracoesAtendimentoHorarioComercialRouteImport } from './routes/app.configuracoes.atendimento.horario-comercial'
 import { Route as AppConfiguracoesAtendimentoAlertasOciosidadeRouteImport } from './routes/app.configuracoes.atendimento.alertas-ociosidade'
-import { Route as AppCatalogoIdEditarRouteImport } from './routes/app.catalogo.$id.editar'
 import { Route as AppKitsModelIdKitNovoRouteImport } from './routes/app.kits.$modelId.kit.novo'
 import { Route as AppKitsModelIdKitKitIdEditarRouteImport } from './routes/app.kits.$modelId.kit.$kitId.editar'
 
@@ -1161,11 +1160,6 @@ const AppConfiguracoesAtendimentoAlertasOciosidadeRoute =
     path: '/configuracoes/atendimento/alertas-ociosidade',
     getParentRoute: () => AppRoute,
   } as any)
-const AppCatalogoIdEditarRoute = AppCatalogoIdEditarRouteImport.update({
-  id: '/editar',
-  path: '/editar',
-  getParentRoute: () => AppCatalogoIdRoute,
-} as any)
 const AppKitsModelIdKitNovoRoute = AppKitsModelIdKitNovoRouteImport.update({
   id: '/kit/novo',
   path: '/kit/novo',
@@ -1232,7 +1226,7 @@ export interface FileRoutesByFullPath {
   '/portal/': typeof PortalIndexRoute
   '/pwa/': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
-  '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
+  '/app/catalogo/$id': typeof AppCatalogoIdRoute
   '/app/catalogo/kits': typeof AppCatalogoKitsRoute
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
@@ -1327,7 +1321,6 @@ export interface FileRoutesByFullPath {
   '/portal/solicitacoes/': typeof PortalSolicitacoesIndexRoute
   '/pwa/agenda/': typeof PwaAgendaIndexRoute
   '/pwa/carteira/': typeof PwaCarteiraIndexRoute
-  '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
   '/app/configuracoes/atendimento/alertas-ociosidade': typeof AppConfiguracoesAtendimentoAlertasOciosidadeRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
@@ -1403,7 +1396,7 @@ export interface FileRoutesByTo {
   '/portal': typeof PortalIndexRoute
   '/pwa': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
-  '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
+  '/app/catalogo/$id': typeof AppCatalogoIdRoute
   '/app/catalogo/kits': typeof AppCatalogoKitsRoute
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
@@ -1491,7 +1484,6 @@ export interface FileRoutesByTo {
   '/portal/solicitacoes': typeof PortalSolicitacoesIndexRoute
   '/pwa/agenda': typeof PwaAgendaIndexRoute
   '/pwa/carteira': typeof PwaCarteiraIndexRoute
-  '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
   '/app/configuracoes/atendimento/alertas-ociosidade': typeof AppConfiguracoesAtendimentoAlertasOciosidadeRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
@@ -1585,7 +1577,7 @@ export interface FileRoutesById {
   '/portal/': typeof PortalIndexRoute
   '/pwa/': typeof PwaIndexRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
-  '/app/catalogo/$id': typeof AppCatalogoIdRouteWithChildren
+  '/app/catalogo/$id': typeof AppCatalogoIdRoute
   '/app/catalogo/kits': typeof AppCatalogoKitsRoute
   '/app/catalogo/novo': typeof AppCatalogoNovoRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
@@ -1680,7 +1672,6 @@ export interface FileRoutesById {
   '/portal/solicitacoes/': typeof PortalSolicitacoesIndexRoute
   '/pwa/agenda/': typeof PwaAgendaIndexRoute
   '/pwa/carteira/': typeof PwaCarteiraIndexRoute
-  '/app/catalogo/$id/editar': typeof AppCatalogoIdEditarRoute
   '/app/configuracoes/atendimento/alertas-ociosidade': typeof AppConfiguracoesAtendimentoAlertasOciosidadeRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
@@ -1870,7 +1861,6 @@ export interface FileRouteTypes {
     | '/portal/solicitacoes/'
     | '/pwa/agenda/'
     | '/pwa/carteira/'
-    | '/app/catalogo/$id/editar'
     | '/app/configuracoes/atendimento/alertas-ociosidade'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
@@ -2034,7 +2024,6 @@ export interface FileRouteTypes {
     | '/portal/solicitacoes'
     | '/pwa/agenda'
     | '/pwa/carteira'
-    | '/app/catalogo/$id/editar'
     | '/app/configuracoes/atendimento/alertas-ociosidade'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
@@ -2222,7 +2211,6 @@ export interface FileRouteTypes {
     | '/portal/solicitacoes/'
     | '/pwa/agenda/'
     | '/pwa/carteira/'
-    | '/app/catalogo/$id/editar'
     | '/app/configuracoes/atendimento/alertas-ociosidade'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
@@ -3557,13 +3545,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesAtendimentoAlertasOciosidadeRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/catalogo/$id/editar': {
-      id: '/app/catalogo/$id/editar'
-      path: '/editar'
-      fullPath: '/app/catalogo/$id/editar'
-      preLoaderRoute: typeof AppCatalogoIdEditarRouteImport
-      parentRoute: typeof AppCatalogoIdRoute
-    }
     '/app/kits/$modelId/kit/novo': {
       id: '/app/kits/$modelId/kit/novo'
       path: '/kit/novo'
@@ -3595,27 +3576,15 @@ const AppAtendimentoRouteWithChildren = AppAtendimentoRoute._addFileChildren(
   AppAtendimentoRouteChildren,
 )
 
-interface AppCatalogoIdRouteChildren {
-  AppCatalogoIdEditarRoute: typeof AppCatalogoIdEditarRoute
-}
-
-const AppCatalogoIdRouteChildren: AppCatalogoIdRouteChildren = {
-  AppCatalogoIdEditarRoute: AppCatalogoIdEditarRoute,
-}
-
-const AppCatalogoIdRouteWithChildren = AppCatalogoIdRoute._addFileChildren(
-  AppCatalogoIdRouteChildren,
-)
-
 interface AppCatalogoRouteChildren {
-  AppCatalogoIdRoute: typeof AppCatalogoIdRouteWithChildren
+  AppCatalogoIdRoute: typeof AppCatalogoIdRoute
   AppCatalogoKitsRoute: typeof AppCatalogoKitsRoute
   AppCatalogoNovoRoute: typeof AppCatalogoNovoRoute
   AppCatalogoIndexRoute: typeof AppCatalogoIndexRoute
 }
 
 const AppCatalogoRouteChildren: AppCatalogoRouteChildren = {
-  AppCatalogoIdRoute: AppCatalogoIdRouteWithChildren,
+  AppCatalogoIdRoute: AppCatalogoIdRoute,
   AppCatalogoKitsRoute: AppCatalogoKitsRoute,
   AppCatalogoNovoRoute: AppCatalogoNovoRoute,
   AppCatalogoIndexRoute: AppCatalogoIndexRoute,

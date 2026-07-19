@@ -15,11 +15,8 @@ import {
 } from "@/components/ui/select";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
 import { PART_CATEGORY_DESCRIPTORS, getSubcategoriesFor } from "../../utils/categories";
-import {
-  ApplicationsEditor,
-  applicationsToDrafts,
-  type IApplicationDraft,
-} from "./ApplicationsEditor";
+import { ApplicationsEditor } from "./ApplicationsEditor";
+import { applicationsToDrafts, type IApplicationDraft } from "../../utils/applicationDrafts";
 import { EquivalentsEditor } from "./EquivalentsEditor";
 
 export interface IPartFormValues {

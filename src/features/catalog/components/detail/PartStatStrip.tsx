@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { formatBRL, formatPercent } from "@/shared/utils/format";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
 import { marginHealth, marginOnPrice, resolvePriceTables } from "../../utils/pricing";
+import type { IPartDraft } from "../../utils/draft";
 
 const COPY = CATALOG_STRINGS.detail.statStrip;
 
@@ -25,17 +26,21 @@ interface IStatCell {
 
 export interface IPartStatStripProps {
   part: IPart;
+  draft?: IPartDraft;
 }
 
 /** Full-width KPI strip with display-size values (design kit `CatKpiStrip`). */
-export function PartStatStrip({ part }: IPartStatStripProps) {
-  const tables = resolvePriceTables(part);
+export function PartStatStrip({ part, draft }: IPartStatStripProps) {
+  const tables = draft ? draft.priceTables : resolvePriceTables(part);
   const padrao = tables.find((t) => t.id === "padrao");
   const standardPrice = padrao?.price ?? part.unitPrice;
-  const referenceCost = part.averageCost ?? part.unitCost;
+  const referenceCost = draft ? draft.unitCost : (part.averageCost ?? part.unitCost);
   const margin = marginOnPrice(standardPrice, referenceCost);
-  const isZero = part.stockAvailable <= 0;
-  const isLow = !isZero && part.stockAvailable <= part.stockMinimum;
+  const stockAvailable = draft ? draft.stockAvailable : part.stockAvailable;
+  const stockMinimum = draft ? draft.stockMinimum : part.stockMinimum;
+  const storageLocation = draft ? draft.storageLocation : part.storageLocation;
+  const isZero = stockAvailable <= 0;
+  const isLow = !isZero && stockAvailable <= stockMinimum;
 
   const cells: IStatCell[] = [
     {
@@ -53,13 +58,13 @@ export function PartStatStrip({ part }: IPartStatStripProps) {
     {
       icon: "mdi:warehouse",
       label: COPY.stock,
-      value: String(part.stockAvailable),
+      value: String(stockAvailable),
       valueClass: isZero ? "text-severity-critical" : isLow ? "text-severity-warning" : undefined,
       sub:
         isZero || isLow
-          ? COPY.belowMin(part.stockMinimum)
-          : part.storageLocation
-            ? COPY.atLocation(part.storageLocation)
+          ? COPY.belowMin(stockMinimum)
+          : storageLocation
+            ? COPY.atLocation(storageLocation)
             : COPY.empty,
       subClass: isZero || isLow ? "text-severity-critical" : undefined,
       subIcon: isZero || isLow ? "mdi:alert" : undefined,
@@ -67,8 +72,8 @@ export function PartStatStrip({ part }: IPartStatStripProps) {
     {
       icon: "mdi:map-marker-outline",
       label: COPY.location,
-      value: part.storageLocation ?? COPY.empty,
-      sub: part.storageLocation ? COPY.locationDefined : COPY.locationUndefined,
+      value: storageLocation ?? COPY.empty,
+      sub: storageLocation ? COPY.locationDefined : COPY.locationUndefined,
     },
     {
       icon: "mdi:percent-outline",

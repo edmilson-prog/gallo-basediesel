@@ -7,6 +7,8 @@ import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
 import { PartImage } from "../PartImage";
 import { Section } from "./ApplicationsSection";
+import { EquivalentsEditor } from "../form/EquivalentsEditor";
+import type { IPartDraft } from "../../utils/draft";
 
 function formatPrice(value: number): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -14,9 +16,17 @@ function formatPrice(value: number): string {
 
 export interface IEquivalentsSectionProps {
   part: IPart;
+  editing?: boolean;
+  draft?: IPartDraft;
+  onDraftChange?: (patch: Partial<IPartDraft>) => void;
 }
 
-export function EquivalentsSection({ part }: IEquivalentsSectionProps) {
+export function EquivalentsSection({
+  part,
+  editing = false,
+  draft,
+  onDraftChange,
+}: IEquivalentsSectionProps) {
   const navigate = useNavigate();
   const provider = usePartsProvider();
   const query = useQuery({
@@ -25,6 +35,18 @@ export function EquivalentsSection({ part }: IEquivalentsSectionProps) {
     enabled: part.equivalentPartIds.length > 0,
     staleTime: 60_000,
   });
+
+  if (editing && draft && onDraftChange) {
+    return (
+      <Section title={CATALOG_STRINGS.detail.sections.equivalents} icon="mdi:swap-horizontal">
+        <EquivalentsEditor
+          selectedIds={draft.equivalentPartIds}
+          excludeId={part.id}
+          onChange={(ids) => onDraftChange({ equivalentPartIds: ids })}
+        />
+      </Section>
+    );
+  }
 
   if (part.equivalentPartIds.length === 0) {
     return (

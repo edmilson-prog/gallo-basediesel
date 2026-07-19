@@ -9,7 +9,7 @@ import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 import { PartForm, type IPartFormErrors, type IPartFormValues } from "../components/form/PartForm";
-import { draftsToApplications } from "../components/form/ApplicationsEditor";
+import { draftsToApplications } from "../utils/applicationDrafts";
 import { useEquivalentsBidirectional } from "../hooks/useEquivalentsBidirectional";
 import { CATALOG_STRINGS } from "../i18n/pt-BR";
 

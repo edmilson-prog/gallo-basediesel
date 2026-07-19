@@ -15,6 +15,7 @@ export interface IPartDetailHeaderProps {
   onEdit: () => void;
   onDuplicate: () => void;
   onToggleActive: () => void;
+  editing: boolean;
 }
 
 export function PartDetailHeader({
@@ -27,6 +28,7 @@ export function PartDetailHeader({
   onEdit,
   onDuplicate,
   onToggleActive,
+  editing,
 }: IPartDetailHeaderProps) {
   return (
     <div className="border-b border-border bg-card">
@@ -36,6 +38,7 @@ export function PartDetailHeader({
             variant="ghost"
             size="sm"
             onClick={onBack}
+            disabled={editing}
             className="-ml-2 cursor-pointer text-xs"
           >
             <Icon icon="mdi:arrow-left" size={14} />
@@ -43,34 +46,48 @@ export function PartDetailHeader({
           </Button>
 
           <div className="flex flex-wrap items-center gap-2">
-            <PartLayoutSwitcher value={layout} onChange={onLayoutChange} />
-            {canEdit && (
-              <Button variant="outline" size="sm" className="cursor-pointer" onClick={onEdit}>
+            <PartLayoutSwitcher value={layout} onChange={onLayoutChange} disabled={editing} />
+            {editing ? (
+              <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <Icon icon="mdi:pencil-outline" size={14} />
-                {CATALOG_STRINGS.detail.actions.edit}
-              </Button>
-            )}
-            {canEdit && (
-              <Button variant="outline" size="sm" className="cursor-pointer" onClick={onDuplicate}>
-                <Icon icon="mdi:content-copy" size={14} />
-                {CATALOG_STRINGS.detail.actions.duplicate}
-              </Button>
-            )}
-            {canToggle && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="cursor-pointer"
-                onClick={onToggleActive}
-              >
-                <Icon
-                  icon={part.active ? "mdi:archive-outline" : "mdi:archive-arrow-up-outline"}
-                  size={14}
-                />
-                {part.active
-                  ? CATALOG_STRINGS.detail.actions.deactivate
-                  : CATALOG_STRINGS.detail.actions.activate}
-              </Button>
+                {CATALOG_STRINGS.detail.actions.editing}
+              </span>
+            ) : (
+              <>
+                {canEdit && (
+                  <Button variant="outline" size="sm" className="cursor-pointer" onClick={onEdit}>
+                    <Icon icon="mdi:pencil-outline" size={14} />
+                    {CATALOG_STRINGS.detail.actions.edit}
+                  </Button>
+                )}
+                {canEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cursor-pointer"
+                    onClick={onDuplicate}
+                  >
+                    <Icon icon="mdi:content-copy" size={14} />
+                    {CATALOG_STRINGS.detail.actions.duplicate}
+                  </Button>
+                )}
+                {canToggle && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cursor-pointer"
+                    onClick={onToggleActive}
+                  >
+                    <Icon
+                      icon={part.active ? "mdi:archive-outline" : "mdi:archive-arrow-up-outline"}
+                      size={14}
+                    />
+                    {part.active
+                      ? CATALOG_STRINGS.detail.actions.deactivate
+                      : CATALOG_STRINGS.detail.actions.activate}
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </div>

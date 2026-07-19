@@ -1,6 +1,8 @@
 import type { IPart } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
+import { ApplicationsEditor } from "../form/ApplicationsEditor";
+import type { IPartDraft } from "../../utils/draft";
 
 const COPY = CATALOG_STRINGS.detail.counterCards;
 
@@ -11,13 +13,39 @@ export interface IPartApplicationsCardProps {
   part: IPart;
   /** Jump to the full "Aplicações" tab. */
   onViewAll: () => void;
+  editing?: boolean;
+  draft?: IPartDraft;
+  onDraftChange?: (patch: Partial<IPartDraft>) => void;
 }
 
 /**
  * Compact fitment card pinned to the counter layout's left column (design kit
  * `CatApps`) — critical at the sales counter, so it must not hide behind a tab.
  */
-export function PartApplicationsCard({ part, onViewAll }: IPartApplicationsCardProps) {
+export function PartApplicationsCard({
+  part,
+  onViewAll,
+  editing = false,
+  draft,
+  onDraftChange,
+}: IPartApplicationsCardProps) {
+  if (editing && draft && onDraftChange) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Icon icon="mdi:truck-outline" size={16} className="text-muted-foreground" />
+          <h2 className="text-sm font-semibold tracking-tight text-foreground">
+            {CATALOG_STRINGS.detail.sections.applications}
+          </h2>
+        </div>
+        <ApplicationsEditor
+          applications={draft.applications}
+          onChange={(next) => onDraftChange({ applications: next })}
+        />
+      </div>
+    );
+  }
+
   const apps = part.applications;
   if (apps.length === 0) return null;
 

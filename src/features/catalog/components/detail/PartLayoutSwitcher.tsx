@@ -26,9 +26,14 @@ const HINTS: Record<PartDetailLayout, string> = {
 export interface IPartLayoutSwitcherProps {
   value: PartDetailLayout;
   onChange: (layout: PartDetailLayout) => void;
+  disabled?: boolean;
 }
 
-export function PartLayoutSwitcher({ value, onChange }: IPartLayoutSwitcherProps) {
+export function PartLayoutSwitcher({
+  value,
+  onChange,
+  disabled = false,
+}: IPartLayoutSwitcherProps) {
   return (
     <ToggleGroup
       type="single"
@@ -38,6 +43,7 @@ export function PartLayoutSwitcher({ value, onChange }: IPartLayoutSwitcherProps
       }}
       variant="outline"
       size="sm"
+      disabled={disabled}
       aria-label={COPY.ariaLabel}
     >
       {PART_DETAIL_LAYOUTS.map((layout) => (
