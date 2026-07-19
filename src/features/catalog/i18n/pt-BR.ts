@@ -84,6 +84,7 @@ export const CATALOG_STRINGS = {
       cancel: "Cancelar",
       save: "Salvar alterações",
       saving: "Salvando…",
+      editing: "Editando",
     },
     sections: {
       applications: "Aplicações",

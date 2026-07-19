@@ -195,18 +195,46 @@ export function PartDetailPage() {
         onDuplicate={handleDuplicate}
         onToggleActive={() => setConfirmToggleOpen(true)}
         editing={editing}
-        saving={saving}
-        onSave={() => void handleSave()}
-        onCancel={handleCancelEdit}
       />
 
-      <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-[1600px] flex-1 space-y-6 px-4 py-6 sm:px-6">
         <PartStatStrip part={part} draft={editing ? (draft ?? undefined) : undefined} />
         <PartStockAlert part={part} />
         {layout === "counter" && <PartLayoutCounter {...layoutProps} />}
         {layout === "panel" && <PartLayoutPanel {...layoutProps} />}
         {layout === "sheet" && <PartLayoutSheet {...layoutProps} />}
       </div>
+
+      {editing && (
+        <div className="sticky bottom-0 z-10 border-t border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:px-6">
+          <div className="mx-auto flex w-full max-w-[1600px] items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="cursor-pointer"
+              onClick={handleCancelEdit}
+              disabled={saving}
+            >
+              {CATALOG_STRINGS.detail.actions.cancel}
+            </Button>
+            <Button
+              size="sm"
+              className="cursor-pointer"
+              onClick={() => void handleSave()}
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <Icon icon="svg-spinners:ring-resize" size={14} />
+                  {CATALOG_STRINGS.detail.actions.saving}
+                </>
+              ) : (
+                CATALOG_STRINGS.detail.actions.save
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <AlertDialog open={confirmToggleOpen} onOpenChange={setConfirmToggleOpen}>
         <AlertDialogContent>
