@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";
-import { useAudioUnlock } from "@/shared/hooks/useAudioUnlock";
+import { useSoundEventPlayer } from "@/features/sound-settings";
 import {
   getActiveDataSource,
   useConversationsProvider,
@@ -19,9 +19,7 @@ import {
   SIGNAL_REVALIDATE_DEBOUNCE_MS,
   MINE_SCAN_PAGE_SIZE,
 } from "../engine/constants";
-import { createTonePlayer } from "../lib/tonePlayer";
 import { useInboxActivityStore } from "../store/inboxActivityStore";
-import { useSoundAlertPreferencesStore } from "../store/soundAlertPreferencesStore";
 
 const IS_SUPABASE = getActiveDataSource() === "supabase";
 
@@ -91,16 +89,7 @@ export function useInboxActivityMonitor(): void {
   const conversationsProvider = useConversationsProvider();
   const messagesProvider = useMessagesProvider();
 
-  const tonePlayerRef = useRef<ReturnType<typeof createTonePlayer> | null>(null);
-  if (!tonePlayerRef.current) tonePlayerRef.current = createTonePlayer();
-
-  const unlockTonePlayer = useCallback(() => tonePlayerRef.current?.unlock(), []);
-  useAudioUnlock(unlockTonePlayer, true);
-
-  // Close the AudioContext on unmount (e.g. sign-out — a pure SPA state change,
-  // no page reload) so repeated sign-out/sign-in cycles don't leak contexts
-  // past the browser's per-tab AudioContext cap.
-  useEffect(() => () => tonePlayerRef.current?.dispose(), []);
+  const { play } = useSoundEventPlayer();
 
   const cacheRef = useRef(new Map<string, ICachedConversation>());
   const lastAlertedInboundRef = useRef(new Map<string, string>());
@@ -212,8 +201,7 @@ export function useInboxActivityMonitor(): void {
       const nowMs = Date.now();
       if (shouldThrottle(lastMineBeepAtRef.current, nowMs, MIN_BEEP_INTERVAL_MS)) return;
       lastMineBeepAtRef.current = nowMs;
-      const prefs = useSoundAlertPreferencesStore.getState();
-      if (prefs.enabled) tonePlayerRef.current?.play("assigned-mine", prefs.volume);
+      play("inboxAssignedMine");
     }
 
     // Seed the badge from ground truth before any Realtime event lands.
@@ -275,8 +263,7 @@ export function useInboxActivityMonitor(): void {
           !shouldThrottle(lastQueueBeepAtRef.current, nowMs, MIN_BEEP_INTERVAL_MS)
         ) {
           lastQueueBeepAtRef.current = nowMs;
-          const prefs = useSoundAlertPreferencesStore.getState();
-          if (prefs.enabled) tonePlayerRef.current?.play("new-in-queue", prefs.volume);
+          play("inboxNewInQueue");
         }
       }
 

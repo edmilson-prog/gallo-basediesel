@@ -23,7 +23,7 @@ import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatform
 import { AvailabilityToggle } from "@/features/distribution/components/AvailabilityToggle";
 import { NotificationDropdown } from "@/features/notifications/components/NotificationDropdown";
 import { WhatsAppStatusButton } from "@/features/shell/components/WhatsAppStatusButton";
-import { InboxUnreadBadgeIcon, SoundAlertToggle } from "@/features/inbox-alerts";
+import { InboxUnreadBadgeIcon } from "@/features/inbox-alerts";
 import { IdlePendingChip } from "@/features/idle-alerts";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { ROUTES } from "@/features/shell/config/routes";
@@ -75,8 +75,6 @@ export function TopBar() {
         <InboxUnreadBadgeIcon />
 
         <IdlePendingChip />
-
-        <SoundAlertToggle />
 
         {/* Analytics copilot entry point (PRD-057). Hidden when disabled per store. */}
         {copilotEnabled && (
