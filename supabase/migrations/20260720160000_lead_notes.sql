@@ -13,6 +13,7 @@ create table if not exists public.lead_notes (
 
 create index if not exists lead_notes_lead_id_idx on public.lead_notes (lead_id);
 create index if not exists lead_notes_created_at_idx on public.lead_notes (created_at);
+create index if not exists lead_notes_author_id_idx on public.lead_notes (author_id);
 
 alter table public.lead_notes enable row level security;
 
