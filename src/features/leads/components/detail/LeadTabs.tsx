@@ -95,20 +95,25 @@ function ConversationsTab({ lead }: { lead: ILead }) {
   );
 }
 
+/** Shared actor/author name lookup for the History and Notes tabs. */
+function useSellerNames() {
+  const sellersProvider = useSellersProvider();
+  const query = useQuery({
+    queryKey: ["sellers-min"] as const,
+    queryFn: () => sellersProvider.list(),
+    staleTime: 5 * 60_000,
+  });
+  return (id: ID) => query.data?.find((s) => s.id === id)?.fullName ?? "";
+}
+
 function HistoryTab({ leadId }: { leadId: ID }) {
   const provider = useAuditsProvider();
-  const sellersProvider = useSellersProvider();
   const query = useQuery({
     queryKey: ["lead-audits", leadId] as const,
     queryFn: () => provider.list({ resource: "lead", resourceId: leadId, pageSize: 100 }),
     staleTime: 30_000,
   });
-  const sellersQuery = useQuery({
-    queryKey: ["sellers-min"] as const,
-    queryFn: () => sellersProvider.list(),
-    staleTime: 5 * 60_000,
-  });
-  const nameOf = (id: ID) => sellersQuery.data?.find((s) => s.id === id)?.fullName ?? "";
+  const nameOf = useSellerNames();
 
   if (query.isLoading) {
     return <p className="px-4 py-6 text-center text-xs text-muted-foreground">Carregando…</p>;
@@ -155,7 +160,6 @@ function HistoryTab({ leadId }: { leadId: ID }) {
 
 function NotesTab({ lead }: { lead: ILead }) {
   const provider = useLeadsProvider();
-  const sellersProvider = useSellersProvider();
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
   const [content, setContent] = useState("");
@@ -166,12 +170,7 @@ function NotesTab({ lead }: { lead: ILead }) {
     queryFn: () => provider.listNotes(lead.id),
     staleTime: 30_000,
   });
-  const sellersQuery = useQuery({
-    queryKey: ["sellers-min"] as const,
-    queryFn: () => sellersProvider.list(),
-    staleTime: 5 * 60_000,
-  });
-  const nameOf = (id: ID) => sellersQuery.data?.find((s) => s.id === id)?.fullName ?? "";
+  const nameOf = useSellerNames();
 
   const add = async () => {
     const body = content.trim();
@@ -197,6 +196,7 @@ function NotesTab({ lead }: { lead: ILead }) {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder={COPY.notesComposerPlaceholder}
+          aria-label={COPY.notesComposerPlaceholder}
           rows={2}
         />
         <div className="flex justify-end">
@@ -210,7 +210,9 @@ function NotesTab({ lead }: { lead: ILead }) {
           </Button>
         </div>
       </div>
-      {notes.length === 0 ? (
+      {notesQuery.isLoading ? (
+        <p className="px-4 py-6 text-center text-xs text-muted-foreground">Carregando…</p>
+      ) : notes.length === 0 ? (
         <p className="rounded-md border border-dashed border-border px-4 py-8 text-center text-xs text-muted-foreground">
           {COPY.emptyNotes}
         </p>
