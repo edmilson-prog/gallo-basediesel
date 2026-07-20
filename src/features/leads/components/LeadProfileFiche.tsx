@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import type { IConversationContact, ID, ILead } from "@/shared/types";
+import type { IConversation, IConversationContact, ID, ILead } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { formatBRL, formatDateBR, formatPhone } from "@/shared/utils/format";
 import { useSellersProvider } from "@/providers/data";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
+import { useAuth } from "@/features/auth/useAuth";
 // Reuses the customer fiche's breakpoint hook as the single source of truth
 // (column ≥1280 / drawer 768–1279 / route <768 — identical thresholds).
 import { useFicheLayout } from "@/features/customers/hooks/useFicheLayout";
@@ -32,6 +33,8 @@ export interface ILeadProfileFicheProps {
   lead: ILead | null;
   /** Pool-safe contact from `conversation_contacts` — feeds the degraded card. */
   contact: IConversationContact | null;
+  /** The anchoring conversation — feeds the direct-read predicate of "Ver lead". */
+  conversation: IConversation;
   /** Drawer open state from `useConversationFiche()`. */
   open: boolean;
   /** Drawer close handler. */
@@ -51,15 +54,19 @@ export interface ILeadProfileFicheProps {
 export function LeadProfileFiche({
   lead,
   contact,
+  conversation,
   open,
   onOpenChange,
   onConverted,
 }: ILeadProfileFicheProps) {
   const mode = useFicheLayout();
 
-  if (mode === "route") return null;
-
-  if (mode === "drawer") {
+  // Route mode (<768px) deliberately falls back to the same overlay Sheet as
+  // drawer mode — a spec §4 deviation, recorded in the PR: navigating to
+  // /app/leads/:id would land the pool attendant on "Lead não encontrado"
+  // (the PAGE reads under the per-owner leads RLS; only the fiche is
+  // conversation-gated), so the mobile "Ficha" tap opens the sheet instead.
+  if (mode === "drawer" || mode === "route") {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="right" className="w-full max-w-sm overflow-hidden p-0 sm:max-w-md">
@@ -69,6 +76,7 @@ export function LeadProfileFiche({
           <LeadProfileBody
             lead={lead}
             contact={contact}
+            conversation={conversation}
             onConverted={onConverted}
             className="h-full border-l-0"
           />
@@ -90,6 +98,7 @@ export function LeadProfileFiche({
         <LeadProfileBody
           lead={lead}
           contact={contact}
+          conversation={conversation}
           onConverted={onConverted}
           className="h-full"
         />
@@ -101,19 +110,46 @@ export function LeadProfileFiche({
 function LeadProfileBody({
   lead,
   contact,
+  conversation,
   onConverted,
   className,
 }: {
   lead: ILead | null;
   contact: IConversationContact | null;
+  conversation: IConversation;
   onConverted?: () => void;
   className?: string;
 }) {
   const navigate = useNavigate();
   const sellersProvider = useSellersProvider();
-  const canViewLead = usePermission("lead", "view");
-  const canEditLead = usePermission("lead", "edit");
+  const { currentUser } = useAuth();
+  const mySellerId: ID | null = currentUser?.sellerId ?? null;
+  const canViewLeadStore = usePermission("lead", "view", "store");
+  const canViewLeadOwn = usePermission("lead", "view");
+  const canEditLeadStore = usePermission("lead", "edit", "store");
+  const canEditLeadOwn = usePermission("lead", "edit");
   const [convertOpen, setConvertOpen] = useState(false);
+
+  // The always-mounted ConvertLeadModal pattern needs an explicit reset: if a
+  // background detail refetch fails soft and nulls `lead` mid-edit, the modal
+  // unmounts — without this, a later successful refetch would reopen it out of
+  // nowhere (convertOpen would still be true).
+  useEffect(() => {
+    if (!lead) setConvertOpen(false);
+  }, [lead]);
+
+  // RLS-honest action gating (review round 2). "Ver lead" navigates to
+  // /app/leads/:id, which reads under the per-owner leads RLS: staff (store
+  // scope), the lead's owner, or the conversation's assignee
+  // (seller_handles_lead grants direct reads for ASSIGNED conversations only —
+  // the pool variant was reverted for per-row perf in 20260619170000).
+  const isLeadOwner = !!lead?.sellerId && lead.sellerId === mySellerId;
+  const isAssignee = !!conversation.assignedSellerId && conversation.assignedSellerId === mySellerId;
+  const canOpenLeadPage = canViewLeadStore || (canViewLeadOwn && (isLeadOwner || isAssignee));
+  // Conversion writes (customers INSERT + leads UPDATE) pass RLS only for
+  // staff or the lead's own owner — the gated write-RPC stays a v2 item (spec
+  // "Fora de escopo"), so v1 simply never offers a CTA that would 42501.
+  const canConvert = canEditLeadStore || (canEditLeadOwn && isLeadOwner);
 
   const ownerId: ID | null = lead?.sellerId ?? null;
   const ownerQuery = useQuery({
@@ -266,9 +302,9 @@ function LeadProfileBody({
       </div>
 
       {/* Actions */}
-      {lead && (canViewLead || (canEditLead && !converted)) && (
+      {lead && (canOpenLeadPage || (canConvert && !converted)) && (
         <div className="flex flex-col gap-2 border-t border-border px-4 py-3">
-          {canViewLead && (
+          {canOpenLeadPage && (
             <Button
               variant="outline"
               size="sm"
@@ -279,7 +315,7 @@ function LeadProfileBody({
               {COPY.viewLead}
             </Button>
           )}
-          {canEditLead && !converted && (
+          {canConvert && !converted && (
             <Button
               size="sm"
               className="w-full gap-1.5"

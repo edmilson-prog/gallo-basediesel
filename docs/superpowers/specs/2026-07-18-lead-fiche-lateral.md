@@ -113,6 +113,24 @@ modos de layout da ficha de cliente (`useFicheLayout`):
   (`conversations.customer_id`). Se não re-ancorar, registrar follow-up — não expandir
   o escopo deste projeto silenciosamente.
 
+> **Verificado na execução (2026-07-20, PR #339): NÃO re-ancora.** O
+> `ConvertLeadModal` cria o customer e marca o lead (`convertedToCustomerId`),
+> mas nada escreve em `conversations.customer_id` — a conversa continua
+> ancorada no lead após a conversão (ficha de lead com badge "Convertido";
+> Histórico/Copiloto/ficha de cliente seguem indisponíveis nela). **Follow-up
+> registrado:** re-ancorar a conversa na conversão (destrava os três de uma
+> vez); candidato natural ao v2 junto com a RPC de escrita gated.
+>
+> **Desvios do v1 registrados (round 2 da revisão adversarial):**
+> (a) §4 modo `route` — o mobile abre o mesmo Sheet do modo drawer em vez de
+> navegar para `/app/leads/:id`: a PÁGINA de lead lê sob a RLS per-owner e
+> daria "Lead não encontrado" para o atendente de pool; só a ficha é gated
+> pela conversa. (b) As ações "Ver lead" e "Converter em cliente" são gated
+> pelo predicado RLS-real (staff-store / dono do lead / responsável da
+> conversa), não só pela permissão de papel — a conversão por não-staff em
+> lead sem dono falharia com 42501 (`customers_insert`/`leads_update`); a
+> RPC de escrita gated fica no v2.
+
 ## Rollout
 
 1. PR com migration **versionada no repo** + frontend juntos.

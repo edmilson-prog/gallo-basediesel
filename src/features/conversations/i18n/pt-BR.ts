@@ -236,6 +236,7 @@ export const CONVERSATION_STRINGS = {
   toggleMedia: "Mídias",
   toggleHistory: "Histórico",
   historyUnavailableTooltip: "Disponível quando o contato virar cliente",
+  ficheUnavailableTooltip: "Sem contato vinculado a esta conversa",
   moreActions: "Mais ações",
   sdrActiveTag: "SDR ativo",
   sdrActiveTooltip: "Esta conversa está sendo atendida pelo agente SDR",

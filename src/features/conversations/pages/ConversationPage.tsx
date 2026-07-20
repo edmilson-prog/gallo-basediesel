@@ -111,7 +111,6 @@ export function ConversationPage() {
   const [templateSignal, setTemplateSignal] = useState(0);
   const ficheButtonClick = useFicheButtonHandler({
     customerId: detail.conversation?.customerId ?? null,
-    leadId: detail.conversation?.leadId ?? null,
     toggle: fiche.toggle,
   });
   const consultor = useConsultorPanel();
@@ -248,6 +247,7 @@ export function ConversationPage() {
                 assignedSeller={assignedSeller}
                 showAssignee={showAssignee}
                 ficheOpen={fiche.open}
+                ficheDisabled={!conversation.customerId && !conversation.leadId}
                 onToggleFiche={toggleFicheExclusive}
                 mediaOpen={media.open}
                 onToggleMedia={toggleMediaExclusive}
@@ -352,6 +352,7 @@ export function ConversationPage() {
               <LeadProfileFiche
                 lead={lead}
                 contact={contact}
+                conversation={conversation}
                 open={fiche.open}
                 onOpenChange={fiche.setOpen}
                 onConverted={detail.refresh}

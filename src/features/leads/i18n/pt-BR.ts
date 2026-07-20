@@ -253,6 +253,5 @@ export const LEADS_STRINGS = {
     convert: "Converter em cliente",
     degradedNotice:
       "Não foi possível carregar os dados completos do lead. Exibindo as informações do contato.",
-    openOnMobileLabel: "Abrir ficha do lead",
   },
 } as const;

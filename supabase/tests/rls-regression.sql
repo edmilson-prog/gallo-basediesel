@@ -1599,6 +1599,23 @@ begin
   perform set_config('rls_regression.lead_fiche_lead', v_lead::text, true);
 end $$;
 
+-- Second fixture: an EXISTING conversation lucas cannot access (assigned to the
+-- OWNER's seller, accountless → not pool, not lucas's) anchoring the same lead.
+-- This exercises the can_access_conversation gate itself on the negative path —
+-- an unknown-uuid probe alone would pass vacuously via the join.
+do $$
+declare
+  v_conv2 uuid := gen_random_uuid();
+begin
+  insert into public.conversations (id, store_id, lead_id, assigned_seller_id, channel, status, last_message_at)
+  values (
+    v_conv2, '00000000-0000-0000-0000-000000000001',
+    current_setting('rls_regression.lead_fiche_lead', true),
+    '57706ecc-01b5-4a96-b403-0359a4bb767f', 'whatsapp', 'em_andamento', now()
+  );
+  perform set_config('rls_regression.lead_fiche_conv_denied', v_conv2::text, true);
+end $$;
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
@@ -1620,9 +1637,16 @@ begin
   if (select count(*) from public.lead_via_conversation(v_conv)) <> 1 then
     raise exception 'lead_via_conversation: lucas should read the ownerless lead via the accessible pool conversation';
   end if;
-  -- An unknown/inaccessible conversation yields zero rows (gate closes).
+  -- An unknown conversation yields zero rows.
   if (select count(*) from public.lead_via_conversation(gen_random_uuid())) <> 0 then
     raise exception 'lead_via_conversation: unknown conversation must yield no rows';
+  end if;
+  -- An EXISTING conversation lucas cannot access (assigned to another seller,
+  -- no instance) must ALSO yield zero rows — the gate itself, not the join.
+  if (select count(*)
+        from public.lead_via_conversation(
+          current_setting('rls_regression.lead_fiche_conv_denied', true)::uuid)) <> 0 then
+    raise exception 'lead_via_conversation: inaccessible conversation must yield no rows (gate)';
   end if;
 end $$;
 reset role;
