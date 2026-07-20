@@ -364,3 +364,90 @@ describe("parseWahaMessageEvent — ad referral (hypothesized _data.Message shap
     expect(parsed.adReferral?.mediaType).toBe("video");
   });
 });
+
+describe("parseWahaMessageEvent — reply to a WhatsApp Status", () => {
+  // Trimmed from a real webhook_deliveries capture (2026-07-20): a customer
+  // commented "Valor galo ?" on the store's own Status update. The comment
+  // itself carries no media (hasMedia:false) — the photo lives ONLY in the
+  // quoted status, surfaced by WAHA at the top-level `replyTo`. Without
+  // pulling it in here, the image is gone forever (statuses aren't a
+  // conversation we store).
+  const statusReplyPayload = {
+    id: "false_15608045400129@lid_3A3DC5324010B5C93AF3",
+    timestamp: 1784553997,
+    from: "15608045400129@lid",
+    fromMe: false,
+    body: "Valor galo ?",
+    hasMedia: false,
+    media: null,
+    _data: {
+      Message: {
+        extendedTextMessage: {
+          text: "Valor galo ?",
+          contextInfo: {
+            remoteJID: "status@broadcast",
+            participant: "64780991787087@lid",
+          },
+        },
+      },
+    },
+    replyTo: {
+      id: "2AA57D4DC61F483E9164",
+      body: "PLD EURO 5/3 NOVO.",
+      hasMedia: true,
+      media: {
+        url: "https://waha.ailainteligente.com.br/api/files/vendas-waha-6ea34d/2AA57D4DC61F483E9164.jpeg",
+        mimetype: "image/jpeg",
+      },
+      participant: "64780991787087@lid",
+    },
+  };
+
+  it("attaches the quoted status image as this message's own media, keeping the customer's comment as text", () => {
+    const parsed = parseWahaMessageEvent(statusReplyPayload, "acc-1");
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.contentType).toBe("image");
+    expect(parsed.mediaId).toBe(
+      "https://waha.ailainteligente.com.br/api/files/vendas-waha-6ea34d/2AA57D4DC61F483E9164.jpeg",
+    );
+    expect(parsed.text).toBe("Valor galo ?");
+  });
+
+  it("falls back to plain text when the quoted status has no media (text-only status)", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        ...statusReplyPayload,
+        id: "id-no-media-status",
+        replyTo: { ...statusReplyPayload.replyTo, hasMedia: false, media: undefined },
+      },
+      "acc-1",
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.contentType).toBe("text");
+    expect(parsed.text).toBe("Valor galo ?");
+  });
+
+  it("does NOT pull in quoted media for a normal in-chat reply (not a status)", () => {
+    // Same replyTo shape, but contextInfo.remoteJID points at the chat itself
+    // instead of "status@broadcast" — quoting a message already visible in
+    // this conversation's own history, so re-attaching it would duplicate it.
+    const parsed = parseWahaMessageEvent(
+      {
+        ...statusReplyPayload,
+        id: "id-normal-quote",
+        _data: {
+          Message: {
+            extendedTextMessage: {
+              text: "Valor galo ?",
+              contextInfo: { remoteJID: "5519993249725@s.whatsapp.net" },
+            },
+          },
+        },
+      },
+      "acc-1",
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.contentType).toBe("text");
+    expect(parsed.mediaId).toBeUndefined();
+  });
+});
