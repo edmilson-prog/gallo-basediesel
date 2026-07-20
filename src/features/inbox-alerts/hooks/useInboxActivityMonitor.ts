@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";
-import { useAudioUnlock } from "@/features/session-timeout/hooks/useAudioUnlock";
+import { useAudioUnlock } from "@/shared/hooks/useAudioUnlock";
 import {
   getActiveDataSource,
   useConversationsProvider,

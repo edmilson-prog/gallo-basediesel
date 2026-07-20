@@ -9,7 +9,7 @@ import { computeIdlePhase } from "../engine/idlePhases";
 import { shouldBeepAtTick } from "../engine/beepSchedule";
 import { createBeeper, type IBeeper } from "../lib/beep";
 import { useActivityTracker } from "./useActivityTracker";
-import { useAudioUnlock } from "./useAudioUnlock";
+import { useAudioUnlock } from "@/shared/hooks/useAudioUnlock";
 import { useCrossTabActivity } from "./useCrossTabActivity";
 
 export interface ISessionTimeoutState {
