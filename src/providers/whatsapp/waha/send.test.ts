@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { sendWahaMedia, sendWahaText } from "./send";
+import { extractLidChatId, sendWahaMedia, sendWahaText } from "./send";
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -98,6 +98,60 @@ describe("sendWahaMedia", () => {
     });
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
     expect(body.caption).toBeUndefined();
+  });
+});
+
+describe("chatId override (lid-addressed chats)", () => {
+  it("sendWahaText uses an explicit chatId verbatim instead of deriving one from toPhone", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_1@lid_A" }));
+    await sendWahaText("key", fetchFn, target, {
+      toPhone: "",
+      chatId: "34523215618230@lid",
+      text: "oi",
+    });
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.chatId).toBe("34523215618230@lid");
+  });
+
+  it("sendWahaMedia uses an explicit chatId verbatim too", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_2@lid_B" }));
+    await sendWahaMedia("key", fetchFn, target, {
+      toPhone: "",
+      chatId: "34523215618230@lid",
+      mediaType: "image",
+      mediaUrl: "https://storage.example.com/signed.jpg",
+    });
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.chatId).toBe("34523215618230@lid");
+  });
+
+  it("still derives the chatId from toPhone when no override is given", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_3@c.us_C" }));
+    await sendWahaText("key", fetchFn, target, { toPhone: "+5511988887777", text: "oi" });
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.chatId).toBe("5511988887777@c.us");
+  });
+});
+
+describe("extractLidChatId", () => {
+  it("extracts the chat JID from a lid-addressed WAHA message id", () => {
+    expect(extractLidChatId("false_34523215618230@lid_3A671E9C4C83C7AD6082")).toBe(
+      "34523215618230@lid",
+    );
+  });
+
+  it("returns null for a phone-addressed (c.us) id", () => {
+    expect(extractLidChatId("true_554796061632@c.us_2A8E35912FEA3E0493A7")).toBeNull();
+  });
+
+  it("returns null for group ids even when a participant segment is a lid", () => {
+    expect(extractLidChatId("false_120363043211@g.us_ABC_456@lid")).toBeNull();
+  });
+
+  it("returns null for empty or malformed input", () => {
+    expect(extractLidChatId("")).toBeNull();
+    expect(extractLidChatId("not-a-waha-id")).toBeNull();
+    expect(extractLidChatId("34523215618230@lid")).toBeNull();
   });
 });
 

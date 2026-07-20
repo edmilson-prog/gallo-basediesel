@@ -24,7 +24,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.
 import { bestEffortAudit } from "./audit.ts";
 import { createSecretResolver } from "./secrets.ts";
 import { WhatsAppProviderError } from "./whatsapp/errors.ts";
-import { sendWahaMedia, sendWahaText } from "./whatsapp/waha/send.ts";
+import { extractLidChatId, sendWahaMedia, sendWahaText } from "./whatsapp/waha/send.ts";
 import type { IWahaSessionTarget } from "./whatsapp/waha/session.ts";
 
 export interface IWahaDispatchResult {
@@ -35,6 +35,83 @@ export interface IWahaDispatchResult {
 interface IWahaTarget extends IWahaSessionTarget {
   apiKey: string;
   toPhone: string;
+  /** Verbatim chat JID (e.g. `123@lid`) when the contact has no resolvable phone. */
+  chatId?: string;
+}
+
+export interface IWahaRecipient {
+  toPhone: string;
+  /** Set only on the lid last-resort path — passed verbatim to the WAHA API. */
+  chatId?: string;
+}
+
+/**
+ * Resolves WHO a conversation's outbound WAHA message goes to.
+ *
+ * Resolution order (Funnel Frente 3 — PR #331 — made lead-only conversations
+ * the norm: the webhook now creates a Lead for unknown numbers and the
+ * Frente B migration relinked ~2.4k historical conversations from placeholder
+ * customers to leads, so `customers(phone)` alone stopped covering most rows):
+ *
+ *   1. `customers.phone`  — conversations still linked to a real customer;
+ *   2. `leads.phone`      — lead-only conversations (the webhook stores the
+ *                            canonical number, lid already resolved);
+ *   3. `@lid` chat JID    — last resort for contacts with no resolvable
+ *                            phone at all, extracted from the latest inbound
+ *                            message id (WhatsApp itself addresses these
+ *                            privacy-locked chats by lid).
+ *
+ * Returns null when none of the three resolves — callers raise their own
+ * 422 ("Contato sem telefone cadastrado"). Shared by `waha-send`,
+ * `scheduled-send-worker` (via resolveWahaTarget below) and
+ * `sdr-respond/dispatch.ts` so the three paths never drift again.
+ */
+export async function resolveWahaRecipient(
+  admin: SupabaseClient,
+  conversationId: string,
+  known?: { customerPhone?: string | null; leadId?: string | null },
+): Promise<IWahaRecipient | null> {
+  let customerPhone = known?.customerPhone ?? null;
+  let leadId = known?.leadId ?? null;
+  if (known === undefined) {
+    const { data: conversation } = await admin
+      .from("conversations")
+      .select("lead_id, customers(phone)")
+      .eq("id", conversationId)
+      .maybeSingle();
+    const row = conversation as unknown as {
+      lead_id?: string | null;
+      customers?: { phone?: string | null } | null;
+    } | null;
+    customerPhone = row?.customers?.phone ?? null;
+    leadId = row?.lead_id ?? null;
+  }
+
+  if (customerPhone) return { toPhone: customerPhone };
+
+  if (leadId) {
+    const { data: lead } = await admin
+      .from("leads")
+      .select("phone")
+      .eq("id", leadId)
+      .maybeSingle();
+    const leadPhone = (lead?.phone as string | null) ?? null;
+    if (leadPhone) return { toPhone: leadPhone };
+  }
+
+  const { data: lastLidInbound } = await admin
+    .from("messages")
+    .select("provider_message_id")
+    .eq("conversation_id", conversationId)
+    .eq("direction", "in")
+    .like("provider_message_id", "%@lid_%")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const chatId = extractLidChatId(String(lastLidInbound?.provider_message_id ?? ""));
+  if (chatId) return { toPhone: "", chatId };
+
+  return null;
 }
 
 /** Resolves the WAHA session/server/recipient for a conversation. Throws VALIDATION_ERROR on any gap. */
@@ -44,7 +121,7 @@ async function resolveWahaTarget(
 ): Promise<IWahaTarget> {
   const { data: conversation } = await admin
     .from("conversations")
-    .select("id, whatsapp_account_id, customers(phone)")
+    .select("id, whatsapp_account_id, lead_id, customers(phone)")
     .eq("id", conversationId)
     .maybeSingle();
   if (!conversation?.whatsapp_account_id) {
@@ -96,13 +173,19 @@ async function resolveWahaTarget(
     );
   }
 
-  const toPhone = (conversation as unknown as { customers?: { phone?: string } }).customers
-    ?.phone;
-  if (!toPhone) {
-    throw new WhatsAppProviderError("VALIDATION_ERROR", 422, "Cliente sem telefone cadastrado");
+  const row = conversation as unknown as {
+    customers?: { phone?: string | null } | null;
+    lead_id?: string | null;
+  };
+  const recipient = await resolveWahaRecipient(admin, conversationId, {
+    customerPhone: row.customers?.phone ?? null,
+    leadId: row.lead_id ?? null,
+  });
+  if (!recipient) {
+    throw new WhatsAppProviderError("VALIDATION_ERROR", 422, "Contato sem telefone cadastrado");
   }
 
-  return { baseUrl, sessionName, apiKey, toPhone };
+  return { baseUrl, sessionName, apiKey, toPhone: recipient.toPhone, chatId: recipient.chatId };
 }
 
 interface IPersistAndDispatchArgs {
@@ -186,6 +269,7 @@ export async function dispatchWahaText(
     send: (target) =>
       sendWahaText(target.apiKey, globalThis.fetch, target, {
         toPhone: target.toPhone,
+        chatId: target.chatId,
         text: input.text,
       }),
   });
@@ -216,6 +300,7 @@ export async function dispatchWahaMedia(
     send: (target) =>
       sendWahaMedia(target.apiKey, globalThis.fetch, target, {
         toPhone: target.toPhone,
+        chatId: target.chatId,
         mediaType: input.mediaType,
         mediaUrl: input.mediaUrl,
         filename: input.fileName,
