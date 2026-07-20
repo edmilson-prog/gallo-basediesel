@@ -131,6 +131,9 @@ export const LEADS_STRINGS = {
     emptyConversations: "Sem conversas vinculadas ao lead.",
     emptyNotes: "Sem notas registradas para este lead.",
     emptyHistory: "Sem eventos registrados.",
+    notesComposerPlaceholder: "Escreva uma nota…",
+    addNote: "Adicionar",
+    noteSaveError: "Não foi possível salvar a nota.",
     actions: {
       edit: "Editar",
       markConverted: "Marcar como convertido",
