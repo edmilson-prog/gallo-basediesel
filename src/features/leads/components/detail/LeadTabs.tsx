@@ -169,6 +169,10 @@ function NotesTab({ lead }: { lead: ILead }) {
     queryKey: ["lead-notes", lead.id] as const,
     queryFn: () => provider.listNotes(lead.id),
     staleTime: 30_000,
+    // The `lead_notes` migration is not yet applied in prod — retry: false
+    // makes the absent-table path resolve to the empty state immediately
+    // instead of retrying 3x with backoff.
+    retry: false,
   });
   const nameOf = useSellerNames();
 

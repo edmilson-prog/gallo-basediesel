@@ -80,18 +80,27 @@ function rowToLead(row: LeadRow): ILead {
 }
 
 /** Maps a camelCase patch to snake_case columns. `id`/`storeId`/`createdAt` are
- *  immutable and never written; `updatedAt` is set by the caller. */
-function leadPatchToRow(patch: Partial<ILead>): Record<string, unknown> {
+ *  immutable and never written; `updatedAt` is set by the caller.
+ *
+ *  `email`/`estimatedValue`/`nextActionAt` are the inline-editable optional
+ *  fields (see `buildLeadPatch`, which emits `{ field: undefined }` to mean
+ *  "clear this field"). For those three, presence of the key in the patch —
+ *  not just a defined value — decides whether the column is written, and an
+ *  `undefined` value coalesces to `null` so a clear actually clears the row
+ *  instead of silently no-oping. The other optional columns below are never
+ *  cleared via this flow, so they keep the plain `!== undefined` guard.
+ */
+export function leadPatchToRow(patch: Partial<ILead>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
   if (patch.sellerId !== undefined) row.seller_id = patch.sellerId;
   if (patch.name !== undefined) row.name = patch.name;
   if (patch.phone !== undefined) row.phone = patch.phone;
-  if (patch.email !== undefined) row.email = patch.email;
+  if ("email" in patch) row.email = patch.email ?? null;
   if (patch.stage !== undefined) row.stage = patch.stage;
   if (patch.temperature !== undefined) row.temperature = patch.temperature;
   if (patch.origin !== undefined) row.origin = patch.origin;
-  if (patch.estimatedValue !== undefined) row.estimated_value = patch.estimatedValue;
-  if (patch.nextActionAt !== undefined) row.next_action_at = patch.nextActionAt;
+  if ("estimatedValue" in patch) row.estimated_value = patch.estimatedValue ?? null;
+  if ("nextActionAt" in patch) row.next_action_at = patch.nextActionAt ?? null;
   if (patch.lossReason !== undefined) row.loss_reason = patch.lossReason;
   if (patch.lossNotes !== undefined) row.loss_notes = patch.lossNotes;
   if (patch.convertedToCustomerId !== undefined)
