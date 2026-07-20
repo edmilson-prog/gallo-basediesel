@@ -1,4 +1,4 @@
-import type { ID, ILead } from "@/shared/types";
+import type { ID, ILead, ILeadNote } from "@/shared/types";
 import { buildDigitSearchCandidates, digitsOf } from "@/shared/utils/digitSearch";
 import { selectAllLeads, selectLeadById } from "../store/selectors";
 import { patchById, removeById, upsert } from "../store/mutations";
@@ -9,6 +9,9 @@ import {
   type IPaginatedResult,
   type IPaginationParams,
 } from "./utils";
+
+/** In-memory notes store, keyed by lead id. */
+const leadNotes = new Map<string, ILeadNote[]>();
 
 export interface IListLeadsParams extends IPaginationParams {
   storeId?: ID;
@@ -55,6 +58,21 @@ export const leadsApi = {
       if (!found) throw new MockNotFoundError("lead", id);
       return found;
     });
+  },
+
+  async listNotes(leadId: ID): Promise<ILeadNote[]> {
+    return [...(leadNotes.get(leadId) ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+
+  async addNote(leadId: ID, content: string, authorId: ID): Promise<ILeadNote> {
+    const note: ILeadNote = {
+      id: `lead-note-${crypto.randomUUID()}`,
+      authorId,
+      content,
+      createdAt: new Date().toISOString(),
+    };
+    leadNotes.set(leadId, [...(leadNotes.get(leadId) ?? []), note]);
+    return note;
   },
 
   async create(

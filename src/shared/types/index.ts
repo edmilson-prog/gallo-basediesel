@@ -128,6 +128,7 @@ export type {
 // Lead, pipeline, wallet transfer
 export type {
   ILead,
+  ILeadNote,
   ILeadStage,
   ICarteiraTransfer,
   LeadTemperature,

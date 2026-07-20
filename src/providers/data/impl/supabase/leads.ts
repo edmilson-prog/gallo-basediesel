@@ -1,4 +1,12 @@
-import type { ID, ILead, ILeadStage, LeadOrigin, LeadTemperature, Money } from "@/shared/types";
+import type {
+  ID,
+  ILead,
+  ILeadNote,
+  ILeadStage,
+  LeadOrigin,
+  LeadTemperature,
+  Money,
+} from "@/shared/types";
 import type { IListLeadsParams, ILeadsProvider } from "../../contracts/leads";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
@@ -119,6 +127,19 @@ function createInputToRow(
   };
 }
 
+interface LeadNoteRow {
+  id: string;
+  lead_id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+}
+const NOTES_TABLE = "lead_notes";
+const NOTE_COLUMNS = "id, lead_id, author_id, content, created_at";
+function rowToLeadNote(row: LeadNoteRow): ILeadNote {
+  return { id: row.id, authorId: row.author_id, content: row.content, createdAt: row.created_at };
+}
+
 /**
  * Builds the PostgREST `.or()` expression for the free-text lead search, or
  * `null` when the term is blank — same mechanics as buildCustomerSearchOr
@@ -192,6 +213,27 @@ export const supabaseLeadsProvider: ILeadsProvider = {
       );
     if (!data) return null;
     return rowToLead(data as unknown as LeadRow);
+  },
+
+  async listNotes(leadId: ID): Promise<ILeadNote[]> {
+    const { data, error } = await getSupabaseClient()
+      .from(NOTES_TABLE)
+      .select(NOTE_COLUMNS)
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(`[supabase] leads.listNotes(${leadId}) failed: ${error.message}`);
+    return (data as LeadNoteRow[]).map(rowToLeadNote);
+  },
+
+  async addNote(leadId: ID, content: string, authorId: ID): Promise<ILeadNote> {
+    const id: ID = crypto.randomUUID();
+    const { data, error } = await getSupabaseClient()
+      .from(NOTES_TABLE)
+      .insert({ id, lead_id: leadId, author_id: authorId, content })
+      .select(NOTE_COLUMNS)
+      .single();
+    if (error) throw new Error(`[supabase] leads.addNote(${leadId}) failed: ${error.message}`);
+    return rowToLeadNote(data as LeadNoteRow);
   },
 
   async create(

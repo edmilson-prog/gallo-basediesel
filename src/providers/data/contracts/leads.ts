@@ -1,4 +1,4 @@
-import type { ID, ILead } from "@/shared/types";
+import type { ID, ILead, ILeadNote } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 export interface IListLeadsParams extends IPaginationParams {
@@ -29,6 +29,10 @@ export interface ILeadsProvider {
    * Mirror of `ICustomersProvider.getViaConversation`.
    */
   getViaConversation(conversationId: ID): Promise<ILead | null>;
+  /** Notes recorded against the lead, newest first. */
+  listNotes(leadId: ID): Promise<ILeadNote[]>;
+  /** Appends a note authored by `authorId` (a seller id). */
+  addNote(leadId: ID, content: string, authorId: ID): Promise<ILeadNote>;
   create(input: Omit<ILead, "id" | "createdAt" | "updatedAt" | "conversations">): Promise<ILead>;
   update(id: ID, patch: Partial<ILead>): Promise<ILead>;
   delete(id: ID): Promise<void>;
