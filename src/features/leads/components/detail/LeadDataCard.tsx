@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { ILead, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Input } from "@/components/ui/input";
@@ -22,12 +21,11 @@ import {
   isLost,
 } from "../../utils/leadDisplay";
 import { LEAD_TEMPERATURES } from "../../utils/listFilters";
-import {
-  addTag,
-  normalizeTag,
-  type ILeadDraft,
-  type ILeadDraftErrors,
-} from "../../utils/leadDraft";
+import type { ILeadDraft, ILeadDraftErrors } from "../../utils/leadDraft";
+import { matchCatalogTag } from "../../utils/leadTagCatalog";
+import { useLeadTagCatalog } from "../../hooks/useLeadTagCatalog";
+import { tagColorHex } from "@/features/conversations/engine/tagCatalog";
+import { LeadTagPicker } from "./LeadTagPicker";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 
 const COPY = LEADS_STRINGS.detail;
@@ -55,6 +53,7 @@ export function LeadDataCard({
   const converted = isConverted(lead);
   const lost = isLost(lead);
   const stageDays = daysInStage(lead);
+  const tagCatalog = useLeadTagCatalog(lead.storeId);
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -107,18 +106,33 @@ export function LeadDataCard({
           {COPY.fields.tags}
         </p>
         {editing ? (
-          <TagsEditorSlot draft={draft} onDraftChange={onDraftChange} />
+          <LeadTagPicker
+            selected={draft.tags}
+            catalog={tagCatalog}
+            onChange={(tags) => onDraftChange({ tags })}
+          />
         ) : lead.tags.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
-            {lead.tags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-xs text-foreground"
-              >
-                <Icon icon="mdi:tag-outline" size={12} className="text-muted-foreground" />
-                {tag}
-              </span>
-            ))}
+            {lead.tags.map((tag) => {
+              const match = matchCatalogTag(tag, tagCatalog);
+              return (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/60 px-2.5 py-1 text-xs text-foreground"
+                >
+                  {match ? (
+                    <span
+                      aria-hidden
+                      className="inline-block h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: tagColorHex(match.color) }}
+                    />
+                  ) : (
+                    <Icon icon="mdi:tag-outline" size={12} className="text-muted-foreground" />
+                  )}
+                  {tag}
+                </span>
+              );
+            })}
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">{COPY.noTags}</p>
@@ -240,55 +254,6 @@ function Dim({ children }: { children: React.ReactNode }) {
 }
 
 // --- Edit slots ---
-
-function TagsEditorSlot({
-  draft,
-  onDraftChange,
-}: {
-  draft: ILeadDraft;
-  onDraftChange: (p: Partial<ILeadDraft>) => void;
-}) {
-  const [input, setInput] = useState("");
-  const commit = () => {
-    const next = addTag(draft.tags, input);
-    onDraftChange({ tags: next });
-    setInput("");
-  };
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {draft.tags.map((tag) => (
-        <span
-          key={tag}
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2 py-1 text-xs"
-        >
-          {tag}
-          <button
-            type="button"
-            aria-label={`Remover ${tag}`}
-            className="cursor-pointer text-muted-foreground hover:text-foreground"
-            onClick={() => onDraftChange({ tags: draft.tags.filter((t) => t !== tag) })}
-          >
-            <Icon icon="mdi:close" size={12} />
-          </button>
-        </span>
-      ))}
-      <Input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === ",") {
-            e.preventDefault();
-            commit();
-          }
-        }}
-        onBlur={() => normalizeTag(input) && commit()}
-        placeholder={COPY.addTagPlaceholder}
-        aria-label={COPY.addTagPlaceholder}
-        className="h-7 w-32 text-xs"
-      />
-    </div>
-  );
-}
 
 function EditCommercialSlot({
   draft,
