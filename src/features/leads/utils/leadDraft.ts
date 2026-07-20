@@ -1,4 +1,4 @@
-import type { ID, ILead, LeadTemperature } from "@/shared/types";
+import type { ILead, LeadTemperature } from "@/shared/types";
 import { LEADS_STRINGS } from "../i18n/pt-BR";
 
 export interface ILeadDraft {
@@ -27,20 +27,34 @@ export function addTag(tags: string[], raw: string): string[] {
   return [...tags, tag];
 }
 
+/**
+ * Parses a money string, accepting both BR-style "1.234,50" (comma decimal,
+ * dot thousands separator) and the plain `String(number)` form ("1500.5").
+ * Only strips dots as thousands separators when a comma is present — a bare
+ * dot is treated as the decimal point, so an unedited round-trip through
+ * `toLeadDraft` never gets corrupted (e.g. "1500.5" must stay 1500.5, not
+ * become 15005).
+ */
 function parseValue(raw: string): number | undefined {
   const trimmed = raw.trim();
   if (!trimmed) return undefined;
-  // Accept BR-style "1.234,50" and plain "1234.5".
-  const normalized = trimmed.replace(/\./g, "").replace(",", ".");
+  const normalized = trimmed.includes(",")
+    ? trimmed.replace(/\./g, "").replace(",", ".")
+    : trimmed;
   const n = Number(normalized);
   return Number.isFinite(n) ? n : undefined;
+}
+
+/** Truncates an ISO8601 timestamp to its yyyy-mm-dd day component. */
+function toDay(iso: string | undefined): string {
+  return iso ? iso.slice(0, 10) : "";
 }
 
 export function toLeadDraft(lead: ILead): ILeadDraft {
   return {
     temperature: lead.temperature,
     estimatedValue: lead.estimatedValue !== undefined ? String(lead.estimatedValue) : "",
-    nextActionAt: lead.nextActionAt ? lead.nextActionAt.slice(0, 10) : "",
+    nextActionAt: toDay(lead.nextActionAt),
     email: lead.email ?? "",
     tags: [...lead.tags],
   };
@@ -61,22 +75,32 @@ function sameTags(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((t, i) => t === b[i]);
 }
 
-/** Only the fields whose value actually changed vs the lead. */
+/**
+ * Only the fields whose value actually changed vs the lead.
+ *
+ * Precondition: callers should run `validateLeadDraft` first and block
+ * saving on errors. As a defensive fallback, a non-empty but unparsable
+ * `estimatedValue` is treated as "no change" (the lead's current value is
+ * left untouched) — never as a silent wipe. Only an emptied field clears
+ * the value to `undefined`.
+ */
 export function buildLeadPatch(lead: ILead, draft: ILeadDraft): Partial<ILead> {
   const patch: Partial<ILead> = {};
   if (draft.temperature !== lead.temperature) patch.temperature = draft.temperature;
 
+  const trimmedValue = draft.estimatedValue.trim();
   const value = parseValue(draft.estimatedValue);
-  if (value !== lead.estimatedValue) patch.estimatedValue = value;
+  const isUnparsableNonEmpty = trimmedValue !== "" && value === undefined;
+  if (!isUnparsableNonEmpty && value !== lead.estimatedValue) patch.estimatedValue = value;
 
   const nextAction = draft.nextActionAt ? new Date(draft.nextActionAt).toISOString() : undefined;
-  const currentNextActionDay = lead.nextActionAt ? lead.nextActionAt.slice(0, 10) : "";
+  const currentNextActionDay = toDay(lead.nextActionAt);
   if (draft.nextActionAt !== currentNextActionDay) patch.nextActionAt = nextAction;
 
   const email = draft.email.trim().toLowerCase() || undefined;
   if (email !== lead.email) patch.email = email;
 
-  const tags: ID[] = draft.tags.map(normalizeTag).filter(Boolean);
+  const tags: string[] = draft.tags.map(normalizeTag).filter(Boolean);
   if (!sameTags(tags, lead.tags)) patch.tags = tags;
 
   return patch;

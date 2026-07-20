@@ -87,4 +87,18 @@ describe("buildLeadPatch", () => {
     const d = { ...toLeadDraft(withValues), estimatedValue: "", email: "" };
     expect(buildLeadPatch(withValues, d)).toEqual({ estimatedValue: undefined, email: undefined });
   });
+  it("does not corrupt an unedited decimal estimated value on round-trip", () => {
+    const withDecimal = { ...lead, estimatedValue: 1500.5 };
+    const d = { ...toLeadDraft(withDecimal), temperature: "quente" as const };
+    expect(buildLeadPatch(withDecimal, d)).toEqual({ temperature: "quente" });
+  });
+  it("does not silently wipe the value on unparsable non-empty input", () => {
+    const withValues = { ...lead, estimatedValue: 500 };
+    const d = { ...toLeadDraft(withValues), estimatedValue: "abc" };
+    const patch = buildLeadPatch(withValues, d);
+    expect(patch).toEqual({});
+    // toEqual alone treats { estimatedValue: undefined } as equal to {}, so
+    // assert the key is truly absent (no accidental clear) as well.
+    expect(patch).not.toHaveProperty("estimatedValue");
+  });
 });
