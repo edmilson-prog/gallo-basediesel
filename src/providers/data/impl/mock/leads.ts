@@ -12,6 +12,8 @@ export const mockLeadsProvider: ILeadsProvider = {
     if (!conversation?.leadId) return null;
     return leadsApi.get(conversation.leadId).catch(() => null);
   },
+  listNotes: (leadId) => leadsApi.listNotes(leadId),
+  addNote: (leadId, content, authorId) => leadsApi.addNote(leadId, content, authorId),
   create: (input) => leadsApi.create(withCreateStoreId(input)),
   update: async (id, patch) => {
     const before = await leadsApi.get(id).catch(() => null);

@@ -55,6 +55,14 @@ export interface ILead {
   updatedAt: ISO8601;
 }
 
+/** A free-text note recorded against a lead (mirrors ICustomerNote). */
+export interface ILeadNote {
+  id: ID;
+  authorId: ID;
+  content: string;
+  createdAt: ISO8601;
+}
+
 /** Type of a wallet (carteira) transfer between sellers. */
 export type CarteiraTransferType = "temporary" | "permanent_individual" | "permanent_batch";
 
