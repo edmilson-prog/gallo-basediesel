@@ -247,6 +247,8 @@ export const LEADS_STRINGS = {
     estimatedValue: "Valor estimado",
     nextAction: "Próxima ação",
     email: "E-mail",
+    invalidValue: "Valor inválido.",
+    invalidEmail: "E-mail inválido.",
     stateConverted: "Convertido",
     stateLost: "Perdido",
     viewLead: "Ver lead",
