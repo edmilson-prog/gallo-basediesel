@@ -1651,6 +1651,49 @@ begin
 end $$;
 reset role;
 
+-- ---------------------------------------------------------------------------
+-- lead_notes (2026-07-20): notes inherit the parent lead's visibility. The
+-- derived RLS re-applies leads_select via the store subquery, so lucas (owner
+-- of the fixture lead, store ...0001) reads his note, while a seller scoped to
+-- a different store sees nothing.
+-- ---------------------------------------------------------------------------
+reset role;
+do $$
+declare v_lead uuid := gen_random_uuid();
+begin
+  insert into public.leads (id, store_id, seller_id, name, phone, stage, temperature, origin, conversations, tags)
+  values (v_lead, '00000000-0000-0000-0000-000000000001', '5a6400ed-5aec-4bf1-b641-31635f15c887',
+          'RLS Fixture — lead notes', '+5555999991111',
+          '{"id":"stage-novo","name":"Novo","color":"#5b6b7a","order":1}'::jsonb, 'frio', 'whatsapp', '{}', '{}');
+  insert into public.lead_notes (lead_id, author_id, content)
+  values (v_lead, '5a6400ed-5aec-4bf1-b641-31635f15c887', 'nota do lucas');
+  perform set_config('rls_regression.lead_note_lead', v_lead::text, true);
+end $$;
+
+-- positive: owner lucas reads his lead note
+select set_config('request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}', true);
+set local role authenticated;
+do $$
+begin
+  if (select count(*) from public.lead_notes where lead_id = current_setting('rls_regression.lead_note_lead', true)::uuid) <> 1 then
+    raise exception 'lead_notes: owner lucas should read his lead note';
+  end if;
+end $$;
+reset role;
+
+-- negative: a seller scoped to a different store must not see the note
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000aa","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"00000000-0000-0000-0000-0000000000bb","store_id":"00000000-0000-0000-0000-000000000002"}}', true);
+set local role authenticated;
+do $$
+begin
+  if (select count(*) from public.lead_notes where lead_id = current_setting('rls_regression.lead_note_lead', true)::uuid) <> 0 then
+    raise exception 'lead_notes: cross-store seller must not see the note';
+  end if;
+end $$;
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;
