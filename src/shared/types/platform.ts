@@ -10,6 +10,7 @@ import type { IInventoryAnalysisSettings } from "./inventory";
 import type { IInsightThresholds } from "./insights";
 import type { IStorefrontConfig } from "./storefront";
 import type { IForecastConfig } from "./forecast";
+import type { ISoundSettings } from "./sound";
 
 /** Idle-timeout (inactivity session-termination) configuration. */
 export interface ISessionTimeoutSettings {
@@ -268,6 +269,8 @@ export interface IPlatformSettings {
   idleAlerts?: IIdleAlertsSettings;
   /** Offline-rescue broadcast (spec 2026-07-17). Undefined → DEFAULT_CONVERSATION_RESCUE_SETTINGS. */
   conversationRescue?: IConversationRescueSettings;
+  /** Notification sound center (per-store). Absent on legacy stores → DEFAULT_SOUND_SETTINGS. */
+  sound?: ISoundSettings;
   /** Whether the SDR agent is enabled for this store (PRD-020). */
   sdrEnabled: boolean;
   /** Editable SDR message templates with variable substitution (PRD-020). */

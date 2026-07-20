@@ -151,6 +151,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner"],
       },
       {
+        label: "Sons de notificação",
+        icon: "mdi:music-note-outline",
+        to: "/app/configuracoes/sons",
+        roles: ["Owner"],
+      },
+      {
         label: "Cadastro de veículos",
         icon: "mdi:truck-outline",
         to: "/app/configuracoes/veiculos/cadastro-mode",
