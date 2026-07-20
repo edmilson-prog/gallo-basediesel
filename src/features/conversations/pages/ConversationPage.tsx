@@ -5,6 +5,7 @@ import { Icon } from "@/components/Icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { EmptyState } from "@/features/shell/components/EmptyState";
 import { CustomerProfileFiche } from "@/features/customers/components/CustomerProfileFiche";
+import { LeadProfileFiche } from "@/features/leads/components/LeadProfileFiche";
 import { useFicheButtonHandler } from "@/features/customers/hooks/useFicheLayout";
 import { useConversationDetail } from "../hooks/useConversationDetail";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
@@ -110,6 +111,7 @@ export function ConversationPage() {
   const [templateSignal, setTemplateSignal] = useState(0);
   const ficheButtonClick = useFicheButtonHandler({
     customerId: detail.conversation?.customerId ?? null,
+    leadId: detail.conversation?.leadId ?? null,
     toggle: fiche.toggle,
   });
   const consultor = useConsultorPanel();
@@ -252,6 +254,7 @@ export function ConversationPage() {
                 consultorOpen={consultor.open}
                 onToggleConsultor={toggleConsultor}
                 historyOpen={historyOpen}
+                historyDisabled={!conversation.customerId}
                 onToggleHistory={toggleHistoryExclusive}
                 menuSlot={
                   <ConversationMenu
@@ -322,7 +325,7 @@ export function ConversationPage() {
               />
             </div>
 
-            {conversation.customerId && (
+            {conversation.customerId ? (
               <CustomerProfileFiche
                 customerId={conversation.customerId}
                 conversation={conversation}
@@ -342,7 +345,18 @@ export function ConversationPage() {
                   ) : undefined
                 }
               />
-            )}
+            ) : conversation.leadId ? (
+              // Lead-anchored conversation (the post-Funnel-Frente-3 majority):
+              // read-only lead fiche fed by the conversation-gated RPC data
+              // already resolved in useConversationDetail.
+              <LeadProfileFiche
+                lead={lead}
+                contact={contact}
+                open={fiche.open}
+                onOpenChange={fiche.setOpen}
+                onConverted={detail.refresh}
+              />
+            ) : null}
             <ConversationMediaPanel
               conversationId={conversationId}
               open={media.open}

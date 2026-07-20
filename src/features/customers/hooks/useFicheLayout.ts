@@ -50,10 +50,13 @@ export function useFicheLayout(): FicheLayoutMode {
 /**
  * Returns a click handler for the "Ficha" button in the conversation header
  * that does the right thing per breakpoint: toggle on tablet/desktop, navigate
- * on mobile.
+ * on mobile — to the customer page when the conversation anchors on a
+ * customer, or to the lead page on a lead-anchored conversation.
  */
 export function useFicheButtonHandler(params: {
   customerId: ID | null;
+  /** Lead anchor of the conversation — mobile navigates to /app/leads/:id. */
+  leadId?: ID | null;
   toggle: () => void;
 }): () => void {
   const mode = useFicheLayout();
@@ -61,6 +64,10 @@ export function useFicheButtonHandler(params: {
   return () => {
     if (mode === "route" && params.customerId) {
       void navigate({ to: `/app/clientes/${params.customerId}` as never });
+      return;
+    }
+    if (mode === "route" && params.leadId) {
+      void navigate({ to: `/app/leads/${params.leadId}` as never });
       return;
     }
     params.toggle();

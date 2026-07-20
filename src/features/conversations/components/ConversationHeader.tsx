@@ -59,6 +59,8 @@ export interface IConversationHeaderProps {
   onToggleConsultor?: () => void;
   /** Whether the attendance history panel is open. */
   historyOpen?: boolean;
+  /** Attendance history is per-CUSTOMER: disabled (with tooltip) on lead-anchored conversations. */
+  historyDisabled?: boolean;
   /** Toggles the attendance history panel. */
   onToggleHistory?: () => void;
   /** Action menu rendered as a popover trigger (kebab). */
@@ -87,6 +89,7 @@ export function ConversationHeader({
   consultorOpen,
   onToggleConsultor,
   historyOpen,
+  historyDisabled,
   onToggleHistory,
   menuSlot,
   escalation,
@@ -258,7 +261,7 @@ export function ConversationHeader({
               <TooltipContent>{PART_LOOKUP_STRINGS.panelTitle}</TooltipContent>
             </Tooltip>
           )}
-          {onToggleHistory && (
+          {onToggleHistory && !historyDisabled && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -273,6 +276,27 @@ export function ConversationHeader({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{CONVERSATION_STRINGS.toggleHistory}</TooltipContent>
+            </Tooltip>
+          )}
+          {onToggleHistory && historyDisabled && (
+            <Tooltip>
+              {/* Disabled buttons swallow pointer events — the span wrapper keeps
+                  the tooltip hoverable (standard Radix workaround). */}
+              <TooltipTrigger asChild>
+                <span className="cursor-not-allowed">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5"
+                    disabled
+                    aria-disabled="true"
+                  >
+                    <Icon icon="mdi:history" size={14} />
+                    <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleHistory}</span>
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{CONVERSATION_STRINGS.historyUnavailableTooltip}</TooltipContent>
             </Tooltip>
           )}
           {pendingScheduled > 0 && (
