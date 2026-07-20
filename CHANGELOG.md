@@ -4,6 +4,24 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.153.0] — Emend · 2026-07-19
+
+**A edição de produtos passa a acontecer direto na ficha, campo a campo, dentro dos próprios cartões — sem abrir outra tela — cobrindo inclusive os campos vindos do DINTEC que antes não tinham editor.**
+
+### Added
+
+- **Edição inline no detalhe do produto** — o botão "Editar" na ficha da peça deixou de abrir um formulário em página separada: a edição agora acontece dentro dos mesmos cartões que já exibem os dados, campo a campo, cobrindo tudo o que a ficha mostra — identificação, precificação por tabela, dados fiscais (incluindo a origem fiscal da NF-e), logística e estoque, fornecedores, aplicações, equivalências e referências cruzadas. Vários desses campos (código de barras, referências cruzadas, origem fiscal, estoque mínimo) não tinham editor até então. A barra "Salvar alterações" / "Cancelar" fica fixada no rodapé da tela, sempre ao alcance enquanto você percorre a ficha. A antiga página de edição separada foi removida.
+
+### Changed
+
+- **Contato novo do WhatsApp vira Lead também no WAHA (produção)** — a criação automática de Lead para números desconhecidos (anunciada na v0.150.0) foi ativada no fluxo de produção do WAHA, com o dono do lead definido pela fila de rodízio; o acervo histórico de contatos-fantasma foi reorganizado (contatos realmente ativos preservados, dormentes arquivados e duplicados/ruído removidos com backup).
+- **Ajustes visuais no detalhe do produto** — a ficha da peça recebeu os últimos acertos de layout do design kit (espaçamentos, cartões e selos) para ficar alinhada ao restante do sistema.
+
+### Fixed
+
+- **Leads de origem "importação" quebravam a tela de Leads** — leads criados a partir de importação podiam derrubar a listagem de `/app/leads` (erro `undefined.tone`); a origem passou a ser tratada com segurança.
+- **WAHA: correspondência de número mais tolerante (autocorreção)** — o webhook do WAHA passou a adotar o número canônico ao casar mensagens recebidas com o contato/instância, corrigindo sozinho variações de formato (com/sem 9º dígito, com/sem DDI) que antes podiam impedir o vínculo correto.
+
 ## [0.152.0] — Census · 2026-07-17
 
 **O catálogo real de produtos do ERP DINTEC chega à plataforma (2.778 itens), o import de clientes é concluído com a correlação da Inbox de Atendimento, e conversas com responsável ausente ganham resgate automático (ativação pendente).**
