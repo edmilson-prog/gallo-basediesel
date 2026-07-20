@@ -8,6 +8,7 @@ import { resolveSessionTimeout } from "../engine/resolveSessionTimeout";
 import { computeIdlePhase } from "../engine/idlePhases";
 import { shouldBeepAtTick } from "../engine/beepSchedule";
 import { createSoundPlayer, type ISoundPlayer } from "@/features/sound-settings";
+import type { ISoundSettings } from "@/shared/types";
 import { useActivityTracker } from "./useActivityTracker";
 import { useAudioUnlock } from "@/shared/hooks/useAudioUnlock";
 import { useCrossTabActivity } from "./useCrossTabActivity";
@@ -60,6 +61,12 @@ export function useSessionTimeout(): ISessionTimeoutState {
       ),
     [settingsQuery.data?.sessionTimeout, sellerQuery.data?.sessionTimeoutOverride],
   );
+
+  // Mirrors settingsQuery.data?.sound on every render so the tick() closure below
+  // can read the latest sound-center config at play-time without being a dep of
+  // the effect that schedules the interval (see comment there).
+  const soundSettingsRef = useRef<ISoundSettings | undefined>(undefined);
+  soundSettingsRef.current = settingsQuery.data?.sound;
 
   // Active only when enabled AND a user is signed in.
   const active = resolved.enabled && Boolean(currentUser);
@@ -149,7 +156,7 @@ export function useSessionTimeout(): ISessionTimeoutState {
             lastBeepRemainingRef.current,
           );
           if (decision.beep) {
-            soundPlayerRef.current?.play("sessionTimeout", settingsQuery.data?.sound);
+            soundPlayerRef.current?.play("sessionTimeout", soundSettingsRef.current);
             lastBeepRemainingRef.current = status.msUntilLogout;
           }
         }
@@ -168,9 +175,11 @@ export function useSessionTimeout(): ISessionTimeoutState {
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
-    // navigate, soundPlayerRef and the *Ref values are stable; only resolved.* drive re-subscription.
-    // settingsQuery.data?.sound is read inline (not a dep) — the sound center's own
-    // per-event config only changes what plays, not whether/when the tick reschedules.
+    // navigate, soundPlayerRef and the *Ref values (including soundSettingsRef) are
+    // stable; only resolved.* drive re-subscription. soundSettingsRef.current is
+    // updated every render and read at play-time, so a saved sound-center change
+    // takes effect on the very next beep without forcing the tick interval to
+    // reschedule.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, resolved.idleMs, resolved.warningMs, resolved.soundEnabled]);
 
