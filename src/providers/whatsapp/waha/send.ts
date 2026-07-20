@@ -15,6 +15,19 @@ function toChatId(phone: string): string {
   return `${normalizeBrDialDigits(phone)}@c.us`;
 }
 
+/**
+ * Extracts the chat JID from a WAHA serialized message id
+ * (`{fromMe}_{chatJid}_{hash}`) when the chat is lid-addressed
+ * (`<digits>@lid` — WhatsApp privacy identifier). Returns null for
+ * phone (`@c.us`) and group (`@g.us`) chats or malformed input — callers
+ * treat that as "no lid address available". Used as the last-resort
+ * recipient for conversations whose contact has no resolvable phone.
+ */
+export function extractLidChatId(providerMessageId: string): string | null {
+  const chatJid = providerMessageId.split("_")[1] ?? "";
+  return /^\d+@lid$/.test(chatJid) ? chatJid : null;
+}
+
 function extractMessageId(body: unknown): string {
   const b = body as { id?: string } | null;
   if (!b?.id) {
@@ -31,18 +44,29 @@ export async function sendWahaText(
   apiKey: string,
   fetchFn: typeof fetch,
   target: IWahaSessionTarget,
-  input: { toPhone: string; text: string },
+  input: {
+    toPhone: string;
+    text: string;
+    /** Verbatim chat JID (e.g. `123@lid`) — bypasses the phone→chatId derivation. */
+    chatId?: string;
+  },
 ): Promise<IWahaSendResult> {
   const response = await wahaRequest(apiKey, fetchFn, {
     baseUrl: target.baseUrl,
     path: "/api/sendText",
-    json: { session: target.sessionName, chatId: toChatId(input.toPhone), text: input.text },
+    json: {
+      session: target.sessionName,
+      chatId: input.chatId ?? toChatId(input.toPhone),
+      text: input.text,
+    },
   });
   return { providerMessageId: extractMessageId(response.body) };
 }
 
 export interface IWahaSendMediaInput {
   toPhone: string;
+  /** Verbatim chat JID (e.g. `123@lid`) — bypasses the phone→chatId derivation. */
+  chatId?: string;
   mediaType: "image" | "audio" | "video" | "document";
   /** Publicly fetchable URL (e.g. a short-lived signed URL from whatsapp-media). */
   mediaUrl: string;
@@ -75,7 +99,7 @@ export async function sendWahaMedia(
     path: MEDIA_ENDPOINTS[input.mediaType],
     json: {
       session: target.sessionName,
-      chatId: toChatId(input.toPhone),
+      chatId: input.chatId ?? toChatId(input.toPhone),
       file: { mimetype: input.mimetype, url: input.mediaUrl, filename: input.filename },
       ...(input.caption && !isVoice ? { caption: input.caption } : {}),
       ...(isVoice ? { convert: true } : {}),
