@@ -146,8 +146,13 @@ export const LEADS_STRINGS = {
       phone: "Telefone",
       tags: "Tags",
     },
+    groups: { commercial: "Comercial", contact: "Contato", management: "Gestão" },
+    inStageFor: "No estágio há",
+    noTags: "Sem tags",
+    addTagPlaceholder: "Adicionar tag…",
     editAction: "Salvar alterações",
     cancel: "Cancelar",
+    saving: "Salvando…",
   },
   newModal: {
     title: "Novo lead",
