@@ -17,7 +17,6 @@ describe("resolveSessionTimeout", () => {
       idleMs: 30 * 60_000,
       warningMs: 60_000,
       soundEnabled: true,
-      soundVolume: 0.5,
     });
   });
 
@@ -27,7 +26,6 @@ describe("resolveSessionTimeout", () => {
       idleMs: 0,
       warningMs: 0,
       soundEnabled: false,
-      soundVolume: 0,
     });
   });
 
@@ -44,7 +42,6 @@ describe("resolveSessionTimeout", () => {
       idleMs: 5 * 60_000,
       warningMs: 30_000,
       soundEnabled: false,
-      soundVolume: 0.8,
     });
   });
 
@@ -54,7 +51,6 @@ describe("resolveSessionTimeout", () => {
       idleMs: 30 * 60_000,
       warningMs: 60_000,
       soundEnabled: true,
-      soundVolume: 0.5,
     });
   });
 
@@ -65,13 +61,7 @@ describe("resolveSessionTimeout", () => {
       idleMs: 60_000,
       warningMs: 59_000,
       soundEnabled: true,
-      soundVolume: 0.5,
     });
-  });
-
-  it("clamps the sound volume to 0..1", () => {
-    expect(resolveSessionTimeout({ ...base, soundVolume: 5 }, undefined).soundVolume).toBe(1);
-    expect(resolveSessionTimeout({ ...base, soundVolume: -1 }, undefined).soundVolume).toBe(0);
   });
 
   it("sanitizes non-positive/NaN values back to the default", () => {
@@ -81,7 +71,6 @@ describe("resolveSessionTimeout", () => {
       idleMs: 30 * 60_000,
       warningMs: 60_000,
       soundEnabled: true,
-      soundVolume: 0.5,
     });
   });
 });

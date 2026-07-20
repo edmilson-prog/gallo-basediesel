@@ -1,16 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DEFAULT_SESSION_TIMEOUT, type ISessionTimeoutSettings } from "@/shared/types";
 import { useCurrentStore } from "@/features/multistore";
-import { createBeeper, type IBeeper } from "@/features/session-timeout/lib/beep";
 import { SectionHeader } from "../components/SectionHeader";
 import { usePlatformSettings } from "../hooks/usePlatformSettings";
 
@@ -21,10 +19,6 @@ export function SessionSettingsPage() {
   const queryClient = useQueryClient();
 
   const [draft, setDraft] = useState<ISessionTimeoutSettings>(DEFAULT_SESSION_TIMEOUT);
-  // Lazy init: useRef evaluates its argument on every render, so passing
-  // createBeeper() directly would allocate a throwaway beeper per render.
-  const beeperRef = useRef<IBeeper | null>(null);
-  if (!beeperRef.current) beeperRef.current = createBeeper();
 
   useEffect(() => {
     if (settings) setDraft(settings.sessionTimeout ?? DEFAULT_SESSION_TIMEOUT);
@@ -54,11 +48,6 @@ export function SessionSettingsPage() {
 
   const handleReset = () => {
     if (settings) setDraft(settings.sessionTimeout ?? DEFAULT_SESSION_TIMEOUT);
-  };
-
-  const testBeep = () => {
-    beeperRef.current?.unlock();
-    beeperRef.current?.beep(draft.soundVolume, 0.6);
   };
 
   if (loading || !settings) {
@@ -122,46 +111,13 @@ export function SessionSettingsPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium">Emitir beeps no aviso</p>
-            <p className="text-xs text-muted-foreground">
-              Sons curtos que ficam mais frequentes conforme o tempo se esgota.
-            </p>
-          </div>
-          <Switch
-            checked={draft.soundEnabled}
-            onCheckedChange={(v) => patch({ soundEnabled: v })}
-            disabled={!draft.enabled}
-            aria-label="Emitir beeps no aviso"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>Intensidade do som</Label>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={testBeep}
-              disabled={!draft.enabled || !draft.soundEnabled}
-              className="gap-1"
-            >
-              <Icon icon="mdi:volume-high" size={14} />
-              Testar beep
-            </Button>
-          </div>
-          <Slider
-            value={[draft.soundVolume]}
-            min={0}
-            max={1}
-            step={0.05}
-            onValueChange={(v) => patch({ soundVolume: v[0] ?? draft.soundVolume })}
-            disabled={!draft.enabled || !draft.soundEnabled}
-            aria-label="Intensidade do som"
-          />
-        </div>
+        <p className="text-xs text-muted-foreground">
+          O som do aviso é configurado em{" "}
+          <a href="/app/configuracoes/sons" className="underline">
+            Sons de notificação
+          </a>
+          .
+        </p>
 
         <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
           <Button variant="outline" onClick={handleReset} disabled={!dirty || saving}>
