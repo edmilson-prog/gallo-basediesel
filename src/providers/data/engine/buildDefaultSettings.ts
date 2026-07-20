@@ -1,5 +1,5 @@
 import type { ID, IPlatformSettings } from "@/shared/types";
-import { DEFAULT_INSIGHT_THRESHOLDS, DEFAULT_STOREFRONT_CONFIG } from "@/shared/types";
+import { DEFAULT_INSIGHT_THRESHOLDS, DEFAULT_STOREFRONT_CONFIG, DEFAULT_SOUND_SETTINGS } from "@/shared/types";
 import { SEED_PIPELINE_STAGES } from "@/mocks/data/seedPipelineStages";
 import { SEED_LOSS_REASONS } from "@/mocks/data/seedLossReasons";
 import { SEED_TAGS } from "@/mocks/data/seedTags";
@@ -54,6 +54,7 @@ export function buildDefaultSettings(storeId: ID): IPlatformSettings {
     managerDashboard: clone(DEFAULT_MANAGER_DASHBOARD_SETTINGS),
     idleAlerts: clone(DEFAULT_IDLE_ALERTS_SETTINGS),
     conversationRescue: clone(DEFAULT_CONVERSATION_RESCUE_SETTINGS),
+    sound: clone(DEFAULT_SOUND_SETTINGS),
     sdrEnabled: false,
     sdrTemplates: clone(DEFAULT_SDR_TEMPLATES),
     sdrQuoteValidityDays: 7,

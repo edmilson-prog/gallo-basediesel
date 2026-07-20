@@ -49,6 +49,15 @@ export type {
 } from "./platform";
 export { DEFAULT_SESSION_TIMEOUT } from "./platform";
 
+// Sound center (Configurações → Sons de notificação)
+export type {
+  SoundTemplateId,
+  SoundEventId,
+  ISoundEventConfig,
+  ISoundSettings,
+} from "./sound";
+export { DEFAULT_SOUND_SETTINGS } from "./sound";
+
 // System health & observability (PRD-110)
 export type {
   SystemHealthStatus,
