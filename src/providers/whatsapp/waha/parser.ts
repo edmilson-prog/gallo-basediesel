@@ -51,10 +51,30 @@ interface IWahaExternalAdReplyInfo {
   mediaURL?: string;
   ctwaClid?: string;
 }
+/** `remoteJID: "status@broadcast"` is whatsmeow's marker that this message
+ *  quotes a WhatsApp Status update rather than a message in the chat itself
+ *  (confirmed against a real WAHA capture, 2026-07-20 — see isWahaStatusReply). */
+interface IWahaContextInfo {
+  externalAdReply?: IWahaExternalAdReplyInfo;
+  remoteJID?: string;
+}
 interface IWahaGoMessageBody {
-  extendedTextMessage?: { contextInfo?: { externalAdReply?: IWahaExternalAdReplyInfo } };
-  imageMessage?: { contextInfo?: { externalAdReply?: IWahaExternalAdReplyInfo } };
-  videoMessage?: { contextInfo?: { externalAdReply?: IWahaExternalAdReplyInfo } };
+  extendedTextMessage?: { contextInfo?: IWahaContextInfo };
+  imageMessage?: { contextInfo?: IWahaContextInfo };
+  videoMessage?: { contextInfo?: IWahaContextInfo };
+}
+
+/** The quoted message WAHA renders a `replyTo` for — confirmed shape (real
+ *  capture, 2026-07-20): media is already downloaded/re-hosted by the WAHA
+ *  server itself (mms3 CDN URL decrypted server-side), so it downloads the
+ *  same way as `IWahaMessagePayload.media` — no WhatsApp media-key decryption
+ *  needed here. */
+interface IWahaReplyTo {
+  id?: string;
+  body?: string;
+  hasMedia?: boolean;
+  media?: IWahaMedia | null;
+  participant?: string;
 }
 
 export interface IWahaMessagePayload {
@@ -70,12 +90,27 @@ export interface IWahaMessagePayload {
    *  the sender shared one or more contact cards. Only the first is used —
    *  see extractContent. */
   vCards?: string[];
+  /** Set when this message quotes another one (in-chat reply OR a Status
+   *  comment) — see isWahaStatusReply/extractContent. */
+  replyTo?: IWahaReplyTo | null;
   /** HYPOTHESIZED: WAHA's GOWS engine wraps whatsmeow directly, so the raw
    *  engine message (when WAHA exposes it) should mirror IGoMessageBody
    *  nested under `_data.Message`. Unconfirmed — extractWahaAdReferral
    *  degrades to undefined when this path is absent, so a wrong guess can
    *  never break message parsing itself. */
   _data?: { Message?: IWahaGoMessageBody };
+}
+
+/** Whether this message is a reply/comment on a WhatsApp Status update
+ *  (as opposed to a quoted reply to a message in the chat itself). See
+ *  IWahaContextInfo doc — confirmed against a real WAHA capture. */
+export function isWahaStatusReply(payload: IWahaMessagePayload): boolean {
+  const msg = payload._data?.Message;
+  const contextInfo =
+    msg?.extendedTextMessage?.contextInfo ??
+    msg?.imageMessage?.contextInfo ??
+    msg?.videoMessage?.contextInfo;
+  return contextInfo?.remoteJID === "status@broadcast";
 }
 
 function tsToIso(value: number | undefined): string {
@@ -106,6 +141,18 @@ export function extractContent(payload: IWahaMessagePayload): IParsedContent {
       text: payload.body || undefined,
       mediaId: payload.media.url,
       mediaFilename: payload.media.filename ?? undefined,
+    };
+  }
+  // A comment on a WhatsApp Status quotes media that lives OUTSIDE any
+  // conversation — we never see the status itself, only this reply. Without
+  // pulling the quoted image/video in here it's lost forever, so it becomes
+  // THIS message's own media and the customer's comment stays as its text
+  // (same shape as a normal image+caption inbound).
+  if (isWahaStatusReply(payload) && payload.replyTo?.hasMedia && payload.replyTo.media?.url) {
+    return {
+      contentType: contentTypeFromMimetype(payload.replyTo.media.mimetype),
+      text: payload.body || undefined,
+      mediaId: payload.replyTo.media.url,
     };
   }
   if (payload.vCards?.[0]) {
