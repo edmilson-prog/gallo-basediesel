@@ -89,6 +89,18 @@ export function LeadDataCard({
         )}
       </div>
 
+      {/* Loss reason/notes — read-only, only for lost leads (lost leads aren't editable) */}
+      {lost && (lead.lossReason || lead.lossNotes) && (
+        <Section title={LEADS_STRINGS.card.lost}>
+          {lead.lossReason && (
+            <Fact label={COPY.lossReason}>
+              <span className="text-red-700 dark:text-red-300">{lead.lossReason}</span>
+            </Fact>
+          )}
+          {lead.lossNotes && <Fact label={COPY.lossNotes}>{lead.lossNotes}</Fact>}
+        </Section>
+      )}
+
       {/* Tags block */}
       <div className="border-b border-border py-3">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -271,6 +283,7 @@ function TagsEditorSlot({
         }}
         onBlur={() => normalizeTag(input) && commit()}
         placeholder={COPY.addTagPlaceholder}
+        aria-label={COPY.addTagPlaceholder}
         className="h-7 w-32 text-xs"
       />
     </div>
