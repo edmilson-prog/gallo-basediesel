@@ -1568,6 +1568,89 @@ begin
 end $$;
 reset role;
 
+-- ---------------------------------------------------------------------------
+-- lead_via_conversation (lead fiche spec, 2026-07-20): the fiche of a
+-- lead-anchored POOL conversation resolves gated ONCE by
+-- can_access_conversation — even when the lead is OWNERLESS and therefore
+-- hidden from non-staff on direct select (leads_select's third branch,
+-- seller_handles_lead, only covers ASSIGNED conversations — the pool variant
+-- was deliberately reverted in 20260619170000 for per-row RLS perf).
+-- Fixture created inline (seed-robust): ownerless lead + accountless POOL
+-- conversation (assigned null + account null → the legacy-pool access branch).
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_lead uuid := gen_random_uuid();
+  v_conv uuid := gen_random_uuid();
+begin
+  insert into public.leads (id, store_id, seller_id, name, phone, stage, temperature, origin, conversations, tags)
+  values (
+    v_lead, '00000000-0000-0000-0000-000000000001', null,
+    'RLS Fixture — lead sem dono', '+5555999990000',
+    '{"id":"stage-novo","name":"Novo","color":"#5b6b7a","order":1}'::jsonb,
+    'frio', 'whatsapp', '{}', '{}'
+  );
+  insert into public.conversations (id, store_id, lead_id, assigned_seller_id, channel, status, last_message_at)
+  values (
+    v_conv, '00000000-0000-0000-0000-000000000001', v_lead::text,
+    null, 'whatsapp', 'aguardando', now()
+  );
+  perform set_config('rls_regression.lead_fiche_conv', v_conv::text, true);
+  perform set_config('rls_regression.lead_fiche_lead', v_lead::text, true);
+end $$;
+
+-- Second fixture: an EXISTING conversation lucas cannot access (assigned to the
+-- OWNER's seller, accountless → not pool, not lucas's) anchoring the same lead.
+-- This exercises the can_access_conversation gate itself on the negative path —
+-- an unknown-uuid probe alone would pass vacuously via the join.
+do $$
+declare
+  v_conv2 uuid := gen_random_uuid();
+begin
+  insert into public.conversations (id, store_id, lead_id, assigned_seller_id, channel, status, last_message_at)
+  values (
+    v_conv2, '00000000-0000-0000-0000-000000000001',
+    current_setting('rls_regression.lead_fiche_lead', true),
+    '57706ecc-01b5-4a96-b403-0359a4bb767f', 'whatsapp', 'em_andamento', now()
+  );
+  perform set_config('rls_regression.lead_fiche_conv_denied', v_conv2::text, true);
+end $$;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+do $$
+declare
+  v_conv uuid := current_setting('rls_regression.lead_fiche_conv', true)::uuid;
+  v_lead uuid := current_setting('rls_regression.lead_fiche_lead', true)::uuid;
+begin
+  -- Sanity: the direct read must stay hidden (ownerless lead on a POOL
+  -- conversation, non-staff) — proves the RPC is the thing granting
+  -- visibility, not a widened policy.
+  if exists (select 1 from public.leads where id = v_lead) then
+    raise exception 'lead_via_conversation: ownerless pool lead should be RLS-hidden from lucas on direct select';
+  end if;
+  -- The conversation-gated RPC must resolve the lead.
+  if (select count(*) from public.lead_via_conversation(v_conv)) <> 1 then
+    raise exception 'lead_via_conversation: lucas should read the ownerless lead via the accessible pool conversation';
+  end if;
+  -- An unknown conversation yields zero rows.
+  if (select count(*) from public.lead_via_conversation(gen_random_uuid())) <> 0 then
+    raise exception 'lead_via_conversation: unknown conversation must yield no rows';
+  end if;
+  -- An EXISTING conversation lucas cannot access (assigned to another seller,
+  -- no instance) must ALSO yield zero rows — the gate itself, not the join.
+  if (select count(*)
+        from public.lead_via_conversation(
+          current_setting('rls_regression.lead_fiche_conv_denied', true)::uuid)) <> 0 then
+    raise exception 'lead_via_conversation: inaccessible conversation must yield no rows (gate)';
+  end if;
+end $$;
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;

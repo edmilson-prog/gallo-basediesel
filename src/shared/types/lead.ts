@@ -32,6 +32,12 @@ export interface ILead {
   name: string;
   phone: string;
   email?: string;
+  /**
+   * WhatsApp profile picture captured by the webhook / copied by the Frente B
+   * migration (`leads.avatar_url`, migration 20260718202917). Read-only in the
+   * app — no editor writes it.
+   */
+  avatarUrl?: string;
   stage: ILeadStage;
   temperature: LeadTemperature;
   origin: LeadOrigin;

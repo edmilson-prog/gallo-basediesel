@@ -237,4 +237,21 @@ export const LEADS_STRINGS = {
     badge: "Lead",
     badgeTooltip: (stageName: string) => `Lead no estágio "${stageName}"`,
   },
+  fiche: {
+    title: "Ficha do lead",
+    sectionData: "Dados do lead",
+    owner: "Dono do lead",
+    ownerQueue: "Em fila",
+    tags: "Tags",
+    createdAt: "Criado em",
+    estimatedValue: "Valor estimado",
+    nextAction: "Próxima ação",
+    email: "E-mail",
+    stateConverted: "Convertido",
+    stateLost: "Perdido",
+    viewLead: "Ver lead",
+    convert: "Converter em cliente",
+    degradedNotice:
+      "Não foi possível carregar os dados completos do lead. Exibindo as informações do contato.",
+  },
 } as const;

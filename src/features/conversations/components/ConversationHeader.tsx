@@ -48,6 +48,8 @@ export interface IConversationHeaderProps {
   /** Whether to surface the assignee chip (staff/manager oversight). */
   showAssignee?: boolean;
   ficheOpen: boolean;
+  /** No contact anchor at all (neither customer nor lead) — spec §5: disabled with tooltip. */
+  ficheDisabled?: boolean;
   onToggleFiche: () => void;
   /** Whether the media gallery sheet is open. */
   mediaOpen?: boolean;
@@ -59,6 +61,8 @@ export interface IConversationHeaderProps {
   onToggleConsultor?: () => void;
   /** Whether the attendance history panel is open. */
   historyOpen?: boolean;
+  /** Attendance history is per-CUSTOMER: disabled (with tooltip) on lead-anchored conversations. */
+  historyDisabled?: boolean;
   /** Toggles the attendance history panel. */
   onToggleHistory?: () => void;
   /** Action menu rendered as a popover trigger (kebab). */
@@ -81,12 +85,14 @@ export function ConversationHeader({
   assignedSeller,
   showAssignee,
   ficheOpen,
+  ficheDisabled,
   onToggleFiche,
   mediaOpen,
   onToggleMedia,
   consultorOpen,
   onToggleConsultor,
   historyOpen,
+  historyDisabled,
   onToggleHistory,
   menuSlot,
   escalation,
@@ -209,21 +215,41 @@ export function ConversationHeader({
             onChanged={onConversationUpdated}
           />
           <span className="mx-1 h-6 w-px bg-border" aria-hidden />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={ficheOpen ? "secondary" : "ghost"}
-                size="sm"
-                className="gap-1.5"
-                onClick={onToggleFiche}
-                aria-pressed={ficheOpen}
-              >
-                <Icon icon="mdi:account-details" size={14} />
-                <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleFiche}</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{CONVERSATION_STRINGS.toggleFiche}</TooltipContent>
-          </Tooltip>
+          {!ficheDisabled ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={ficheOpen ? "secondary" : "ghost"}
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={onToggleFiche}
+                  aria-pressed={ficheOpen}
+                >
+                  <Icon icon="mdi:account-details" size={14} />
+                  <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleFiche}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{CONVERSATION_STRINGS.toggleFiche}</TooltipContent>
+            </Tooltip>
+          ) : (
+            // aria-disabled (not `disabled`) keeps the button focusable so the
+            // tooltip is reachable by keyboard/screen readers; no onClick = no-op.
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="cursor-not-allowed gap-1.5 opacity-50"
+                  aria-disabled="true"
+                  aria-label={CONVERSATION_STRINGS.ficheUnavailableTooltip}
+                >
+                  <Icon icon="mdi:account-details" size={14} />
+                  <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleFiche}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{CONVERSATION_STRINGS.ficheUnavailableTooltip}</TooltipContent>
+            </Tooltip>
+          )}
           {onToggleMedia && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -258,7 +284,7 @@ export function ConversationHeader({
               <TooltipContent>{PART_LOOKUP_STRINGS.panelTitle}</TooltipContent>
             </Tooltip>
           )}
-          {onToggleHistory && (
+          {onToggleHistory && !historyDisabled && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -273,6 +299,25 @@ export function ConversationHeader({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{CONVERSATION_STRINGS.toggleHistory}</TooltipContent>
+            </Tooltip>
+          )}
+          {onToggleHistory && historyDisabled && (
+            // aria-disabled (not `disabled`) keeps the button focusable so the
+            // tooltip is reachable by keyboard/screen readers; no onClick = no-op.
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="cursor-not-allowed gap-1.5 opacity-50"
+                  aria-disabled="true"
+                  aria-label={CONVERSATION_STRINGS.historyUnavailableTooltip}
+                >
+                  <Icon icon="mdi:history" size={14} />
+                  <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleHistory}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{CONVERSATION_STRINGS.historyUnavailableTooltip}</TooltipContent>
             </Tooltip>
           )}
           {pendingScheduled > 0 && (

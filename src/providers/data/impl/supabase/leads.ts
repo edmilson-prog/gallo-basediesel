@@ -24,6 +24,7 @@ interface LeadRow {
   name: string;
   phone: string;
   email: string | null;
+  avatar_url: string | null;
   stage: ILeadStage;
   temperature: LeadTemperature;
   origin: LeadOrigin;
@@ -40,9 +41,9 @@ interface LeadRow {
 
 const TABLE = "leads";
 const COLUMNS =
-  "id, store_id, seller_id, name, phone, email, stage, temperature, origin, estimated_value, " +
-  "next_action_at, loss_reason, loss_notes, converted_to_customer_id, conversations, tags, " +
-  "created_at, updated_at";
+  "id, store_id, seller_id, name, phone, email, avatar_url, stage, temperature, origin, " +
+  "estimated_value, next_action_at, loss_reason, loss_notes, converted_to_customer_id, " +
+  "conversations, tags, created_at, updated_at";
 
 function rowToLead(row: LeadRow): ILead {
   return {
@@ -52,6 +53,9 @@ function rowToLead(row: LeadRow): ILead {
     name: row.name,
     phone: row.phone,
     email: row.email ?? undefined,
+    // avatar_url is written server-side (webhook / Frente B migration) and
+    // read-only in the app: leadPatchToRow/createInputToRow never send it.
+    avatarUrl: row.avatar_url ?? undefined,
     stage: row.stage,
     temperature: row.temperature,
     origin: row.origin,
@@ -171,6 +175,22 @@ export const supabaseLeadsProvider: ILeadsProvider = {
       .eq("id", id)
       .single();
     if (error) throw new Error(`[supabase] leads.get(${id}) failed: ${error.message}`);
+    return rowToLead(data as unknown as LeadRow);
+  },
+
+  async getViaConversation(conversationId: ID): Promise<ILead | null> {
+    // SECURITY DEFINER RPC gated by can_access_conversation: returns the
+    // conversation's lead (0/1 row) bypassing the per-owner leads RLS that
+    // hides an OWNERLESS lead from non-staff — WITHOUT touching the global
+    // leads policy. Mirror of customers.getViaConversation.
+    const { data, error } = await getSupabaseClient()
+      .rpc("lead_via_conversation", { conv: conversationId })
+      .maybeSingle();
+    if (error)
+      throw new Error(
+        `[supabase] leads.getViaConversation(${conversationId}) failed: ${error.message}`,
+      );
+    if (!data) return null;
     return rowToLead(data as unknown as LeadRow);
   },
 

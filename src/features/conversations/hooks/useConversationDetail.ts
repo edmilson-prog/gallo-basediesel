@@ -122,7 +122,10 @@ export function useConversationDetail(conversationId: ID | null): IConversationD
           conversation.customerId
             ? customersProvider.getViaConversation(id).catch(() => null)
             : null,
-          conversation.leadId ? leadsProvider.get(conversation.leadId).catch(() => null) : null,
+          // Same gated-once pattern for the lead anchor: the per-owner leads RLS
+          // hides an OWNERLESS lead from non-staff, so the direct `get` would
+          // fail-soft to null for exactly the attendant operating the pool.
+          conversation.leadId ? leadsProvider.getViaConversation(id).catch(() => null) : null,
           conversation.whatsappAccountId
             ? whatsappProvider.get(conversation.whatsappAccountId).catch(() => null)
             : null,

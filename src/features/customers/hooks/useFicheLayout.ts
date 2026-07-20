@@ -50,7 +50,11 @@ export function useFicheLayout(): FicheLayoutMode {
 /**
  * Returns a click handler for the "Ficha" button in the conversation header
  * that does the right thing per breakpoint: toggle on tablet/desktop, navigate
- * on mobile.
+ * on mobile. Lead-anchored conversations always TOGGLE (LeadProfileFiche
+ * renders its overlay Sheet on route mode too): navigating to /app/leads/:id
+ * would dead-end on "Lead não encontrado" for a pool attendant, since the
+ * lead PAGE reads under the per-owner leads RLS — only the fiche is
+ * conversation-gated.
  */
 export function useFicheButtonHandler(params: {
   customerId: ID | null;
