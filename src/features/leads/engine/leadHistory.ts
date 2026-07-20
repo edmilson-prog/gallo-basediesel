@@ -35,7 +35,10 @@ function formatScalar(field: string, value: unknown): string {
   if (field === "temperature")
     return TEMPERATURE_META[value as LeadTemperature]?.label ?? String(value);
   if (field === "estimatedValue") return formatBRL(Number(value));
-  if (field === "nextActionAt") return new Date(String(value)).toLocaleDateString("pt-BR");
+  if (field === "nextActionAt") {
+    const d = new Date(String(value));
+    return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("pt-BR");
+  }
   if (field === "stage") {
     const s = asRecord(value);
     return typeof s.name === "string" ? s.name : String(value);

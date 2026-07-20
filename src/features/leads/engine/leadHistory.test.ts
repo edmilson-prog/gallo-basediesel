@@ -43,6 +43,33 @@ describe("describeLeadAudit", () => {
     expect(r.lines).toContain("Tags: + Scania");
   });
 
+  it("renders a removed tag", () => {
+    const r = describeLeadAudit(
+      entry("lead.updated", { tags: ["Volvo FH", "Scania"] }, { tags: ["Volvo FH"] }),
+    );
+    expect(r.lines).toContain("Tags: − Scania");
+  });
+
+  it("renders a stage change by name", () => {
+    const r = describeLeadAudit(
+      entry("lead.updated", { stage: { name: "Novo" } }, { stage: { name: "Qualificado" } }),
+    );
+    const stageLine = r.lines.find((l) => l.includes("Estágio"));
+    expect(stageLine).toBeTruthy();
+    expect(stageLine).toContain("Novo");
+    expect(stageLine).toContain("Qualificado");
+  });
+
+  it("renders an invalid nextActionAt as em-dash, never the English 'Invalid Date'", () => {
+    const r = describeLeadAudit(
+      entry("lead.updated", { nextActionAt: undefined }, { nextActionAt: "not-a-date" }),
+    );
+    const line = r.lines.find((l) => l.includes("Próxima ação"));
+    expect(line).toBeTruthy();
+    expect(line).toContain("—");
+    expect(line).not.toContain("Invalid Date");
+  });
+
   it("degrades an unknown field to key: value without throwing", () => {
     const r = describeLeadAudit(entry("lead.updated", { mystery: "a" }, { mystery: "b" }));
     expect(r.lines).toContain("mystery: a → b");
