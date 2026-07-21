@@ -353,9 +353,13 @@ export function ConversationPage() {
                 lead={lead}
                 contact={contact}
                 conversation={conversation}
+                assignedSeller={assignedSeller}
+                whatsappAccount={whatsappAccount}
+                collaborators={collaborators}
                 open={fiche.open}
                 onOpenChange={fiche.setOpen}
                 onConverted={detail.refresh}
+                onConversationChanged={detail.refresh}
               />
             ) : null}
             <ConversationMediaPanel

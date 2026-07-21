@@ -232,6 +232,18 @@ export const CONVERSATION_STRINGS = {
       segmented: "Segmentado",
     },
   },
+  // Conversation-management card — shared by the customer fiche ("Atendimento"
+  // tab) and the lead fiche, so both stay in sync.
+  management: {
+    status: "Status da conversa",
+    assignee: "Atendente responsável",
+    origin: "Respondendo por",
+    adSource: "Origem da conversa",
+    tags: "Tags da conversa",
+    tagsEmpty: "Nenhuma tag aplicada",
+    collaborators: "Colaboradores",
+    collaboratorsEmpty: "Nenhum colaborador nesta conversa.",
+  },
   toggleFiche: "Ficha",
   toggleMedia: "Mídias",
   toggleHistory: "Histórico",
