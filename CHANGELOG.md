@@ -4,6 +4,24 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.154.0] — Dossier · 2026-07-21
+
+**O atendimento a leads ficou muito mais completo: a página e a ficha lateral do lead viraram um dossiê rico — dados, histórico, notas e tags — com edição no próprio lugar, e a conversa de um lead agora pode ser gerenciada (status, colaboradores, tags) direto da ficha. Some-se a isso uma Central de Sons para os alertas do sistema e correções no WhatsApp.**
+
+### Added
+
+- **Detalhe do lead enriquecido** — a página de um lead (`/app/leads/:id`) deixou de ser uma grade simples de rótulo→valor: agora traz um cartão rico com selos de status, bloco de tags sempre visível e os dados agrupados (comercial, contato e gestão), **edição campo a campo no próprio lugar** (temperatura, valor estimado, próxima ação, e-mail e tags) com barra flutuante "Salvar alterações", uma **linha do tempo legível** na aba Histórico e uma aba de **Notas** de verdade.
+- **Ficha lateral do lead no Atendimento** — quando a conversa é de um lead ainda não convertido em cliente, o botão "Ficha" passou a abrir uma ficha lateral com os dados do lead e os atalhos "Ver lead" e "Converter em cliente". Antes, nessas conversas, esse botão não fazia nada.
+- **Gerenciamento da conversa na ficha do lead** — essa mesma ficha do lead ganhou o bloco de gerenciamento da conversa (Status da conversa, Respondendo por, Atendente responsável, Colaboradores e Tags da conversa), idêntico ao da ficha de cliente, para conduzir o atendimento sem sair da ficha.
+- **Tags do lead a partir do catálogo de conversas** — ao editar um lead, as tags passam a ser escolhidas do mesmo catálogo curado de "Tags de conversa" que a equipe já usa no Atendimento (coloridas), em vez de texto livre — preservando os leads que já tinham tags.
+- **Central de Sons de Notificação** — nova tela (Owner) que reúne os sons de alerta do sistema em um só lugar: os avisos da Inbox, o aviso de nova versão disponível e o alerta de expiração de sessão passam a tocar por essa central, com um controle único no lugar de ajustes espalhados.
+
+### Fixed
+
+- **Envio pelo WhatsApp (WAHA) em conversa de lead** — corrigido o envio que podia falhar silenciosamente quando a conversa ainda era de um lead (sem cliente vinculado), após a ativação da criação automática de leads.
+- **Imagem citada em comentário de status do WhatsApp (WAHA)** — ao responder/comentar um status, a imagem do status volta a ser anexada corretamente à mensagem.
+- **Disparo indevido do backstop do SDR** — o robô de retomada (backstop) do SDR passou a respeitar os portões da loja/instância piloto e a elegibilidade por atividade, com teto por ciclo, evitando disparos em massa.
+
 ## [0.153.0] — Emend · 2026-07-19
 
 **A edição de produtos passa a acontecer direto na ficha, campo a campo, dentro dos próprios cartões — sem abrir outra tela — cobrindo inclusive os campos vindos do DINTEC que antes não tinham editor.**
