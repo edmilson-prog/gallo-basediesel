@@ -8,6 +8,8 @@ import { LocationBubble } from "./LocationBubble";
 import { ContactBubble } from "./ContactBubble";
 import { SystemBubble } from "./SystemBubble";
 import { TemplateBubble } from "./TemplateBubble";
+import { UnsupportedBubble } from "./UnsupportedBubble";
+import { isContentFreeMessage } from "../../engine/contentFreeMessage";
 import { ProductCardBubble } from "@/features/quick-send/components/ProductCardBubble";
 import { PRODUCT_CARD_MARKER } from "@/features/quick-send/engine/productCardPayload";
 import { LinkBubble, decodeLinkMarker } from "@/features/quick-send/components/LinkBubble";
@@ -66,6 +68,12 @@ export function MessageBubble({ message, onRetry }: IMessageBubbleProps) {
   }
   if (message.mediaType === "document") {
     return <DocumentBubble message={message} onRetry={onRetry} />;
+  }
+  // Last resort before TextBubble, which would otherwise render an empty
+  // balloon (it pads blank text with a space to keep its height). Only reached
+  // by rows that carry neither text nor media — see isContentFreeMessage.
+  if (isContentFreeMessage(message)) {
+    return <UnsupportedBubble message={message} onRetry={onRetry} />;
   }
   return <TextBubble message={message} onRetry={onRetry} />;
 }

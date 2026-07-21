@@ -451,3 +451,394 @@ describe("parseWahaMessageEvent — reply to a WhatsApp Status", () => {
     expect(parsed.mediaId).toBeUndefined();
   });
 });
+
+/**
+ * Regression suite for the "empty bubble" bug: envelopes that carry no `body`,
+ * no `media.url` and no `vCards` used to fall through to `{contentType: "text",
+ * text: ""}` and were persisted as a content-free row, rendering as a blank
+ * bubble in the thread. All payload shapes below are trimmed from REAL captures
+ * in `webhook_deliveries` (2026-07-20/21).
+ */
+describe("parseWahaMessageEvent — content-free envelopes (empty bubble regression)", () => {
+  const chatBase = {
+    timestamp: 1721567423,
+    from: "554799852008@c.us",
+    fromMe: false,
+    hasMedia: false,
+    body: null as string | null,
+  };
+
+  it("rejects an album header, which announces sibling media but carries no content itself", () => {
+    // WhatsApp sends this BEFORE the individual media of a multi-attachment
+    // send; each real photo/video then arrives as its own envelope.
+    expect(() =>
+      parseWahaMessageEvent(
+        {
+          ...chatBase,
+          id: "true_147549407162546@lid_2A37897E6DD1650A5B35",
+          _data: {
+            Message: {
+              albumMessage: { expectedImageCount: 1, expectedVideoCount: 1 },
+            },
+          },
+        },
+        accountId,
+      ),
+    ).toThrow(/albumMessage/);
+  });
+
+  it("names the unhandled message kind when rejecting, so new WhatsApp types stay diagnosable", () => {
+    expect(() =>
+      parseWahaMessageEvent(
+        { ...chatBase, id: "id-proto", _data: { Message: { protocolMessage: { type: 0 } } } },
+        accountId,
+      ),
+    ).toThrow(/protocolMessage/);
+  });
+
+  it("rejects a content-free envelope even when the raw message kind is unknown", () => {
+    expect(() => parseWahaMessageEvent({ ...chatBase, id: "id-bare" }, accountId)).toThrow(
+      /sem conteúdo/i,
+    );
+  });
+
+  it("keeps accepting a legitimately empty-bodied media message (caption-less photo)", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        ...chatBase,
+        id: "id-photo-no-caption",
+        hasMedia: true,
+        media: { url: "https://waha.example.com/api/files/x.jpg", mimetype: "image/jpeg" },
+      },
+      accountId,
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.contentType).toBe("image");
+    expect(parsed.text).toBeUndefined();
+  });
+});
+
+describe("parseWahaMessageEvent — shared location", () => {
+  // Real capture: WAHA sends the coordinates as STRINGS, not numbers.
+  const locationPayload = {
+    id: "id-location",
+    timestamp: 1721567423,
+    from: "554799852008@c.us",
+    fromMe: false,
+    body: null,
+    hasMedia: false,
+    location: { live: false, latitude: "-27.393307", longitude: "-53.4008827" },
+  };
+
+  it("parses a shared location into the canonical location text", () => {
+    const parsed = parseWahaMessageEvent(locationPayload, accountId);
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.contentType).toBe("location");
+    expect(parsed.text).toBe("-27.393307,-53.4008827");
+  });
+
+  it("keeps the place label when the share carried one", () => {
+    const parsed = parseWahaMessageEvent(
+      { ...locationPayload, location: { ...locationPayload.location, name: "GALLO Base Diesel" } },
+      accountId,
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.text).toBe("GALLO Base Diesel\n-27.393307,-53.4008827");
+  });
+
+  it("rejects a location share with unusable coordinates instead of storing a blank row", () => {
+    expect(() =>
+      parseWahaMessageEvent(
+        { ...locationPayload, location: { live: false, latitude: "", longitude: "" } },
+        accountId,
+      ),
+    ).toThrow(/sem conteúdo/i);
+  });
+});
+
+describe("parseWahaMessageEvent — template and interactive messages", () => {
+  const base = {
+    id: "id-template",
+    timestamp: 1721567423,
+    from: "554799852008@c.us",
+    fromMe: false,
+    body: null,
+    hasMedia: false,
+  };
+
+  // WhatsApp ships template bodies under three different shapes depending on
+  // how the broadcast was built — all three observed in real captures, all
+  // three carrying genuine business text that used to be dropped.
+  it("recovers the text of a Format.InteractiveMessageTemplate", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        ...base,
+        _data: {
+          Message: {
+            templateMessage: {
+              Format: {
+                InteractiveMessageTemplate: {
+                  body: { text: "Oi Edmilson!\n\nLiberei uma condição" },
+                },
+              },
+            },
+          },
+        },
+      },
+      accountId,
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.contentType).toBe("text");
+    expect(parsed.text).toBe("Oi Edmilson!\n\nLiberei uma condição");
+  });
+
+  it("recovers the text of a Format.HydratedFourRowTemplate", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        ...base,
+        id: "id-fourrow",
+        _data: {
+          Message: {
+            templateMessage: {
+              Format: {
+                HydratedFourRowTemplate: {
+                  hydratedContentText: "Segurança, confiança e taxas menores?",
+                },
+              },
+            },
+          },
+        },
+      },
+      accountId,
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.text).toBe("Segurança, confiança e taxas menores?");
+  });
+
+  it("recovers the text of a top-level hydratedTemplate", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        ...base,
+        id: "id-hydrated",
+        _data: {
+          Message: {
+            templateMessage: {
+              hydratedTemplate: { hydratedContentText: "Comunicado importante: Empresário" },
+            },
+          },
+        },
+      },
+      accountId,
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.text).toBe("Comunicado importante: Empresário");
+  });
+
+  it("falls back to the next template shape when the first carries an empty string", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        ...base,
+        id: "id-template-empty-string",
+        _data: {
+          Message: {
+            templateMessage: {
+              Format: { InteractiveMessageTemplate: { body: { text: "" } } },
+              hydratedTemplate: { hydratedContentText: "texto de verdade" },
+            },
+          },
+        },
+      },
+      accountId,
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.text).toBe("texto de verdade");
+  });
+});
+
+/**
+ * The discard policy is deliberately narrow: only kinds PROVEN to be protocol
+ * bookkeeping are dropped. Anything else that arrives empty is kept as a
+ * content-free row, which the thread renders as "Mensagem não suportada".
+ * Losing the trace of something the customer or the shop actually sent is worse
+ * than showing a placeholder.
+ */
+describe("parseWahaMessageEvent — discard policy for unmapped kinds", () => {
+  const base = {
+    timestamp: 1721567423,
+    from: "554799852008@c.us",
+    fromMe: false,
+    body: null,
+    hasMedia: false,
+  };
+
+  it("keeps a button-only interactiveMessage so a sent PIX charge stays in the thread", () => {
+    // Real capture: these are PIX charges the shop sent from the phone. No
+    // readable text, but the seller must still see a charge went out then.
+    const parsed = parseWahaMessageEvent(
+      {
+        ...base,
+        id: "id-interactive",
+        fromMe: true,
+        _data: {
+          Message: {
+            interactiveMessage: {
+              InteractiveMessage: { NativeFlowMessage: { buttons: [{ name: "payment_info" }] } },
+            },
+          },
+        },
+      },
+      accountId,
+    );
+    expect(parsed.type).toBe("outbound-echo");
+    expect(parsed.text).toBe("");
+  });
+
+  it("keeps a text-less templateMessage rather than dropping it", () => {
+    const parsed = parseWahaMessageEvent(
+      { ...base, id: "id-template-empty", _data: { Message: { templateMessage: { Format: {} } } } },
+      accountId,
+    );
+    expect(parsed.type).toBe("message");
+  });
+
+  it("keeps an unrecognised future WhatsApp kind", () => {
+    const parsed = parseWahaMessageEvent(
+      { ...base, id: "id-future", _data: { Message: { someFutureMessage: { foo: 1 } } } },
+      accountId,
+    );
+    expect(parsed.type).toBe("message");
+  });
+
+  it("still drops placeholderMessage, which is pure bookkeeping", () => {
+    expect(() =>
+      parseWahaMessageEvent(
+        { ...base, id: "id-placeholder", _data: { Message: { placeholderMessage: { type: 0 } } } },
+        accountId,
+      ),
+    ).toThrow(/placeholderMessage/);
+  });
+
+  it("keeps an envelope carrying an ad referral even with no readable body", () => {
+    // The referral IS the content: dropping it loses the campaign attribution
+    // that gives the conversation its origin.
+    const parsed = parseWahaMessageEvent(
+      {
+        ...base,
+        id: "id-ad",
+        _data: {
+          Message: {
+            extendedTextMessage: {
+              contextInfo: { externalAdReply: { sourceID: "camp-1", title: "Peça X" } },
+            },
+          },
+        },
+      },
+      accountId,
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.adReferral?.sourceId).toBe("camp-1");
+  });
+
+  it("keeps media whose payload carries no mimetype at all", () => {
+    // hasMedia:true with a null media node — bytes unreachable, but a photo WAS
+    // sent; dropping it removes the conversation's only signal of it.
+    const parsed = parseWahaMessageEvent(
+      { ...base, id: "id-media-null", hasMedia: true, media: null },
+      accountId,
+    );
+    expect(parsed.type).toBe("message");
+  });
+});
+
+describe("parseWahaMessageEvent — location coordinate parsing", () => {
+  const base = {
+    id: "id-coord",
+    timestamp: 1721567423,
+    from: "554799852008@c.us",
+    fromMe: false,
+    body: null,
+    hasMedia: false,
+  };
+
+  it("keeps a legitimate zero coordinate", () => {
+    const parsed = parseWahaMessageEvent(
+      { ...base, location: { latitude: "0", longitude: "0" } },
+      accountId,
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.contentType).toBe("location");
+    expect(parsed.text).toBe("0,0");
+  });
+
+  it("accepts coordinates already sent as numbers", () => {
+    const parsed = parseWahaMessageEvent(
+      { ...base, location: { latitude: -27.393307, longitude: -53.4008827 } },
+      accountId,
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.text).toBe("-27.393307,-53.4008827");
+  });
+
+  it("ignores non-numeric coordinates but keeps the place label", () => {
+    const parsed = parseWahaMessageEvent(
+      { ...base, location: { latitude: "abc", longitude: "xyz", name: "Oficina do Vanio" } },
+      accountId,
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.text).toBe("Oficina do Vanio");
+  });
+
+  it("uses the address when the pin carried no name", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        ...base,
+        location: { latitude: "-27.39", longitude: "-53.40", address: "Rod. Fernão Dias, KM 853" },
+      },
+      accountId,
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.text).toBe("Rod. Fernão Dias, KM 853\n-27.39,-53.4");
+  });
+});
+
+describe("parseWahaMessageEvent — media WAHA could not download", () => {
+  it("preserves the media type when the download failed, so the bubble shows unavailable media", () => {
+    // Real capture: WAHA reports hasMedia:true and the mimetype, but `url` is
+    // absent because its own download hit a non-retriable 403 upstream.
+    const parsed = parseWahaMessageEvent(
+      {
+        id: "id-media-failed",
+        timestamp: 1721567423,
+        from: "554799852008@c.us",
+        fromMe: false,
+        body: null,
+        hasMedia: true,
+        media: {
+          mimetype: "image/jpeg",
+          error: { code: 9, details: "failed to download media: status code 403" },
+        },
+      },
+      accountId,
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.contentType).toBe("image");
+    expect(parsed.mediaId).toBeUndefined();
+  });
+
+  it("keeps the caption of a media message that failed to download", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        id: "id-media-failed-caption",
+        timestamp: 1721567423,
+        from: "554799852008@c.us",
+        fromMe: false,
+        body: "segue a foto da peça",
+        hasMedia: true,
+        media: { mimetype: "image/jpeg", error: { code: 9 } },
+      },
+      accountId,
+    );
+    if (parsed.type !== "message") throw new Error("expected message");
+    expect(parsed.text).toBe("segue a foto da peça");
+  });
+});

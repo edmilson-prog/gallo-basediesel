@@ -16,7 +16,12 @@
  * Runtime-agnostic file: relative imports only, Web APIs only.
  */
 
-import { extractContent, jidToE164, type IWahaMessagePayload } from "../waha/parser.ts";
+import {
+  extractContent,
+  isDiscardableEnvelope,
+  jidToE164,
+  type IWahaMessagePayload,
+} from "../waha/parser.ts";
 import { resolveWahaLid } from "../waha/contacts.ts";
 import { fetchWahaChatMessagesPage, fetchWahaChatsPage } from "../waha/history.ts";
 import type { IWahaSessionTarget } from "../waha/session.ts";
@@ -124,6 +129,12 @@ export function normalizeWahaHistoryRecord(payload: IWahaMessagePayload): INorma
 
   const content = extractContent(payload);
   if (content.contentType === "unknown" && !content.text) return null;
+  // Shares the parser's discard policy. This importer produced ~99% of the
+  // blank bubbles found in production (20.6k of 20.7k rows carry no
+  // webhook_event_ids): it reuses extractContent but had only the narrower
+  // "unknown" filter above, which a content-free envelope slips past —
+  // an album header yields `{contentType: "text", text: ""}`, not "unknown".
+  if (isDiscardableEnvelope(payload, content)) return null;
 
   const direction: "in" | "out" = payload.fromMe === true ? "out" : "in";
   const status: INormalizedRecord["status"] = direction === "out" ? "sent" : "delivered";

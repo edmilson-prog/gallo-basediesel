@@ -10,6 +10,7 @@ import type {
 } from "@/shared/types";
 import { hashHue, initialsFrom, isPhoneLikeName } from "@/shared/utils/avatar";
 import { decodeContact, decodeLocation } from "@/providers/whatsapp/contentFormat";
+import { isContentFreeMessage } from "../engine/contentFreeMessage";
 import { INBOX_STRINGS, STRUCTURED_PREVIEW_ICON } from "../i18n/pt-BR";
 
 export interface IConversationDisplay {
@@ -122,6 +123,11 @@ export function getMessagePreview(message: IMessage | null): string {
   }
   if (message.mediaType) {
     return INBOX_STRINGS.mediaPreview[message.mediaType] ?? "📎 Anexo";
+  }
+  // Mirrors the thread's UnsupportedBubble: without this the Inbox row for a
+  // conversation whose last message is content-free renders a blank preview.
+  if (isContentFreeMessage(message)) {
+    return INBOX_STRINGS.mediaPreview.unsupported;
   }
   return message.text;
 }

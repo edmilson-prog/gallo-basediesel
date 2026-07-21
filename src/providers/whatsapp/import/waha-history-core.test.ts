@@ -58,6 +58,57 @@ describe("normalizeWahaHistoryRecord", () => {
     expect(row?.direction).toBe("in");
   });
 
+  // The history import — not the live webhook — produced ~99% of the 20.7k
+  // blank bubbles in production (they carry no webhook_event_ids). It shares
+  // extractContent with the parser but had its own, weaker filter, so the
+  // discard policy has to be shared or the next import recreates them.
+  it("drops an album header instead of importing a blank row", () => {
+    expect(
+      normalizeWahaHistoryRecord({
+        ...base,
+        body: undefined,
+        _data: { Message: { albumMessage: { expectedImageCount: 2 } } },
+      }),
+    ).toBeNull();
+  });
+
+  it("drops a content-free envelope with no identifiable kind", () => {
+    expect(normalizeWahaHistoryRecord({ ...base, body: undefined })).toBeNull();
+  });
+
+  it("recovers template text during import instead of importing it blank", () => {
+    const row = normalizeWahaHistoryRecord({
+      ...base,
+      body: undefined,
+      _data: {
+        Message: {
+          templateMessage: { hydratedTemplate: { hydratedContentText: "Promoção de peças" } },
+        },
+      },
+    });
+    expect(row?.text).toBe("Promoção de peças");
+  });
+
+  it("imports a shared location as a location row", () => {
+    const row = normalizeWahaHistoryRecord({
+      ...base,
+      body: undefined,
+      location: { latitude: "-27.393307", longitude: "-53.4008827" },
+    });
+    expect(row?.mediaType).toBe("location");
+    expect(row?.text).toBe("-27.393307,-53.4008827");
+  });
+
+  it("keeps importing a caption-less media message", () => {
+    const row = normalizeWahaHistoryRecord({
+      ...base,
+      body: undefined,
+      hasMedia: true,
+      media: { url: "https://waha.example.com/f.jpg", mimetype: "image/jpeg" },
+    });
+    expect(row?.mediaType).toBe("image");
+  });
+
   it("returns null when id is missing", () => {
     const { id: _drop, ...rest } = base;
     expect(normalizeWahaHistoryRecord(rest as IWahaMessagePayload)).toBeNull();
