@@ -12,6 +12,15 @@
 
 ## Global Constraints
 
+- **O vizinho manda mais que o código de exemplo deste plano.** Antes de escrever
+  um arquivo novo, leia o equivalente que já existe (`LocationBubble` para um
+  bubble, `ContactBubble` para copiar-para-área-de-transferência,
+  `waha/parser.ts` para ler payload) e siga a disciplina dele — guardas,
+  tratamento de erro, feedback ao usuário. Os trechos de código deste plano são
+  ponto de partida, não gabarito: as revisões das Tasks 1-4 acharam quatro
+  defeitos que existiam justamente porque o exemplo aqui era mais otimista que
+  o vizinho já em produção. Se o exemplo divergir do padrão vizinho, o vizinho
+  vence — e registre a divergência no relatório.
 - **Dado de terceiro nunca é confiado por cast.** Tudo que vem de um payload do
   WhatsApp (`_data`, `buttonParamsJSON`, campos de evento) chega como `unknown`
   e só é usado depois de checagem real em runtime — `Array.isArray` antes de
