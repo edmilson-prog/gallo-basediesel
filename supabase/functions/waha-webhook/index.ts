@@ -707,7 +707,32 @@ Deno.serve(async (req) => {
         (target.reactions as Parameters<typeof applyReaction>[0]) ?? null,
         reaction,
       );
-      await admin.from("messages").update({ reactions: next }).eq("id", target.id);
+      const { error: reactionUpdateErr } = await admin
+        .from("messages")
+        .update({ reactions: next })
+        .eq("id", target.id);
+
+      if (reactionUpdateErr) {
+        // Mirrors the message-insert discipline below ("Mark processed only
+        // now that the message has actually landed"): if the write failed, do
+        // NOT mark processed and do NOT touch the conversation — a retry of
+        // this event will reprocess cleanly. Marking processed here would
+        // lose the reaction forever, since WAHA's redelivery of the same
+        // event would then hit the processed_events guard and be discarded
+        // as a duplicate before the write is ever retried.
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            msg: "waha webhook: reaction update failed",
+            error: reactionUpdateErr.message,
+          }),
+        );
+        return respond(json({ ok: true, ignored: "reaction-update-failed" }, 200), {
+          outcome: "error",
+          errorMessage: reactionUpdateErr.message,
+          requestPayload: envelope,
+        });
+      }
 
       // A customer reaction IS an interaction: it bumps the conversation and
       // marks it unread, so a 👍 stops reading as "no answer". The shop's own

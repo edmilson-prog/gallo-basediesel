@@ -274,6 +274,15 @@ aberto ao reabrir a conversa (ou quando outro evento tocar a conversa por
 outro motivo). É informação de baixo valor operacional — o vendedor sabe que
 reagiu, o que falta comunicar é a reação *do cliente*, e essa chega ao vivo.
 
+**A remoção de reação tem exatamente o mesmo comportamento**, de qualquer um
+dos dois lados: `applyReaction` grava o slot correspondente como ausente
+(`reactions` pode virar `null`) sem que o passo 4 seja acionado (não é
+`fromMe === false` com `reaction.emoji` não-vazio), então a conversa não é
+tocada e `syncLatest()` nunca dispara. O chip removido continua visível no
+thread aberto até a conversa ser reaberta (ou tocada por outro motivo) — o
+vendedor vê o cliente "desfazer" um 👍 só depois de sair e voltar à
+conversa.
+
 ### Exibição
 
 O chip de reação vive em `bubbleChrome.tsx` — a chrome compartilhada por
@@ -298,13 +307,23 @@ A ordem importa e não é intercambiável:
 
 1. **Migration primeiro, sempre antes do deploy do frontend.**
    `messages.reactions` entrou em `COLUMNS`
-   (`src/providers/data/impl/supabase/messages.ts`) — com a coluna ainda
-   inexistente no banco, **toda** leitura de mensagens (não só as com
-   reação) quebra, porque o `SELECT` inteiro falha. Foi exatamente o
-   incidente do PR #218 (coluna nova referenciada em `COLUMNS` antes da
-   migration rodar em produção). Aplicar
-   `supabase/migrations/20260721180000_message_reactions.sql` requer OK
-   explícito do dono antes do `apply_migration`.
+   (`src/providers/data/impl/supabase/messages.ts`) — mas o thread do
+   Atendimento **não** depende dela: `list()` (~linha 121) lê a página pela
+   RPC `conversation_messages`, que não usa `COLUMNS`. Com a coluna ainda
+   inexistente no banco, o thread continua abrindo normalmente, só sem as
+   reações. O que quebra de verdade são os caminhos que fazem
+   `.select(COLUMNS)`/`SELECT` direto na tabela: `listConversationMedia`
+   (~linha 333, aba "Mídias" da conversa), `listCustomerMedia` (~linha 351,
+   aba "Mídias" da ficha do cliente), `listForAnalytics` (~linha 221,
+   leituras analíticas de mensagens) e `send`/`markStatus` (~linhas 161/172
+   — caminho de simulação/mock que reconsulta a linha com `COLUMNS` após o
+   insert/update; não é o envio real, que passa por `waha-send`). Esses
+   caminhos falham com "column does not exist" até a migration rodar — é o
+   mesmo padrão do incidente do PR #218 (coluna nova referenciada em
+   `COLUMNS` antes da migration em produção), só que contido às
+   leitura/escritas que passam por `COLUMNS`, não ao `SELECT` do thread.
+   Aplicar `supabase/migrations/20260721180000_message_reactions.sql`
+   requer OK explícito do dono antes do `apply_migration`.
 
 2. **Deploy manual da Edge Function — o workflow do GitHub é no-op.**
    "Edge Functions deploy" no GitHub Actions fica **verde sem deployar nada**
@@ -318,7 +337,8 @@ A ordem importa e não é intercambiável:
    em produção — o evento continuaria caindo no guard de "evento não
    suportado" mesmo depois da migration.
 
-3. **Re-inscrição das sessões já pareadas.**
+3. **Re-inscrição das sessões já pareadas — reinicia TODAS as sessões
+   conectadas, não é um script benigno.**
 
    ```bash
    SUPABASE_URL=https://<ref>.supabase.co \
@@ -331,6 +351,30 @@ A ordem importa e não é intercambiável:
    pareadas **depois** da mudança pegam o evento automaticamente (via
    `WAHA_DEFAULT_EVENTS` no `createWahaSession`). O script é sequencial e
    best-effort: uma falha numa conta é logada e não interrompe as demais.
+
+   **Atenção ao que o `PUT` por baixo do capô realmente faz:**
+   `updateWahaSessionConfig` (`src/providers/whatsapp/waha/session.ts`,
+   ~linhas 82-87) chama `PUT /api/sessions/{name}` da WAHA, que exige a
+   config **completa** e, quando a sessão não está `STOPPED`, **para e
+   reinicia a sessão** com a nova config (pareamento preservado, sem QR
+   novo). O script roda isso **sequencialmente em todas as contas
+   conectadas** — na prática é uma janela de reinício de toda a operação
+   de WhatsApp, não um ajuste de configuração silencioso. Por isso:
+   - rode numa **janela de baixo tráfego** e acompanhe cada sessão voltar a
+     `WORKING` antes de considerar o rollout concluído;
+   - o script filtra `.eq("status", "connected")` na consulta inicial que
+     lista as contas — uma instância que estiver desconectada **no momento
+     da execução** nem entra no loop: fica **pulada silenciosamente**, sem
+     reações, até alguém rodar o script de novo depois que ela reconectar.
+     Ela não aparece nem como sucesso nem como falha — some do resumo
+     inteiro, porque nunca foi selecionada;
+   - o resumo final (`Done. ${ok} succeeded, ${failed} failed/skipped.`)
+     só cobre as contas que **entraram no loop** (falha real: sem
+     `sessionName`/`waha_server_id`, servidor ou segredos ausentes, ou erro
+     do `PUT`). Por isso `${ok} + ${failed}` menor que o total de contas
+     WAHA cadastradas é o sinal de que algo ficou desconectado na hora e
+     precisa de uma segunda rodada — a contagem exige essa checagem
+     manual, o script não avisa sozinho.
 
 4. **Smoke.**
    - Reagir a uma mensagem pelo celular (conta já re-inscrita) e conferir

@@ -113,7 +113,7 @@ defensiva já adotada para mídia):
 8. body → text              (inalterado)
 ```
 
-`extractWahaPayment(payload)`:
+`extractWahaPaymentText(payload)`:
 - Navega até `NativeFlowMessage.buttons`, acha `name === "payment_info"`.
 - `JSON.parse(buttonParamsJSON)` dentro de **try/catch** — é dado de terceiro;
   JSON malformado retorna `undefined` e o envelope segue o fluxo normal.
@@ -372,7 +372,7 @@ Engines puros com Vitest, co-localizados:
 | Alvo | Casos |
 | --- | --- |
 | `encodePayment`/`decodePayment` | roundtrip; chave com `:`; merchant multi-linha; campos ausentes; string vazia |
-| `extractWahaPayment` | os 4 payloads reais; `buttonParamsJSON` malformado; botão ausente; `payment_settings` vazio |
+| `extractWahaPaymentText` | os 4 payloads reais; `buttonParamsJSON` malformado; botão ausente; `payment_settings` vazio |
 | `parseWahaReactionEvent` | payload da doc; sem `reaction`; sem `messageId` |
 | `applyReaction` | aplicar; substituir do mesmo lado; os dois lados; remover um; remover o último (⇒ null) |
 
