@@ -109,6 +109,27 @@ export function BubbleChrome({
         )}
       </div>
 
+      {(message.reactions?.customer || message.reactions?.seller) && (
+        <div className="-mt-1 flex items-center gap-1">
+          {message.reactions.customer && (
+            <span
+              title={CONVERSATION_STRINGS.reactions.fromCustomer}
+              className="select-none rounded-full border border-border bg-card px-1.5 py-0.5 text-xs shadow-sm"
+            >
+              {message.reactions.customer.emoji}
+            </span>
+          )}
+          {message.reactions.seller && (
+            <span
+              title={CONVERSATION_STRINGS.reactions.fromSeller}
+              className="select-none rounded-full border border-border bg-card px-1.5 py-0.5 text-xs shadow-sm"
+            >
+              {message.reactions.seller.emoji}
+            </span>
+          )}
+        </div>
+      )}
+
       {footer}
 
       {reprocessable && (

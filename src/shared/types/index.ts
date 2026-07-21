@@ -154,6 +154,8 @@ export type {
   IConversationMessageMatch,
   IConversationTag,
   IMessage,
+  IMessageReaction,
+  IMessageReactions,
   IWhatsAppAccount,
   IWhatsAppCapabilities,
   IWhatsAppProviderConfig,

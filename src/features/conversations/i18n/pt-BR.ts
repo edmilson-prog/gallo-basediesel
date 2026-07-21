@@ -317,6 +317,10 @@ export const CONVERSATION_STRINGS = {
   },
   sdrBadge: "🤖 SDR",
   sdrBubbleTooltip: "Mensagem enviada pelo agente SDR",
+  reactions: {
+    fromCustomer: "Reação do cliente",
+    fromSeller: "Reação da loja",
+  },
   templateBadge: "Template",
   retry: "Tentar novamente",
   reprocess: "Reprocessar",
