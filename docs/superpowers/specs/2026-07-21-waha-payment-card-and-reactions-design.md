@@ -326,22 +326,31 @@ aparece ao reabrir/refetch. É informação de baixo valor operacional.
 
 O que precisa mudar são leituras, não o cache:
 - `COLUMNS` do `impl/supabase/messages.ts` += `reactions`
-- **RPC `conversation_messages`** += `reactions` — o `list()` lê pela RPC, não
-  pela tabela, então a coluna precisa sair de lá também.
 - `rowToMessage` mapeia para `IMessage.reactions`.
+
+**A RPC `conversation_messages` NÃO precisa ser recriada.** Ela é
+`RETURNS SETOF messages` com `select m.*` — o rowtype acompanha a tabela, então
+uma coluna nova passa a ser retornada automaticamente. (Verificado lendo a
+definição atual da função em produção.)
 
 ### Migration
 
 Uma migration, versionada em `supabase/migrations/` e espelhada no Git no
 mesmo PR:
 
-1. `ALTER TABLE messages ADD COLUMN reactions jsonb` (nullable, sem default).
-2. `CREATE OR REPLACE FUNCTION conversation_messages(...)` incluindo a coluna
-   nova no retorno.
+```sql
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS reactions jsonb;
+```
+
+Nullable, sem default: `NULL` é "sem reação". Sem backfill, sem índice — não há
+consulta que filtre por reação.
 
 ⚠️ **A migration vai antes do deploy do frontend.** Adicionar `reactions` a
 `COLUMNS` sem a coluna existir quebra toda leitura de mensagens — foi
 exatamente o incidente do PR #218.
+
+⚠️ Após o `ALTER TABLE`, o PostgREST precisa recarregar o schema
+(`NOTIFY pgrst, 'reload schema'`) para expor a coluna nova na API.
 
 Sem mudança de RLS: a coluna herda as policies da tabela, e a RPC continua
 `SECURITY DEFINER` gated-once.
