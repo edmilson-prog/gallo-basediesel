@@ -712,6 +712,14 @@ Deno.serve(async (req) => {
       // A customer reaction IS an interaction: it bumps the conversation and
       // marks it unread, so a 👍 stops reading as "no answer". The shop's own
       // reaction is recorded but must not touch the queue.
+      //
+      // `awaiting_reply_since` is deliberately NOT cleared here. That column
+      // means "since when the customer has been waiting on US", and it is owned
+      // by the trigger on `messages` (sync_conversation_awaiting_reply), which
+      // clears it only on a genuine outbound. A reaction is not the shop
+      // answering — the customer is still waiting — so clearing it would
+      // silently disarm the idle-conversation alerts for an unanswered
+      // question. Leave the column entirely to the trigger.
       if (!reaction.fromMe && reaction.emoji) {
         const { data: conversation } = await admin
           .from("conversations")
@@ -723,7 +731,6 @@ Deno.serve(async (req) => {
           .update({
             last_message_at: reaction.timestamp,
             unread_count: ((conversation?.unread_count as number | null) ?? 0) + 1,
-            awaiting_reply_since: null,
           })
           .eq("id", target.conversation_id as string);
       }

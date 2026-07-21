@@ -1194,7 +1194,6 @@ Inserir logo APÓS o branch de `message.ack` (que termina por volta da linha 668
           .update({
             last_message_at: reaction.timestamp,
             unread_count: ((conversation?.unread_count as number | null) ?? 0) + 1,
-            awaiting_reply_since: null,
           })
           .eq("id", target.conversation_id as string);
       }

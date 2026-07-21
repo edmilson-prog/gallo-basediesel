@@ -282,8 +282,16 @@ Fluxo no webhook:
    importação — esperado e benigno).
 3. `UPDATE messages SET reactions = <novo>`.
 4. Se `fromMe === false` **e** não é remoção: toca a conversa
-   (`last_message_at = now()`), soma 1 a `unread_count` e limpa
-   `awaiting_reply_since` — conta como interação do cliente.
+   (`last_message_at`) e soma 1 a `unread_count` — conta como interação do
+   cliente.
+
+   ⚠️ `awaiting_reply_since` **NÃO** é limpo. Essa coluna significa "desde
+   quando o cliente espera POR NÓS" e é governada pelo trigger em `messages`,
+   que só a limpa num outbound genuíno. Reagir não é a loja responder — o
+   cliente segue esperando —, então limpá-la desarmaria silenciosamente os
+   alertas de conversa ociosa (v0.148.0 "Nudge") para uma pergunta que ninguém
+   respondeu. Decisão do dono, 2026-07-21, revertendo a versão inicial desta
+   spec.
 
 Idempotência: o evento entra no mesmo guard de `processed_events` que os
 demais, então uma reentrega do WAHA não soma `unread_count` duas vezes.
