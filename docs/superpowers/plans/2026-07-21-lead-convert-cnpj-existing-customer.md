@@ -949,6 +949,8 @@ EOF
 - Consumes: `customersProvider.list({ storeId, search, pageSize })` (contrato já existente, `src/providers/data/contracts/customers.ts`), `useDebounce` (já importado na Task 4), `LEADS_STRINGS.convertModal` (Task 3: `modeLabel`, `modeNew`, `modeLink`, `descriptionLink`, `searchLabel`, `searchPlaceholder`, `searchHint`, `searchNoResults`, `changeCustomer`, `successToastLinked`).
 - Produces: mesmo `ConvertLeadModal` exportado, mesma prop interface — nenhum consumidor externo muda.
 
+⚠️ **Nota pós-revisão da Task 4:** a review da Task 4 encontrou uma corrida real (Important) — `cnpjFieldState`/`cnpjChecking` liam `cnpjStatus`/`cnpjData`, que só atualizam para `debouncedCnpj` (500ms atrás do `cnpj` bruto); submeter dentro dessa janela podia agir sobre um status obsoleto de um CNPJ diferente do que estava no campo. O fix (`cnpjPendingDebounce = onlyDigits(cnpj) !== onlyDigits(debouncedCnpj)`, dobrado em `cnpjFieldState` e `cnpjChecking`) já foi aplicado na Task 4 e está incorporado no código abaixo — é o `cnpjFieldState`/`cnpjChecking` já corrigidos, não a versão original do plano. Ao implementar esta task (substituição do arquivo inteiro), use o código **exatamente como está neste Step 1** — ele já carrega o fix, não a versão pré-fix do commit inicial da Task 4.
+
 - [ ] **Step 1: Substituir o conteúdo do arquivo**
 
 ```tsx
@@ -1097,19 +1099,31 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadMod
     };
   }, [mode, lead, selectedCustomer, debouncedQuery, customersProvider]);
 
+  // True while the debounced value hasn't caught up with the latest typed
+  // digits yet — cnpjStatus/cnpjData still describe the PREVIOUS CNPJ during
+  // this window, so both the field state and the submit gate must treat it
+  // as "checking" rather than trusting the stale status. (Fix applied during
+  // Task 4's review — carried forward here so Task 5's full-file rewrite
+  // doesn't regress it.)
+  const cnpjPendingDebounce = onlyDigits(cnpj) !== onlyDigits(debouncedCnpj);
+
   const cnpjFieldState = useMemo<CnpjFieldState>(() => {
     if (mode !== "new" || type !== "B2B") return "idle";
     const digits = onlyDigits(cnpj);
     if (digits.length < 14) return "idle";
     if (!isValidCnpj(cnpj)) return "invalid";
-    if (cnpjStatus === "loading") return "checking";
+    if (cnpjPendingDebounce || cnpjStatus === "loading") return "checking";
     if (cnpjStatus === "invalid") return "invalid";
     if (cnpjStatus === "error") return "warning";
     if (cnpjStatus === "success") return "valid";
     return "checking";
-  }, [mode, type, cnpj, cnpjStatus]);
+  }, [mode, type, cnpj, cnpjPendingDebounce, cnpjStatus]);
 
-  const cnpjChecking = mode === "new" && type === "B2B" && cnpjStatus === "loading";
+  const cnpjChecking =
+    mode === "new" &&
+    type === "B2B" &&
+    isValidCnpj(cnpj) &&
+    (cnpjPendingDebounce || cnpjStatus === "loading");
 
   const validate = (): boolean => {
     const next: Record<string, string> = {};
