@@ -105,19 +105,26 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadMod
     };
   }, [debouncedCnpj, type, lookupCnpj, resetCnpj]);
 
+  // True while the debounced value hasn't caught up with the latest typed
+  // digits yet — cnpjStatus/cnpjData still describe the PREVIOUS CNPJ during
+  // this window, so both the field state and the submit gate must treat it
+  // as "checking" rather than trusting the stale status.
+  const cnpjPendingDebounce = onlyDigits(cnpj) !== onlyDigits(debouncedCnpj);
+
   const cnpjFieldState = useMemo<CnpjFieldState>(() => {
     if (type !== "B2B") return "idle";
     const digits = onlyDigits(cnpj);
     if (digits.length < 14) return "idle";
     if (!isValidCnpj(cnpj)) return "invalid";
-    if (cnpjStatus === "loading") return "checking";
+    if (cnpjPendingDebounce || cnpjStatus === "loading") return "checking";
     if (cnpjStatus === "invalid") return "invalid";
     if (cnpjStatus === "error") return "warning";
     if (cnpjStatus === "success") return "valid";
     return "checking";
-  }, [type, cnpj, cnpjStatus]);
+  }, [type, cnpj, cnpjPendingDebounce, cnpjStatus]);
 
-  const cnpjChecking = type === "B2B" && cnpjStatus === "loading";
+  const cnpjChecking =
+    type === "B2B" && isValidCnpj(cnpj) && (cnpjPendingDebounce || cnpjStatus === "loading");
 
   const validate = (): boolean => {
     const next: Record<string, string> = {};
