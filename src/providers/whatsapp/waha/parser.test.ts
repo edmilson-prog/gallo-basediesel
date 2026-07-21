@@ -950,4 +950,115 @@ describe("parseWahaMessageEvent — shared PIX key", () => {
     );
     expect(parsed.contentType).toBe("payment");
   });
+
+  /** Third-party JSON never matches our interfaces at runtime — these cover
+   *  shapes that used to throw a TypeError out of extractWahaPaymentText,
+   *  which parseWahaMessageEvent does NOT catch: an uncaught throw here would
+   *  make the webhook discard the whole message instead of just the payment
+   *  card (see the function's doc comment). Every case below must degrade to
+   *  "not a payment" instead. */
+  describe("degrades instead of throwing on malformed payment shapes", () => {
+    function withInteractive(interactiveMessage: unknown) {
+      return {
+        ...base,
+        _data: { Message: { interactiveMessage } },
+      };
+    }
+
+    it("buttons as a non-array object", () => {
+      const payload = withInteractive({
+        InteractiveMessage: { NativeFlowMessage: { buttons: { notAnArray: true } } },
+      });
+      expect(() => parseWahaMessageEvent(payload, accountId)).not.toThrow();
+      const parsed = parseWahaMessageEvent(payload, accountId);
+      expect(parsed.contentType).toBe("text");
+    });
+
+    it("buttons as a string", () => {
+      const payload = withInteractive({
+        InteractiveMessage: { NativeFlowMessage: { buttons: "not-an-array" } },
+      });
+      expect(() => parseWahaMessageEvent(payload, accountId)).not.toThrow();
+      const parsed = parseWahaMessageEvent(payload, accountId);
+      expect(parsed.contentType).toBe("text");
+    });
+
+    it("buttons as an empty array", () => {
+      const payload = withInteractive({
+        InteractiveMessage: { NativeFlowMessage: { buttons: [] } },
+      });
+      expect(() => parseWahaMessageEvent(payload, accountId)).not.toThrow();
+      const parsed = parseWahaMessageEvent(payload, accountId);
+      expect(parsed.contentType).toBe("text");
+    });
+
+    it("a button with no name", () => {
+      const payload = withInteractive({
+        InteractiveMessage: {
+          NativeFlowMessage: { buttons: [{ buttonParamsJSON: JSON.stringify(realParams) }] },
+        },
+      });
+      expect(() => parseWahaMessageEvent(payload, accountId)).not.toThrow();
+      const parsed = parseWahaMessageEvent(payload, accountId);
+      expect(parsed.contentType).toBe("text");
+    });
+
+    it("payment_settings as a non-array object", () => {
+      const payload = withParams({ payment_settings: { notAnArray: true } });
+      expect(() => parseWahaMessageEvent(payload, accountId)).not.toThrow();
+      const parsed = parseWahaMessageEvent(payload, accountId);
+      expect(parsed.contentType).toBe("text");
+    });
+
+    it("payment_settings as an empty array", () => {
+      const payload = withParams({ payment_settings: [] });
+      expect(() => parseWahaMessageEvent(payload, accountId)).not.toThrow();
+      const parsed = parseWahaMessageEvent(payload, accountId);
+      expect(parsed.contentType).toBe("text");
+    });
+
+    it("pix_static_code absent", () => {
+      const payload = withParams({ payment_settings: [{ type: "pix_static_code" }] });
+      expect(() => parseWahaMessageEvent(payload, accountId)).not.toThrow();
+      const parsed = parseWahaMessageEvent(payload, accountId);
+      expect(parsed.contentType).toBe("text");
+    });
+
+    it("key as a number degrades instead of throwing", () => {
+      const payload = withParams({
+        payment_settings: [
+          {
+            type: "pix_static_code",
+            pix_static_code: {
+              merchant_name: "Fernando De Mello Muniz",
+              key: 32990725000160,
+              key_type: "CNPJ",
+            },
+          },
+        ],
+      });
+      expect(() => parseWahaMessageEvent(payload, accountId)).not.toThrow();
+      const parsed = parseWahaMessageEvent(payload, accountId);
+      expect(parsed.contentType).toBe("text");
+    });
+
+    it("merchant_name as a number but key a valid string still yields a payment card", () => {
+      const payload = withParams({
+        payment_settings: [
+          {
+            type: "pix_static_code",
+            pix_static_code: {
+              merchant_name: 12345,
+              key: "32990725000160",
+              key_type: "CNPJ",
+            },
+          },
+        ],
+      });
+      expect(() => parseWahaMessageEvent(payload, accountId)).not.toThrow();
+      const parsed = parseWahaMessageEvent(payload, accountId);
+      expect(parsed.contentType).toBe("payment");
+      expect(parsed.text).toBe("CNPJ:32990725000160");
+    });
+  });
 });

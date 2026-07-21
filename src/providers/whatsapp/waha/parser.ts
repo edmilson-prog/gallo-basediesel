@@ -234,13 +234,43 @@ export function wahaMessageKind(payload: IWahaMessagePayload): string | undefine
   return Object.keys(message).find((key) => key !== "messageContextInfo");
 }
 
+/** Narrows third-party JSON to a plain object before reading properties off
+ *  it — `JSON.parse` returns `unknown`, and a documented shape (object) is
+ *  only ever a HINT for third-party data, never a guarantee. Excludes `null`
+ *  (`typeof null === "object"`) and arrays, neither of which support named
+ *  property reads the way this module needs. */
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** A property read from third-party JSON, kept only when it is actually a
+ *  string. WhatsApp's payment payload documents `key`/`key_type`/
+ *  `merchant_name` as strings, but nothing stops a malformed envelope from
+ *  putting a number there instead (real-world case: `key` arriving as a bare
+ *  CNPJ integer) — passing that straight to `encodePayment` would throw
+ *  inside `oneLine`'s `.replace()`. Silently dropping the field (instead of
+ *  stringifying it) keeps the degrade obvious: a coerced number could read as
+ *  a legitimate key when it was actually a parsing mistake upstream. */
+function asJsonString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
 /** Canonical payment text for a shared PIX key, or undefined when the envelope
- *  carries no usable key. `buttonParamsJSON` is third-party data parsed inside
- *  a try/catch: malformed JSON degrades to "not a payment", never throws. */
+ *  carries no usable key. `buttonParamsJSON` is third-party data — parsed
+ *  inside a try/catch and never trusted against its declared TypeScript shape
+ *  past that point, so every read down to the individual PIX fields is
+ *  guarded at runtime. Malformed JSON, a non-array `buttons`/`payment_settings`,
+ *  a missing `pix_static_code`, or a non-string field all degrade to
+ *  "not a payment" — this function must NEVER throw, since an uncaught
+ *  exception here propagates out of parseWahaMessageEvent and makes the
+ *  webhook discard the WHOLE message, not just the payment card. */
 function extractWahaPaymentText(payload: IWahaMessagePayload): string | undefined {
   const buttons =
     payload._data?.Message?.interactiveMessage?.InteractiveMessage?.NativeFlowMessage?.buttons;
-  const raw = buttons?.find((button) => button?.name === "payment_info")?.buttonParamsJSON;
+  const button = Array.isArray(buttons)
+    ? buttons.find((candidate) => candidate?.name === "payment_info")
+    : undefined;
+  const raw = button?.buttonParamsJSON;
   if (!raw) return undefined;
   let params: unknown;
   try {
@@ -248,12 +278,16 @@ function extractWahaPaymentText(payload: IWahaMessagePayload): string | undefine
   } catch {
     return undefined;
   }
-  const settings = (params as { payment_settings?: unknown[] } | null)?.payment_settings;
-  const pix = (settings?.[0] as { pix_static_code?: Record<string, string> } | undefined)
-    ?.pix_static_code;
-  if (!pix) return undefined;
+  const settings = isJsonObject(params) ? params.payment_settings : undefined;
+  const firstSetting = Array.isArray(settings) ? settings[0] : undefined;
+  const pix = isJsonObject(firstSetting) ? firstSetting.pix_static_code : undefined;
+  if (!isJsonObject(pix)) return undefined;
   return (
-    encodePayment({ merchant: pix.merchant_name, key: pix.key, keyType: pix.key_type }) || undefined
+    encodePayment({
+      merchant: asJsonString(pix.merchant_name),
+      key: asJsonString(pix.key),
+      keyType: asJsonString(pix.key_type),
+    }) || undefined
   );
 }
 
