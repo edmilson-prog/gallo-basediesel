@@ -29,6 +29,11 @@ export const WAHA_DEFAULT_EVENTS = [
   "message.any",
   "session.status",
   "message.ack",
+  // Reactions stopped travelling in `message`/`message.any` — WAHA delivers
+  // them ONLY here. Without this a customer replying with a 👍 is invisible and
+  // the seller concludes nobody answered. Sessions paired BEFORE this change
+  // need scripts/waha-resubscribe-reactions.ts to pick it up.
+  "message.reaction",
 ] as const;
 
 export const WAHA_SESSION_STATES = [
