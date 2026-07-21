@@ -919,6 +919,11 @@ Deno.serve(async (req) => {
         text: parsed.text ?? parsed.mediaCaption ?? "",
         media_type: ["text", "unknown"].includes(parsed.contentType) ? null : parsed.contentType,
         media_filename: parsed.mediaFilename ?? null,
+        // See the inbound insert — same upstream-download-failure marker.
+        media_download_status:
+          ["image", "audio", "video", "document"].includes(parsed.contentType) && !parsed.mediaId
+            ? "failed"
+            : null,
         status: "sent",
         sent_at: parsed.timestamp,
         provider_message_id: parsed.providerMessageId,
@@ -1179,6 +1184,15 @@ Deno.serve(async (req) => {
       text: parsed.text ?? "",
       media_type: ["text", "unknown"].includes(parsed.contentType) ? null : parsed.contentType,
       media_filename: parsed.mediaFilename ?? null,
+      // A binary kind with no mediaId means WAHA's OWN download failed upstream
+      // (expired CDN link) — attachMedia, which normally writes this column, is
+      // skipped without a mediaId, so record the failure here instead of
+      // leaving the row indistinguishable from a pending download. Structured
+      // kinds (location/contact) legitimately carry no bytes and stay null.
+      media_download_status:
+        ["image", "audio", "video", "document"].includes(parsed.contentType) && !parsed.mediaId
+          ? "failed"
+          : null,
       status: "delivered",
       sent_at: parsed.timestamp,
       provider_message_id: parsed.providerMessageId,

@@ -19,7 +19,7 @@
  */
 
 import type { IInboundMessage, InboundContentType, IOutboundEcho, IAdReferral } from "../types";
-import { encodeContact, nameFromVCard, phoneFromVCard } from "../contentFormat";
+import { encodeContact, encodeLocation, nameFromVCard, phoneFromVCard } from "../contentFormat";
 
 const NON_INDIVIDUAL_JID = /@(g\.us|broadcast|newsletter)$/;
 const LID_JID = /@lid$/;
@@ -58,10 +58,29 @@ interface IWahaContextInfo {
   externalAdReply?: IWahaExternalAdReplyInfo;
   remoteJID?: string;
 }
+/** A WhatsApp "template" broadcast. The readable body lives under one of three
+ *  shapes depending on how the sender built it — all three confirmed against
+ *  real captures (2026-07-20/21); each carries genuine text that is present
+ *  NOWHERE else in the payload (`body` arrives null). */
+interface IWahaTemplateMessage {
+  Format?: {
+    InteractiveMessageTemplate?: { body?: { text?: string } };
+    HydratedFourRowTemplate?: { hydratedContentText?: string };
+  };
+  hydratedTemplate?: { hydratedContentText?: string };
+}
+
 interface IWahaGoMessageBody {
   extendedTextMessage?: { contextInfo?: IWahaContextInfo };
   imageMessage?: { contextInfo?: IWahaContextInfo };
   videoMessage?: { contextInfo?: IWahaContextInfo };
+  templateMessage?: IWahaTemplateMessage;
+  /** Any other whatsmeow message kind (albumMessage, protocolMessage,
+   *  interactiveMessage, …). Not modelled individually — the index signature
+   *  exists so {@link wahaMessageKind} can NAME an unhandled kind when
+   *  rejecting it, which keeps future WhatsApp types diagnosable from the
+   *  webhook log instead of silently becoming blank rows. */
+  [kind: string]: unknown;
 }
 
 /** The quoted message WAHA renders a `replyTo` for — confirmed shape (real
@@ -77,6 +96,16 @@ interface IWahaReplyTo {
   participant?: string;
 }
 
+/** A shared location pin. WAHA sends the coordinates as STRINGS (confirmed
+ *  capture, 2026-07-21) — `latitude: "-27.393307"` — so they must be parsed,
+ *  never trusted as numbers. */
+interface IWahaLocation {
+  latitude?: string | number;
+  longitude?: string | number;
+  name?: string;
+  address?: string;
+}
+
 export interface IWahaMessagePayload {
   id?: string;
   timestamp?: number;
@@ -86,6 +115,8 @@ export interface IWahaMessagePayload {
   body?: string;
   hasMedia?: boolean;
   media?: IWahaMedia | null;
+  /** Present (null on most messages) when the sender shared a location pin. */
+  location?: IWahaLocation | null;
   /** Present (possibly empty) on every WAHA message payload; non-empty when
    *  the sender shared one or more contact cards. Only the first is used —
    *  see extractContent. */
@@ -134,6 +165,54 @@ export interface IParsedContent {
   mediaFilename?: string;
 }
 
+/**
+ * A coordinate WAHA sent as a string (or, defensively, a number). Rejects the
+ * empty string explicitly: `Number("")` is `0`, which would silently place a
+ * failed parse in the Gulf of Guinea instead of discarding it.
+ */
+function toCoord(value: string | number | undefined): number | undefined {
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  const parsed = Number(value.trim());
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+/** Canonical location text, or undefined when the pin carries nothing usable
+ *  (no coordinates and no label) — the caller then falls through to the
+ *  content guard rather than storing an empty location row. */
+function extractWahaLocationText(payload: IWahaMessagePayload): string | undefined {
+  const location = payload.location;
+  if (!location) return undefined;
+  return (
+    encodeLocation({
+      name: location.name || location.address,
+      lat: toCoord(location.latitude),
+      lng: toCoord(location.longitude),
+    }) || undefined
+  );
+}
+
+/** Readable body of a template broadcast — see IWahaTemplateMessage for why
+ *  three shapes are probed. */
+function extractWahaTemplateText(payload: IWahaMessagePayload): string | undefined {
+  const template = payload._data?.Message?.templateMessage;
+  if (!template) return undefined;
+  const text =
+    template.Format?.InteractiveMessageTemplate?.body?.text ??
+    template.Format?.HydratedFourRowTemplate?.hydratedContentText ??
+    template.hydratedTemplate?.hydratedContentText;
+  return text?.trim() ? text : undefined;
+}
+
+/** Name of the raw whatsmeow message kind (e.g. "albumMessage"), used only to
+ *  explain a rejection. `messageContextInfo` rides along on most envelopes and
+ *  never identifies the message, so it is skipped. */
+export function wahaMessageKind(payload: IWahaMessagePayload): string | undefined {
+  const message = payload._data?.Message;
+  if (!message) return undefined;
+  return Object.keys(message).find((key) => key !== "messageContextInfo");
+}
+
 export function extractContent(payload: IWahaMessagePayload): IParsedContent {
   if (payload.hasMedia && payload.media?.url) {
     return {
@@ -155,12 +234,32 @@ export function extractContent(payload: IWahaMessagePayload): IParsedContent {
       mediaId: payload.replyTo.media.url,
     };
   }
+  // WAHA reports hasMedia:true but no `url` when ITS OWN download of the media
+  // failed upstream (non-retriable 403 on an expired WhatsApp CDN link). The
+  // bytes are gone, but the message still happened — keep the content type so
+  // the thread renders an "unavailable media" bubble instead of a blank one.
+  if (payload.hasMedia && payload.media?.mimetype) {
+    return {
+      contentType: contentTypeFromMimetype(payload.media.mimetype),
+      text: payload.body || undefined,
+      mediaFilename: payload.media.filename ?? undefined,
+    };
+  }
   if (payload.vCards?.[0]) {
     const vcard = payload.vCards[0];
     return {
       contentType: "contact",
       text: encodeContact({ name: nameFromVCard(vcard), phone: phoneFromVCard(vcard) }),
     };
+  }
+  const locationText = extractWahaLocationText(payload);
+  if (locationText) {
+    return { contentType: "location", text: locationText };
+  }
+  // Template broadcasts carry their text ONLY inside `_data` — `body` is null.
+  const templateText = extractWahaTemplateText(payload);
+  if (templateText) {
+    return { contentType: "text", text: templateText };
   }
   return { contentType: "text", text: payload.body ?? "" };
 }
@@ -214,6 +313,18 @@ export function parseWahaMessageEvent(
   }
 
   const content = extractContent(payload);
+  // Content guard. WhatsApp delivers plenty of envelopes that are pure
+  // protocol — album headers announcing sibling media, button-only interactive
+  // messages, e2e notifications — and every one of them used to be persisted
+  // as a row with no text and no media, surfacing as a blank bubble in the
+  // thread (~24% of conversations carried at least one). A real message can
+  // never be text-typed AND empty: WhatsApp rejects blank sends. Rejecting
+  // here reuses the parser's existing throw contract, so the webhook records
+  // the drop as `outcome: "ignored"` with this reason instead of writing.
+  if (content.contentType === "text" && !content.text?.trim()) {
+    const kind = wahaMessageKind(payload);
+    throw new Error(`WahaProvider: envelope sem conteúdo${kind ? ` (${kind})` : ""} — ignorar`);
+  }
   const timestamp = tsToIso(payload.timestamp);
 
   if (payload.fromMe) {
