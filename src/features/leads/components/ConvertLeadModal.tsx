@@ -694,7 +694,7 @@ function SegmentedToggle<T extends string>({
           <label
             key={opt.value}
             className={cn(
-              "relative z-10 flex cursor-pointer items-center justify-center rounded-md px-2 py-2 text-center text-sm font-medium transition-colors",
+              "relative z-10 flex cursor-pointer items-center justify-center rounded-md px-2 py-2 text-center text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background",
               value === opt.value ? "text-primary-foreground" : "text-muted-foreground",
             )}
           >

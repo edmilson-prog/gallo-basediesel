@@ -223,7 +223,6 @@ export const LEADS_STRINGS = {
     cancel: "Cancelar",
     submit: "Converter",
     submitting: "Convertendo…",
-    submittingCnpj: "Validando CNPJ…",
     continueLabel: "Continuar",
     back: "Voltar",
     stepCnpjLabel: "1 · CNPJ",
