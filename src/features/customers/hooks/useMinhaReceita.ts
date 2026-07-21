@@ -1,5 +1,10 @@
 import { useCallback, useRef, useState } from "react";
 import { onlyDigits } from "../utils/cnpjCpf";
+import {
+  mapMinhaReceitaResponse,
+  type ICnpjCompany,
+  type IMinhaReceitaRawResponse,
+} from "../utils/minhaReceitaMapper";
 
 /**
  * CNPJ lookup against the public Minha Receita service (https://minhareceita.org).
@@ -17,11 +22,7 @@ const TIMEOUT_MS = 8000;
 /** idle → loading → (success | invalid | error). */
 export type CnpjLookupStatus = "idle" | "loading" | "success" | "invalid" | "error";
 
-export interface ICnpjCompany {
-  cnpj: string;
-  razaoSocial: string;
-  nomeFantasia: string;
-}
+export type { ICnpjCompany };
 
 export interface IUseMinhaReceitaResult {
   lookup: (rawCnpj: string) => Promise<ICnpjCompany | null>;
@@ -30,12 +31,6 @@ export interface IUseMinhaReceitaResult {
   error: string | null;
   data: ICnpjCompany | null;
   reset: () => void;
-}
-
-interface IMinhaReceitaResponse {
-  cnpj?: string;
-  razao_social?: string;
-  nome_fantasia?: string;
 }
 
 export function useMinhaReceita(): IUseMinhaReceitaResult {
@@ -89,12 +84,8 @@ export function useMinhaReceita(): IUseMinhaReceitaResult {
         return null;
       }
 
-      const body = (await res.json()) as IMinhaReceitaResponse;
-      const out: ICnpjCompany = {
-        cnpj: digits,
-        razaoSocial: (body.razao_social ?? "").trim(),
-        nomeFantasia: (body.nome_fantasia ?? "").trim(),
-      };
+      const body = (await res.json()) as IMinhaReceitaRawResponse;
+      const out = mapMinhaReceitaResponse(digits, body);
       setData(out);
       setStatus("success");
       return out;
