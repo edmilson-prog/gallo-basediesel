@@ -218,6 +218,22 @@ export type MessageMediaType =
   | "contact"
   | "payment";
 
+/** One person's reaction to a message. */
+export interface IMessageReaction {
+  emoji: string;
+  at: ISO8601;
+}
+
+/**
+ * Reactions on a message, keyed by side. A 1:1 conversation has at most two
+ * reactors, so fixed slots beat a list. `customer` is the other party — a
+ * customer OR a lead.
+ */
+export interface IMessageReactions {
+  customer?: IMessageReaction;
+  seller?: IMessageReaction;
+}
+
 /**
  * Message — a single utterance inside an `IConversation`.
  *
@@ -260,6 +276,8 @@ export interface IMessage {
   transcription?: string;
   /** 'pending' while transcribing, 'done' when `transcription` is set, 'failed' on error/budget/disabled. Undefined = not applicable (non-audio, old message, or feature was off on arrival). */
   transcriptionStatus?: "pending" | "done" | "failed";
+  /** Reactions attached to this message. Absent when nobody reacted. */
+  reactions?: IMessageReactions;
 }
 
 /** WhatsApp provider engine. */
