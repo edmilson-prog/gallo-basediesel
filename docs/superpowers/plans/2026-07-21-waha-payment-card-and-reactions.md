@@ -575,17 +575,24 @@ Expected: FAIL — retorna o texto cru em vez de `"💳 Gallo Base Diesel"`.
 
 - [ ] **Step 3: Add the strings**
 
-Em `src/features/conversations/i18n/pt-BR.ts`, no objeto `mediaPreview` (junto de `unsupported`):
+⚠️ As chaves `payment` **já existem** neste arquivo — a Task 3 foi obrigada a
+criá-las para satisfazer o type-check, mas gravou o rótulo errado. Você está
+**corrigindo um valor**, não adicionando uma chave nova.
+
+Em `src/features/conversations/i18n/pt-BR.ts`, no objeto `mediaPreview`, o valor
+atual é `` `${STRUCTURED_PREVIEW_ICON.payment} PIX` `` (renderiza "💳 PIX").
+Troque para:
 
 ```ts
-    payment: "💳 Chave PIX",
+    payment: `${STRUCTURED_PREVIEW_ICON.payment} Chave PIX`,
 ```
 
-E no `STRUCTURED_PREVIEW_ICON` (mesmo arquivo, onde estão `location` e `contact`):
+"PIX" é o nome do sistema; o que foi compartilhado é a **chave**. Isso alinha com
+os vizinhos do mesmo objeto — `location: "📍 Localização"`,
+`contact: "👤 Contato"` — que nomeiam o que foi compartilhado, não a tecnologia.
 
-```ts
-  payment: "💳",
-```
+Em `STRUCTURED_PREVIEW_ICON`, a entrada `payment: "💳"` **já está correta** —
+deixe como está.
 
 Em `CONVERSATION_STRINGS`, adicionar o bloco de rótulos do card (junto de `location`):
 
