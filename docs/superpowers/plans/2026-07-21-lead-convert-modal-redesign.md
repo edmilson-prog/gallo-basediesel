@@ -1,0 +1,1008 @@
+# ConvertLeadModal redesign — wizard B2B em 2 etapas + botão dividido no painel — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Reorganizar o fluxo B2B do modal "Converter lead em cliente" em duas etapas (CNPJ → confirmação), trocar os dois toggles de rádio-em-caixa por um segmented control deslizante, redesenhar o cartão de confirmação da empresa como um "registro verificado", e adicionar um atalho de "vincular a cliente existente" direto no painel lateral da ficha do lead (botão dividido).
+
+**Architecture:** Puramente visual/estado local de UI — nenhuma mudança de contrato de provider, nenhuma migration. `ConvertLeadModal` ganha uma prop opcional `initialMode` e um estado local `b2bStep` (`1 | 2`) que só existe quando `mode === "new" && type === "B2B"`; toda a lógica de submissão, auditoria, invalidação de query e o fix de corrida do debounce (Task 4 do PR #350) permanecem **byte-idênticos** — só a árvore JSX é reorganizada. Um pequeno componente privado `SegmentedToggle` (dentro do próprio arquivo) substitui os dois blocos `RadioGroup` visualmente idênticos por um único visual reutilizável.
+
+**Tech Stack:** React 19, Tailwind v4 + shadcn/ui (`RadioGroup`, `DropdownMenu`), Iconify (`@/components/Icon`), Vitest, bun.
+
+## Global Constraints
+
+- **Zero mudança de comportamento de negócio.** `handleSubmit`, `validate`, o guard `matchingAddress`, o fix `cnpjPendingDebounce`/`cnpjChecking`, a busca `excludeTags: ["pending_review"]` e o autofill no retry — todos continuam exatamente iguais ao que já foi revisado e mergeado no PR #350. Esta entrega só reorganiza JSX/estado de apresentação.
+- **`IConvertLeadModalProps` ganha só um campo opcional** (`initialMode`) — `LeadsPage.tsx` e `LeadDetailPage.tsx` (que já renderizam o modal sem passar essa prop) continuam compilando sem alteração.
+- **Sem teste novo de engine** — não há lógica pura nova extraída; verificação é por `bun run test` (suíte inteira) + `bunx tsc --noEmit`, igual às tasks anteriores deste mesmo componente.
+- **Convenções:** TS `strict`, sem `any`; comentários em inglês; strings de UI só via `LEADS_STRINGS` (nunca hardcoded na JSX); Conventional Commits terminando em `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`. Branch: `worktree-lead-convert-cnpj-link` (continuação do PR #350, já mergeado — commits novos aqui viram um PR novo). **Não mergear sem OK explícito do dono.**
+
+---
+
+## File Structure
+
+- Modify: `src/features/leads/i18n/pt-BR.ts` — 4 chaves novas em `convertModal` (`continueLabel`, `back`, `stepCnpjLabel`, `stepContactLabel`).
+- Modify: `src/features/leads/components/ConvertLeadModal.tsx` — prop `initialMode`, estado `b2bStep`, componente privado `SegmentedToggle`, wizard de 2 etapas no B2B, cartão de registro redesenhado.
+- Modify: `src/features/leads/components/LeadProfileFiche.tsx` — botão dividido (DropdownMenu) no lugar do botão único "Converter em cliente".
+
+---
+
+## FASE A — i18n
+
+### Task 1: Novas chaves em `LEADS_STRINGS.convertModal`
+
+**Files:**
+- Modify: `src/features/leads/i18n/pt-BR.ts`
+
+**Interfaces:**
+- Produces: `COPY.continueLabel`, `COPY.back`, `COPY.stepCnpjLabel`, `COPY.stepContactLabel` — consumidos pela Task 2.
+
+- [ ] **Step 1: Adicionar as chaves**
+
+Localize a chave `submittingCnpj: "Validando CNPJ…",` dentro do bloco `convertModal` (adicionada no PR #350) e adicione logo depois:
+
+```ts
+    submittingCnpj: "Validando CNPJ…",
+    continueLabel: "Continuar",
+    back: "Voltar",
+    stepCnpjLabel: "1 · CNPJ",
+    stepContactLabel: "2 · Contato",
+```
+
+- [ ] **Step 2: Verificar**
+
+Run: `bunx tsc --noEmit`
+Expected: zero erro novo (`LEADS_STRINGS` é um `export const` sem anotação de tipo explícita — chaves novas não quebram tipo).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/features/leads/i18n/pt-BR.ts
+git commit -m "$(cat <<'EOF'
+feat(leads): add i18n strings for the 2-step B2B wizard
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## FASE B — `ConvertLeadModal`
+
+### Task 2: Wizard de 2 etapas, segmented toggle, cartão de registro, prop `initialMode`
+
+**Files:**
+- Modify: `src/features/leads/components/ConvertLeadModal.tsx` (arquivo inteiro — substituição completa)
+
+**Interfaces:**
+- Consumes: `LEADS_STRINGS.convertModal` (Task 1, chaves novas), `cn` (`@/lib/utils`, já usado em outros componentes do projeto — ex. `LeadProfileFiche.tsx`).
+- Produces: `IConvertLeadModalProps` com o campo novo opcional `initialMode?: "new" | "link"` (default `"new"`) — consumido pela Task 3. A assinatura anterior (`lead`, `onClose`, `onConverted`) continua idêntica; nenhum consumidor existente (`LeadsPage.tsx`, `LeadDetailPage.tsx`) precisa mudar.
+
+- [ ] **Step 1: Substituir o conteúdo do arquivo**
+
+```tsx
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import type { ICustomer, ID, ILead } from "@/shared/types";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Icon } from "@/components/Icon";
+import { cn } from "@/lib/utils";
+import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
+import { useLeadsProvider } from "@/providers/data/hooks/useLeadsProvider";
+import { useAuth } from "@/features/auth/useAuth";
+import { auditLog } from "@/features/rbac/utils/auditLog";
+import { useDebounce } from "@/shared/hooks/useDebounce";
+import { formatCnpj, isValidCnpj, onlyDigits } from "@/features/customers/utils/cnpjCpf";
+import { isSituacaoAtiva } from "@/features/customers/utils/minhaReceitaMapper";
+import { useMinhaReceita } from "@/features/customers/hooks/useMinhaReceita";
+import { usePipelineSettings } from "../hooks/usePipelineSettings";
+import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
+import { CLOSING_STAGE_ID } from "../utils/leadDisplay";
+import { LEADS_STRINGS } from "../i18n/pt-BR";
+
+const COPY = LEADS_STRINGS.convertModal;
+
+type CustomerType = "B2B" | "B2C";
+type ConvertMode = "new" | "link";
+type B2bStep = 1 | 2;
+
+/** Visual validation state for the CNPJ field (drives icon + message). */
+type CnpjFieldState = "idle" | "checking" | "valid" | "invalid" | "warning";
+
+export interface IConvertLeadModalProps {
+  lead: ILead | null;
+  onClose: () => void;
+  onConverted?: (customerId: ID) => void;
+  /** Mode the modal opens in — lets a caller (e.g. the lead panel's split
+   *  button) jump straight into "link to existing customer" without going
+   *  through the in-modal toggle. Defaults to "new". */
+  initialMode?: ConvertMode;
+}
+
+export function ConvertLeadModal({
+  lead,
+  onClose,
+  onConverted,
+  initialMode = "new",
+}: IConvertLeadModalProps) {
+  const customersProvider = useCustomersProvider();
+  const leadsProvider = useLeadsProvider();
+  const queryClient = useQueryClient();
+  const { currentUser } = useAuth();
+  const { currentStoreId } = useCurrentStore();
+  const { stages } = usePipelineSettings(currentStoreId);
+
+  const [mode, setMode] = useState<ConvertMode>(initialMode);
+  const [type, setType] = useState<CustomerType>("B2C");
+  const [b2bStep, setB2bStep] = useState<B2bStep>(1);
+  const [fullName, setFullName] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [razaoSocial, setRazaoSocial] = useState("");
+  const [nomeFantasia, setNomeFantasia] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [query, setQuery] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(null);
+  const [searchResults, setSearchResults] = useState<ICustomer[]>([]);
+  const debouncedQuery = useDebounce(query, 400);
+
+  const {
+    lookup: lookupCnpj,
+    reset: resetCnpj,
+    status: cnpjStatus,
+    data: cnpjData,
+  } = useMinhaReceita();
+  const debouncedCnpj = useDebounce(cnpj, 500);
+
+  useEffect(() => {
+    if (!lead) return;
+    setMode(initialMode);
+    setType("B2C");
+    setB2bStep(1);
+    setFullName(lead.name);
+    setCpf("");
+    setRazaoSocial("");
+    setNomeFantasia(lead.name);
+    setCnpj("");
+    setContactName(lead.name);
+    setEmail(lead.email ?? "");
+    setErrors({});
+    setQuery("");
+    setSelectedCustomer(null);
+    setSearchResults([]);
+    resetCnpj();
+  }, [lead, initialMode, resetCnpj]);
+
+  // CNPJ lookup against Minha Receita once a valid 14-digit number is typed.
+  // Autofill only into empty fields so the seller's own input is never lost.
+  // Gated on mode === "new": switching to "link" must stop background lookups.
+  useEffect(() => {
+    if (mode !== "new" || type !== "B2B") {
+      resetCnpj();
+      return;
+    }
+    const digits = onlyDigits(debouncedCnpj);
+    if (digits.length !== 14 || !isValidCnpj(debouncedCnpj)) {
+      resetCnpj();
+      return;
+    }
+    let active = true;
+    void lookupCnpj(debouncedCnpj).then((company) => {
+      if (!active || !company) return;
+      setRazaoSocial((prev) => (prev.trim() ? prev : company.razaoSocial));
+      setNomeFantasia((prev) => (prev.trim() ? prev : company.nomeFantasia || company.razaoSocial));
+    });
+    return () => {
+      active = false;
+    };
+  }, [mode, debouncedCnpj, type, lookupCnpj, resetCnpj]);
+
+  // Server-side customer search, scoped to the lead's own store — only while
+  // linking and only once selectedCustomer is cleared.
+  useEffect(() => {
+    if (mode !== "link" || !lead || selectedCustomer) {
+      setSearchResults([]);
+      return;
+    }
+    const q = debouncedQuery.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    let active = true;
+    void customersProvider
+      .list({ storeId: lead.storeId, search: q, pageSize: 8, excludeTags: ["pending_review"] })
+      .then((res) => {
+        if (active) setSearchResults(res.data);
+      })
+      .catch(() => {
+        if (active) setSearchResults([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [mode, lead, selectedCustomer, debouncedQuery, customersProvider]);
+
+  // True while the debounced value hasn't caught up with the latest typed
+  // digits yet — cnpjStatus/cnpjData still describe the PREVIOUS CNPJ during
+  // this window, so both the field state and the submit gate must treat it
+  // as "checking" rather than trusting the stale status. (Fix applied during
+  // Task 4's review in PR #350 — carried forward unchanged.)
+  const cnpjPendingDebounce = onlyDigits(cnpj) !== onlyDigits(debouncedCnpj);
+
+  const cnpjFieldState = useMemo<CnpjFieldState>(() => {
+    if (mode !== "new" || type !== "B2B") return "idle";
+    const digits = onlyDigits(cnpj);
+    if (digits.length < 14) return "idle";
+    if (!isValidCnpj(cnpj)) return "invalid";
+    if (cnpjPendingDebounce || cnpjStatus === "loading") return "checking";
+    if (cnpjStatus === "invalid") return "invalid";
+    if (cnpjStatus === "error") return "warning";
+    if (cnpjStatus === "success") return "valid";
+    return "checking";
+  }, [mode, type, cnpj, cnpjPendingDebounce, cnpjStatus]);
+
+  const cnpjChecking =
+    mode === "new" &&
+    type === "B2B" &&
+    isValidCnpj(cnpj) &&
+    (cnpjPendingDebounce || cnpjStatus === "loading");
+
+  const validate = (): boolean => {
+    const next: Record<string, string> = {};
+    if (type === "B2C") {
+      if (!fullName.trim()) next.fullName = COPY.requiredFullName;
+      const digits = cpf.replace(/\D/g, "");
+      if (digits.length !== 11) next.cpf = COPY.requiredCpf;
+    } else {
+      if (!razaoSocial.trim()) next.razaoSocial = COPY.requiredRazao;
+      if (!nomeFantasia.trim()) next.nomeFantasia = COPY.requiredFantasia;
+      if (!isValidCnpj(cnpj)) next.cnpj = COPY.requiredCnpj;
+      else if (cnpjStatus === "invalid") next.cnpj = COPY.cnpjNotFound;
+      if (!contactName.trim()) next.contactName = COPY.requiredContact;
+    }
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!lead) return;
+    if (!currentStoreId) return;
+
+    if (mode === "link") {
+      if (!selectedCustomer) return;
+      setBusy(true);
+      try {
+        const closingStage = stages.find((s) => s.id === CLOSING_STAGE_ID) ?? lead.stage;
+        await leadsProvider.update(lead.id, {
+          stage: closingStage,
+          convertedToCustomerId: selectedCustomer.id,
+        });
+
+        auditLog({
+          action: "lead.converted",
+          resource: "lead",
+          resourceId: lead.id,
+          before: { stageId: lead.stage.id },
+          after: {
+            stageId: closingStage.id,
+            customerId: selectedCustomer.id,
+            linkedExisting: true,
+          },
+        });
+
+        toast.success(COPY.successToastLinked);
+        await queryClient.invalidateQueries({ queryKey: ["leads-list"] });
+        await queryClient.invalidateQueries({ queryKey: ["lead", lead.id] });
+        onConverted?.(selectedCustomer.id);
+      } catch {
+        toast.error(COPY.errorToast);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    if (!validate()) return;
+
+    setBusy(true);
+    try {
+      const nowIso = new Date().toISOString();
+      const baseCustomer = {
+        storeId: lead.storeId,
+        sellerId: lead.sellerId,
+        phone: lead.phone,
+        email: email.trim() ? email.trim() : lead.email,
+        status: "ativo" as const,
+        tags: [...lead.tags],
+        convertedFromLeadId: lead.id,
+        convertedFromLeadAt: nowIso,
+        convertedBySellerId: currentUser?.sellerId ?? lead.sellerId,
+      };
+
+      // Only attach the Receita address when it matches the CNPJ actually being
+      // submitted — guards against a stale lookup from a CNPJ the seller edited afterward.
+      const matchingAddress =
+        cnpjData && cnpjData.cnpj === onlyDigits(cnpj) ? cnpjData.address : undefined;
+
+      const customer =
+        type === "B2B"
+          ? await customersProvider.create({
+              ...baseCustomer,
+              type: "B2B",
+              cnpj: onlyDigits(cnpj),
+              razaoSocial: razaoSocial.trim(),
+              nomeFantasia: nomeFantasia.trim(),
+              contactName: contactName.trim(),
+              ...(matchingAddress ? { address: matchingAddress } : {}),
+            } as Omit<ICustomer, "id" | "createdAt" | "notes">)
+          : await customersProvider.create({
+              ...baseCustomer,
+              type: "B2C",
+              cpf: onlyDigits(cpf),
+              fullName: fullName.trim(),
+            } as Omit<ICustomer, "id" | "createdAt" | "notes">);
+
+      const closingStage = stages.find((s) => s.id === CLOSING_STAGE_ID) ?? lead.stage;
+      await leadsProvider.update(lead.id, {
+        stage: closingStage,
+        convertedToCustomerId: customer.id,
+      });
+
+      auditLog({
+        action: "lead.converted",
+        resource: "lead",
+        resourceId: lead.id,
+        before: { stageId: lead.stage.id },
+        after: { stageId: closingStage.id, customerId: customer.id, type },
+      });
+      auditLog({
+        action: "customer.created",
+        resource: "customer",
+        resourceId: customer.id,
+        after: { from: "lead-conversion", leadId: lead.id, type },
+      });
+
+      toast.success(COPY.successToast);
+      await queryClient.invalidateQueries({ queryKey: ["leads-list"] });
+      await queryClient.invalidateQueries({ queryKey: ["lead", lead.id] });
+      await queryClient.invalidateQueries({ queryKey: ["customers-list"] });
+      onConverted?.(customer.id);
+    } catch {
+      toast.error(COPY.errorToast);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const inB2bStepOne = mode === "new" && type === "B2B" && b2bStep === 1;
+  const inB2bStepTwo = mode === "new" && type === "B2B" && b2bStep === 2;
+
+  const handlePrimaryAction = () => {
+    if (inB2bStepOne) {
+      setB2bStep(2);
+      return;
+    }
+    void handleSubmit();
+  };
+
+  const primaryDisabled = inB2bStepOne
+    ? cnpjFieldState !== "valid"
+    : busy || cnpjChecking || (mode === "link" && !selectedCustomer);
+
+  const primaryLabel = inB2bStepOne
+    ? COPY.continueLabel
+    : busy
+      ? COPY.submitting
+      : COPY.submit;
+
+  return (
+    <Dialog open={lead !== null} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{COPY.title}</DialogTitle>
+          <DialogDescription>{mode === "link" ? COPY.descriptionLink : COPY.description}</DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-3 py-2">
+          <SegmentedToggle
+            label={COPY.modeLabel}
+            value={mode}
+            onChange={(v) => {
+              setMode(v);
+              setErrors({});
+              setB2bStep(1);
+            }}
+            options={[
+              { value: "new", label: COPY.modeNew },
+              { value: "link", label: COPY.modeLink },
+            ]}
+          />
+
+          {mode === "link" ? (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">{COPY.searchLabel}</Label>
+              {selectedCustomer ? (
+                <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {selectedCustomer.type === "B2B"
+                        ? selectedCustomer.nomeFantasia || selectedCustomer.razaoSocial
+                        : selectedCustomer.fullName}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {selectedCustomer.type === "B2B"
+                        ? `CNPJ ${selectedCustomer.cnpj}`
+                        : `CPF ${selectedCustomer.cpf}`}{" "}
+                      · {selectedCustomer.phone}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 text-xs font-medium text-primary hover:underline"
+                    onClick={() => {
+                      setSelectedCustomer(null);
+                      setQuery("");
+                    }}
+                  >
+                    {COPY.changeCustomer}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={COPY.searchPlaceholder}
+                  />
+                  {query.trim().length > 0 && query.trim().length < 2 && (
+                    <p className="text-[10px] text-muted-foreground">{COPY.searchHint}</p>
+                  )}
+                  {debouncedQuery.trim().length >= 2 && (
+                    <div className="max-h-56 overflow-y-auto rounded-md border border-border">
+                      {searchResults.length === 0 ? (
+                        <p className="px-3 py-2 text-xs text-muted-foreground">
+                          {COPY.searchNoResults}
+                        </p>
+                      ) : (
+                        searchResults.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className="flex w-full items-center justify-between gap-3 border-b border-border px-3 py-2 text-left text-sm last:border-b-0 hover:bg-muted"
+                            onClick={() => setSelectedCustomer(c)}
+                          >
+                            <span className="min-w-0 flex-1 truncate">
+                              {c.type === "B2B" ? c.nomeFantasia || c.razaoSocial : c.fullName}
+                            </span>
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {c.type === "B2B" ? c.cnpj : c.cpf}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ) : (
+            <>
+              <SegmentedToggle
+                label={COPY.typeLabel}
+                value={type}
+                onChange={(v) => {
+                  setType(v);
+                  setB2bStep(1);
+                }}
+                options={[
+                  { value: "B2C", label: COPY.typeB2C },
+                  { value: "B2B", label: COPY.typeB2B },
+                ]}
+              />
+
+              {type === "B2C" ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={COPY.fullName} error={errors.fullName} colSpan={2}>
+                    <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                  </Field>
+                  <Field label={COPY.cpf} error={errors.cpf}>
+                    <Input
+                      value={cpf}
+                      onChange={(e) => setCpf(e.target.value)}
+                      placeholder={COPY.cpfPlaceholder}
+                    />
+                  </Field>
+                  <Field label={COPY.email}>
+                    <Input value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </Field>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold",
+                        b2bStep === 2
+                          ? "bg-success/15 text-success"
+                          : "bg-primary text-primary-foreground",
+                      )}
+                    >
+                      {b2bStep === 2 && <Icon icon="mdi:check" size={11} />}
+                      {COPY.stepCnpjLabel}
+                    </span>
+                    <span
+                      className={cn("h-px flex-1", b2bStep === 2 ? "bg-success" : "bg-border")}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold",
+                        b2bStep === 2
+                          ? "bg-primary text-primary-foreground"
+                          : "border border-border text-muted-foreground",
+                      )}
+                    >
+                      {COPY.stepContactLabel}
+                    </span>
+                  </div>
+
+                  {b2bStep === 1 ? (
+                    <div className="space-y-3">
+                      <Field label={COPY.cnpj} error={errors.cnpj}>
+                        <div className="relative">
+                          <Input
+                            className="pr-9"
+                            value={cnpj}
+                            aria-invalid={cnpjFieldState === "invalid"}
+                            aria-describedby="convert-cnpj-msg"
+                            onChange={(e) => setCnpj(formatCnpj(e.target.value))}
+                            placeholder={COPY.cnpjPlaceholder}
+                          />
+                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                            {cnpjFieldState === "checking" && (
+                              <Icon
+                                icon="mdi:loading"
+                                size={16}
+                                className="animate-spin text-muted-foreground motion-reduce:animate-none"
+                              />
+                            )}
+                            {cnpjFieldState === "valid" && (
+                              <Icon icon="mdi:check-circle" size={16} className="text-success" />
+                            )}
+                            {cnpjFieldState === "invalid" && (
+                              <Icon icon="mdi:alert-circle" size={16} className="text-destructive" />
+                            )}
+                            {cnpjFieldState === "warning" && (
+                              <Icon icon="mdi:cloud-alert-outline" size={16} className="text-warning" />
+                            )}
+                          </span>
+                        </div>
+                      </Field>
+
+                      <div id="convert-cnpj-msg" aria-live="polite" className="space-y-1.5">
+                        {cnpjFieldState === "checking" && (
+                          <p className="text-xs text-muted-foreground">{COPY.cnpjChecking}</p>
+                        )}
+                        {cnpjFieldState === "valid" && cnpjData && (
+                          <p className="inline-flex flex-wrap items-center gap-1.5 rounded-md bg-success/10 px-2.5 py-1.5 text-xs text-success">
+                            <Icon icon="mdi:office-building-outline" size={14} />
+                            <span className="font-medium">{cnpjData.razaoSocial}</span>
+                            {cnpjData.address && (
+                              <span className="text-success/80">
+                                · {cnpjData.address.city}/{cnpjData.address.state}
+                              </span>
+                            )}
+                          </p>
+                        )}
+                        {cnpjFieldState === "valid" &&
+                          cnpjData?.situacaoCadastral &&
+                          !isSituacaoAtiva(cnpjData.situacaoCadastral) && (
+                            <p className="flex items-center gap-1.5 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning">
+                              <Icon icon="mdi:alert-outline" size={14} />
+                              {COPY.cnpjSituacaoWarning(cnpjData.situacaoCadastral)}
+                            </p>
+                          )}
+                        {cnpjFieldState === "warning" && (
+                          <div className="flex flex-wrap items-center gap-2 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning">
+                            <Icon icon="mdi:cloud-alert-outline" size={14} />
+                            <span>{COPY.cnpjLookupError}</span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void lookupCnpj(cnpj).then((company) => {
+                                  if (!company) return;
+                                  setRazaoSocial((prev) => (prev.trim() ? prev : company.razaoSocial));
+                                  setNomeFantasia((prev) =>
+                                    prev.trim() ? prev : company.nomeFantasia || company.razaoSocial,
+                                  );
+                                })
+                              }
+                              className="inline-flex items-center gap-1 font-medium underline underline-offset-2 hover:no-underline"
+                            >
+                              <Icon icon="mdi:refresh" size={14} />
+                              {COPY.cnpjRetry}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {cnpjData && (
+                        <div className="flex items-stretch gap-3 overflow-hidden rounded-lg border border-border bg-card">
+                          <div
+                            className={cn(
+                              "w-1 shrink-0",
+                              cnpjData.situacaoCadastral && !isSituacaoAtiva(cnpjData.situacaoCadastral)
+                                ? "bg-warning"
+                                : "bg-success",
+                            )}
+                            aria-hidden="true"
+                          />
+                          <div className="min-w-0 flex-1 py-3 pr-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Icon
+                                icon="mdi:office-building-outline"
+                                size={15}
+                                className="shrink-0 text-muted-foreground"
+                              />
+                              <strong className="text-sm font-semibold text-foreground">
+                                {cnpjData.razaoSocial}
+                              </strong>
+                              {cnpjData.situacaoCadastral && (
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                                    isSituacaoAtiva(cnpjData.situacaoCadastral)
+                                      ? "bg-success/15 text-success"
+                                      : "bg-warning/15 text-warning",
+                                  )}
+                                >
+                                  <Icon
+                                    icon={
+                                      isSituacaoAtiva(cnpjData.situacaoCadastral)
+                                        ? "mdi:check"
+                                        : "mdi:alert-outline"
+                                    }
+                                    size={10}
+                                  />
+                                  {cnpjData.situacaoCadastral}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {nomeFantasia || razaoSocial} · CNPJ {formatCnpj(cnpj)}
+                            </p>
+                            {cnpjData.address && (
+                              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                                <Icon icon="mdi:map-marker-outline" size={13} className="shrink-0" />
+                                {cnpjData.address.city}/{cnpjData.address.state}
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setB2bStep(1)}
+                            className="shrink-0 self-center pr-3 text-xs font-medium text-primary hover:underline"
+                          >
+                            {COPY.changeCustomer}
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field label={COPY.contactName} error={errors.contactName}>
+                          <Input value={contactName} onChange={(e) => setContactName(e.target.value)} />
+                        </Field>
+                        <Field label={COPY.email}>
+                          <Input value={email} onChange={(e) => setEmail(e.target.value)} />
+                        </Field>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={inB2bStepTwo ? () => setB2bStep(1) : onClose}
+            disabled={busy}
+          >
+            {inB2bStepTwo ? COPY.back : COPY.cancel}
+          </Button>
+          <Button onClick={handlePrimaryAction} disabled={primaryDisabled}>
+            {primaryLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface ISegmentedOption<T extends string> {
+  value: T;
+  label: string;
+}
+
+/** Two-option segmented control — same RadioGroup semantics as before (one
+ *  exclusive choice), restyled as a sliding pill instead of two bordered boxes. */
+function SegmentedToggle<T extends string>({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: T;
+  onChange: (value: T) => void;
+  options: ISegmentedOption<T>[];
+}) {
+  const activeIndex = value === options[0]?.value ? 0 : 1;
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <RadioGroup
+        value={value}
+        onValueChange={(v) => onChange(v as T)}
+        className="relative grid grid-cols-2 rounded-lg border border-border bg-muted p-1"
+      >
+        <span
+          aria-hidden="true"
+          className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-md bg-primary transition-transform duration-200 ease-out"
+          style={{ transform: activeIndex === 1 ? "translateX(100%)" : "translateX(0%)" }}
+        />
+        {options.map((opt) => (
+          <label
+            key={opt.value}
+            className={cn(
+              "relative z-10 flex cursor-pointer items-center justify-center rounded-md px-2 py-2 text-center text-sm font-medium transition-colors",
+              value === opt.value ? "text-primary-foreground" : "text-muted-foreground",
+            )}
+          >
+            <RadioGroupItem value={opt.value} className="sr-only" />
+            {opt.label}
+          </label>
+        ))}
+      </RadioGroup>
+    </div>
+  );
+}
+
+interface IFieldProps {
+  label: string;
+  error?: string;
+  colSpan?: 1 | 2;
+  children: React.ReactNode;
+}
+
+function Field({ label, error, colSpan = 1, children }: IFieldProps) {
+  return (
+    <div className={`space-y-1 ${colSpan === 2 ? "col-span-2" : ""}`}>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      {children}
+      {error && <p className="text-[10px] text-destructive">{error}</p>}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 2: Verificar**
+
+Run: `bunx tsc --noEmit`
+Expected: zero erro novo.
+
+Run: `bun run test`
+Expected: suíte inteira verde (288 arquivos / 2245 testes — nenhum teste cobre este componente diretamente, verificação é por compilação + suíte geral intacta, igual às tasks anteriores).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/features/leads/components/ConvertLeadModal.tsx
+git commit -m "$(cat <<'EOF'
+feat(leads): redesign ConvertLeadModal as a 2-step B2B wizard
+
+Step 1 is CNPJ-only; step 2 surfaces a "verified record" card (from
+Minha Receita) plus the two fields the seller actually edits — contact
+name and email. Both toggles (mode, type) become a shared segmented
+control instead of two bordered radio boxes. All submission logic,
+the debounce-race fix, and the pending_review search exclusion are
+unchanged — this is a JSX/state reorganization, not a behavior change.
+Adds an optional `initialMode` prop for Task 3's panel shortcut.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## FASE C — Painel da ficha
+
+### Task 3: Botão dividido em `LeadProfileFiche.tsx`
+
+**Files:**
+- Modify: `src/features/leads/components/LeadProfileFiche.tsx:1-21` (imports), `:168` (estado), `:369-378` (bloco do botão), `:382-391` (render do modal)
+
+**Interfaces:**
+- Consumes: `ConvertLeadModal`'s novo prop `initialMode` (Task 2), `LEADS_STRINGS.convertModal.modeNew`/`modeLink` (já existentes desde o PR #350 — reaproveitados como rótulos dos itens do menu, sem chave nova), `DropdownMenu`/`DropdownMenuTrigger`/`DropdownMenuContent`/`DropdownMenuItem` (`src/components/ui/dropdown-menu.tsx`, já presente no projeto).
+- Produces: nenhuma interface nova exposta — só o comportamento visual do botão muda.
+
+- [ ] **Step 1: Adicionar o import do `DropdownMenu`**
+
+Logo abaixo do import de `Button` (linha 13), adicione:
+
+```tsx
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+```
+
+Nenhum outro import é necessário — `ConvertLeadModal.tsx` não exporta um tipo nomeado pro modo (`"new" | "link"` é um tipo literal privado daquele arquivo), então o estado novo do Step 2 usa o literal inline `"new" | "link"` diretamente, sem importar nada de `ConvertLeadModal.tsx` além do próprio componente (que já é importado hoje).
+
+- [ ] **Step 2: Adicionar o estado do modo inicial**
+
+Logo abaixo de `const [convertOpen, setConvertOpen] = useState(false);` (linha 168):
+
+```tsx
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [convertInitialMode, setConvertInitialMode] = useState<"new" | "link">("new");
+```
+
+- [ ] **Step 3: Substituir o bloco do botão único pelo botão dividido**
+
+Localize (linhas 369-378):
+
+```tsx
+          {canConvert && !converted && (
+            <Button
+              size="sm"
+              className="w-full gap-1.5"
+              onClick={() => setConvertOpen(true)}
+            >
+              <Icon icon="mdi:account-convert" size={14} aria-hidden />
+              {COPY.convert}
+            </Button>
+          )}
+```
+
+Substitua por:
+
+```tsx
+          {canConvert && !converted && (
+            <div className="flex w-full">
+              <Button
+                size="sm"
+                className="flex-1 justify-start gap-1.5 rounded-r-none"
+                onClick={() => {
+                  setConvertInitialMode("new");
+                  setConvertOpen(true);
+                }}
+              >
+                <Icon icon="mdi:account-convert" size={14} aria-hidden />
+                {COPY.convert}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="w-8 rounded-l-none border-l border-primary-foreground/20 px-0"
+                    aria-label={LEADS_STRINGS.convertModal.modeLabel}
+                  >
+                    <Icon icon="mdi:chevron-down" size={14} aria-hidden />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setConvertInitialMode("new");
+                      setConvertOpen(true);
+                    }}
+                  >
+                    <Icon icon="mdi:account-convert" size={14} aria-hidden className="mr-2" />
+                    {LEADS_STRINGS.convertModal.modeNew}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setConvertInitialMode("link");
+                      setConvertOpen(true);
+                    }}
+                  >
+                    <Icon icon="mdi:link-variant" size={14} aria-hidden className="mr-2" />
+                    {LEADS_STRINGS.convertModal.modeLink}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+```
+
+- [ ] **Step 4: Passar `initialMode` pro modal**
+
+Localize (linhas 382-391):
+
+```tsx
+      {lead && (
+        <ConvertLeadModal
+          lead={convertOpen ? lead : null}
+          onClose={() => setConvertOpen(false)}
+          onConverted={() => {
+            setConvertOpen(false);
+            onConverted?.();
+          }}
+        />
+      )}
+```
+
+Substitua por:
+
+```tsx
+      {lead && (
+        <ConvertLeadModal
+          lead={convertOpen ? lead : null}
+          initialMode={convertInitialMode}
+          onClose={() => setConvertOpen(false)}
+          onConverted={() => {
+            setConvertOpen(false);
+            onConverted?.();
+          }}
+        />
+      )}
+```
+
+- [ ] **Step 5: Verificar**
+
+Run: `bunx tsc --noEmit`
+Expected: zero erro novo.
+
+Run: `bun run test`
+Expected: suíte inteira verde.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/features/leads/components/LeadProfileFiche.tsx
+git commit -m "$(cat <<'EOF'
+feat(leads): add a split button to jump straight to "link existing customer"
+
+The panel's "Converter em cliente" button gains a caret that opens a
+2-item menu (create new / link existing), passing the choice through
+as ConvertLeadModal's new initialMode prop — no extra vertical space
+in the ~350px panel.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## Verificação final
+
+- [ ] `bun run test` — suíte completa verde.
+- [ ] `bunx tsc --noEmit` — nenhum erro novo introduzido pelos 3 arquivos tocados.
+- [ ] Conferir manualmente (dono) no navegador: modo "Criar novo" → Empresa mostra só o CNPJ na etapa 1; "Continuar" só liga com um CNPJ real válido; etapa 2 mostra o cartão de registro + Contato/E-mail editáveis; "Voltar" retorna à etapa 1 sem perder o CNPJ digitado; alternar pro modo B2C ou "Vincular existente" continua funcionando como antes; no painel da ficha do lead, o botão dividido abre o modal no modo certo pelos dois caminhos (clique direto vs. item do menu).
