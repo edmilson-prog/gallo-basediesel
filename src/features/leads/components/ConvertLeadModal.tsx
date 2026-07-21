@@ -131,7 +131,7 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadMod
     }
     let active = true;
     void customersProvider
-      .list({ storeId: lead.storeId, search: q, pageSize: 8 })
+      .list({ storeId: lead.storeId, search: q, pageSize: 8, excludeTags: ["pending_review"] })
       .then((res) => {
         if (active) setSearchResults(res.data);
       })
@@ -516,7 +516,15 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadMod
                         <span>{COPY.cnpjLookupError}</span>
                         <button
                           type="button"
-                          onClick={() => void lookupCnpj(cnpj)}
+                          onClick={() =>
+                            void lookupCnpj(cnpj).then((company) => {
+                              if (!company) return;
+                              setRazaoSocial((prev) => (prev.trim() ? prev : company.razaoSocial));
+                              setNomeFantasia((prev) =>
+                                prev.trim() ? prev : company.nomeFantasia || company.razaoSocial,
+                              );
+                            })
+                          }
                           className="inline-flex items-center gap-1 font-medium underline underline-offset-2 hover:no-underline"
                         >
                           <Icon icon="mdi:refresh" size={14} />
