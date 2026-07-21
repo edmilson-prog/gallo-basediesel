@@ -36,7 +36,10 @@ interface IWahaMedia {
   url?: string;
   mimetype?: string;
   filename?: string | null;
-  error?: string | null;
+  /** Set when WAHA's OWN download failed. Real captures carry an object
+   *  (`{code, details, nonRetriable}`), older docs describe a string — typed as
+   *  unknown because nothing reads it; its mere presence is the signal. */
+  error?: unknown;
 }
 
 /** Mirrors whatsmeow's ContextInfo_ExternalAdReplyInfo casing (same library
@@ -196,15 +199,16 @@ function extractWahaLocationText(payload: IWahaMessagePayload): string | undefin
 }
 
 /** Readable body of a template broadcast — see IWahaTemplateMessage for why
- *  three shapes are probed. */
+ *  three shapes are probed. Picks the first shape carrying actual text: `??`
+ *  would stop at an empty string and drop the text a later shape still holds. */
 function extractWahaTemplateText(payload: IWahaMessagePayload): string | undefined {
   const template = payload._data?.Message?.templateMessage;
   if (!template) return undefined;
-  const text =
-    template.Format?.InteractiveMessageTemplate?.body?.text ??
-    template.Format?.HydratedFourRowTemplate?.hydratedContentText ??
-    template.hydratedTemplate?.hydratedContentText;
-  return text?.trim() ? text : undefined;
+  return [
+    template.Format?.InteractiveMessageTemplate?.body?.text,
+    template.Format?.HydratedFourRowTemplate?.hydratedContentText,
+    template.hydratedTemplate?.hydratedContentText,
+  ].find((text) => text?.trim());
 }
 
 /** Name of the raw whatsmeow message kind (e.g. "albumMessage"), used only to
@@ -237,22 +241,25 @@ export function extractContent(payload: IWahaMessagePayload): IParsedContent {
       mediaId: payload.replyTo.media.url,
     };
   }
-  // WAHA reports hasMedia:true but no `url` when ITS OWN download of the media
-  // failed upstream (non-retriable 403 on an expired WhatsApp CDN link). The
-  // bytes are gone, but the message still happened — keep the content type so
-  // the thread renders an "unavailable media" bubble instead of a blank one.
-  if (payload.hasMedia && payload.media?.mimetype) {
-    return {
-      contentType: contentTypeFromMimetype(payload.media.mimetype),
-      text: payload.body || undefined,
-      mediaFilename: payload.media.filename ?? undefined,
-    };
-  }
   if (payload.vCards?.[0]) {
     const vcard = payload.vCards[0];
     return {
       contentType: "contact",
       text: encodeContact({ name: nameFromVCard(vcard), phone: phoneFromVCard(vcard) }),
+    };
+  }
+  // WAHA reports hasMedia:true but no `url` when ITS OWN download failed
+  // upstream (non-retriable 403 on an expired WhatsApp CDN link). The bytes are
+  // gone, but the message still happened — keep the content type so the thread
+  // renders an "unavailable media" bubble instead of a blank one. Deliberately
+  // AFTER vCards: a contact share that ever arrives with a thumbnail must stay
+  // a contact card. Without a mimetype this yields "unknown", which the discard
+  // policy keeps (hasMedia proves something was attached).
+  if (payload.hasMedia) {
+    return {
+      contentType: contentTypeFromMimetype(payload.media?.mimetype),
+      text: payload.body || undefined,
+      mediaFilename: payload.media?.filename ?? undefined,
     };
   }
   const locationText = extractWahaLocationText(payload);
@@ -300,6 +307,48 @@ export function extractWahaAdReferral(payload: IWahaMessagePayload): IAdReferral
   };
 }
 
+/**
+ * whatsmeow kinds that are pure protocol bookkeeping — they never carry user
+ * content, and any media they refer to always arrives in its own envelope
+ * (verified against production captures: an `albumMessage`'s sibling media was
+ * present in every sampled case).
+ *
+ * The list is deliberately SHORT. Anything absent from it that happens to
+ * arrive empty is KEPT, so an unmapped kind degrades into a visible
+ * "Mensagem não suportada" placeholder instead of vanishing from the thread.
+ * That matters: button-only `interactiveMessage` envelopes turned out to be
+ * PIX charges the shop sent from the phone — no readable text, but the seller
+ * still needs to see that a charge went out.
+ */
+const PROTOCOL_ONLY_KINDS = new Set([
+  "albumMessage",
+  "placeholderMessage",
+  "protocolMessage",
+  "senderKeyDistributionMessage",
+]);
+
+/**
+ * Whether an envelope carries nothing worth persisting. Shared by BOTH entry
+ * points — the live webhook (`parseWahaMessageEvent`) and the history importer
+ * (`normalizeWahaHistoryRecord`) — because they share `extractContent` and the
+ * importer is what produced ~99% of the blank rows found in production.
+ */
+export function isDiscardableEnvelope(
+  payload: IWahaMessagePayload,
+  content: IParsedContent,
+): boolean {
+  if (content.text?.trim()) return false;
+  // Something WAS attached, even if the bytes are unreachable.
+  if (payload.hasMedia) return false;
+  // Structured shares (location/contact) always encode their data in `text`.
+  if (content.contentType !== "text" && content.contentType !== "unknown") return false;
+  // The referral IS content: it carries the campaign attribution that gives the
+  // conversation its origin, and is read downstream of the parser.
+  if (extractWahaAdReferral(payload)) return false;
+  const kind = wahaMessageKind(payload);
+  return kind ? PROTOCOL_ONLY_KINDS.has(kind) : true;
+}
+
 export function parseWahaMessageEvent(
   rawPayload: unknown,
   accountId: string,
@@ -316,15 +365,12 @@ export function parseWahaMessageEvent(
   }
 
   const content = extractContent(payload);
-  // Content guard. WhatsApp delivers plenty of envelopes that are pure
-  // protocol — album headers announcing sibling media, button-only interactive
-  // messages, e2e notifications — and every one of them used to be persisted
-  // as a row with no text and no media, surfacing as a blank bubble in the
-  // thread (~24% of conversations carried at least one). A real message can
-  // never be text-typed AND empty: WhatsApp rejects blank sends. Rejecting
-  // here reuses the parser's existing throw contract, so the webhook records
-  // the drop as `outcome: "ignored"` with this reason instead of writing.
-  if (content.contentType === "text" && !content.text?.trim()) {
+  // Protocol envelopes used to be persisted as rows with no text and no media,
+  // surfacing as blank bubbles in the thread (~24% of conversations carried at
+  // least one). Rejecting here reuses the parser's existing throw contract, so
+  // the webhook records the drop as `outcome: "ignored"` with the whatsmeow
+  // kind named — keeping future WhatsApp types diagnosable from the log.
+  if (isDiscardableEnvelope(payload, content)) {
     const kind = wahaMessageKind(payload);
     throw new Error(`WahaProvider: envelope sem conteúdo${kind ? ` (${kind})` : ""} — ignorar`);
   }

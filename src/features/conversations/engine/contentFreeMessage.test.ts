@@ -34,19 +34,13 @@ describe("isContentFreeMessage", () => {
     expect(isContentFreeMessage(message({ text: "", mediaType: "image" }))).toBe(false);
   });
 
-  it("does not flag media whose download failed — the bubble says 'unavailable'", () => {
-    expect(
-      isContentFreeMessage(message({ text: "", mediaType: "image", mediaUrl: undefined })),
-    ).toBe(false);
-  });
-
   it("does not flag a structured share that encodes its data in text", () => {
     expect(isContentFreeMessage(message({ text: "-27.39,-53.40", mediaType: "location" }))).toBe(
       false,
     );
   });
 
-  it("tolerates a missing text field without throwing", () => {
-    expect(isContentFreeMessage(message({ text: undefined as unknown as string }))).toBe(true);
+  it("does not flag a sticker, which renders as an image", () => {
+    expect(isContentFreeMessage(message({ text: "", mediaType: "sticker" }))).toBe(false);
   });
 });

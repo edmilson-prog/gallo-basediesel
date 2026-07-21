@@ -147,6 +147,16 @@ describe("getMessagePreview — structured shares", () => {
     );
   });
 
+  // Same blank-bubble problem, other surface: a conversation whose LAST message
+  // is content-free showed an empty preview row in the Inbox.
+  it("labels a content-free message instead of showing a blank preview row", () => {
+    expect(getMessagePreview(msg({ text: "" }))).toBe(INBOX_STRINGS.mediaPreview.unsupported);
+  });
+
+  it("still previews a normal text message verbatim", () => {
+    expect(getMessagePreview(msg({ text: "Bom dia" }))).toBe("Bom dia");
+  });
+
   it("still renders plain text for non-media messages", () => {
     expect(getMessagePreview(msg({ text: "olá, tudo bem?" }))).toBe("olá, tudo bem?");
   });

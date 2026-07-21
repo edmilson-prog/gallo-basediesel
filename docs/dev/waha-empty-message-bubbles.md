@@ -72,6 +72,31 @@ broadcast foi montado:
 2. `Format.HydratedFourRowTemplate.hydratedContentText`
 3. `hydratedTemplate.hydratedContentText`
 
+## Dois caminhos de escrita, não um
+
+Descoberto na revisão, e é o ponto mais importante do diagnóstico: **o webhook
+não foi o que produziu a maior parte das linhas**.
+
+| Caminho | Linhas vazias | Como identificar |
+| --- | --- | --- |
+| Importador de histórico | **20.620 (99,4%)** | `webhook_event_ids` vazio |
+| Webhook ao vivo | ~115 | tem `webhook_event_ids` |
+
+`normalizeWahaHistoryRecord` (`src/providers/whatsapp/import/waha-history-core.ts`)
+compartilha o `extractContent` do parser mas tinha o **próprio filtro, mais
+fraco**:
+
+```ts
+if (content.contentType === "unknown" && !content.text) return null;
+```
+
+Um envelope sem conteúdo produz `{contentType: "text", text: ""}` — e
+`"text" !== "unknown"`, então passava direto. Corrigir só o parser deixaria
+intocado o caminho que gera ~18 mil linhas por execução, e a Edge Function
+`whatsapp-import-history` continua viva (a migração WAHA ainda tem instância
+pendente). Por isso a política de descarte virou **função compartilhada**
+(`isDiscardableEnvelope`), usada pelos dois pontos de entrada.
+
 ## A correção (duas camadas)
 
 ### Camada 1 — parser (raiz)
@@ -88,15 +113,40 @@ broadcast foi montado:
 6. **templateMessage** → texto recuperado dos três caminhos
 7. `body` → texto (inalterado)
 
-E `parseWahaMessageEvent` ganhou o **guard de conteúdo**: se o resultado for
-tipo `text` com texto vazio, lança. O `waha-webhook` já trata o throw do parser
-como `outcome: "ignored"` + `errorMessage`, então o descarte fica **auditável**
-sem escrever no banco.
+### A política de descarte é estreita de propósito
 
-O motivo nomeia o tipo whatsmeow (`wahaMessageKind`), de modo que um tipo novo
-do WhatsApp apareça no log como `envelope sem conteúdo (novoTipoMessage)` em vez
-de virar linha em branco silenciosamente. É isso que torna a solução resistente
-a tipos ainda desconhecidos, em vez de uma lista fixa.
+`isDiscardableEnvelope` só descarta tipos **comprovadamente** de protocolo:
+
+```ts
+const PROTOCOL_ONLY_KINDS = new Set([
+  "albumMessage", "placeholderMessage", "protocolMessage",
+  "senderKeyDistributionMessage",
+]);
+```
+
+Qualquer outro tipo que chegue vazio é **preservado** como linha content-free e
+aparece no thread como "Mensagem não suportada". A primeira versão desta
+correção fazia o oposto — descartava tudo que resolvesse vazio — e a revisão
+mostrou o custo: os 4 `interactiveMessage` da amostra eram **cobranças PIX que a
+loja enviou pelo celular**. Sem texto legível, mas o vendedor precisa ver que
+uma cobrança saiu naquele momento. Sumir é pior que um placeholder.
+
+O mesmo raciocínio protege respostas de botão (`templateButtonReplyMessage` — o
+cliente tocando em "Sim, quero orçamento") e enquetes, que são conteúdo genuíno
+do cliente.
+
+Validação contra 12.965 payloads reais: os dois tipos descartados
+(`albumMessage` 48, `placeholderMessage` 2) têm **zero** ocorrências com body,
+mídia, vCard ou location. Nenhum descarte perde conteúdo.
+
+Um envelope com **ad referral** (CTWA) também é isento do descarte mesmo sem
+body: o referral É conteúdo — carrega a atribuição de campanha que dá origem à
+conversa, e é lido depois do parser.
+
+O motivo do descarte nomeia o tipo whatsmeow (`wahaMessageKind`), então um tipo
+novo do WhatsApp aparece no log como `envelope sem conteúdo (novoTipoMessage)`.
+O `waha-webhook` já trata o throw do parser como `outcome: "ignored"` +
+`errorMessage`, então o descarte fica **auditável** sem escrever no banco.
 
 > ⚠️ Coordenadas do WAHA chegam como **string** (`latitude: "-27.393307"`).
 > `toCoord` rejeita a string vazia explicitamente porque `Number("")` é `0` —
@@ -117,6 +167,10 @@ Uma mídia sem legenda **não** é content-free — seu balão renderiza a mídi
 aviso de indisponível). Compartilhamentos estruturados (location/contact) sempre
 carregam os dados codificados em `text`.
 
+`getMessagePreview` (lista da Inbox) usa o mesmo engine: sem isso, a conversa
+cuja **última** mensagem fosse content-free continuava com a prévia em branco —
+o mesmo sintoma na outra superfície.
+
 ## Deploy
 
 O parser é espelhado em `supabase/functions/_shared/whatsapp/waha/parser.ts`
@@ -135,5 +189,15 @@ placeholder, mas o banco continua ganhando ~5–8 linhas vazias por dia.
 - **Limpeza das 20.733 linhas legadas.** A camada 2 resolve o sintoma visual sem
   tocar em produção. Um `DELETE` exigiria backup e aprovação explícita.
 - **Backfill das 54 recuperáveis.** Volume irrelevante perto do total.
-- **`poll` / `reaction` / `protocolMessage` específicos.** Zero ocorrências nas
-  48h medidas — o guard genérico já os cobre e os nomeia se aparecerem.
+- **Renderizar a cobrança PIX do `interactiveMessage`.** Hoje ela sobrevive como
+  placeholder — visível, mas sem detalhe. Renderizar `payment_info` (valor,
+  chave, status) é follow-up de produto, não deste bugfix.
+- **Texto secundário dos templates** (`Title`, `hydratedButtons`,
+  `hydratedFooterText`). Não causa balão vazio; só deixa a prévia mais pobre.
+
+## Efeito colateral conhecido
+
+Linhas novas marcadas com `media_download_status: 'failed'` casam com o filtro
+de `listMissingMedia` (`whatsapp-media-backfill`). Para mídia que o próprio WAHA
+não conseguiu baixar (403 expirado) o backfill vai tentar e marcar `'expired'` —
+trabalho ocioso, não defeito. Vale saber antes de rodar o backfill.

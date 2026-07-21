@@ -129,6 +129,8 @@ export const INBOX_STRINGS = {
     sticker: "🌟 Sticker",
     location: `${STRUCTURED_PREVIEW_ICON.location} Localização`,
     contact: `${STRUCTURED_PREVIEW_ICON.contact} Contato`,
+    /** Message that reached us with no readable content — see UnsupportedBubble. */
+    unsupported: "Mensagem não suportada",
   },
 
   // Quick actions
