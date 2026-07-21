@@ -57,17 +57,10 @@ export const CUSTOMER_STRINGS = {
     historico: "Histórico",
   },
   atendimento: {
-    status: "Status da conversa",
-    assignee: "Atendente responsável",
-    origin: "Respondendo por",
-    adSource: "Origem da conversa",
+    // Management labels moved to CONVERSATION_STRINGS.management (shared by the
+    // customer + lead fiches). Only the tab-level strings remain here.
     empty: "Nenhuma pendência de atendimento no momento.",
     pendingHint: "pendência de revisão",
-    tags: "Tags da conversa",
-    tagsEmpty: "Nenhuma tag aplicada",
-    collaborators: "Colaboradores",
-    collaboratorsEmpty: "Nenhum colaborador nesta conversa.",
-    addCollaborator: "Adicionar colaborador",
   },
   overview: {
     metrics: {

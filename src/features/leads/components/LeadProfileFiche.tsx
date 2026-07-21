@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import type { IConversation, IConversationContact, ID, ILead } from "@/shared/types";
+import type {
+  IConversation,
+  IConversationContact,
+  ID,
+  ILead,
+  ISeller,
+  IWhatsAppAccount,
+} from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,6 +21,8 @@ import { useAuth } from "@/features/auth/useAuth";
 // Reuses the customer fiche's breakpoint hook as the single source of truth
 // (column ≥1280 / drawer 768–1279 / route <768 — identical thresholds).
 import { useFicheLayout } from "@/features/customers/hooks/useFicheLayout";
+import { ConversationManagementCard } from "@/features/conversations/components/ConversationManagementCard";
+import type { ICollaboratorWithSeller } from "@/features/conversations/hooks/useConversationDetail";
 import { ConvertLeadModal } from "./ConvertLeadModal";
 import {
   TEMPERATURE_META,
@@ -35,12 +44,20 @@ export interface ILeadProfileFicheProps {
   contact: IConversationContact | null;
   /** The anchoring conversation — feeds the direct-read predicate of "Ver lead". */
   conversation: IConversation;
+  /** Resolved from conversation.assignedSellerId by the caller — feeds the management card. */
+  assignedSeller?: ISeller | null;
+  /** Resolved from conversation.whatsappAccountId by the caller — feeds the management card. */
+  whatsappAccount?: IWhatsAppAccount | null;
+  /** Resolved from useConversationDetail by the caller — feeds the management card. */
+  collaborators?: ICollaboratorWithSeller[];
   /** Drawer open state from `useConversationFiche()`. */
   open: boolean;
   /** Drawer close handler. */
   onOpenChange: (open: boolean) => void;
   /** Called after a successful lead→customer conversion (caller refreshes the detail). */
   onConverted?: () => void;
+  /** Bubbles a status/tag/collaborator change up so the caller can refresh its conversation cache. */
+  onConversationChanged?: () => void;
 }
 
 /**
@@ -55,9 +72,13 @@ export function LeadProfileFiche({
   lead,
   contact,
   conversation,
+  assignedSeller,
+  whatsappAccount,
+  collaborators,
   open,
   onOpenChange,
   onConverted,
+  onConversationChanged,
 }: ILeadProfileFicheProps) {
   const mode = useFicheLayout();
 
@@ -77,7 +98,11 @@ export function LeadProfileFiche({
             lead={lead}
             contact={contact}
             conversation={conversation}
+            assignedSeller={assignedSeller}
+            whatsappAccount={whatsappAccount}
+            collaborators={collaborators}
             onConverted={onConverted}
+            onConversationChanged={onConversationChanged}
             className="h-full border-l-0"
           />
         </SheetContent>
@@ -99,7 +124,11 @@ export function LeadProfileFiche({
           lead={lead}
           contact={contact}
           conversation={conversation}
+          assignedSeller={assignedSeller}
+          whatsappAccount={whatsappAccount}
+          collaborators={collaborators}
           onConverted={onConverted}
+          onConversationChanged={onConversationChanged}
           className="h-full"
         />
       )}
@@ -111,13 +140,21 @@ function LeadProfileBody({
   lead,
   contact,
   conversation,
+  assignedSeller,
+  whatsappAccount,
+  collaborators,
   onConverted,
+  onConversationChanged,
   className,
 }: {
   lead: ILead | null;
   contact: IConversationContact | null;
   conversation: IConversation;
+  assignedSeller?: ISeller | null;
+  whatsappAccount?: IWhatsAppAccount | null;
+  collaborators?: ICollaboratorWithSeller[];
   onConverted?: () => void;
+  onConversationChanged?: () => void;
   className?: string;
 }) {
   const navigate = useNavigate();
@@ -299,6 +336,20 @@ function LeadProfileBody({
             </dl>
           </>
         )}
+
+        {/* Conversation-management panel — same controls as the customer fiche's
+            "Atendimento" tab, so a lead-anchored conversation is managed the
+            same way. Conversation-scoped, so it renders even when `lead` is
+            null (pool/degraded). */}
+        <div className={cn(lead && "mt-4 border-t border-border pt-4")}>
+          <ConversationManagementCard
+            conversation={conversation}
+            assignedSeller={assignedSeller}
+            whatsappAccount={whatsappAccount}
+            collaborators={collaborators}
+            onConversationChanged={onConversationChanged}
+          />
+        </div>
       </div>
 
       {/* Actions */}
