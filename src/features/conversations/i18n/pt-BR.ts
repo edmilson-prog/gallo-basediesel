@@ -339,6 +339,7 @@ export const CONVERSATION_STRINGS = {
     label: "Chave PIX",
     copy: "Copiar chave",
     copied: "Chave PIX copiada",
+    copyError: "Não foi possível copiar a chave PIX",
     noKey: "Chave não informada",
   },
   contact: {

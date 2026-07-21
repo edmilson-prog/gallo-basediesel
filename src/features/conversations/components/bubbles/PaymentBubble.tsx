@@ -24,9 +24,17 @@ export function PaymentBubble({ message, onRetry }: { message: IMessage; onRetry
 
   async function handleCopy() {
     if (!key) return;
-    // The RAW key is what a banking app accepts — never the masked form.
-    await navigator.clipboard.writeText(key);
-    toast.success(CONVERSATION_STRINGS.payment.copied);
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      toast.error(CONVERSATION_STRINGS.payment.copyError);
+      return;
+    }
+    try {
+      // The RAW key is what a banking app accepts — never the masked form.
+      await navigator.clipboard.writeText(key);
+      toast.success(CONVERSATION_STRINGS.payment.copied);
+    } catch {
+      toast.error(CONVERSATION_STRINGS.payment.copyError);
+    }
   }
 
   return (
@@ -39,9 +47,9 @@ export function PaymentBubble({ message, onRetry }: { message: IMessage; onRetry
           <p className="text-[11px] font-medium text-muted-foreground">
             {CONVERSATION_STRINGS.payment.label}
           </p>
-          <p className="truncate text-sm font-medium text-foreground">
-            {merchant || CONVERSATION_STRINGS.payment.label}
-          </p>
+          {merchant && (
+            <p className="truncate text-sm font-medium text-foreground">{merchant}</p>
+          )}
           {key ? (
             <div className="mt-1 flex items-center gap-2">
               <span className="truncate font-mono text-xs text-muted-foreground">
