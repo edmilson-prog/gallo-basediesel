@@ -6,6 +6,7 @@ import { VideoBubble } from "./VideoBubble";
 import { DocumentBubble } from "./DocumentBubble";
 import { LocationBubble } from "./LocationBubble";
 import { ContactBubble } from "./ContactBubble";
+import { PaymentBubble } from "./PaymentBubble";
 import { SystemBubble } from "./SystemBubble";
 import { TemplateBubble } from "./TemplateBubble";
 import { UnsupportedBubble } from "./UnsupportedBubble";
@@ -42,6 +43,9 @@ export function MessageBubble({ message, onRetry }: IMessageBubbleProps) {
   }
   if (message.mediaType === "contact") {
     return <ContactBubble message={message} onRetry={onRetry} />;
+  }
+  if (message.mediaType === "payment") {
+    return <PaymentBubble message={message} onRetry={onRetry} />;
   }
   if (
     message.text.startsWith(TEMPLATE_PREFIX) ||

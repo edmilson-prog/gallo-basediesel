@@ -133,7 +133,7 @@ export const INBOX_STRINGS = {
     sticker: "🌟 Sticker",
     location: `${STRUCTURED_PREVIEW_ICON.location} Localização`,
     contact: `${STRUCTURED_PREVIEW_ICON.contact} Contato`,
-    payment: `${STRUCTURED_PREVIEW_ICON.payment} PIX`,
+    payment: `${STRUCTURED_PREVIEW_ICON.payment} Chave PIX`,
     /** Message that reached us with no readable content — see UnsupportedBubble. */
     unsupported: "Mensagem não suportada",
   },
@@ -334,6 +334,12 @@ export const CONVERSATION_STRINGS = {
     label: "Localização",
     openMap: "Ver no mapa",
     noCoords: "Sem coordenadas",
+  },
+  payment: {
+    label: "Chave PIX",
+    copy: "Copiar chave",
+    copied: "Chave PIX copiada",
+    noKey: "Chave não informada",
   },
   contact: {
     label: "Contato",
