@@ -9,7 +9,7 @@
  * self-contained `_shared/whatsapp/waha/*` engine are used. Fail-closed on a
  * bad/missing HMAC signature — no DB write happens before it's verified.
  *
- * Handles four event kinds:
+ * Handles five event kinds:
  *   - "message": an inbound customer message (persisted with
  *     reuse-or-reopen-or-create conversation semantics).
  *   - "message.any": WAHA's (GOWS engine) only channel for `fromMe: true`
@@ -30,6 +30,10 @@
  *     outbound message — see applyWahaAckToMessage (added 2026-07-15;
  *     previously deferred — see
  *     docs/superpowers/specs/2026-07-15-waha-ack-and-number-check-design.md).
+ *   - "message.reaction": a 👍/❤️/etc. attached to an already-persisted
+ *     message (or "" to remove one) — patches messages.reactions in place. A
+ *     genuine customer reaction (not fromMe, not a removal) also counts as an
+ *     interaction: it bumps the conversation and marks it unread.
  * Any other envelope event is acknowledged (200) and ignored.
  *
  * Spec: docs/superpowers/specs/2026-07-10-waha-whatsapp-integration-design.md
@@ -43,6 +47,7 @@ import { createSecretResolver } from "../_shared/secrets.ts";
 import { mapWahaAckToStatus, parseWahaAckPayload } from "../_shared/whatsapp/waha/ack.ts";
 import { downloadWahaMedia } from "../_shared/whatsapp/waha/media.ts";
 import { parseWahaMessageEvent } from "../_shared/whatsapp/waha/parser.ts";
+import { applyReaction, parseWahaReactionEvent } from "../_shared/whatsapp/waha/reaction.ts";
 import { verifyWahaHmac } from "../_shared/whatsapp/waha/hmac.ts";
 import { wahaStateToAccountStatus } from "../_shared/whatsapp/waha/constants.ts";
 import { getWahaContactName, resolveWahaLid } from "../_shared/whatsapp/waha/contacts.ts";
@@ -663,6 +668,69 @@ Deno.serve(async (req) => {
       return respond(json({ ok: true }, 200), {
         outcome: "processed",
         eventType: "message.ack",
+        requestPayload: envelope,
+      });
+    }
+
+    if (envelope.event === "message.reaction") {
+      let reaction;
+      try {
+        reaction = parseWahaReactionEvent(envelope.payload);
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        await markProcessed();
+        return respond(json({ ok: true, ignored: "unparseable-reaction" }, 200), {
+          outcome: "ignored",
+          errorMessage: detail,
+          requestPayload: envelope,
+        });
+      }
+
+      // The reacted message must already exist here. A reaction to a message
+      // older than the import is expected and benign — record and move on.
+      const { data: target } = await admin
+        .from("messages")
+        .select("id, conversation_id, reactions")
+        .eq("provider_message_id", reaction.targetProviderMessageId)
+        .maybeSingle();
+
+      if (!target) {
+        await markProcessed();
+        return respond(json({ ok: true, ignored: "reaction-target-missing" }, 200), {
+          outcome: "ignored",
+          errorMessage: `alvo ${reaction.targetProviderMessageId} não encontrado`,
+          requestPayload: envelope,
+        });
+      }
+
+      const next = applyReaction(
+        (target.reactions as Parameters<typeof applyReaction>[0]) ?? null,
+        reaction,
+      );
+      await admin.from("messages").update({ reactions: next }).eq("id", target.id);
+
+      // A customer reaction IS an interaction: it bumps the conversation and
+      // marks it unread, so a 👍 stops reading as "no answer". The shop's own
+      // reaction is recorded but must not touch the queue.
+      if (!reaction.fromMe && reaction.emoji) {
+        const { data: conversation } = await admin
+          .from("conversations")
+          .select("unread_count")
+          .eq("id", target.conversation_id as string)
+          .maybeSingle();
+        await admin
+          .from("conversations")
+          .update({
+            last_message_at: reaction.timestamp,
+            unread_count: ((conversation?.unread_count as number | null) ?? 0) + 1,
+            awaiting_reply_since: null,
+          })
+          .eq("id", target.conversation_id as string);
+      }
+
+      await markProcessed();
+      return respond(json({ ok: true, reaction: "applied" }, 200), {
+        outcome: "processed",
         requestPayload: envelope,
       });
     }
