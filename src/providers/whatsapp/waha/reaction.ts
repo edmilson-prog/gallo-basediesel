@@ -78,17 +78,23 @@ export function parseWahaReactionEvent(rawPayload: unknown): IWahaReaction {
  * per person per message, so a new one REPLACES that side's previous entry.
  * Returns null when no side is left, so "no reaction" has a single
  * representation in the column.
+ *
+ * Pure: `current` is never mutated, and the returned object shares no slot
+ * reference with it — the untouched side is deep-copied — so a caller can hold
+ * the DB-read `current` for comparison and freely mutate the result.
  */
 export function applyReaction(
   current: IMessageReactionsState | null,
   reaction: IWahaReaction,
 ): IMessageReactionsState | null {
+  const otherSide = reaction.fromMe ? "customer" : "seller";
   const side = reaction.fromMe ? "seller" : "customer";
-  const next: IMessageReactionsState = { ...(current ?? {}) };
+  const next: IMessageReactionsState = {};
+  // Carry the untouched side over as a fresh object, never the caller's ref.
+  const carried = current?.[otherSide];
+  if (carried) next[otherSide] = { ...carried };
   if (reaction.emoji) {
     next[side] = { emoji: reaction.emoji, at: reaction.timestamp };
-  } else {
-    delete next[side];
   }
   return next.customer || next.seller ? next : null;
 }

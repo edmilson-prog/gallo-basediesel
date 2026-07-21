@@ -103,4 +103,13 @@ describe("applyReaction", () => {
   it("stays null when removing from an empty state", () => {
     expect(applyReaction(null, { ...customerReaction, emoji: "" })).toBeNull();
   });
+
+  it("does not alias the untouched side, so mutating the result can't corrupt the input", () => {
+    const current = { seller: { emoji: "❤️", at } };
+    const result = applyReaction(current, customerReaction);
+    // The carried-over seller slot must be a fresh object, not `current`'s ref.
+    expect(result?.seller).not.toBe(current.seller);
+    result!.seller!.emoji = "😡";
+    expect(current.seller.emoji).toBe("❤️");
+  });
 });
