@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Icon } from "@/components/Icon";
+import { cn } from "@/lib/utils";
 import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
 import { useLeadsProvider } from "@/providers/data/hooks/useLeadsProvider";
 import { useAuth } from "@/features/auth/useAuth";
@@ -32,6 +33,7 @@ const COPY = LEADS_STRINGS.convertModal;
 
 type CustomerType = "B2B" | "B2C";
 type ConvertMode = "new" | "link";
+type B2bStep = 1 | 2;
 
 /** Visual validation state for the CNPJ field (drives icon + message). */
 type CnpjFieldState = "idle" | "checking" | "valid" | "invalid" | "warning";
@@ -40,9 +42,18 @@ export interface IConvertLeadModalProps {
   lead: ILead | null;
   onClose: () => void;
   onConverted?: (customerId: ID) => void;
+  /** Mode the modal opens in — lets a caller (e.g. the lead panel's split
+   *  button) jump straight into "link to existing customer" without going
+   *  through the in-modal toggle. Defaults to "new". */
+  initialMode?: ConvertMode;
 }
 
-export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadModalProps) {
+export function ConvertLeadModal({
+  lead,
+  onClose,
+  onConverted,
+  initialMode = "new",
+}: IConvertLeadModalProps) {
   const customersProvider = useCustomersProvider();
   const leadsProvider = useLeadsProvider();
   const queryClient = useQueryClient();
@@ -50,8 +61,9 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadMod
   const { currentStoreId } = useCurrentStore();
   const { stages } = usePipelineSettings(currentStoreId);
 
-  const [mode, setMode] = useState<ConvertMode>("new");
+  const [mode, setMode] = useState<ConvertMode>(initialMode);
   const [type, setType] = useState<CustomerType>("B2C");
+  const [b2bStep, setB2bStep] = useState<B2bStep>(1);
   const [fullName, setFullName] = useState("");
   const [cpf, setCpf] = useState("");
   const [razaoSocial, setRazaoSocial] = useState("");
@@ -77,8 +89,9 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadMod
 
   useEffect(() => {
     if (!lead) return;
-    setMode("new");
+    setMode(initialMode);
     setType("B2C");
+    setB2bStep(1);
     setFullName(lead.name);
     setCpf("");
     setRazaoSocial("");
@@ -91,7 +104,7 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadMod
     setSelectedCustomer(null);
     setSearchResults([]);
     resetCnpj();
-  }, [lead, resetCnpj]);
+  }, [lead, initialMode, resetCnpj]);
 
   // CNPJ lookup against Minha Receita once a valid 14-digit number is typed.
   // Autofill only into empty fields so the seller's own input is never lost.
@@ -147,8 +160,7 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadMod
   // digits yet — cnpjStatus/cnpjData still describe the PREVIOUS CNPJ during
   // this window, so both the field state and the submit gate must treat it
   // as "checking" rather than trusting the stale status. (Fix applied during
-  // Task 4's review — carried forward here so Task 5's full-file rewrite
-  // doesn't regress it.)
+  // Task 4's review in PR #350 — carried forward unchanged.)
   const cnpjPendingDebounce = onlyDigits(cnpj) !== onlyDigits(debouncedCnpj);
 
   const cnpjFieldState = useMemo<CnpjFieldState>(() => {
@@ -296,7 +308,26 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadMod
     }
   };
 
-  const submitDisabled = busy || cnpjChecking || (mode === "link" && !selectedCustomer);
+  const inB2bStepOne = mode === "new" && type === "B2B" && b2bStep === 1;
+  const inB2bStepTwo = mode === "new" && type === "B2B" && b2bStep === 2;
+
+  const handlePrimaryAction = () => {
+    if (inB2bStepOne) {
+      setB2bStep(2);
+      return;
+    }
+    void handleSubmit();
+  };
+
+  const primaryDisabled = inB2bStepOne
+    ? cnpjFieldState !== "valid"
+    : busy || cnpjChecking || (mode === "link" && !selectedCustomer);
+
+  const primaryLabel = inB2bStepOne
+    ? COPY.continueLabel
+    : busy
+      ? COPY.submitting
+      : COPY.submit;
 
   return (
     <Dialog open={lead !== null} onOpenChange={(o) => !o && onClose()}>
@@ -307,26 +338,19 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadMod
         </DialogHeader>
 
         <div className="grid gap-3 py-2">
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">{COPY.modeLabel}</Label>
-            <RadioGroup
-              value={mode}
-              onValueChange={(v) => {
-                setMode(v as ConvertMode);
-                setErrors({});
-              }}
-              className="grid grid-cols-2 gap-2"
-            >
-              <label className="flex items-center gap-2 rounded-md border border-border p-2 text-sm">
-                <RadioGroupItem value="new" id="convert-mode-new" />
-                {COPY.modeNew}
-              </label>
-              <label className="flex items-center gap-2 rounded-md border border-border p-2 text-sm">
-                <RadioGroupItem value="link" id="convert-mode-link" />
-                {COPY.modeLink}
-              </label>
-            </RadioGroup>
-          </div>
+          <SegmentedToggle
+            label={COPY.modeLabel}
+            value={mode}
+            onChange={(v) => {
+              setMode(v);
+              setErrors({});
+              setB2bStep(1);
+            }}
+            options={[
+              { value: "new", label: COPY.modeNew },
+              { value: "link", label: COPY.modeLink },
+            ]}
+          />
 
           {mode === "link" ? (
             <div className="space-y-2">
@@ -398,23 +422,18 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadMod
             </div>
           ) : (
             <>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">{COPY.typeLabel}</Label>
-                <RadioGroup
-                  value={type}
-                  onValueChange={(v) => setType(v as CustomerType)}
-                  className="grid grid-cols-2 gap-2"
-                >
-                  <label className="flex items-center gap-2 rounded-md border border-border p-2 text-sm">
-                    <RadioGroupItem value="B2C" id="convert-b2c" />
-                    {COPY.typeB2C}
-                  </label>
-                  <label className="flex items-center gap-2 rounded-md border border-border p-2 text-sm">
-                    <RadioGroupItem value="B2B" id="convert-b2b" />
-                    {COPY.typeB2B}
-                  </label>
-                </RadioGroup>
-              </div>
+              <SegmentedToggle
+                label={COPY.typeLabel}
+                value={type}
+                onChange={(v) => {
+                  setType(v);
+                  setB2bStep(1);
+                }}
+                options={[
+                  { value: "B2C", label: COPY.typeB2C },
+                  { value: "B2B", label: COPY.typeB2B },
+                ]}
+              />
 
               {type === "B2C" ? (
                 <div className="grid grid-cols-2 gap-3">
@@ -434,105 +453,188 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadMod
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label={COPY.razaoSocial} error={errors.razaoSocial} colSpan={2}>
-                      <Input
-                        value={razaoSocial}
-                        onChange={(e) => setRazaoSocial(e.target.value)}
-                        placeholder={COPY.razaoSocialPlaceholder}
-                      />
-                    </Field>
-                    <Field label={COPY.nomeFantasia} error={errors.nomeFantasia} colSpan={2}>
-                      <Input
-                        value={nomeFantasia}
-                        onChange={(e) => setNomeFantasia(e.target.value)}
-                        placeholder={COPY.nomeFantasiaPlaceholder}
-                      />
-                    </Field>
-                    <Field label={COPY.cnpj} error={errors.cnpj}>
-                      <div className="relative">
-                        <Input
-                          className="pr-9"
-                          value={cnpj}
-                          aria-invalid={cnpjFieldState === "invalid"}
-                          aria-describedby="convert-cnpj-msg"
-                          onChange={(e) => setCnpj(formatCnpj(e.target.value))}
-                          placeholder={COPY.cnpjPlaceholder}
-                        />
-                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                          {cnpjFieldState === "checking" && (
-                            <Icon
-                              icon="mdi:loading"
-                              size={16}
-                              className="animate-spin text-muted-foreground motion-reduce:animate-none"
-                            />
-                          )}
-                          {cnpjFieldState === "valid" && (
-                            <Icon icon="mdi:check-circle" size={16} className="text-success" />
-                          )}
-                          {cnpjFieldState === "invalid" && (
-                            <Icon icon="mdi:alert-circle" size={16} className="text-destructive" />
-                          )}
-                          {cnpjFieldState === "warning" && (
-                            <Icon icon="mdi:cloud-alert-outline" size={16} className="text-warning" />
-                          )}
-                        </span>
-                      </div>
-                    </Field>
-                    <Field label={COPY.contactName} error={errors.contactName}>
-                      <Input value={contactName} onChange={(e) => setContactName(e.target.value)} />
-                    </Field>
-                    <Field label={COPY.email} colSpan={2}>
-                      <Input value={email} onChange={(e) => setEmail(e.target.value)} />
-                    </Field>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold",
+                        b2bStep === 2
+                          ? "bg-success/15 text-success"
+                          : "bg-primary text-primary-foreground",
+                      )}
+                    >
+                      {b2bStep === 2 && <Icon icon="mdi:check" size={11} />}
+                      {COPY.stepCnpjLabel}
+                    </span>
+                    <span
+                      className={cn("h-px flex-1", b2bStep === 2 ? "bg-success" : "bg-border")}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold",
+                        b2bStep === 2
+                          ? "bg-primary text-primary-foreground"
+                          : "border border-border text-muted-foreground",
+                      )}
+                    >
+                      {COPY.stepContactLabel}
+                    </span>
                   </div>
 
-                  <div id="convert-cnpj-msg" aria-live="polite" className="space-y-1.5">
-                    {cnpjFieldState === "checking" && (
-                      <p className="text-xs text-muted-foreground">{COPY.cnpjChecking}</p>
-                    )}
-                    {cnpjFieldState === "valid" && cnpjData && (
-                      <p className="inline-flex flex-wrap items-center gap-1.5 rounded-md bg-success/10 px-2.5 py-1.5 text-xs text-success">
-                        <Icon icon="mdi:office-building-outline" size={14} />
-                        <span className="font-medium">{cnpjData.razaoSocial}</span>
-                        {cnpjData.address && (
-                          <span className="text-success/80">
-                            · {cnpjData.address.city}/{cnpjData.address.state}
+                  {b2bStep === 1 ? (
+                    <div className="space-y-3">
+                      <Field label={COPY.cnpj} error={errors.cnpj}>
+                        <div className="relative">
+                          <Input
+                            className="pr-9"
+                            value={cnpj}
+                            aria-invalid={cnpjFieldState === "invalid"}
+                            aria-describedby="convert-cnpj-msg"
+                            onChange={(e) => setCnpj(formatCnpj(e.target.value))}
+                            placeholder={COPY.cnpjPlaceholder}
+                          />
+                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                            {cnpjFieldState === "checking" && (
+                              <Icon
+                                icon="mdi:loading"
+                                size={16}
+                                className="animate-spin text-muted-foreground motion-reduce:animate-none"
+                              />
+                            )}
+                            {cnpjFieldState === "valid" && (
+                              <Icon icon="mdi:check-circle" size={16} className="text-success" />
+                            )}
+                            {cnpjFieldState === "invalid" && (
+                              <Icon icon="mdi:alert-circle" size={16} className="text-destructive" />
+                            )}
+                            {cnpjFieldState === "warning" && (
+                              <Icon icon="mdi:cloud-alert-outline" size={16} className="text-warning" />
+                            )}
                           </span>
+                        </div>
+                      </Field>
+
+                      <div id="convert-cnpj-msg" aria-live="polite" className="space-y-1.5">
+                        {cnpjFieldState === "checking" && (
+                          <p className="text-xs text-muted-foreground">{COPY.cnpjChecking}</p>
                         )}
-                      </p>
-                    )}
-                    {cnpjFieldState === "valid" &&
-                      cnpjData?.situacaoCadastral &&
-                      !isSituacaoAtiva(cnpjData.situacaoCadastral) && (
-                        <p className="flex items-center gap-1.5 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning">
-                          <Icon icon="mdi:alert-outline" size={14} />
-                          {COPY.cnpjSituacaoWarning(cnpjData.situacaoCadastral)}
-                        </p>
-                      )}
-                    {cnpjFieldState === "warning" && (
-                      <div className="flex flex-wrap items-center gap-2 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning">
-                        <Icon icon="mdi:cloud-alert-outline" size={14} />
-                        <span>{COPY.cnpjLookupError}</span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void lookupCnpj(cnpj).then((company) => {
-                              if (!company) return;
-                              setRazaoSocial((prev) => (prev.trim() ? prev : company.razaoSocial));
-                              setNomeFantasia((prev) =>
-                                prev.trim() ? prev : company.nomeFantasia || company.razaoSocial,
-                              );
-                            })
-                          }
-                          className="inline-flex items-center gap-1 font-medium underline underline-offset-2 hover:no-underline"
-                        >
-                          <Icon icon="mdi:refresh" size={14} />
-                          {COPY.cnpjRetry}
-                        </button>
+                        {cnpjFieldState === "valid" && cnpjData && (
+                          <p className="inline-flex flex-wrap items-center gap-1.5 rounded-md bg-success/10 px-2.5 py-1.5 text-xs text-success">
+                            <Icon icon="mdi:office-building-outline" size={14} />
+                            <span className="font-medium">{cnpjData.razaoSocial}</span>
+                            {cnpjData.address && (
+                              <span className="text-success/80">
+                                · {cnpjData.address.city}/{cnpjData.address.state}
+                              </span>
+                            )}
+                          </p>
+                        )}
+                        {cnpjFieldState === "valid" &&
+                          cnpjData?.situacaoCadastral &&
+                          !isSituacaoAtiva(cnpjData.situacaoCadastral) && (
+                            <p className="flex items-center gap-1.5 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning">
+                              <Icon icon="mdi:alert-outline" size={14} />
+                              {COPY.cnpjSituacaoWarning(cnpjData.situacaoCadastral)}
+                            </p>
+                          )}
+                        {cnpjFieldState === "warning" && (
+                          <div className="flex flex-wrap items-center gap-2 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning">
+                            <Icon icon="mdi:cloud-alert-outline" size={14} />
+                            <span>{COPY.cnpjLookupError}</span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void lookupCnpj(cnpj).then((company) => {
+                                  if (!company) return;
+                                  setRazaoSocial((prev) => (prev.trim() ? prev : company.razaoSocial));
+                                  setNomeFantasia((prev) =>
+                                    prev.trim() ? prev : company.nomeFantasia || company.razaoSocial,
+                                  );
+                                })
+                              }
+                              className="inline-flex items-center gap-1 font-medium underline underline-offset-2 hover:no-underline"
+                            >
+                              <Icon icon="mdi:refresh" size={14} />
+                              {COPY.cnpjRetry}
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {cnpjData && (
+                        <div className="flex items-stretch gap-3 overflow-hidden rounded-lg border border-border bg-card">
+                          <div
+                            className={cn(
+                              "w-1 shrink-0",
+                              cnpjData.situacaoCadastral && !isSituacaoAtiva(cnpjData.situacaoCadastral)
+                                ? "bg-warning"
+                                : "bg-success",
+                            )}
+                            aria-hidden="true"
+                          />
+                          <div className="min-w-0 flex-1 py-3 pr-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Icon
+                                icon="mdi:office-building-outline"
+                                size={15}
+                                className="shrink-0 text-muted-foreground"
+                              />
+                              <strong className="text-sm font-semibold text-foreground">
+                                {cnpjData.razaoSocial}
+                              </strong>
+                              {cnpjData.situacaoCadastral && (
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                                    isSituacaoAtiva(cnpjData.situacaoCadastral)
+                                      ? "bg-success/15 text-success"
+                                      : "bg-warning/15 text-warning",
+                                  )}
+                                >
+                                  <Icon
+                                    icon={
+                                      isSituacaoAtiva(cnpjData.situacaoCadastral)
+                                        ? "mdi:check"
+                                        : "mdi:alert-outline"
+                                    }
+                                    size={10}
+                                  />
+                                  {cnpjData.situacaoCadastral}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {nomeFantasia || razaoSocial} · CNPJ {formatCnpj(cnpj)}
+                            </p>
+                            {cnpjData.address && (
+                              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                                <Icon icon="mdi:map-marker-outline" size={13} className="shrink-0" />
+                                {cnpjData.address.city}/{cnpjData.address.state}
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setB2bStep(1)}
+                            className="shrink-0 self-center pr-3 text-xs font-medium text-primary hover:underline"
+                          >
+                            {COPY.changeCustomer}
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field label={COPY.contactName} error={errors.contactName}>
+                          <Input value={contactName} onChange={(e) => setContactName(e.target.value)} />
+                        </Field>
+                        <Field label={COPY.email}>
+                          <Input value={email} onChange={(e) => setEmail(e.target.value)} />
+                        </Field>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </>
@@ -540,15 +642,68 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: IConvertLeadMod
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={busy}>
-            {COPY.cancel}
+          <Button
+            variant="outline"
+            onClick={inB2bStepTwo ? () => setB2bStep(1) : onClose}
+            disabled={busy}
+          >
+            {inB2bStepTwo ? COPY.back : COPY.cancel}
           </Button>
-          <Button onClick={() => void handleSubmit()} disabled={submitDisabled}>
-            {busy ? COPY.submitting : cnpjChecking ? COPY.submittingCnpj : COPY.submit}
+          <Button onClick={handlePrimaryAction} disabled={primaryDisabled}>
+            {primaryLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+interface ISegmentedOption<T extends string> {
+  value: T;
+  label: string;
+}
+
+/** Two-option segmented control — same RadioGroup semantics as before (one
+ *  exclusive choice), restyled as a sliding pill instead of two bordered boxes. */
+function SegmentedToggle<T extends string>({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: T;
+  onChange: (value: T) => void;
+  options: ISegmentedOption<T>[];
+}) {
+  const activeIndex = value === options[0]?.value ? 0 : 1;
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <RadioGroup
+        value={value}
+        onValueChange={(v) => onChange(v as T)}
+        className="relative grid grid-cols-2 rounded-lg border border-border bg-muted p-1"
+      >
+        <span
+          aria-hidden="true"
+          className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-md bg-primary transition-transform duration-200 ease-out"
+          style={{ transform: activeIndex === 1 ? "translateX(100%)" : "translateX(0%)" }}
+        />
+        {options.map((opt) => (
+          <label
+            key={opt.value}
+            className={cn(
+              "relative z-10 flex cursor-pointer items-center justify-center rounded-md px-2 py-2 text-center text-sm font-medium transition-colors",
+              value === opt.value ? "text-primary-foreground" : "text-muted-foreground",
+            )}
+          >
+            <RadioGroupItem value={opt.value} className="sr-only" />
+            {opt.label}
+          </label>
+        ))}
+      </RadioGroup>
+    </div>
   );
 }
 
