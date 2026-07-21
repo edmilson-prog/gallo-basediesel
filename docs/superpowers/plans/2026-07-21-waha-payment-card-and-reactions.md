@@ -12,6 +12,15 @@
 
 ## Global Constraints
 
+- **Dado de terceiro nunca é confiado por cast.** Tudo que vem de um payload do
+  WhatsApp (`_data`, `buttonParamsJSON`, campos de evento) chega como `unknown`
+  e só é usado depois de checagem real em runtime — `Array.isArray` antes de
+  `.find`/`.map`, `typeof x === "string"` antes de tratar como texto. Um
+  `as { ... }` sobre JSON externo é asserção de compilação, não validação, e
+  já produziu dois defeitos Critical neste plano. Qualquer exceção lançada num
+  parser sobe até o webhook, que descarta a mensagem inteira — o oposto do que
+  estas features existem para fazer. Degrade para "não reconhecido"; nunca lance.
+
 - **Comentários e nomes de código em inglês.** Texto de UI em **português do Brasil com acentuação correta** (UTF-8): "Chave PIX", "Mensagem não suportada", "Reagiu com".
 - **TDD obrigatório** nos engines puros: escrever o teste, vê-lo falhar, implementar o mínimo, vê-lo passar, commitar. Testes co-localizados (`*.test.ts`).
 - **`src/providers/whatsapp/` é runtime-agnostic** — só Web APIs e imports relativos, nunca `@/`. Mudou algo lá ⇒ rodar `bun run scripts/sync-whatsapp-shared.ts`.
@@ -833,6 +842,26 @@ describe("parseWahaReactionEvent", () => {
   it("throws when the envelope carries no reaction at all", () => {
     expect(() => parseWahaReactionEvent({ id: "x" })).toThrow(/reaction/);
   });
+
+  // Third-party JSON: a wrong field TYPE must never crash the webhook, which
+  // would discard the event instead of degrading.
+  it("throws (not crashes) when messageId is not a string", () => {
+    expect(() =>
+      parseWahaReactionEvent({ ...payload, reaction: { text: "👍", messageId: 123 } }),
+    ).toThrow(/messageId/);
+  });
+
+  it("treats a non-string emoji as a removal instead of storing it", () => {
+    const parsed = parseWahaReactionEvent({
+      ...payload,
+      reaction: { text: 42, messageId: "m1" },
+    });
+    expect(parsed.emoji).toBe("");
+  });
+
+  it("falls back to now() when the timestamp is not a number", () => {
+    expect(() => parseWahaReactionEvent({ ...payload, timestamp: "ontem" })).not.toThrow();
+  });
 });
 
 describe("applyReaction", () => {
@@ -931,10 +960,12 @@ export interface IMessageReactionsState {
   seller?: IReactionSlot;
 }
 
+/** Field types are what WAHA DOCUMENTS, not what it guarantees — every read
+ *  below is narrowed at runtime before use. */
 interface IWahaReactionPayload {
-  fromMe?: boolean;
-  timestamp?: number;
-  reaction?: { text?: string; messageId?: string };
+  fromMe?: unknown;
+  timestamp?: unknown;
+  reaction?: { text?: unknown; messageId?: unknown };
 }
 
 function tsToIso(value: number | undefined): string {
@@ -950,19 +981,23 @@ function tsToIso(value: number | undefined): string {
  */
 export function parseWahaReactionEvent(rawPayload: unknown): IWahaReaction {
   const payload = rawPayload as IWahaReactionPayload | null;
-  if (!payload?.reaction) {
+  const reaction = payload?.reaction;
+  if (!reaction || typeof reaction !== "object") {
     throw new Error("WahaProvider: evento de reaction sem 'reaction' — ignorar");
   }
-  const targetProviderMessageId = payload.reaction.messageId;
-  if (!targetProviderMessageId) {
+  // Third-party JSON: narrow with real runtime checks, never a cast. A
+  // non-string id would otherwise be used verbatim in the lookup query.
+  const targetProviderMessageId = reaction.messageId;
+  if (typeof targetProviderMessageId !== "string" || !targetProviderMessageId) {
     throw new Error("WahaProvider: reaction sem 'messageId' alvo — ignorar");
   }
   return {
     targetProviderMessageId,
-    // An empty text is meaningful: it means the reaction was taken back.
-    emoji: payload.reaction.text ?? "",
-    fromMe: payload.fromMe === true,
-    timestamp: tsToIso(payload.timestamp),
+    // An empty text is meaningful: it means the reaction was taken back. A
+    // non-string text is treated the same way — we can't render it.
+    emoji: typeof reaction.text === "string" ? reaction.text : "",
+    fromMe: payload?.fromMe === true,
+    timestamp: tsToIso(typeof payload?.timestamp === "number" ? payload.timestamp : undefined),
   };
 }
 
