@@ -111,6 +111,11 @@ describe("encodePayment / decodePayment", () => {
     expect(decodePayment("CNPJ:123")).toEqual({ key: "123", keyType: "CNPJ" });
   });
 
+  it("round-trips an untyped key that itself contains a colon", () => {
+    const text = encodePayment({ key: "abc:def" });
+    expect(decodePayment(text)).toEqual({ key: "abc:def" });
+  });
+
   it("returns an empty string when there is no key", () => {
     expect(encodePayment({ merchant: "Loja" })).toBe("");
     expect(encodePayment({})).toBe("");
@@ -154,15 +159,16 @@ export interface IPaymentContent {
 /**
  * Payment → canonical text: `"<merchant>\n<keyType>:<key>"`. The key always
  * sits on the LAST line so a merchant name carrying a colon can't be mistaken
- * for it. Without a key there is nothing to show, so the result is empty —
- * callers treat that as "not a payment".
+ * for it, and the type separator is ALWAYS emitted when there is a key (an
+ * untyped key becomes `":<key>"`) — otherwise a key containing a colon would
+ * decode back as a bogus type. Without a key there is nothing to show, so the
+ * result is empty; callers treat that as "not a payment".
  */
 export function encodePayment(content: IPaymentContent): string {
   const key = oneLine(content.key);
   if (!key) return "";
   const merchant = oneLine(content.merchant);
-  const keyType = oneLine(content.keyType);
-  const keyLine = keyType ? `${keyType}:${key}` : key;
+  const keyLine = `${oneLine(content.keyType)}:${key}`;
   return merchant ? `${merchant}\n${keyLine}` : keyLine;
 }
 
@@ -175,13 +181,14 @@ export function decodePayment(text: string): IPaymentContent {
   if (lines.length === 0) return {};
   const keyLine = lines[lines.length - 1] as string;
   const merchant = lines.slice(0, -1).join(" ") || undefined;
-  // First colon only: EVP keys are UUIDs and e-mail keys carry none, but a
-  // future key format containing one must not lose its tail.
+  // First colon only — everything after it is the key, so a key carrying a
+  // colon survives. A line with NO colon never came from encodePayment (third
+  // party or legacy data): treat the whole line as the key.
   const separator = keyLine.indexOf(":");
   if (separator === -1) return { merchant, key: keyLine };
   return {
     merchant,
-    keyType: keyLine.slice(0, separator),
+    keyType: keyLine.slice(0, separator) || undefined,
     key: keyLine.slice(separator + 1),
   };
 }
