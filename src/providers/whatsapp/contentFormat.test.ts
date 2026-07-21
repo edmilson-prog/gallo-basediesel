@@ -175,7 +175,7 @@ describe("encodePayment / decodePayment", () => {
     });
   });
 
-  it("keeps an e-mail key intact when the key itself has no colon", () => {
+  it("survives a round-trip when the key is an e-mail address", () => {
     const text = encodePayment({ merchant: "Loja", key: "vendas@gallo.com.br", keyType: "EMAIL" });
     expect(decodePayment(text).key).toBe("vendas@gallo.com.br");
   });
@@ -184,6 +184,25 @@ describe("encodePayment / decodePayment", () => {
     const decoded = decodePayment("Loja\nEVP:abc:def");
     expect(decoded.keyType).toBe("EVP");
     expect(decoded.key).toBe("abc:def");
+  });
+
+  it("round-trips a key containing a colon when there is no keyType", () => {
+    const text = encodePayment({ key: "abc:def" });
+    expect(decodePayment(text)).toEqual({ key: "abc:def" });
+  });
+
+  it("round-trips a key that is just a colon", () => {
+    const text = encodePayment({ key: ":" });
+    expect(decodePayment(text)).toEqual({ key: ":" });
+  });
+
+  it("round-trips a merchant plus a colon-containing key with no keyType", () => {
+    const text = encodePayment({ merchant: "Loja", key: "abc:def" });
+    expect(decodePayment(text)).toEqual({ merchant: "Loja", key: "abc:def" });
+  });
+
+  it("still produces no extra colon for the normal keyType case", () => {
+    expect(encodePayment({ key: "123", keyType: "CNPJ" })).toBe("CNPJ:123");
   });
 
   it("collapses a multi-line merchant so it cannot invade the key line", () => {

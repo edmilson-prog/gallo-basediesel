@@ -213,21 +213,33 @@ export interface IPaymentContent {
 }
 
 /**
- * Payment → canonical text: `"<merchant>\n<keyType>:<key>"`. The key always
- * sits on the LAST line so a merchant name carrying a colon can't be mistaken
- * for it. Without a key there is nothing to show, so the result is empty —
- * callers treat that as "not a payment".
+ * Payment → canonical text: `"<merchant>\n<keyType>:<key>"`. The `:` separator
+ * is ALWAYS emitted when there is a key — even with an empty `keyType`, giving
+ * `":<key>"` — so the format is deterministic: {@link decodePayment} never has
+ * to guess whether a leading segment is a type or part of the key itself (a
+ * key that happens to contain a colon, e.g. an EVP-adjacent future format,
+ * would otherwise be corrupted on the round-trip). The key always sits on the
+ * LAST line so a merchant name carrying a colon can't be mistaken for it.
+ * Without a key there is nothing to show, so the result is empty — callers
+ * treat that as "not a payment".
  */
 export function encodePayment(content: IPaymentContent): string {
   const key = oneLine(content.key);
   if (!key) return "";
   const merchant = oneLine(content.merchant);
   const keyType = oneLine(content.keyType);
-  const keyLine = keyType ? `${keyType}:${key}` : key;
+  const keyLine = `${keyType}:${key}`;
   return merchant ? `${merchant}\n${keyLine}` : keyLine;
 }
 
-/** Inverse of {@link encodePayment}. The last line is always the key line. */
+/**
+ * Inverse of {@link encodePayment}. The last line is always the key line and,
+ * for text produced by {@link encodePayment}, always carries the type
+ * separator — even when the type is empty — so splitting on the FIRST colon
+ * is unambiguous; an empty type normalizes to `undefined`. A last line with
+ * NO colon at all (text that didn't come from our encode) is tolerated and
+ * treated as the key in full.
+ */
 export function decodePayment(text: string): IPaymentContent {
   const lines = (text ?? "")
     .split("\n")
@@ -242,7 +254,7 @@ export function decodePayment(text: string): IPaymentContent {
   if (separator === -1) return { merchant, key: keyLine };
   return {
     merchant,
-    keyType: keyLine.slice(0, separator),
+    keyType: keyLine.slice(0, separator) || undefined,
     key: keyLine.slice(separator + 1),
   };
 }
