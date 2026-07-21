@@ -22,6 +22,7 @@ import { HttpError, json } from "../_shared/http.ts";
 import { servePost } from "../_shared/serve.ts";
 import { createSecretResolver } from "../_shared/secrets.ts";
 import { verifyWorkerSecret } from "../_shared/workerAuth.ts";
+import { filterByPilotGates } from "./gates.ts";
 
 const WORKER_SECRET_NAME = "SDR_WORKER_SECRET";
 
@@ -129,8 +130,28 @@ servePost(async (req, ctx) => {
     ((convRows ?? []) as IConversationRow[]).map((c) => [c.id, c.store_id]),
   );
 
+  // 3.5. Pilot gates (2026-07-20 incident follow-up): only escalations whose
+  // store AND instance opted into the pilot are processed — same
+  // defense-in-depth idiom Parte C added to sdr-backstop-tick/sdr-respond.
+  // With the pilot fully off this tick is a complete no-op.
+  const [{ data: pilotStores }, { data: pilotAccounts }] = await Promise.all([
+    admin.from("sdr_settings").select("store_id").eq("sdr_enabled", true),
+    admin.from("whatsapp_accounts").select("id").eq("sdr_enabled", true),
+  ]);
+  const gateResult = filterByPilotGates(toProcess, {
+    storeIdByConv,
+    accountIdByConv: accountByConv,
+    enabledStoreIds: new Set((pilotStores ?? []).map((row) => row.store_id as string)),
+    enabledAccountIds: new Set((pilotAccounts ?? []).map((row) => row.id as string)),
+  });
+  if (gateResult.skippedCount > 0) {
+    ctx.log.info("sdr-escalation-timeout-tick skipped by pilot gates", {
+      skipped: gateResult.skippedCount,
+    });
+  }
+
   let broadcastCount = 0;
-  for (const escalation of toProcess) {
+  for (const escalation of gateResult.passed) {
     const accountId = accountByConv.get(escalation.conversation_id);
     if (!accountId) {
       ctx.log.warn("sdr-escalation-timeout-tick skipped — conversation has no whatsapp account", {
