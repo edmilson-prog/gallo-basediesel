@@ -1,3 +1,85 @@
+# ConvertLeadModal redesign — wizard B2B em 2 etapas + botão dividido no painel — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Reorganizar o fluxo B2B do modal "Converter lead em cliente" em duas etapas (CNPJ → confirmação), trocar os dois toggles de rádio-em-caixa por um segmented control deslizante, redesenhar o cartão de confirmação da empresa como um "registro verificado", e adicionar um atalho de "vincular a cliente existente" direto no painel lateral da ficha do lead (botão dividido).
+
+**Architecture:** Puramente visual/estado local de UI — nenhuma mudança de contrato de provider, nenhuma migration. `ConvertLeadModal` ganha uma prop opcional `initialMode` e um estado local `b2bStep` (`1 | 2`) que só existe quando `mode === "new" && type === "B2B"`; toda a lógica de submissão, auditoria, invalidação de query e o fix de corrida do debounce (Task 4 do PR #350) permanecem **byte-idênticos** — só a árvore JSX é reorganizada. Um pequeno componente privado `SegmentedToggle` (dentro do próprio arquivo) substitui os dois blocos `RadioGroup` visualmente idênticos por um único visual reutilizável.
+
+**Tech Stack:** React 19, Tailwind v4 + shadcn/ui (`RadioGroup`, `DropdownMenu`), Iconify (`@/components/Icon`), Vitest, bun.
+
+## Global Constraints
+
+- **Zero mudança de comportamento de negócio.** `handleSubmit`, `validate`, o guard `matchingAddress`, o fix `cnpjPendingDebounce`/`cnpjChecking`, a busca `excludeTags: ["pending_review"]` e o autofill no retry — todos continuam exatamente iguais ao que já foi revisado e mergeado no PR #350. Esta entrega só reorganiza JSX/estado de apresentação.
+- **`IConvertLeadModalProps` ganha só um campo opcional** (`initialMode`) — `LeadsPage.tsx` e `LeadDetailPage.tsx` (que já renderizam o modal sem passar essa prop) continuam compilando sem alteração.
+- **Sem teste novo de engine** — não há lógica pura nova extraída; verificação é por `bun run test` (suíte inteira) + `bunx tsc --noEmit`, igual às tasks anteriores deste mesmo componente.
+- **Convenções:** TS `strict`, sem `any`; comentários em inglês; strings de UI só via `LEADS_STRINGS` (nunca hardcoded na JSX); Conventional Commits terminando em `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`. Branch: `worktree-lead-convert-cnpj-link` (continuação do PR #350, já mergeado — commits novos aqui viram um PR novo). **Não mergear sem OK explícito do dono.**
+
+---
+
+## File Structure
+
+- Modify: `src/features/leads/i18n/pt-BR.ts` — 4 chaves novas em `convertModal` (`continueLabel`, `back`, `stepCnpjLabel`, `stepContactLabel`).
+- Modify: `src/features/leads/components/ConvertLeadModal.tsx` — prop `initialMode`, estado `b2bStep`, componente privado `SegmentedToggle`, wizard de 2 etapas no B2B, cartão de registro redesenhado.
+- Modify: `src/features/leads/components/LeadProfileFiche.tsx` — botão dividido (DropdownMenu) no lugar do botão único "Converter em cliente".
+
+---
+
+## FASE A — i18n
+
+### Task 1: Novas chaves em `LEADS_STRINGS.convertModal`
+
+**Files:**
+- Modify: `src/features/leads/i18n/pt-BR.ts`
+
+**Interfaces:**
+- Produces: `COPY.continueLabel`, `COPY.back`, `COPY.stepCnpjLabel`, `COPY.stepContactLabel` — consumidos pela Task 2.
+
+- [ ] **Step 1: Adicionar as chaves**
+
+Localize a chave `submittingCnpj: "Validando CNPJ…",` dentro do bloco `convertModal` (adicionada no PR #350) e adicione logo depois:
+
+```ts
+    submittingCnpj: "Validando CNPJ…",
+    continueLabel: "Continuar",
+    back: "Voltar",
+    stepCnpjLabel: "1 · CNPJ",
+    stepContactLabel: "2 · Contato",
+```
+
+- [ ] **Step 2: Verificar**
+
+Run: `bunx tsc --noEmit`
+Expected: zero erro novo (`LEADS_STRINGS` é um `export const` sem anotação de tipo explícita — chaves novas não quebram tipo).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/features/leads/i18n/pt-BR.ts
+git commit -m "$(cat <<'EOF'
+feat(leads): add i18n strings for the 2-step B2B wizard
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## FASE B — `ConvertLeadModal`
+
+### Task 2: Wizard de 2 etapas, segmented toggle, cartão de registro, prop `initialMode`
+
+**Files:**
+- Modify: `src/features/leads/components/ConvertLeadModal.tsx` (arquivo inteiro — substituição completa)
+
+**Interfaces:**
+- Consumes: `LEADS_STRINGS.convertModal` (Task 1, chaves novas), `cn` (`@/lib/utils`, já usado em outros componentes do projeto — ex. `LeadProfileFiche.tsx`).
+- Produces: `IConvertLeadModalProps` com o campo novo opcional `initialMode?: "new" | "link"` (default `"new"`) — consumido pela Task 3. A assinatura anterior (`lead`, `onClose`, `onConverted`) continua idêntica; nenhum consumidor existente (`LeadsPage.tsx`, `LeadDetailPage.tsx`) precisa mudar.
+
+- [ ] **Step 1: Substituir o conteúdo do arquivo**
+
+```tsx
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -694,7 +776,7 @@ function SegmentedToggle<T extends string>({
           <label
             key={opt.value}
             className={cn(
-              "relative z-10 flex cursor-pointer items-center justify-center rounded-md px-2 py-2 text-center text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background",
+              "relative z-10 flex cursor-pointer items-center justify-center rounded-md px-2 py-2 text-center text-sm font-medium transition-colors",
               value === opt.value ? "text-primary-foreground" : "text-muted-foreground",
             )}
           >
@@ -723,3 +805,204 @@ function Field({ label, error, colSpan = 1, children }: IFieldProps) {
     </div>
   );
 }
+```
+
+- [ ] **Step 2: Verificar**
+
+Run: `bunx tsc --noEmit`
+Expected: zero erro novo.
+
+Run: `bun run test`
+Expected: suíte inteira verde (288 arquivos / 2245 testes — nenhum teste cobre este componente diretamente, verificação é por compilação + suíte geral intacta, igual às tasks anteriores).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/features/leads/components/ConvertLeadModal.tsx
+git commit -m "$(cat <<'EOF'
+feat(leads): redesign ConvertLeadModal as a 2-step B2B wizard
+
+Step 1 is CNPJ-only; step 2 surfaces a "verified record" card (from
+Minha Receita) plus the two fields the seller actually edits — contact
+name and email. Both toggles (mode, type) become a shared segmented
+control instead of two bordered radio boxes. All submission logic,
+the debounce-race fix, and the pending_review search exclusion are
+unchanged — this is a JSX/state reorganization, not a behavior change.
+Adds an optional `initialMode` prop for Task 3's panel shortcut.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## FASE C — Painel da ficha
+
+### Task 3: Botão dividido em `LeadProfileFiche.tsx`
+
+**Files:**
+- Modify: `src/features/leads/components/LeadProfileFiche.tsx:1-21` (imports), `:168` (estado), `:369-378` (bloco do botão), `:382-391` (render do modal)
+
+**Interfaces:**
+- Consumes: `ConvertLeadModal`'s novo prop `initialMode` (Task 2), `LEADS_STRINGS.convertModal.modeNew`/`modeLink` (já existentes desde o PR #350 — reaproveitados como rótulos dos itens do menu, sem chave nova), `DropdownMenu`/`DropdownMenuTrigger`/`DropdownMenuContent`/`DropdownMenuItem` (`src/components/ui/dropdown-menu.tsx`, já presente no projeto).
+- Produces: nenhuma interface nova exposta — só o comportamento visual do botão muda.
+
+- [ ] **Step 1: Adicionar o import do `DropdownMenu`**
+
+Logo abaixo do import de `Button` (linha 13), adicione:
+
+```tsx
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+```
+
+Nenhum outro import é necessário — `ConvertLeadModal.tsx` não exporta um tipo nomeado pro modo (`"new" | "link"` é um tipo literal privado daquele arquivo), então o estado novo do Step 2 usa o literal inline `"new" | "link"` diretamente, sem importar nada de `ConvertLeadModal.tsx` além do próprio componente (que já é importado hoje).
+
+- [ ] **Step 2: Adicionar o estado do modo inicial**
+
+Logo abaixo de `const [convertOpen, setConvertOpen] = useState(false);` (linha 168):
+
+```tsx
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [convertInitialMode, setConvertInitialMode] = useState<"new" | "link">("new");
+```
+
+- [ ] **Step 3: Substituir o bloco do botão único pelo botão dividido**
+
+Localize (linhas 369-378):
+
+```tsx
+          {canConvert && !converted && (
+            <Button
+              size="sm"
+              className="w-full gap-1.5"
+              onClick={() => setConvertOpen(true)}
+            >
+              <Icon icon="mdi:account-convert" size={14} aria-hidden />
+              {COPY.convert}
+            </Button>
+          )}
+```
+
+Substitua por:
+
+```tsx
+          {canConvert && !converted && (
+            <div className="flex w-full">
+              <Button
+                size="sm"
+                className="flex-1 justify-start gap-1.5 rounded-r-none"
+                onClick={() => {
+                  setConvertInitialMode("new");
+                  setConvertOpen(true);
+                }}
+              >
+                <Icon icon="mdi:account-convert" size={14} aria-hidden />
+                {COPY.convert}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="w-8 rounded-l-none border-l border-primary-foreground/20 px-0"
+                    aria-label={LEADS_STRINGS.convertModal.modeLabel}
+                  >
+                    <Icon icon="mdi:chevron-down" size={14} aria-hidden />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setConvertInitialMode("new");
+                      setConvertOpen(true);
+                    }}
+                  >
+                    <Icon icon="mdi:account-convert" size={14} aria-hidden className="mr-2" />
+                    {LEADS_STRINGS.convertModal.modeNew}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setConvertInitialMode("link");
+                      setConvertOpen(true);
+                    }}
+                  >
+                    <Icon icon="mdi:link-variant" size={14} aria-hidden className="mr-2" />
+                    {LEADS_STRINGS.convertModal.modeLink}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+```
+
+- [ ] **Step 4: Passar `initialMode` pro modal**
+
+Localize (linhas 382-391):
+
+```tsx
+      {lead && (
+        <ConvertLeadModal
+          lead={convertOpen ? lead : null}
+          onClose={() => setConvertOpen(false)}
+          onConverted={() => {
+            setConvertOpen(false);
+            onConverted?.();
+          }}
+        />
+      )}
+```
+
+Substitua por:
+
+```tsx
+      {lead && (
+        <ConvertLeadModal
+          lead={convertOpen ? lead : null}
+          initialMode={convertInitialMode}
+          onClose={() => setConvertOpen(false)}
+          onConverted={() => {
+            setConvertOpen(false);
+            onConverted?.();
+          }}
+        />
+      )}
+```
+
+- [ ] **Step 5: Verificar**
+
+Run: `bunx tsc --noEmit`
+Expected: zero erro novo.
+
+Run: `bun run test`
+Expected: suíte inteira verde.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/features/leads/components/LeadProfileFiche.tsx
+git commit -m "$(cat <<'EOF'
+feat(leads): add a split button to jump straight to "link existing customer"
+
+The panel's "Converter em cliente" button gains a caret that opens a
+2-item menu (create new / link existing), passing the choice through
+as ConvertLeadModal's new initialMode prop — no extra vertical space
+in the ~350px panel.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## Verificação final
+
+- [ ] `bun run test` — suíte completa verde.
+- [ ] `bunx tsc --noEmit` — nenhum erro novo introduzido pelos 3 arquivos tocados.
+- [ ] Conferir manualmente (dono) no navegador: modo "Criar novo" → Empresa mostra só o CNPJ na etapa 1; "Continuar" só liga com um CNPJ real válido; etapa 2 mostra o cartão de registro + Contato/E-mail editáveis; "Voltar" retorna à etapa 1 sem perder o CNPJ digitado; alternar pro modo B2C ou "Vincular existente" continua funcionando como antes; no painel da ficha do lead, o botão dividido abre o modal no modo certo pelos dois caminhos (clique direto vs. item do menu).
