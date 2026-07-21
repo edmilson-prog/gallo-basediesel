@@ -218,7 +218,18 @@ git commit -m "feat(whatsapp): canonical text encoding for a shared PIX key"
 
 **Interfaces:**
 - Consumes: `encodePayment` (Task 1); `IParsedContent`, `wahaMessageKind`, `isDiscardableEnvelope` (já existem)
-- Produces: branch `contentType: "payment"` em `extractContent`
+- Produces: `"payment"` válido em `InboundContentType`; branch `contentType: "payment"` em `extractContent`
+
+- [ ] **Step 0: Widen the content-type union first**
+
+O branch desta task retorna `contentType: "payment"`, que precisa existir no
+union antes — sem isso a task termina num estado que não type-checka.
+
+Em `src/providers/whatsapp/types.ts`, adicionar `"payment"` ao union
+`InboundContentType`, junto de `"location"` e `"contact"`.
+
+(O discriminador de domínio `MessageMediaType` e a lista
+`MEDIA_DISCRIMINATOR_TYPES` entram na Task 3 — aqui só o contrato do parser.)
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -416,14 +427,19 @@ E o branch em `extractContent`, entre o de `location` e o de `templateMessage`:
 - [ ] **Step 4: Run the tests and watch them pass**
 
 Run: `bunx vitest run src/providers/whatsapp/waha/parser.test.ts`
-Expected: PASS. Se o TypeScript reclamar que `"payment"` não existe em `InboundContentType`, siga para o Step 5 — o tipo entra na Task 3 — mas o teste em runtime já deve passar.
+Expected: PASS, todos.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Confirm the types are clean**
+
+Run: `bunx tsc --noEmit 2>&1 | grep -E "waha/parser|whatsapp/types" || echo "sem erros nos arquivos tocados"`
+Expected: `sem erros nos arquivos tocados`. (O projeto tem ~378 erros pré-existentes em outros arquivos — ignore-os.)
+
+- [ ] **Step 6: Commit**
 
 ```bash
 bun run scripts/sync-whatsapp-shared.ts
-git checkout -- 'supabase/functions/_shared/' ':(exclude)supabase/functions/_shared/whatsapp/waha/parser.ts'
-git add src/providers/whatsapp/waha/parser.ts src/providers/whatsapp/waha/parser.test.ts supabase/functions/_shared/whatsapp/waha/parser.ts
+git checkout -- 'supabase/functions/_shared/' ':(exclude)supabase/functions/_shared/whatsapp/waha/parser.ts' ':(exclude)supabase/functions/_shared/whatsapp/types.ts'
+git add src/providers/whatsapp/waha/parser.ts src/providers/whatsapp/waha/parser.test.ts src/providers/whatsapp/types.ts supabase/functions/_shared/whatsapp/waha/parser.ts supabase/functions/_shared/whatsapp/types.ts
 git commit -m "feat(waha): parse a shared PIX key out of the payment button"
 ```
 
@@ -440,9 +456,12 @@ git commit -m "feat(waha): parse a shared PIX key out of the payment button"
 **Interfaces:**
 - Produces: `"payment"` válido em `InboundContentType`, `MessageMediaType` e `MEDIA_DISCRIMINATOR_TYPES`
 
-- [ ] **Step 1: Add the type to the provider contract**
+- [ ] **Step 1: Add the type to the media discriminator list**
 
-Em `src/providers/whatsapp/types.ts`, adicionar `"payment"` ao union `InboundContentType` (junto de `"location"`/`"contact"`) e ao array `MEDIA_DISCRIMINATOR_TYPES`:
+`InboundContentType` já ganhou `"payment"` na Task 2. Falta a lista que decide
+quais tipos viram um `messages.media_type` não-nulo.
+
+Em `src/providers/whatsapp/types.ts`:
 
 ```ts
 export const MEDIA_DISCRIMINATOR_TYPES = [
