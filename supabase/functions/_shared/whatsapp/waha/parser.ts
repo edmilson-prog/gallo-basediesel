@@ -22,7 +22,13 @@
  */
 
 import type { IInboundMessage, InboundContentType, IOutboundEcho, IAdReferral } from "../types.ts";
-import { encodeContact, encodeLocation, nameFromVCard, phoneFromVCard } from "../contentFormat.ts";
+import {
+  encodeContact,
+  encodeLocation,
+  encodePayment,
+  nameFromVCard,
+  phoneFromVCard,
+} from "../contentFormat.ts";
 
 const NON_INDIVIDUAL_JID = /@(g\.us|broadcast|newsletter)$/;
 const LID_JID = /@lid$/;
@@ -76,11 +82,22 @@ interface IWahaTemplateMessage {
   hydratedTemplate?: { hydratedContentText?: string };
 }
 
+/** WhatsApp's payment button. The readable payload is a JSON STRING nested in
+ *  `buttonParamsJSON` — confirmed against real captures (2026-07-16/21). */
+interface IWahaNativeFlowButton {
+  name?: string;
+  buttonParamsJSON?: string;
+}
+interface IWahaInteractiveMessage {
+  InteractiveMessage?: { NativeFlowMessage?: { buttons?: IWahaNativeFlowButton[] } };
+}
+
 interface IWahaGoMessageBody {
   extendedTextMessage?: { contextInfo?: IWahaContextInfo };
   imageMessage?: { contextInfo?: IWahaContextInfo };
   videoMessage?: { contextInfo?: IWahaContextInfo };
   templateMessage?: IWahaTemplateMessage;
+  interactiveMessage?: IWahaInteractiveMessage;
   /** Any other whatsmeow message kind (albumMessage, protocolMessage,
    *  interactiveMessage, …). Not modelled individually — the index signature
    *  exists so {@link wahaMessageKind} can NAME an unhandled kind when
@@ -220,6 +237,29 @@ export function wahaMessageKind(payload: IWahaMessagePayload): string | undefine
   return Object.keys(message).find((key) => key !== "messageContextInfo");
 }
 
+/** Canonical payment text for a shared PIX key, or undefined when the envelope
+ *  carries no usable key. `buttonParamsJSON` is third-party data parsed inside
+ *  a try/catch: malformed JSON degrades to "not a payment", never throws. */
+function extractWahaPaymentText(payload: IWahaMessagePayload): string | undefined {
+  const buttons =
+    payload._data?.Message?.interactiveMessage?.InteractiveMessage?.NativeFlowMessage?.buttons;
+  const raw = buttons?.find((button) => button?.name === "payment_info")?.buttonParamsJSON;
+  if (!raw) return undefined;
+  let params: unknown;
+  try {
+    params = JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+  const settings = (params as { payment_settings?: unknown[] } | null)?.payment_settings;
+  const pix = (settings?.[0] as { pix_static_code?: Record<string, string> } | undefined)
+    ?.pix_static_code;
+  if (!pix) return undefined;
+  return (
+    encodePayment({ merchant: pix.merchant_name, key: pix.key, keyType: pix.key_type }) || undefined
+  );
+}
+
 export function extractContent(payload: IWahaMessagePayload): IParsedContent {
   if (payload.hasMedia && payload.media?.url) {
     return {
@@ -265,6 +305,13 @@ export function extractContent(payload: IWahaMessagePayload): IParsedContent {
   const locationText = extractWahaLocationText(payload);
   if (locationText) {
     return { contentType: "location", text: locationText };
+  }
+  // A PIX key shared through WhatsApp's payment button. Deliberately ignores
+  // the payload's amount/items: they are always zero/empty on these static-key
+  // shares, and rendering "R$ 0,00" would be worse than omitting it.
+  const paymentText = extractWahaPaymentText(payload);
+  if (paymentText) {
+    return { contentType: "payment", text: paymentText };
   }
   // Template broadcasts carry their text ONLY inside `_data` — `body` is null.
   const templateText = extractWahaTemplateText(payload);

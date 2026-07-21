@@ -31,6 +31,7 @@ export type InboundContentType =
   | "document"
   | "location"
   | "contact"
+  | "payment"
   | "unknown";
 
 /** Media kinds accepted for outbound sends. */

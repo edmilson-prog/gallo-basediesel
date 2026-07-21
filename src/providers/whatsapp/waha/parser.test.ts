@@ -842,3 +842,112 @@ describe("parseWahaMessageEvent — media WAHA could not download", () => {
     expect(parsed.text).toBe("segue a foto da peça");
   });
 });
+
+describe("parseWahaMessageEvent — shared PIX key", () => {
+  const base = {
+    id: "id-pix",
+    timestamp: 1721567423,
+    from: "554799852008@c.us",
+    fromMe: true,
+    body: null,
+    hasMedia: false,
+  };
+
+  /** Real capture shape: buttonParamsJSON is a JSON STRING, not an object. */
+  function withParams(params: unknown) {
+    return {
+      ...base,
+      _data: {
+        Message: {
+          interactiveMessage: {
+            InteractiveMessage: {
+              NativeFlowMessage: {
+                buttons: [{ name: "payment_info", buttonParamsJSON: JSON.stringify(params) }],
+              },
+            },
+          },
+        },
+      },
+    };
+  }
+
+  const realParams = {
+    reference_id: "4VQ0VH6O7LF",
+    payment_settings: [
+      {
+        type: "pix_static_code",
+        pix_static_code: {
+          merchant_name: "Fernando De Mello Muniz",
+          key: "32990725000160",
+          key_type: "CNPJ",
+        },
+      },
+    ],
+    total_amount: { value: 0, offset: 100 },
+    order: { status: "pending", items: [{ name: "", quantity: 0 }] },
+  };
+
+  it("parses a shared PIX key into canonical payment text", () => {
+    const parsed = parseWahaMessageEvent(withParams(realParams), accountId);
+    expect(parsed.type).toBe("outbound-echo");
+    expect(parsed.contentType).toBe("payment");
+    expect(parsed.text).toBe("Fernando De Mello Muniz\nCNPJ:32990725000160");
+  });
+
+  it("keeps the envelope as a plain placeholder when buttonParamsJSON is malformed", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        ...base,
+        _data: {
+          Message: {
+            interactiveMessage: {
+              InteractiveMessage: {
+                NativeFlowMessage: {
+                  buttons: [{ name: "payment_info", buttonParamsJSON: "{not json" }],
+                },
+              },
+            },
+          },
+        },
+      },
+      accountId,
+    );
+    expect(parsed.contentType).toBe("text");
+    expect(parsed.text).toBe("");
+  });
+
+  it("ignores an interactive message with no payment_info button", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        ...base,
+        _data: {
+          Message: {
+            interactiveMessage: {
+              InteractiveMessage: {
+                NativeFlowMessage: { buttons: [{ name: "quick_reply" }] },
+              },
+            },
+          },
+        },
+      },
+      accountId,
+    );
+    expect(parsed.contentType).toBe("text");
+  });
+
+  it("ignores a payment payload carrying no usable key", () => {
+    const parsed = parseWahaMessageEvent(
+      withParams({ payment_settings: [{ type: "pix_static_code", pix_static_code: {} }] }),
+      accountId,
+    );
+    expect(parsed.contentType).toBe("text");
+  });
+
+  it("does not let a text body hide the payment card", () => {
+    const parsed = parseWahaMessageEvent(
+      { ...withParams(realParams), body: "segue o pix" },
+      accountId,
+    );
+    expect(parsed.contentType).toBe("payment");
+  });
+});
