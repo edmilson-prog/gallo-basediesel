@@ -11,7 +11,11 @@
  * variant (`📍 <name>`) and the generic fallback label (`📍 Localização`) can
  * never drift to different icons. Used by `getMessagePreview`.
  */
-export const STRUCTURED_PREVIEW_ICON = { contact: "👤", location: "📍" } as const;
+export const STRUCTURED_PREVIEW_ICON = {
+  contact: "👤",
+  location: "📍",
+  payment: "💳",
+} as const;
 
 export const INBOX_STRINGS = {
   pageTitle: "Conversas",
@@ -129,6 +133,7 @@ export const INBOX_STRINGS = {
     sticker: "🌟 Sticker",
     location: `${STRUCTURED_PREVIEW_ICON.location} Localização`,
     contact: `${STRUCTURED_PREVIEW_ICON.contact} Contato`,
+    payment: `${STRUCTURED_PREVIEW_ICON.payment} PIX`,
     /** Message that reached us with no readable content — see UnsupportedBubble. */
     unsupported: "Mensagem não suportada",
   },

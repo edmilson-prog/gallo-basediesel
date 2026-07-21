@@ -55,6 +55,7 @@ export const MEDIA_DISCRIMINATOR_TYPES = [
   "document",
   "location",
   "contact",
+  "payment",
 ] as const;
 
 // ===== Send inputs ==========================================================

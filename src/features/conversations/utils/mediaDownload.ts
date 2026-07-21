@@ -1,10 +1,11 @@
 import type { MessageMediaType } from "@/shared/types";
 
 /** Extension synthesized per downloadable non-document media type (we lack the
- *  real MIME). `location`/`contact` are structured content with no binary to
- *  download, so they are excluded — `downloadFileName` never reaches them. */
+ *  real MIME). `location`, `contact`, and `payment` are structured content with
+ *  no binary to download, so they are excluded — `downloadFileName` never reaches
+ *  them. */
 const EXT_BY_TYPE: Record<
-  Exclude<MessageMediaType, "document" | "location" | "contact">,
+  Exclude<MessageMediaType, "document" | "location" | "contact" | "payment">,
   string
 > = {
   image: "jpg",
@@ -62,10 +63,16 @@ export function downloadFileName(opts: {
   const idSuffix = opts.id.replace(/[^a-z0-9]/gi, "").slice(-6) || "arquivo";
   const caption = opts.caption?.trim();
   const type = opts.mediaType;
-  // `location`/`contact` have no binary to download (no download affordance ever
-  // calls this for them); fold them into the document fallback so the lookup
-  // below only ever sees a downloadable media type.
-  if (!type || type === "document" || type === "location" || type === "contact") {
+  // `location`, `contact`, and `payment` have no binary to download (no download
+  // affordance ever calls this for them); fold them into the document fallback so
+  // the lookup below only ever sees a downloadable media type.
+  if (
+    !type ||
+    type === "document" ||
+    type === "location" ||
+    type === "contact" ||
+    type === "payment"
+  ) {
     const base = caption ? sanitizeFileBase(caption) : `documento-${idSuffix}`;
     return /\.[a-z0-9]+$/i.test(base) ? base : `${base}.pdf`;
   }
