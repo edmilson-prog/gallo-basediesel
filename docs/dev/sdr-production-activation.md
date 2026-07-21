@@ -61,19 +61,49 @@ server.
 
 ### `sdr-backstop-tick` — a ativação
 
-Varre `conversations` em fila (`assigned_seller_id is null`,
-`is_sdr_active=false`, `status='aguardando'`) das lojas com
-`sdr_settings.sdr_enabled=true`, usando o índice parcial
-`conversations_sdr_backstop_queue_idx`. Para cada loja calcula o horário
-comercial (`isWithinBusinessHours`, mesmo engine de
-`src/features/distribution/engine/`, espelhado para
-`_shared/distribution/engine/businessHours.ts`) e o threshold: **0 minutos
-fora do horário** (ativação imediata), `sdr_settings.backstop_timeout_minutes`
-**dentro** do horário.
+Reescrito em 2026-07-20 depois do incidente de disparo em massa (ver seção
+"Incidente 2026-07-20 (disparo em massa)" abaixo) — a elegibilidade deixou de
+varrer a fila inteira e passou a exigir **seis condições, todas ao mesmo
+tempo**, resolvidas num único round-trip pela RPC `sdr_backstop_candidates`
+(`security invoker`, `service_role`-only):
 
-Conversas que estouraram o threshold são ativadas
-(`UPDATE is_sdr_active = true`) e disparam `sdr-respond` via `fetch`
-fire-and-forget.
+| # | Regra |
+| --- | --- |
+| 1 | Loja com `sdr_settings.sdr_enabled = true` |
+| 2 | Instância com `whatsapp_accounts.sdr_enabled = true` |
+| 3 | Em fila: `status='aguardando'` ∧ `assigned_seller_id is null` ∧ `is_sdr_active=false` ∧ `queued_at not null` (índice parcial `conversations_sdr_backstop_queue_idx`) |
+| 4 | Última mensagem da conversa é do cliente (`direction='in'`) — evita o SDR "se meter" numa conversa em que um vendedor (ou o próprio SDR) já respondeu por último |
+| 5 | Essa última mensagem é posterior ao marco de ativação — `greatest(sdr_settings.sdr_activated_at, whatsapp_accounts.sdr_activated_at)`, carimbado por trigger toda vez que o toggle de loja ou de instância vira `true` |
+| 6 | Essa última mensagem tem menos de 24h (proteção contra downtime de cron/instância) |
+
+**O timer de espera passou a contar a partir de `last_inbound_at` (a última
+mensagem do cliente), não mais de `queued_at`** — `queued_at` não atualiza
+enquanto a conversa permanece em fila (pode ficar parada por meses), e usá-lo
+como base do `elapsed` foi a raiz do incidente. Com a base corrigida,
+`elapsed = now − last_inbound_at ≥ threshold` volta a significar "o cliente
+falou e ninguém respondeu há X minutos".
+
+Para cada loja com candidatas, o tick calcula o horário comercial
+(`isWithinBusinessHours`, mesmo engine de `src/features/distribution/engine/`,
+espelhado para `_shared/distribution/engine/businessHours.ts`) e o threshold:
+**0 minutos fora do horário** (ativação imediata — agora seguro, porque as
+regras 4–6 já garantem que só sobra conversa nova com o cliente aguardando),
+`sdr_settings.backstop_timeout_minutes` **dentro** do horário. Loja sem
+`businessHours` parseável resolve para o ramo "dentro do horário" (threshold
+configurado, nunca 0) — default conservador, ao contrário do `?? false`
+antigo que resolvia direto pra "fora do horário".
+
+Um cap por tick (`MAX_ACTIVATIONS_PER_TICK = 10`, constante no código, FIFO
+por `last_inbound_at` — nunca corta em silêncio, loga
+`{ eligible, activated, capped }` a cada tick com atividade) protege contra
+qualquer acúmulo residual. Conversas dentro do cap são ativadas
+(`UPDATE is_sdr_active = true`, guardado contra corrida entre execuções
+sobrepostas do tick) e disparam `sdr-respond` via `fetch` fire-and-forget.
+
+As ~1.620 conversas do backlog histórico da loja piloto (paradas antes da
+correção, algumas desde 30/01/2025) **não são tocadas** — ficam
+permanentemente inelegíveis pela regra 5 (marco de ativação), sem nenhuma
+mutação de dado.
 
 O webhook real (`whatsapp-webhook`) ganhou o callback `onSdrTurn` — quando
 uma mensagem inbound cai numa conversa já com `is_sdr_active=true`, dispara
@@ -140,10 +170,27 @@ independentes deste tick — rodam com limiares diferentes (`IPlatformSettings.e
 `sdr_settings`) sempre que um Owner/Gestor tem o app aberto. Não foram desligados nem retirados
 nesta entrega.
 
-## Checklist manual — ativar uma loja piloto
+## Incidente 2026-07-20 (disparo em massa)
+
+Na primeira ativação real do piloto, fora do horário comercial, o
+`sdr-backstop-tick` antigo disparou 16 mensagens do SDR num único burst —
+incluindo conversas paradas há meses e casos em que um vendedor já tinha
+respondido por último. Causa raiz: threshold 0 fora do horário comercial
+fazia **toda** conversa em fila virar elegível instantaneamente, sem corte de
+recência, sem checar quem falou por último e sem cap de batch. O dono
+desligou os toggles e pausou os 2 crons do SDR; as 16 mensagens já entregues
+ficam como estão (decisão do dono, sem remediação junto aos clientes).
+
+A elegibilidade de 6 condições descrita acima é a correção. Causa raiz
+completa e decisões do dono em
+`docs/superpowers/specs/2026-07-20-sdr-backstop-eligibility-fix-design.md`.
+
+## Checklist manual — (re)ativar uma loja piloto
 
 Nenhum destes passos foi executado por este plano; ficam para quando o dono
-autorizar.
+autorizar. Checklist atualizado pós-incidente (seção acima) — a migration da
+correção dentro do passo 1, o passo 2 (checagem dos crons) e a nota de ordem
+no passo dos toggles são novos.
 
 1. **Aplicar as migrations, na ordem:**
    - `supabase/migrations/20260715130000_sdr_activation_schema.sql` primeiro
@@ -154,12 +201,31 @@ autorizar.
      **só depois** de `sdr-backstop-tick` estar deployado — ela já agenda o
      `pg_cron` que chama a function a cada minuto, então aplicar antes do
      deploy faria o primeiro tick bater num endpoint inexistente.
+   - `supabase/migrations/20260720210000_sdr_backstop_eligibility.sql` —
+     cria os carimbos de marco de ativação (`sdr_activated_at` em
+     `sdr_settings` e `whatsapp_accounts`), o trigger compartilhado que os
+     grava e a RPC `sdr_backstop_candidates` que o `sdr-backstop-tick`
+     reescrito (ver "Incidente 2026-07-20" acima) já espera encontrar.
+     **Aplicar antes de re-armar os crons** (próximo passo) — re-armar antes
+     dela faria o primeiro tick seguinte falhar (RPC inexistente) em vez de
+     simplesmente não achar candidatas.
    - (As duas migrations da Fundação — `sdr_settings` e
      `sdr_pause_on_human_message` — já estão aplicadas em produção desde o
      merge da Parte A.)
-2. **Deploy das duas Edge Functions novas:** `sdr-respond` e
-   `sdr-backstop-tick`.
-3. **Redeploy do `whatsapp-webhook`** — esta Parte B modificou essa function
+2. **Conferir que os crons do SDR estão ativos** — ambos foram pausados
+   (`cron.alter_job(..., active := false)`) depois do incidente. Re-armar
+   (`cron.alter_job(..., active := true)`) e confirmar com:
+   ```sql
+   select jobname, active from cron.job where jobname like 'sdr%';
+   ```
+   Esperado: `sdr-backstop-tick` e `sdr-escalation-timeout-tick` com
+   `active=true`. Seguro fazer isso com todos os toggles `sdr_enabled`
+   ainda desligados — os dois gates (loja + instância) fazem o tick virar
+   no-op integral.
+3. **Deploy das Edge Functions:** `sdr-respond`, `sdr-backstop-tick` (RPC +
+   engine de elegibilidade reescritos) e `sdr-escalation-timeout-tick`
+   (ganhou os mesmos dois gates nesta correção).
+4. **Redeploy do `whatsapp-webhook`** — esta Parte B modificou essa function
    (já em produção) pra adicionar o callback `onSdrTurn` (ver seção
    "Arquitetura — dois workers" acima). **Não é opcional e não é só o
    primeiro turno**: o backstop tick ativa a conversa e dispara `sdr-respond`
@@ -169,17 +235,23 @@ autorizar.
    responde a primeira mensagem da conversa e nunca mais — parece "morto"
    depois de um turno, mas na verdade é o webhook rodando a versão antiga
    sem o callback.
-4. **Configurar o roteamento de IA** na aba Funcionalidades (provedor, modelo,
+5. **Configurar o roteamento de IA** na aba Funcionalidades (provedor, modelo,
    opcionalmente um prompt suplementar) para `feature='sdr'`, se ainda não
    estiver.
-5. **Escolher a loja piloto** e ligar o toggle "SDR ativo nesta loja" em
+6. **Escolher a loja piloto** e ligar o toggle "SDR ativo nesta loja" em
    `/app/sdr` → aba **Configurações** (não mais na aba SDR do hub de IA,
    removida na Parte C), ajustando `backstop_timeout_minutes` se o padrão
    (2 min) não servir. **Em seguida, marcar explicitamente cada instância
    WhatsApp** que deve receber o SDR, na mesma aba — nenhuma vem marcada por
    padrão. Conversas sem instância associada (fila legada) não são
-   atendidas por este mecanismo.
-6. **Smoke manual** com uma conversa real — fora de escopo deste plano,
+   atendidas por este mecanismo. **Ligar os toggles por último, depois de
+   todos os passos anteriores** — o trigger da migration carimba
+   `sdr_activated_at` no instante exato em que o toggle (de loja ou de
+   instância) vira `true`, e só mensagem de cliente **posterior** a esse
+   carimbo conta para elegibilidade (regra 5 da tabela acima). No tick
+   seguinte à religada, esperado nos logs: `activated=0` — só volta a
+   ativar quando chegar uma conversa nova do cliente.
+7. **Smoke manual** com uma conversa real — fora de escopo deste plano,
    fica a cargo do dono.
 
 Com todas as lojas desligadas, aplicar as migrations e deployar as functions
