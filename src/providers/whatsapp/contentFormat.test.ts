@@ -2,10 +2,12 @@ import { describe, it, expect } from "vitest";
 import {
   decodeContact,
   decodeLocation,
+  decodePayment,
   encodeBaileysContact,
   encodeBaileysLocation,
   encodeContact,
   encodeLocation,
+  encodePayment,
   nameFromVCard,
   phoneFromVCard,
 } from "./contentFormat";
@@ -155,5 +157,55 @@ describe("Baileys structured encoders (shared by Evolution classic & Go)", () =>
     expect(
       encodeBaileysContact({ displayName: "Zé", vcard: "BEGIN:VCARD\nTEL;waid=5554999990000:x\nEND:VCARD" }),
     ).toBe("Zé\n+5554999990000");
+  });
+});
+
+describe("encodePayment / decodePayment", () => {
+  it("round-trips merchant, key type and key", () => {
+    const text = encodePayment({
+      merchant: "Fernando De Mello Muniz",
+      key: "32990725000160",
+      keyType: "CNPJ",
+    });
+    expect(text).toBe("Fernando De Mello Muniz\nCNPJ:32990725000160");
+    expect(decodePayment(text)).toEqual({
+      merchant: "Fernando De Mello Muniz",
+      key: "32990725000160",
+      keyType: "CNPJ",
+    });
+  });
+
+  it("keeps an e-mail key intact when the key itself has no colon", () => {
+    const text = encodePayment({ merchant: "Loja", key: "vendas@gallo.com.br", keyType: "EMAIL" });
+    expect(decodePayment(text).key).toBe("vendas@gallo.com.br");
+  });
+
+  it("splits on the FIRST colon so a key containing one is preserved", () => {
+    const decoded = decodePayment("Loja\nEVP:abc:def");
+    expect(decoded.keyType).toBe("EVP");
+    expect(decoded.key).toBe("abc:def");
+  });
+
+  it("collapses a multi-line merchant so it cannot invade the key line", () => {
+    const text = encodePayment({ merchant: "Gallo\nBase Diesel", key: "123", keyType: "CNPJ" });
+    expect(text).toBe("Gallo Base Diesel\nCNPJ:123");
+    expect(decodePayment(text).merchant).toBe("Gallo Base Diesel");
+  });
+
+  it("encodes the key alone when there is no merchant", () => {
+    expect(encodePayment({ key: "123", keyType: "CNPJ" })).toBe("CNPJ:123");
+    expect(decodePayment("CNPJ:123")).toEqual({ key: "123", keyType: "CNPJ" });
+  });
+
+  it("returns an empty string when there is no key", () => {
+    expect(encodePayment({ merchant: "Loja" })).toBe("");
+    expect(encodePayment({})).toBe("");
+  });
+
+  it("decodes a key with no type prefix as the key itself", () => {
+    expect(decodePayment("Loja\n32990725000160")).toEqual({
+      merchant: "Loja",
+      key: "32990725000160",
+    });
   });
 });
