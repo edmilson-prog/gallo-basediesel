@@ -11,6 +11,12 @@ import type {
 } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -166,6 +172,7 @@ function LeadProfileBody({
   const canEditLeadStore = usePermission("lead", "edit", "store");
   const canEditLeadOwn = usePermission("lead", "edit");
   const [convertOpen, setConvertOpen] = useState(false);
+  const [convertInitialMode, setConvertInitialMode] = useState<"new" | "link">("new");
 
   // The always-mounted ConvertLeadModal pattern needs an explicit reset: if a
   // background detail refetch fails soft and nulls `lead` mid-edit, the modal
@@ -367,14 +374,50 @@ function LeadProfileBody({
             </Button>
           )}
           {canConvert && !converted && (
-            <Button
-              size="sm"
-              className="w-full gap-1.5"
-              onClick={() => setConvertOpen(true)}
-            >
-              <Icon icon="mdi:account-convert" size={14} aria-hidden />
-              {COPY.convert}
-            </Button>
+            <div className="flex w-full">
+              <Button
+                size="sm"
+                className="flex-1 justify-start gap-1.5 rounded-r-none"
+                onClick={() => {
+                  setConvertInitialMode("new");
+                  setConvertOpen(true);
+                }}
+              >
+                <Icon icon="mdi:account-convert" size={14} aria-hidden />
+                {COPY.convert}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="w-8 rounded-l-none border-l border-primary-foreground/20 px-0"
+                    aria-label={LEADS_STRINGS.convertModal.modeLabel}
+                  >
+                    <Icon icon="mdi:chevron-down" size={14} aria-hidden />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setConvertInitialMode("new");
+                      setConvertOpen(true);
+                    }}
+                  >
+                    <Icon icon="mdi:account-convert" size={14} aria-hidden className="mr-2" />
+                    {LEADS_STRINGS.convertModal.modeNew}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setConvertInitialMode("link");
+                      setConvertOpen(true);
+                    }}
+                  >
+                    <Icon icon="mdi:link-variant" size={14} aria-hidden className="mr-2" />
+                    {LEADS_STRINGS.convertModal.modeLink}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           )}
         </div>
       )}
@@ -382,6 +425,7 @@ function LeadProfileBody({
       {lead && (
         <ConvertLeadModal
           lead={convertOpen ? lead : null}
+          initialMode={convertInitialMode}
           onClose={() => setConvertOpen(false)}
           onConverted={() => {
             setConvertOpen(false);
