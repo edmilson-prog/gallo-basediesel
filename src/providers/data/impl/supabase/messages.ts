@@ -105,30 +105,38 @@ type MessageSendInput = Omit<
 export const supabaseMessagesProvider: IMessagesProvider = {
   async list(params: IListMessagesParams): Promise<IPaginatedResult<IMessage>> {
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
+    const from = (page - 1) * pageSize;
+    const orderDir = params.orderDir === "desc" ? "desc" : "asc";
 
-    // Read the page via the SECURITY DEFINER `conversation_messages` RPC, which
-    // checks `can_access_conversation` ONCE (constant arg) instead of the
-    // `messages_select` RLS evaluating it PER ROW. The per-row evaluation cost
-    // ~3ms × up to 200 rows ≈ 640ms for a large conversation (EXPLAIN: SubPlan
-    // loops=200), and under rapid conversation switching it piled up past the 8s
-    // statement_timeout → 500 on /messages. Gating once + the
-    // (conversation_id, sent_at) index brings a page to ~8ms. Same rows, order
-    // and pagination as the old table query; no caller depends on an exact
-    // `total` (pagination drives off full-vs-short page — see useMessages).
-    const { data, error } = await getSupabaseClient().rpc("conversation_messages", {
-      p_conversation_id: params.conversationId,
-      p_limit: pageSize,
-      p_offset: (page - 1) * pageSize,
-      p_order_dir: params.orderDir === "desc" ? "desc" : "asc",
-    });
+    // Read via the SECURITY DEFINER `conversation_messages` RPC, which checks
+    // can_access_conversation ONCE instead of per-row RLS (see historical
+    // comment in git blame — statement_timeout incident on /messages). No
+    // caller depends on an exact `total` (pagination drives off full-vs-short
+    // page — see useMessages), so this loops the RPC directly in ≤1000-row
+    // chunks instead of going through fetchLargePage, which assumes a real
+    // row count the RPC doesn't provide.
+    const rows: MessageRow[] = [];
+    let offset = from;
+    const end = from + pageSize;
+    while (offset < end) {
+      const limit = Math.min(1000, end - offset);
+      const { data, error } = await getSupabaseClient().rpc("conversation_messages", {
+        p_conversation_id: params.conversationId,
+        p_limit: limit,
+        p_offset: offset,
+        p_order_dir: orderDir,
+      });
+      if (error) throw new Error(`[supabase] messages.list failed: ${error.message}`);
+      const chunk = (data ?? []) as unknown as MessageRow[];
+      rows.push(...chunk);
+      offset += chunk.length;
+      if (chunk.length < limit) break;
+    }
 
-    if (error) throw new Error(`[supabase] messages.list failed: ${error.message}`);
-
-    const rows = (data ?? []) as unknown as MessageRow[];
     return {
       data: rows.map(rowToMessage),
-      total: (page - 1) * pageSize + rows.length,
+      total: from + rows.length,
       page,
       pageSize,
     };
