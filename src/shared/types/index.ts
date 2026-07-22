@@ -307,12 +307,16 @@ export type {
   ICopilotBriefing,
   ICopilotSummary,
   ICopilotPanelData,
+  ICopilotAssistantSettings,
   CopilotSuggestionKind,
   CopilotSuggestionSource,
   CopilotSuggestionSeverity,
   CopilotSuggestionStatus,
   CopilotPlacement,
   CopilotSummarySource,
+  CopilotReach,
+  CopilotTrigger,
+  CopilotEngine,
 } from "./copilot";
 
 // BI
