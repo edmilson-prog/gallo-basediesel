@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type {
   CopilotPlacement,
+  ICopilotAssistantSettings,
   ICopilotBriefing,
   ICopilotSuggestion,
   ICopilotSummary,
@@ -8,6 +9,16 @@ import type {
 } from "@/shared/types";
 import { useCopilotProvider } from "@/providers/data";
 import { useCopilotPlacement } from "./useCopilotPlacement";
+import { DEFAULT_COPILOT_ASSISTANT_SETTINGS } from "../config/defaults";
+
+export interface IUseCopilotPanelOptions {
+  /** When false the hook fetches nothing — the panel will not be rendered. */
+  enabled?: boolean;
+  /** How many recent messages the provider should read. */
+  messageWindow?: number;
+  /** Assistant behaviour parameters, echoed back on the returned state. */
+  settings?: ICopilotAssistantSettings;
+}
 
 export interface ICopilotPanelState {
   placement: CopilotPlacement;
@@ -17,10 +28,15 @@ export interface ICopilotPanelState {
   loading: boolean;
   /** True quando o provider falhou — a superfície deve degradar graciosamente. */
   error: boolean;
+  /** Assistant behaviour parameters, so surfaces don't refetch them. */
+  settings: ICopilotAssistantSettings;
   dismiss: (id: ID) => void;
 }
 
-export function useCopilotPanel(conversationId: ID | null): ICopilotPanelState {
+export function useCopilotPanel(
+  conversationId: ID | null,
+  options?: IUseCopilotPanelOptions,
+): ICopilotPanelState {
   const provider = useCopilotProvider();
   const placement = useCopilotPlacement();
   const [briefing, setBriefing] = useState<ICopilotBriefing | undefined>(undefined);
@@ -30,11 +46,15 @@ export function useCopilotPanel(conversationId: ID | null): ICopilotPanelState {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<boolean>(false);
 
+  const enabled = options?.enabled ?? true;
+  const messageWindow = options?.messageWindow;
+
   useEffect(() => {
-    if (!conversationId) {
+    if (!conversationId || !enabled) {
       setBriefing(undefined);
       setSummary(undefined);
       setAllSuggestions([]);
+      setLoading(false);
       return;
     }
     let cancelled = false;
@@ -42,7 +62,7 @@ export function useCopilotPanel(conversationId: ID | null): ICopilotPanelState {
     setError(false);
     setDismissed(new Set());
     provider
-      .getPanelData(conversationId)
+      .getPanelData(conversationId, messageWindow ? { messageWindow } : undefined)
       .then((data) => {
         if (cancelled) return;
         setBriefing(data.briefing);
@@ -62,7 +82,7 @@ export function useCopilotPanel(conversationId: ID | null): ICopilotPanelState {
     return () => {
       cancelled = true;
     };
-  }, [provider, conversationId]);
+  }, [provider, conversationId, enabled, messageWindow]);
 
   const dismiss = useCallback(
     (id: ID) => {
@@ -76,5 +96,14 @@ export function useCopilotPanel(conversationId: ID | null): ICopilotPanelState {
 
   const suggestions = allSuggestions.filter((s) => !dismissed.has(s.id));
 
-  return { placement, briefing, summary, suggestions, loading, error, dismiss };
+  return {
+    placement,
+    briefing,
+    summary,
+    suggestions,
+    loading,
+    error,
+    settings: options?.settings ?? DEFAULT_COPILOT_ASSISTANT_SETTINGS,
+    dismiss,
+  };
 }

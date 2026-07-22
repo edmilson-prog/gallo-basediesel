@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import type { ID } from "@/shared/types";
@@ -28,9 +28,24 @@ const KIND_COLOR = {
 } as const;
 
 export function CopilotStrip({ panel, conversationId, onInsertReply }: ICopilotStripProps) {
-  const { briefing, summary, suggestions, loading, dismiss } = panel;
-  // Sempre inicia fechado; abre apenas por ação do usuário (sem auto-expand).
-  const [expanded, setExpanded] = useState(false);
+  const { briefing, summary, suggestions, loading, dismiss, settings } = panel;
+  // Opens by itself only when there is something worth reading — the panel used
+  // to always start collapsed, which hid the AI button inside it.
+  const [expanded, setExpanded] = useState(
+    () => settings.autoExpandOnAlert && suggestions.length > 0,
+  );
+
+  // The initial state above only runs once; `suggestions` arrives later (after
+  // the fetch resolves), so this effect auto-opens on the first suggestion —
+  // but only once, so it never reopens after the user manually closes it.
+  const autoExpandedRef = useRef(false);
+  useEffect(() => {
+    if (autoExpandedRef.current) return;
+    if (settings.autoExpandOnAlert && suggestions.length > 0) {
+      autoExpandedRef.current = true;
+      setExpanded(true);
+    }
+  }, [settings.autoExpandOnAlert, suggestions.length]);
 
   const toggle = () => setExpanded((prev) => !prev);
 
@@ -100,21 +115,25 @@ export function CopilotStrip({ panel, conversationId, onInsertReply }: ICopilotS
               </button>
             }
           />
-          {summary && (
+          {settings.showSummary && summary && (
             <div className="mt-3">
               <CopilotSummary summary={summary} />
             </div>
           )}
-          {suggestions.length > 0 ? (
-            <ul className="mt-3 flex flex-col gap-2.5">
-              {suggestions.map((s) => (
-                <CopilotSuggestionItem key={s.id} suggestion={s} onDismiss={dismiss} />
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 text-sm text-muted-foreground">{COPILOT_STRINGS.empty}</p>
+          {settings.showSuggestions ? (
+            suggestions.length > 0 ? (
+              <ul className="mt-3 flex flex-col gap-2.5">
+                {suggestions.map((s) => (
+                  <CopilotSuggestionItem key={s.id} suggestion={s} onDismiss={dismiss} />
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-muted-foreground">{COPILOT_STRINGS.empty}</p>
+            )
+          ) : null}
+          {settings.showReplyButton && (
+            <CopilotReply conversationId={conversationId} onInsert={onInsertReply} />
           )}
-          <CopilotReply conversationId={conversationId} onInsert={onInsertReply} />
         </div>
       )}
     </section>

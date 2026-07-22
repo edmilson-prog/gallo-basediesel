@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import type { ID } from "@/shared/types";
 import type { ICopilotPanelState } from "../hooks/useCopilotPanel";
@@ -15,9 +15,23 @@ export function CopilotCard({
   conversationId: ID;
   onInsertReply: (text: string) => void;
 }) {
-  const { suggestions, dismiss, loading } = panel;
-  // Sempre inicia fechado; abre apenas por ação do usuário.
-  const [open, setOpen] = useState(false);
+  const { suggestions, dismiss, loading, settings } = panel;
+  // Opens by itself only when there is something worth reading — the panel used
+  // to always start collapsed, which hid the AI button inside it.
+  const [open, setOpen] = useState(() => settings.autoExpandOnAlert && suggestions.length > 0);
+
+  // The initial state above only runs once; `suggestions` arrives later (after
+  // the fetch resolves), so this effect auto-opens on the first suggestion —
+  // but only once, so it never reopens after the user manually closes it.
+  const autoExpandedRef = useRef(false);
+  useEffect(() => {
+    if (autoExpandedRef.current) return;
+    if (settings.autoExpandOnAlert && suggestions.length > 0) {
+      autoExpandedRef.current = true;
+      setOpen(true);
+    }
+  }, [settings.autoExpandOnAlert, suggestions.length]);
+
   if (loading) return null;
 
   return (
@@ -51,14 +65,16 @@ export function CopilotCard({
       </button>
       {open && (
         <div className="px-3.5 pb-3.5">
-          {suggestions.length > 0 && (
+          {settings.showSuggestions && suggestions.length > 0 && (
             <ul className="flex flex-col gap-2.5">
               {suggestions.map((s) => (
                 <CopilotSuggestionItem key={s.id} suggestion={s} onDismiss={dismiss} />
               ))}
             </ul>
           )}
-          <CopilotReply conversationId={conversationId} onInsert={onInsertReply} />
+          {settings.showReplyButton && (
+            <CopilotReply conversationId={conversationId} onInsert={onInsertReply} />
+          )}
         </div>
       )}
     </section>

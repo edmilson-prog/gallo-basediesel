@@ -27,7 +27,15 @@ import { useRealtimeMessages } from "../hooks/useRealtimeMessages";
 import { useRealtimeConversationParticipants } from "../hooks/useRealtimeConversationParticipants";
 import { useConversationPresenceTracker } from "../hooks/useConversationPresence";
 import { ConversationProvider } from "../hooks/ConversationContext";
-import { CopilotStrip, CopilotCard, CopilotFicheTab, useCopilotPanel } from "@/features/copilot";
+import {
+  CopilotStrip,
+  CopilotCard,
+  CopilotFicheTab,
+  useCopilotPanel,
+  useCopilotAssistantSettings,
+  shouldMountCopilot,
+} from "@/features/copilot";
+import { useCurrentStore } from "@/features/multistore";
 import { useMediaGallery, useConversationMedia, useEnsureInboundMedia } from "@/features/media";
 import { ConversationMediaPanel } from "../components/media/ConversationMediaPanel";
 import {
@@ -101,7 +109,32 @@ export function ConversationPage() {
   // message cache above; a pure Presence broadcast, not a data read.
   useConversationPresenceTracker(conversationId);
   const escalation = useConversationEscalation(conversationId);
-  const copilot = useCopilotPanel(conversationId);
+  const { currentUser } = useAuth();
+  const { currentStoreId } = useCurrentStore();
+  const { settings: assistantSettings } = useCopilotAssistantSettings(currentStoreId ?? null);
+  // Single source of truth for whether the panel exists on THIS conversation —
+  // also gates the fetch below, so a conversation the panel won't render on
+  // (e.g. no customer/lead anchor, wrong role) never fetches panel data.
+  // `detail.conversation` (not the later-destructured `conversation`) is used
+  // because this hook block sits above the loading/not-found early returns —
+  // `useCopilotPanel` must stay an unconditional call.
+  const copilotMounts =
+    !!detail.conversation &&
+    !!currentUser &&
+    shouldMountCopilot({
+      settings: assistantSettings,
+      conversation: {
+        customerId: detail.conversation.customerId,
+        leadId: detail.conversation.leadId,
+        whatsappAccountId: detail.conversation.whatsappAccountId,
+      },
+      role: currentUser.role,
+    });
+  const copilot = useCopilotPanel(conversationId, {
+    enabled: copilotMounts,
+    messageWindow: assistantSettings.messageWindow,
+    settings: assistantSettings,
+  });
   // Status-control display mode (per-device). Lifted here so the header's
   // StatusControl and the kebab's mode sub-menu share one source of truth.
   const { mode: statusControlMode, setMode: setStatusControlMode } = useStatusControlMode();
@@ -121,7 +154,6 @@ export function ConversationPage() {
   // name/phone. Accounts only fetch once the dialog is actually requested —
   // no cost on every conversation open.
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
   const sellerId: ID | null = currentUser?.sellerId ?? null;
   const [contactDialogTarget, setContactDialogTarget] = useState<{
     name?: string;
@@ -274,7 +306,7 @@ export function ConversationPage() {
                 statusControlMode={statusControlMode}
               />
 
-              {copilot.placement === "card" && conversation.customerId && !copilot.error && (
+              {copilot.placement === "card" && copilotMounts && !copilot.error && (
                 <CopilotCard
                   panel={copilot}
                   conversationId={conversation.id}
@@ -292,7 +324,7 @@ export function ConversationPage() {
                 onSelectTemplate={() => setTemplateSignal((s) => s + 1)}
               />
 
-              {copilot.placement === "strip" && conversation.customerId && !copilot.error && (
+              {copilot.placement === "strip" && copilotMounts && !copilot.error && (
                 <CopilotStrip
                   panel={copilot}
                   conversationId={conversation.id}

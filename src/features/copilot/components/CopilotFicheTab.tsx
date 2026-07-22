@@ -15,7 +15,7 @@ export function CopilotFicheTab({
   conversationId: ID;
   onInsertReply: (text: string) => void;
 }) {
-  const { summary, suggestions, dismiss, loading, error } = panel;
+  const { summary, suggestions, dismiss, loading, error, settings } = panel;
   if (loading) return <p className="text-sm text-muted-foreground">{COPILOT_STRINGS.loading}</p>;
   if (error) return <p className="text-sm text-muted-foreground">{COPILOT_STRINGS.empty}</p>;
 
@@ -31,21 +31,25 @@ export function CopilotFicheTab({
           {COPILOT_STRINGS.privacy}
         </span>
       </div>
-      {summary && (
+      {settings.showSummary && summary && (
         <div className="mb-3.5">
           <CopilotSummary summary={summary} />
         </div>
       )}
-      {suggestions.length > 0 ? (
-        <ul className="flex flex-col gap-2.5">
-          {suggestions.map((s) => (
-            <CopilotSuggestionItem key={s.id} suggestion={s} onDismiss={dismiss} />
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-muted-foreground">{COPILOT_STRINGS.empty}</p>
+      {settings.showSuggestions ? (
+        suggestions.length > 0 ? (
+          <ul className="flex flex-col gap-2.5">
+            {suggestions.map((s) => (
+              <CopilotSuggestionItem key={s.id} suggestion={s} onDismiss={dismiss} />
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">{COPILOT_STRINGS.empty}</p>
+        )
+      ) : null}
+      {settings.showReplyButton && (
+        <CopilotReply conversationId={conversationId} onInsert={onInsertReply} />
       )}
-      <CopilotReply conversationId={conversationId} onInsert={onInsertReply} />
     </div>
   );
 }
