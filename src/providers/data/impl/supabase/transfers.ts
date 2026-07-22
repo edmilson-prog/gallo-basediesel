@@ -6,6 +6,7 @@ import type {
 } from "../../contracts/transfers";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link ITransfersProvider} (PRD-120+).
@@ -60,36 +61,44 @@ function rowToTransfer(row: TransferRow): ICarteiraTransfer {
 
 export const supabaseTransfersProvider: ITransfersProvider = {
   async list(params: IListTransfersParams = {}): Promise<IPaginatedResult<ICarteiraTransfer>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (params.fromSellerId !== undefined)
+        query = query.eq("from_seller_id", params.fromSellerId);
+      if (params.toSellerId !== undefined) query = query.eq("to_seller_id", params.toSellerId);
 
-    if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
-    if (params.fromSellerId !== undefined) query = query.eq("from_seller_id", params.fromSellerId);
-    if (params.toSellerId !== undefined) query = query.eq("to_seller_id", params.toSellerId);
+      if (params.statuses && params.statuses.length > 0) {
+        query = query.in("status", params.statuses);
+      } else if (params.status !== undefined) {
+        query = query.eq("status", params.status);
+      }
 
-    if (params.statuses && params.statuses.length > 0) {
-      query = query.in("status", params.statuses);
-    } else if (params.status !== undefined) {
-      query = query.eq("status", params.status);
-    }
-
-    if (params.types && params.types.length > 0) query = query.in("type", params.types);
-    if (params.since !== undefined) query = query.gte("start_date", params.since);
-    if (params.until !== undefined) query = query.lte("start_date", params.until);
+      if (params.types && params.types.length > 0) query = query.in("type", params.types);
+      if (params.since !== undefined) query = query.gte("start_date", params.since);
+      if (params.until !== undefined) query = query.lte("start_date", params.until);
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query
-      .order("start_date", { ascending: false })
-      .range(from, to);
-
-    if (error) throw new Error(`[supabase] transfers.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<TransferRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("start_date", { ascending: false })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] transfers.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as TransferRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as TransferRow[]).map(rowToTransfer),
-      total: count ?? 0,
+      data: data.map(rowToTransfer),
+      total,
       page,
       pageSize,
     };

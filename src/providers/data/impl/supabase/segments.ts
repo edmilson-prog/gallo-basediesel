@@ -7,6 +7,7 @@ import type {
 } from "../../contracts/segments";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link ISegmentsProvider} (PRD-110+).
@@ -60,25 +61,32 @@ function segmentPatchToRow(patch: IUpdateSegmentInput): Record<string, unknown> 
 
 export const supabaseSegmentsProvider: ISegmentsProvider = {
   async list(params: IListSegmentsParams = {}): Promise<IPaginatedResult<ICustomerSegment>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
-
-    if (params.scope !== undefined) query = query.eq("scope", params.scope);
-    if (params.ownerId !== undefined) query = query.eq("owner_id", params.ownerId);
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      if (params.scope !== undefined) query = query.eq("scope", params.scope);
+      if (params.ownerId !== undefined) query = query.eq("owner_id", params.ownerId);
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query
-      .order("created_at", { ascending: true })
-      .range(from, to);
-
-    if (error) throw new Error(`[supabase] segments.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<SegmentRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("created_at", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] segments.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as SegmentRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as SegmentRow[]).map(rowToSegment),
-      total: count ?? 0,
+      data: data.map(rowToSegment),
+      total,
       page,
       pageSize,
     };
