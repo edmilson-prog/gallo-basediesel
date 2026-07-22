@@ -100,7 +100,7 @@ function mockSummaryFromMessages(messages: IMessage[]): ICopilotSummary | undefi
   const text =
     first.id === last.id
       ? `Cliente: "${truncate(last.text)}".`
-      : `Cliente iniciou com "${truncate(first.text, 48)}". Pendência atual: "${truncate(last.text, 48)}".`;
+      : `Últimas mensagens: "${truncate(first.text, 48)}". Pendência atual: "${truncate(last.text, 48)}".`;
   return { text, source: "mock" };
 }
 

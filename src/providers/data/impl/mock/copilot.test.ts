@@ -54,3 +54,16 @@ describe("getPanelData — conversa de lead", () => {
     expect(panel.briefing?.lifecycleStatus).toBeDefined();
   });
 });
+
+describe("resumo da conversa", () => {
+  it("não afirma um começo que a janela não conhece", async () => {
+    const conversation = (
+      await conversationsApi.list({ pageSize: 500, storeId: SEED_STORE_ID })
+    ).data.find((c) => c.customerId);
+    const panel = await mockCopilotProvider.getPanelData(conversation!.id);
+    if (panel.summary && panel.summary.source !== "sdr") {
+      expect(panel.summary.text).not.toContain("Cliente iniciou com");
+      expect(panel.summary.text).toContain("Pendência atual");
+    }
+  });
+});
