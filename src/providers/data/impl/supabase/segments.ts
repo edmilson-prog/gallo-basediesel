@@ -76,6 +76,7 @@ export const supabaseSegmentsProvider: ISegmentsProvider = {
       async (rangeFrom, rangeTo) => {
         const { data, error, count } = await buildQuery()
           .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
           .range(rangeFrom, rangeTo);
         if (error) throw new Error(`[supabase] segments.list failed: ${error.message}`);
         return { data: (data ?? []) as unknown as SegmentRow[], count: count ?? 0 };

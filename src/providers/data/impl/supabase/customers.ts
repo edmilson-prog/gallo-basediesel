@@ -342,6 +342,7 @@ export const supabaseCustomersProvider: ICustomersProvider = {
       async (rangeFrom, rangeTo) => {
         const { data, error, count } = await buildQuery()
           .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
           .range(rangeFrom, rangeTo);
         if (error) throw new Error(`[supabase] customers.list failed: ${error.message}`);
         return { data: (data ?? []) as unknown as CustomerRow[], count: count ?? 0 };

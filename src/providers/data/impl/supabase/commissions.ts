@@ -215,6 +215,7 @@ export const supabaseCommissionsProvider: ICommissionsProvider = {
       async (rangeFrom, rangeTo) => {
         const { data, error, count } = await buildQuery()
           .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
           .range(rangeFrom, rangeTo);
         if (error) throw new Error(`[supabase] commissions.list failed: ${error.message}`);
         return { data: (data ?? []) as unknown as CommissionRow[], count: count ?? 0 };

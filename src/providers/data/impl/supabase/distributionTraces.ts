@@ -102,6 +102,7 @@ export const supabaseDistributionTracesProvider: IDistributionTracesProvider = {
       async (rangeFrom, rangeTo) => {
         const { data, error, count } = await buildQuery()
           .order("timestamp", { ascending: false })
+          .order("id", { ascending: true })
           .range(rangeFrom, rangeTo);
         if (error) throw new Error(`[supabase] distributionTraces.list failed: ${error.message}`);
         return { data: (data ?? []) as unknown as DistributionTraceRow[], count: count ?? 0 };

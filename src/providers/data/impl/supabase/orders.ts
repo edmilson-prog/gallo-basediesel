@@ -297,6 +297,7 @@ export const supabaseOrdersProvider: IOrdersProvider = {
       async (rangeFrom, rangeTo) => {
         const { data, error, count } = await buildQuery()
           .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
           .range(rangeFrom, rangeTo);
         if (error) throw new Error(`[supabase] orders.list failed: ${error.message}`);
         return { data: (data ?? []) as unknown as OrderRow[], count: count ?? 0 };

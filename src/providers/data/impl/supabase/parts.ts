@@ -224,6 +224,7 @@ export const supabasePartsProvider: IPartsProvider = {
       async (rangeFrom, rangeTo) => {
         const { data, error, count } = await buildQuery()
           .order(column, { ascending })
+          .order("id", { ascending: true })
           .range(rangeFrom, rangeTo);
         if (error) throw new Error(`[supabase] parts.list failed: ${error.message}`);
         return { data: (data ?? []) as unknown as PartRow[], count: count ?? 0 };

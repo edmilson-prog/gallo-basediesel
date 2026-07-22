@@ -294,6 +294,7 @@ export const supabaseQuotesProvider: IQuotesProvider = {
       async (rangeFrom, rangeTo) => {
         const { data, error, count } = await buildQuery()
           .order(orderColumn, { ascending })
+          .order("id", { ascending: true })
           .range(rangeFrom, rangeTo);
         if (error) throw new Error(`[supabase] quotes.list failed: ${error.message}`);
         return { data: (data ?? []) as unknown as QuoteRow[], count: count ?? 0 };

@@ -88,6 +88,7 @@ export const supabaseTransfersProvider: ITransfersProvider = {
       async (rangeFrom, rangeTo) => {
         const { data, error, count } = await buildQuery()
           .order("start_date", { ascending: false })
+          .order("id", { ascending: true })
           .range(rangeFrom, rangeTo);
         if (error) throw new Error(`[supabase] transfers.list failed: ${error.message}`);
         return { data: (data ?? []) as unknown as TransferRow[], count: count ?? 0 };

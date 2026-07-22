@@ -234,6 +234,7 @@ export const supabaseExpensesProvider: IExpensesProvider = {
       async (rangeFrom, rangeTo) => {
         const { data, error, count } = await buildQuery()
           .order("competence_date", { ascending: false })
+          .order("id", { ascending: true })
           .range(rangeFrom, rangeTo);
         if (error) throw new Error(`[supabase] expenses.list failed: ${error.message}`);
         return { data: (data ?? []) as unknown as ExpenseRow[], count: count ?? 0 };

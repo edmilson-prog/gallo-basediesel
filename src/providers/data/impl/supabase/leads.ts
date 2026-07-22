@@ -190,6 +190,7 @@ export const supabaseLeadsProvider: ILeadsProvider = {
       async (rangeFrom, rangeTo) => {
         const { data, error, count } = await buildQuery()
           .order("updated_at", { ascending: false })
+          .order("id", { ascending: true })
           .range(rangeFrom, rangeTo);
         if (error) throw new Error(`[supabase] leads.list failed: ${error.message}`);
         return { data: (data ?? []) as unknown as LeadRow[], count: count ?? 0 };
