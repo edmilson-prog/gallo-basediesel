@@ -15,7 +15,7 @@ import type {
   ISdrContextSummary,
   LeadOrigin,
 } from "@/shared/types";
-import type { ICopilotProvider } from "../../contracts/copilot";
+import type { ICopilotProvider, ICopilotPanelOptions } from "../../contracts/copilot";
 import { NotImplementedError } from "../../errors";
 import { supabaseConversationsProvider } from "./conversations";
 import { supabaseMessagesProvider } from "./messages";
@@ -42,28 +42,28 @@ import { supabaseSdrEscalationsProvider } from "./sdrEscalations";
  * AICopilotProvider.
  */
 
-const MESSAGES_PAGE_SIZE = 200;
+/** Fallback window when the caller passes none. Mirrors
+ *  DEFAULT_COPILOT_ASSISTANT_SETTINGS.messageWindow — kept as a literal because
+ *  this layer must not import from `src/features`. */
+const DEFAULT_MESSAGE_WINDOW = 40;
+const MAX_MESSAGE_WINDOW = 200;
 
-/** Fetches every message of a conversation, ascending by `sentAt`, by paging
- *  through the provider (whose page size is clamped server-side). */
-async function listAllMessages(conversationId: ID): Promise<IMessage[]> {
-  const all: IMessage[] = [];
-  let page = 1;
-  for (;;) {
-    const result = await supabaseMessagesProvider.list({
-      conversationId,
-      page,
-      pageSize: MESSAGES_PAGE_SIZE,
-      orderDir: "asc",
-    });
-    all.push(...result.data);
-    // A short page means the end. Don't rely on `result.total`: the
-    // conversation_messages RPC returns it only as a best-effort lower bound
-    // (it equals all.length on a full page and would stop pagination early).
-    if (result.data.length < MESSAGES_PAGE_SIZE) break;
-    page += 1;
-  }
-  return all;
+/**
+ * The most recent `window` messages, ascending by `sentAt`.
+ *
+ * Replaces the previous full pagination (up to 15 sequential round-trips on the
+ * longest conversations) — the three keyword rules and the summary only ever
+ * looked at the tail.
+ */
+async function listRecentMessages(conversationId: ID, window: number): Promise<IMessage[]> {
+  const pageSize = Math.min(MAX_MESSAGE_WINDOW, Math.max(1, Math.floor(window)));
+  const result = await supabaseMessagesProvider.list({
+    conversationId,
+    page: 1,
+    pageSize,
+    orderDir: "desc",
+  });
+  return [...result.data].reverse();
 }
 
 function customerDisplayName(customer: ICustomer): string {
@@ -313,9 +313,15 @@ async function tryGetEscalation(conversationId: ID): Promise<ISdrContextSummary 
 }
 
 export const supabaseCopilotProvider: ICopilotProvider = {
-  async getPanelData(conversationId: ID): Promise<ICopilotPanelData> {
+  async getPanelData(
+    conversationId: ID,
+    options?: ICopilotPanelOptions,
+  ): Promise<ICopilotPanelData> {
     const conversation = await supabaseConversationsProvider.get(conversationId);
-    const messages = await listAllMessages(conversationId);
+    const messages = await listRecentMessages(
+      conversationId,
+      options?.messageWindow ?? DEFAULT_MESSAGE_WINDOW,
+    );
     // Read the customer gated-once by the CONVERSATION (can_access), not the
     // per-carteira customers RLS: a POOL conversation's customer would otherwise
     // 406 on the direct get — noisy in the console on every conversation open

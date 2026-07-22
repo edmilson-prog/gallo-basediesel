@@ -9,7 +9,7 @@ import type {
   ISdrContextSummary,
   LeadOrigin,
 } from "@/shared/types";
-import type { ICopilotProvider } from "../../contracts/copilot";
+import type { ICopilotProvider, ICopilotPanelOptions } from "../../contracts/copilot";
 import { mockConversationsProvider } from "./conversations";
 import { mockMessagesProvider } from "./messages";
 import { mockCustomersProvider } from "./customers";
@@ -105,11 +105,22 @@ function mockSummaryFromMessages(messages: IMessage[]): ICopilotSummary | undefi
 }
 
 export const mockCopilotProvider: ICopilotProvider = {
-  async getPanelData(conversationId: ID): Promise<ICopilotPanelData> {
+  async getPanelData(
+    conversationId: ID,
+    options?: ICopilotPanelOptions,
+  ): Promise<ICopilotPanelData> {
     const conversation = await mockConversationsProvider.get(conversationId);
+    const window = Math.min(200, Math.max(1, Math.floor(options?.messageWindow ?? 40)));
     const messages = (
-      await mockMessagesProvider.list({ conversationId, pageSize: 500, orderDir: "asc" })
-    ).data;
+      await mockMessagesProvider.list({
+        conversationId,
+        page: 1,
+        pageSize: window,
+        orderDir: "desc",
+      })
+    ).data
+      .slice()
+      .reverse();
     const customer = conversation.customerId
       ? await mockCustomersProvider.get(conversation.customerId)
       : undefined;

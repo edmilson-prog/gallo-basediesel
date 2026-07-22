@@ -84,6 +84,7 @@ export type {
   IListSdrSessionsParams,
   ISdrEscalationsProvider,
   IListSdrEscalationsParams,
+  ICopilotPanelOptions,
   IIndicatorsProvider,
   IListIndicatorsParams,
   IVehicleModelsProvider,
