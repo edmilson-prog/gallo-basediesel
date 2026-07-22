@@ -461,6 +461,136 @@
     color: var(--sev-warning);
   }
 
+  /* ============================================================
+     MOCKUP DA TELA DE CONFIGURAÇÃO — mesmos tokens do app.
+     ============================================================ */
+  .panel {
+    background: var(--app-bg, #0e0e0e);
+    --app-card: #1a1a1a;
+    --app-fg: #fafafa;
+    --app-muted: #27272a;
+    --app-muted-fg: #a1a1aa;
+    --app-border: rgba(255, 255, 255, 0.08);
+    --app-primary: #c8262c;
+    --app-warning: #f59e0b;
+    --app-success: #22c55e;
+    --app-info: #60a5fa;
+
+    background: #0e0e0e;
+    border: 1px solid var(--rule-strong);
+    border-radius: 12px;
+    color: #fafafa;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    font-size: 13px;
+  }
+
+  .panel-title { font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
+  .panel-sub { font-size: 12px; color: var(--app-muted-fg); margin-top: 2px; }
+
+  .fieldset {
+    border: 1px solid var(--app-border);
+    border-radius: 10px;
+    background: #1a1a1a;
+    padding: 14px 15px;
+    display: flex; flex-direction: column; gap: 13px;
+  }
+  .fieldset-legend {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--app-muted-fg);
+  }
+
+  .frow {
+    display: flex; align-items: center; gap: 14px;
+    flex-wrap: wrap;
+  }
+  .frow-text { flex: 1; min-width: 190px; display: flex; flex-direction: column; gap: 1px; }
+  .frow-label { font-size: 13px; color: #fafafa; }
+  .frow-hint { font-size: 11px; color: var(--app-muted-fg); line-height: 1.4; }
+
+  .sw {
+    width: 34px; height: 19px; border-radius: 999px; flex: none;
+    background: var(--app-muted); position: relative;
+    border: 1px solid var(--app-border);
+  }
+  .sw::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--app-muted-fg);
+  }
+  .sw.on { background: rgba(200, 38, 44, 0.55); border-color: rgba(200, 38, 44, 0.7); }
+  .sw.on::after { left: auto; right: 2px; background: #fff; }
+
+  .seg {
+    display: inline-flex; flex: none;
+    border: 1px solid var(--app-border); border-radius: 8px;
+    overflow: hidden; background: rgba(255,255,255,0.03);
+  }
+  .seg-opt {
+    padding: 6px 11px; font-size: 11.5px; color: var(--app-muted-fg);
+    border-right: 1px solid var(--app-border); white-space: nowrap;
+  }
+  .seg-opt:last-child { border-right: none; }
+  .seg-opt.active { background: rgba(200, 38, 44, 0.18); color: #fafafa; font-weight: 650; }
+
+  .sel {
+    flex: none;
+    border: 1px solid var(--app-border); border-radius: 7px;
+    background: rgba(255,255,255,0.04); color: #fafafa;
+    padding: 6px 10px; font-size: 12px;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .sel svg { width: 12px; height: 12px; color: var(--app-muted-fg); }
+  .num-box {
+    font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+    border: 1px solid var(--app-border); border-radius: 7px;
+    background: rgba(255,255,255,0.04); padding: 6px 10px; font-size: 12px;
+    flex: none;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-size: 11px; padding: 4px 9px; border-radius: 999px;
+    border: 1px solid var(--app-border); color: var(--app-muted-fg);
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .chip.on {
+    border-color: rgba(200, 38, 44, 0.5);
+    background: rgba(200, 38, 44, 0.14);
+    color: #fafafa;
+  }
+  .chip .cdot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* estimativa viva */
+  .estimate {
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.07);
+    border-radius: 10px;
+    padding: 13px 15px;
+    display: flex; flex-direction: column; gap: 9px;
+  }
+  .estimate-top { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+  .estimate-value {
+    font-size: 22px; font-weight: 750; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums; color: var(--app-warning);
+  }
+  .estimate-cap { font-size: 11.5px; color: var(--app-muted-fg); font-variant-numeric: tabular-nums; }
+  .meter {
+    height: 6px; border-radius: 999px; background: var(--app-muted); overflow: hidden;
+  }
+  .meter span { display: block; height: 100%; background: var(--app-warning); border-radius: 999px; }
+  .estimate-note { font-size: 11.5px; color: var(--app-muted-fg); line-height: 1.45; }
+
+  .locked {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10.5px; color: var(--app-muted-fg);
+    border: 1px solid var(--app-border); border-radius: 5px;
+    padding: 2px 7px; flex: none;
+  }
+  .locked svg { width: 10px; height: 10px; }
+
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
@@ -939,56 +1069,293 @@
     </div>
   </section>
 
-  <!-- ==================== DECISÃO ==================== -->
+  <!-- ==================== PAINEL DE CONTROLE ==================== -->
   <section>
     <div class="section-head">
-      <p class="eyebrow">O que eu preciso de você</p>
-      <h2>Em que ordem construímos</h2>
+      <p class="eyebrow">Decidido · nada fica cravado no código</p>
+      <h2>Painel de controle do assistente</h2>
+      <p class="note">
+        Em vez de eu escolher quando o modelo roda, o quanto ele lê e onde ele aparece,
+        tudo isso vira parâmetro numa tela. Hoje <code>Configurações → Copiloto</code> tem
+        exatamente um campo — onde o painel aparece — e ele é salvo no navegador.
+        Vira isto:
+      </p>
+    </div>
+
+    <div class="grid-2">
+
+      <div class="case">
+        <div class="case-head">
+          <span class="case-title">Configurações → Copiloto</span>
+          <span class="case-meta">Dono e Gestor · vale para toda a operação</span>
+        </div>
+
+        <div class="panel">
+          <div>
+            <div class="panel-title">Assistente de conversa</div>
+            <div class="panel-sub">Controla o que o copiloto faz no Atendimento, em quais conversas e a que custo.</div>
+          </div>
+
+          <!-- ativação e alcance -->
+          <div class="fieldset">
+            <span class="fieldset-legend">Ativação e alcance</span>
+
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Assistente ligado</span>
+                <span class="frow-hint">Desligar remove o painel de todas as conversas.</span>
+              </span>
+              <span class="sw on"></span>
+            </div>
+
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Em quais conversas</span>
+                <span class="frow-hint">Hoje o painel só aparece nas de cliente — 15% da base.</span>
+              </span>
+              <span class="seg">
+                <span class="seg-opt active">Todas</span>
+                <span class="seg-opt">Só cliente</span>
+                <span class="seg-opt">Só lead</span>
+              </span>
+            </div>
+
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Números atendidos</span>
+                <span class="frow-hint">Permite testar numa instância antes de abrir para todas.</span>
+              </span>
+              <span class="chips">
+                <span class="chip on"><span class="cdot"></span>Vendas — WAHA</span>
+                <span class="chip on"><span class="cdot"></span>GALLO Site</span>
+                <span class="chip">Comercial Lucas</span>
+              </span>
+            </div>
+
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Quem enxerga</span>
+                <span class="frow-hint">O painel é sempre privado do atendente — ninguém mais vê.</span>
+              </span>
+              <span class="chips">
+                <span class="chip on"><span class="cdot"></span>Vendedor</span>
+                <span class="chip on"><span class="cdot"></span>SDR</span>
+                <span class="chip on"><span class="cdot"></span>Gestor</span>
+                <span class="chip">Externo</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- quando analisar -->
+          <div class="fieldset">
+            <span class="fieldset-legend">Quando analisar</span>
+
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Disparo</span>
+                <span class="frow-hint">É o parâmetro que define a conta lá embaixo.</span>
+              </span>
+              <span class="seg">
+                <span class="seg-opt">Sob demanda</span>
+                <span class="seg-opt active">Ao abrir</span>
+                <span class="seg-opt">Msg nova</span>
+              </span>
+            </div>
+
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Reaproveitar a análise por</span>
+                <span class="frow-hint">Dentro da validade, abrir de novo não gasta nada.</span>
+              </span>
+              <span class="sel">30 minutos
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </span>
+            </div>
+
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Só reanalisar a partir de</span>
+                <span class="frow-hint">Evita gastar de novo por causa de um "ok".</span>
+              </span>
+              <span class="num-box">3 mensagens novas</span>
+            </div>
+
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Mensagens consideradas</span>
+                <span class="frow-hint">Sempre as mais recentes. Conversas longas não são lidas inteiras.</span>
+              </span>
+              <span class="num-box">últimas 40</span>
+            </div>
+          </div>
+
+          <!-- o que mostra -->
+          <div class="fieldset">
+            <span class="fieldset-legend">O que o painel mostra</span>
+
+            <div class="frow">
+              <span class="frow-text"><span class="frow-label">Resumo da conversa</span></span>
+              <span class="sw on"></span>
+            </div>
+            <div class="frow">
+              <span class="frow-text"><span class="frow-label">Alertas e sugestões</span></span>
+              <span class="sw on"></span>
+            </div>
+            <div class="frow">
+              <span class="frow-text"><span class="frow-label">Botão "Gerar resposta com IA"</span></span>
+              <span class="sw on"></span>
+            </div>
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Abrir sozinho quando houver alerta</span>
+                <span class="frow-hint">Hoje o painel nasce fechado — provável motivo de ninguém achar o botão.</span>
+              </span>
+              <span class="sw on"></span>
+            </div>
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Posição na tela</span>
+                <span class="frow-hint">Preferência de cada pessoa, salva no próprio navegador.</span>
+              </span>
+              <span class="locked">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>
+                pessoal
+              </span>
+              <span class="seg">
+                <span class="seg-opt active">Faixa</span>
+                <span class="seg-opt">Card</span>
+                <span class="seg-opt">Aba da ficha</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- motor -->
+          <div class="fieldset">
+            <span class="fieldset-legend">Motor</span>
+
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Resumo e sugestões</span>
+                <span class="frow-hint">Regras não custam nada. IA custa por análise.</span>
+              </span>
+              <span class="seg">
+                <span class="seg-opt">Regras</span>
+                <span class="seg-opt active">Inteligência artificial</span>
+              </span>
+            </div>
+
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Modelo</span>
+                <span class="frow-hint">Escolhido em Configurações → Inteligência artificial.</span>
+              </span>
+              <span class="sel">claude-sonnet-5 · OpenRouter
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+              </span>
+            </div>
+
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Teto de gasto do assistente</span>
+                <span class="frow-hint">Sub-teto próprio, dentro dos R$ 1.000 gerais da plataforma.</span>
+              </span>
+              <span class="num-box">R$ 400,00 / mês</span>
+            </div>
+
+            <div class="frow">
+              <span class="frow-text">
+                <span class="frow-label">Avisar o Dono ao atingir</span>
+              </span>
+              <span class="num-box">80%</span>
+            </div>
+          </div>
+
+          <!-- estimativa viva -->
+          <div class="estimate">
+            <div class="estimate-top">
+              <span class="estimate-value">~R$ 375/mês</span>
+              <span class="estimate-cap">de R$ 400,00 · 94% do teto do assistente</span>
+            </div>
+            <div class="meter" role="img" aria-label="94% do teto do assistente"><span style="width:94%"></span></div>
+            <p class="estimate-note">
+              Estimativa com os parâmetros acima: 194 conversas ativas/dia, disparo ao abrir
+              com reaproveitamento de 30 min, R$ 0,025 por análise. Gasto real do mês até agora:
+              R$ 0,00 — o assistente ainda não roda com IA.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="case">
+        <div class="case-head">
+          <span class="case-title">Por que a tela se paga</span>
+          <span class="case-meta">o que ela resolve que uma escolha minha não resolveria</span>
+        </div>
+
+        <ul class="findings">
+          <li><span class="pip pip-good"></span><span><strong>A conta aparece antes do gasto.</strong> Mexer no disparo recalcula a projeção na hora — a decisão de custo deixa de ser uma tabela numa spec e vira algo que você opera.</span></li>
+          <li><span class="pip pip-good"></span><span><strong>Dá para ligar num número só.</strong> Testar na "Vendas — WAHA" por uma semana antes de abrir para todas, sem deploy.</span></li>
+          <li><span class="pip pip-good"></span><span><strong>Volta atrás sem redeploy.</strong> Se a IA decepcionar, o motor volta para regras num clique e o custo zera.</span></li>
+          <li><span class="pip pip-info"></span><span><strong>"Abrir sozinho quando houver alerta"</strong> é o parâmetro que ataca o 1-uso-na-história: hoje o painel nasce fechado e o botão fica escondido lá dentro.</span></li>
+          <li><span class="pip pip-warn"></span><span>Custo do desenho: os parâmetros precisam viver <strong>no servidor</strong>, não no navegador. É tabela nova, leitura no Atendimento e no servidor, e respeito ao parâmetro dentro da Edge.</span></li>
+        </ul>
+
+        <div class="callout">
+          <span class="callout-label">Fronteira com a tela de IA</span>
+          <p class="note">
+            <code>Configurações → IA</code> continua respondendo <strong>"qual cérebro"</strong> —
+            provedor, modelo, temperatura, prompt, chaves, orçamento geral. O painel do
+            assistente responde <strong>"como ele se comporta"</strong> — quando roda, onde
+            aparece, para quem, com que teto próprio. Sem duplicar campo: o modelo aparece
+            aqui só como atalho de leitura.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ==================== ESCOPO ACORDADO ==================== -->
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">Acordado · A primeiro, até o PR</p>
+      <h2>O que entra em cada sub-projeto</h2>
+      <p class="note">
+        O painel de controle entra no <strong>A</strong>, não no B: ele já é necessário para
+        os parâmetros que o A cria, e é onde o B vai pendurar a política de disparo quando
+        chegar. Isso aumenta o A — é uma tela nova com persistência no servidor —, mas
+        evita entregar o A com decisões cravadas no código para depois ter que arrancá-las.
+      </p>
     </div>
 
     <div class="subprojects">
       <div class="sub">
-        <span class="sub-tag">Sub-projeto A</span>
-        <h3>Fundação correta e barata</h3>
+        <span class="sub-tag">Sub-projeto A · agora</span>
+        <h3>Fundação correta, parametrizável</h3>
         <ul>
           <li>Bug das 200 mensagens mais antigas</li>
           <li>Painel nas conversas de lead — 85% da base</li>
           <li>Busca só quando o painel vai aparecer</li>
-          <li>Janela de mensagens limitada, sem paginar tudo</li>
+          <li>Janela de mensagens limitada e configurável</li>
           <li>Resumo ancorado no fim da conversa</li>
           <li>Teto de orçamento à prova de concorrência</li>
+          <li><strong>Painel de controle do assistente</strong>, com tudo acima como parâmetro</li>
         </ul>
-        <p class="sub-foot">Sem custo de IA. Entrega valor sozinho e é pré-requisito do B.</p>
+        <p class="sub-foot">Motor segue em "Regras". Nenhum custo novo de IA é ligado neste PR.</p>
       </div>
 
       <div class="sub">
-        <span class="sub-tag">Sub-projeto B</span>
+        <span class="sub-tag">Sub-projeto B · depois</span>
         <h3>Análise da conversa via LLM</h3>
         <ul>
           <li>Resumo e sugestões numa única chamada</li>
           <li>Cache por conversa, com data de análise visível</li>
-          <li>Política de gatilho — a decisão da tabela acima</li>
           <li>Invalidação quando chega mensagem nova</li>
           <li>Registro de uso e custo por conversa</li>
+          <li>Liga a opção "Inteligência artificial" no painel já existente</li>
         </ul>
-        <p class="sub-foot">Custo recorrente. Spec própria, depois que A estiver no ar.</p>
+        <p class="sub-foot">Spec própria. Quando entrar, é um interruptor na tela — não um deploy.</p>
       </div>
-    </div>
-
-    <div class="callout">
-      <span class="callout-label">Três caminhos</span>
-      <p class="note">
-        <strong>A primeiro</strong> — especifico e implemento A até o PR, depois abrimos a spec do B.
-        É o que eu recomendo: o B disparando modelo sem o teto endurecido é risco de custo real.
-      </p>
-      <p class="note">
-        <strong>Planejar A e B agora</strong> — escrevo as duas specs antes de qualquer código,
-        para você ver o destino inteiro. Nenhuma linha sai nesta sessão até as duas fecharem.
-      </p>
-      <p class="note">
-        <strong>Ir direto ao B</strong> — só o mínimo de A que o B exige (teto e bug de ordenação).
-        O contra: o copiloto novo só apareceria em 15% das conversas até o gap do lead ser feito.
-      </p>
     </div>
   </section>
 
