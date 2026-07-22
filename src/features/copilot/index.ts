@@ -16,3 +16,8 @@ export type {
   ICopilotMountConversation,
   IShouldMountCopilotInput,
 } from "./engine/shouldMountCopilot";
+export { estimateAssistantCost } from "./engine/estimateAssistantCost";
+export type {
+  IAssistantCostEstimate,
+  IEstimateAssistantCostInput,
+} from "./engine/estimateAssistantCost";
