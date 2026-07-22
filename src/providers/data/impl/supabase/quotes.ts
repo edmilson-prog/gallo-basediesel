@@ -12,6 +12,7 @@ import type {
 import type { IListQuotesParams, IQuotesProvider } from "../../contracts/quotes";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link IQuotesProvider} (PRD-110+).
@@ -241,35 +242,40 @@ async function listItems(quoteId: ID): Promise<IQuoteItem[]> {
 
 export const supabaseQuotesProvider: IQuotesProvider = {
   async list(params: IListQuotesParams = {}): Promise<IPaginatedResult<IQuote>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
 
-    if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
-    if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
-    if (params.customerId !== undefined) query = query.eq("customer_id", params.customerId);
-    if (params.leadId !== undefined) query = query.eq("lead_id", params.leadId);
-    if (params.conversationId !== undefined)
-      query = query.eq("conversation_id", params.conversationId);
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
+      if (params.customerId !== undefined) query = query.eq("customer_id", params.customerId);
+      if (params.leadId !== undefined) query = query.eq("lead_id", params.leadId);
+      if (params.conversationId !== undefined)
+        query = query.eq("conversation_id", params.conversationId);
 
-    if (Array.isArray(params.status)) {
-      if (params.status.length > 0) query = query.in("status", params.status);
-    } else if (params.status !== undefined) {
-      query = query.eq("status", params.status);
-    }
+      if (Array.isArray(params.status)) {
+        if (params.status.length > 0) query = query.in("status", params.status);
+      } else if (params.status !== undefined) {
+        query = query.eq("status", params.status);
+      }
 
-    if (Array.isArray(params.origin)) {
-      if (params.origin.length > 0) query = query.in("origin", params.origin);
-    } else if (params.origin !== undefined) {
-      query = query.eq("origin", params.origin);
-    }
+      if (Array.isArray(params.origin)) {
+        if (params.origin.length > 0) query = query.in("origin", params.origin);
+      } else if (params.origin !== undefined) {
+        query = query.eq("origin", params.origin);
+      }
 
-    if (params.createdAfter !== undefined) query = query.gte("created_at", params.createdAfter);
-    if (params.createdBefore !== undefined) query = query.lte("created_at", params.createdBefore);
-    if (typeof params.totalMin === "number") query = query.gte("total", params.totalMin);
-    if (typeof params.totalMax === "number") query = query.lte("total", params.totalMax);
-    if (params.search) {
-      const term = `%${params.search}%`;
-      query = query.or(`number.ilike.${term},customer_id.ilike.${term}`);
-    }
+      if (params.createdAfter !== undefined) query = query.gte("created_at", params.createdAfter);
+      if (params.createdBefore !== undefined)
+        query = query.lte("created_at", params.createdBefore);
+      if (typeof params.totalMin === "number") query = query.gte("total", params.totalMin);
+      if (typeof params.totalMax === "number") query = query.lte("total", params.totalMax);
+      if (params.search) {
+        const term = `%${params.search}%`;
+        query = query.or(`number.ilike.${term},customer_id.ilike.${term}`);
+      }
+
+      return query;
+    };
 
     const orderColumnMap: Record<NonNullable<IListQuotesParams["orderBy"]>, string> = {
       createdAt: "created_at",
@@ -281,22 +287,31 @@ export const supabaseQuotesProvider: IQuotesProvider = {
     const ascending = params.orderDir === "asc";
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query.order(orderColumn, { ascending }).range(from, to);
+    const { data, total } = await fetchLargePage<QuoteRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order(orderColumn, { ascending })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] quotes.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as QuoteRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
-    if (error) throw new Error(`[supabase] quotes.list failed: ${error.message}`);
-
-    const rows = data as unknown as QuoteRow[];
+    // Item enrichment runs once against the FULL concatenated set, not per
+    // internal 1000-row chunk — moving it here (vs. inside fetchChunk) keeps
+    // one listItems() call per quote regardless of how many chunks it took.
     const quotes = await Promise.all(
-      rows.map(async (row) => rowToQuote(row, await listItems(row.id))),
+      data.map(async (row) => rowToQuote(row, await listItems(row.id))),
     );
 
     return {
       data: quotes,
-      total: count ?? 0,
+      total,
       page,
       pageSize,
     };
