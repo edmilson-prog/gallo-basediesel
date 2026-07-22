@@ -11,6 +11,7 @@ import type {
 } from "../../contracts/distributionTraces";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link IDistributionTracesProvider} (PRD-013).
@@ -81,30 +82,37 @@ export const supabaseDistributionTracesProvider: IDistributionTracesProvider = {
   async list(
     params: IListDistributionTracesParams = {},
   ): Promise<IPaginatedResult<IDistributionTrace>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
-
-    if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
-    if (params.selectedSellerId !== undefined)
-      query = query.eq("selected_seller_id", params.selectedSellerId);
-    if (params.criterionMatched !== undefined)
-      query = query.eq("criterion_matched", params.criterionMatched);
-    if (params.since !== undefined) query = query.gte("timestamp", params.since);
-    if (params.until !== undefined) query = query.lte("timestamp", params.until);
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (params.selectedSellerId !== undefined)
+        query = query.eq("selected_seller_id", params.selectedSellerId);
+      if (params.criterionMatched !== undefined)
+        query = query.eq("criterion_matched", params.criterionMatched);
+      if (params.since !== undefined) query = query.gte("timestamp", params.since);
+      if (params.until !== undefined) query = query.lte("timestamp", params.until);
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query
-      .order("timestamp", { ascending: false })
-      .range(from, to);
-
-    if (error) throw new Error(`[supabase] distributionTraces.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<DistributionTraceRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("timestamp", { ascending: false })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] distributionTraces.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as DistributionTraceRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as DistributionTraceRow[]).map(rowToTrace),
-      total: count ?? 0,
+      data: data.map(rowToTrace),
+      total,
       page,
       pageSize,
     };

@@ -3,6 +3,7 @@ import type { GoalLevel, GoalMetric, GoalStatus } from "@/shared/types";
 import type { IGoalsProvider, IListGoalsParams } from "../../contracts/goals";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link IGoalsProvider} (PRD-042 / PRD-120+).
@@ -117,29 +118,36 @@ function goalPatchToRow(patch: Partial<IGoal>): Record<string, unknown> {
 
 export const supabaseGoalsProvider: IGoalsProvider = {
   async list(params: IListGoalsParams = {}): Promise<IPaginatedResult<IGoal>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
-
-    if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
-    if (params.level !== undefined) query = query.eq("level", params.level);
-    if (params.targetId !== undefined) query = query.eq("target_id", params.targetId);
-    if (params.metric !== undefined) query = query.eq("metric", params.metric);
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (params.level !== undefined) query = query.eq("level", params.level);
+      if (params.targetId !== undefined) query = query.eq("target_id", params.targetId);
+      if (params.metric !== undefined) query = query.eq("metric", params.metric);
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
     // Mirror the mock's sort: most recent period.end first. `period` is jsonb,
     // so order on the extracted `end` text key.
-    const { data, error, count } = await query
-      .order("period->>end", { ascending: false })
-      .range(from, to);
-
-    if (error) throw new Error(`[supabase] goals.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<GoalRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("period->>end", { ascending: false })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] goals.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as GoalRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as GoalRow[]).map(rowToGoal),
-      total: count ?? 0,
+      data: data.map(rowToGoal),
+      total,
       page,
       pageSize,
     };
