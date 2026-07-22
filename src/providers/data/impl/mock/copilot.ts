@@ -4,13 +4,16 @@ import type {
   ICopilotPanelData,
   ICopilotSummary,
   ID,
+  ILead,
   IMessage,
   ISdrContextSummary,
+  LeadOrigin,
 } from "@/shared/types";
 import type { ICopilotProvider } from "../../contracts/copilot";
 import { mockConversationsProvider } from "./conversations";
 import { mockMessagesProvider } from "./messages";
 import { mockCustomersProvider } from "./customers";
+import { mockLeadsProvider } from "./leads";
 import { mockSdrEscalationsProvider } from "./sdrEscalations";
 import { runCopilotRules } from "./copilotRules";
 
@@ -34,6 +37,7 @@ function isSameCalendarMonth(iso: string | undefined, now: Date): boolean {
 
 function buildBriefing(customer: ICustomer, now: Date): ICopilotBriefing {
   return {
+    kind: "customer",
     customerName: customerDisplayName(customer),
     lifecycleStatus: customer.status,
     abcClass: customer.abcClass,
@@ -44,6 +48,26 @@ function buildBriefing(customer: ICustomer, now: Date): ICopilotBriefing {
       ? `${customer.purchaseStats.orderCount12m} pedidos · 12m`
       : undefined,
     isPositivado: isSameCalendarMonth(customer.lastPurchaseAt, now),
+  };
+}
+
+const LEAD_ORIGIN_LABELS: Record<LeadOrigin, string> = {
+  whatsapp: "WhatsApp",
+  ecommerce: "E-commerce",
+  indicacao: "Indicação",
+  google: "Google",
+  outro: "Outro",
+  import: "Importação",
+};
+
+/** Briefing for a lead-anchored conversation: no purchase history exists, so
+ *  the header shows pipeline stage and origin instead of lifecycle/ABC/ticket. */
+function buildLeadBriefing(lead: ILead): ICopilotBriefing {
+  return {
+    kind: "lead",
+    customerName: lead.name,
+    leadStage: lead.stage.name,
+    leadOrigin: LEAD_ORIGIN_LABELS[lead.origin],
   };
 }
 
@@ -93,7 +117,15 @@ export const mockCopilotProvider: ICopilotProvider = {
     const now = new Date();
 
     const suggestions = runCopilotRules({ conversation, messages, customer, now });
-    const briefing = customer ? buildBriefing(customer, now) : undefined;
+    const lead =
+      !customer && conversation.leadId
+        ? await mockLeadsProvider.get(conversation.leadId).catch(() => null)
+        : null;
+    const briefing = customer
+      ? buildBriefing(customer, now)
+      : lead
+        ? buildLeadBriefing(lead)
+        : undefined;
     const summary = escalation
       ? summaryFromSdr(escalation.contextSummary)
       : mockSummaryFromMessages(messages);

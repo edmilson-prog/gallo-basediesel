@@ -10,14 +10,17 @@ import type {
   IConversation,
   ICustomer,
   ID,
+  ILead,
   IMessage,
   ISdrContextSummary,
+  LeadOrigin,
 } from "@/shared/types";
 import type { ICopilotProvider } from "../../contracts/copilot";
 import { NotImplementedError } from "../../errors";
 import { supabaseConversationsProvider } from "./conversations";
 import { supabaseMessagesProvider } from "./messages";
 import { supabaseCustomersProvider } from "./customers";
+import { supabaseLeadsProvider } from "./leads";
 import { supabaseSdrEscalationsProvider } from "./sdrEscalations";
 
 /**
@@ -83,6 +86,7 @@ function isSameCalendarMonth(iso: string | undefined, now: Date): boolean {
 
 function buildBriefing(customer: ICustomer, now: Date): ICopilotBriefing {
   return {
+    kind: "customer",
     customerName: customerDisplayName(customer),
     lifecycleStatus: customer.status,
     abcClass: customer.abcClass,
@@ -93,6 +97,26 @@ function buildBriefing(customer: ICustomer, now: Date): ICopilotBriefing {
       ? `${customer.purchaseStats.orderCount12m} pedidos · 12m`
       : undefined,
     isPositivado: isSameCalendarMonth(customer.lastPurchaseAt, now),
+  };
+}
+
+const LEAD_ORIGIN_LABELS: Record<LeadOrigin, string> = {
+  whatsapp: "WhatsApp",
+  ecommerce: "E-commerce",
+  indicacao: "Indicação",
+  google: "Google",
+  outro: "Outro",
+  import: "Importação",
+};
+
+/** Briefing for a lead-anchored conversation: no purchase history exists, so
+ *  the header shows pipeline stage and origin instead of lifecycle/ABC/ticket. */
+function buildLeadBriefing(lead: ILead): ICopilotBriefing {
+  return {
+    kind: "lead",
+    customerName: lead.name,
+    leadStage: lead.stage.name,
+    leadOrigin: LEAD_ORIGIN_LABELS[lead.origin],
   };
 }
 
@@ -299,11 +323,21 @@ export const supabaseCopilotProvider: ICopilotProvider = {
     const customer = conversation.customerId
       ? ((await supabaseCustomersProvider.getViaConversation(conversationId)) ?? undefined)
       : undefined;
+    // Same gated-once pattern as the customer read: the per-owner leads RLS
+    // hides an ownerless lead from non-staff, so a direct `get` would 406.
+    const lead =
+      !customer && conversation.leadId
+        ? await supabaseLeadsProvider.getViaConversation(conversationId).catch(() => null)
+        : null;
     const sdrContext = await tryGetEscalation(conversationId);
     const now = new Date();
 
     const suggestions = runCopilotRules({ conversation, messages, customer, now });
-    const briefing = customer ? buildBriefing(customer, now) : undefined;
+    const briefing = customer
+      ? buildBriefing(customer, now)
+      : lead
+        ? buildLeadBriefing(lead)
+        : undefined;
     const summary = sdrContext ? summaryFromSdr(sdrContext) : summaryFromMessages(messages);
 
     return { conversationId, briefing, summary, suggestions };

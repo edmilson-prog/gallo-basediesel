@@ -308,6 +308,7 @@ export type {
   ICopilotSummary,
   ICopilotPanelData,
   ICopilotAssistantSettings,
+  CopilotBriefingKind,
   CopilotSuggestionKind,
   CopilotSuggestionSource,
   CopilotSuggestionSeverity,

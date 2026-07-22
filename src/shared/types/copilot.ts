@@ -42,13 +42,19 @@ export interface ICopilotSuggestion {
   createdAt: ISO8601;
 }
 
+/** Which anchor the briefing describes. Absent on legacy payloads → "customer". */
+export type CopilotBriefingKind = "customer" | "lead";
+
 /**
  * Extrato de contexto do cliente. Reflete os MESMOS valores da Ficha (PRD-012),
  * sem recomputar — referência, não recálculo.
  */
 export interface ICopilotBriefing {
+  kind?: CopilotBriefingKind;
+  /** Display name of the anchor — customer or lead. */
   customerName: string;
-  lifecycleStatus: CustomerStatus;
+  /** Customer lifecycle. Absent when `kind === "lead"` (a lead has no purchase history). */
+  lifecycleStatus?: CustomerStatus;
   abcClass?: ABCClass;
   averageTicket?: Money;
   ltv?: Money;
@@ -57,6 +63,10 @@ export interface ICopilotBriefing {
   frequency?: string;
   primaryVehicle?: { brand: string; model?: string };
   isPositivado?: boolean;
+  /** Pipeline stage name. Present only when `kind === "lead"`. */
+  leadStage?: string;
+  /** Origin channel label. Present only when `kind === "lead"`. */
+  leadOrigin?: string;
 }
 
 export type CopilotSummarySource = "sdr" | "mock";
