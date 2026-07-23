@@ -22,10 +22,17 @@ export interface ISummariseStageInput {
 /** Column header aggregate: count, summed value and how many are overdue. */
 export function summariseStage(input: ISummariseStageInput): IFunnelBoardSummary {
   const nowMs = input.now.getTime();
+  let count = 0;
   let sumValue = 0;
   let overdueCount = 0;
 
   for (const entry of input.entries) {
+    // Filter to THIS stage — a caller passing a whole funnel's entries (every
+    // stage mixed together) must get this column's own figure back, not the
+    // funnel's total silently mislabelled with this stageId.
+    if (entry.stageId !== input.stageId) continue;
+    count += 1;
+
     // The MEMBERSHIP value, never the lead's: the same opportunity would
     // otherwise be counted in full inside every funnel it touches.
     sumValue += entry.estimatedValue ?? 0;
@@ -36,7 +43,7 @@ export function summariseStage(input: ISummariseStageInput): IFunnelBoardSummary
     }
   }
 
-  return { stageId: input.stageId, count: input.entries.length, sumValue, overdueCount };
+  return { stageId: input.stageId, count, sumValue, overdueCount };
 }
 
 const DAY_MS = 86_400_000;

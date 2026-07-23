@@ -32,11 +32,15 @@ export function planAddToFunnel(input: IAddInput): AddPlan {
   }
 
   // An explicit stageId is a caller request, not a hint — if it doesn't
-  // resolve to a real stage, that must surface as an error, never silently
-  // fall back to the entry stage.
+  // resolve to a real stage, or resolves to a stage that belongs to a
+  // DIFFERENT funnel than the one being joined, that must surface as an
+  // error, never silently fall back to the entry stage. Mirrors the same
+  // check in planStageTransition.
   if (input.stageId !== undefined) {
     const target = input.stages.find((s) => s.id === input.stageId);
-    if (!target) return { action: "error", reason: "invalid_stage" };
+    if (!target || target.funnelId !== input.funnel.id) {
+      return { action: "error", reason: "invalid_stage" };
+    }
 
     return {
       action: "create",

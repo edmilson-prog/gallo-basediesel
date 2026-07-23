@@ -184,11 +184,16 @@ export const supabaseLeadFunnelsProvider: ILeadFunnelsProvider = {
   },
 
   async archiveFunnel(id) {
+    // `.eq("is_default", false)` means a default funnel matches zero rows —
+    // `.single()` turns that (and a plain not-found) into an error instead of
+    // a silent no-op update, matching the mock's explicit throw.
     const { error } = await getSupabaseClient()
       .from("lead_funnels")
       .update({ archived_at: new Date().toISOString() })
       .eq("id", id)
-      .eq("is_default", false);
+      .eq("is_default", false)
+      .select("id")
+      .single();
     if (error) throw new Error(`[supabase] archiveFunnel(${id}) failed: ${error.message}`);
   },
 
@@ -294,12 +299,20 @@ export const supabaseLeadFunnelsProvider: ILeadFunnelsProvider = {
   },
 
   async countLeadsByFunnel(storeId) {
-    const { data, error } = await getSupabaseClient().rpc("count_leads_by_funnel", {
-      p_store_id: storeId,
-    });
+    // `count_leads_by_funnel` groups over lead_funnel_entries, so a funnel with
+    // zero memberships produces NO row — pre-fill every active funnel with 0
+    // before overlaying the RPC's rows, so the returned map always has an
+    // entry per funnel (matching the mock) instead of `undefined` on the
+    // first empty one.
+    const [activeFunnels, rpcResult] = await Promise.all([
+      this.listFunnels(storeId),
+      getSupabaseClient().rpc("count_leads_by_funnel", { p_store_id: storeId }),
+    ]);
+    const { data, error } = rpcResult;
     if (error)
       throw new Error(`[supabase] countLeadsByFunnel(${storeId}) failed: ${error.message}`);
     const result: Record<ID, number> = {};
+    for (const funnel of activeFunnels) result[funnel.id] = 0;
     for (const row of data as Array<{ funnel_id: string; lead_count: number }>) {
       result[row.funnel_id] = row.lead_count;
     }
@@ -410,12 +423,19 @@ export const supabaseLeadFunnelsProvider: ILeadFunnelsProvider = {
   },
 
   async updateEntry(entryId, patch) {
+    // `estimatedValue` is optional on the patch type: an ABSENT key must leave
+    // the column untouched, while an explicit `undefined`/`null` clears it. A
+    // bare `patch.estimatedValue ?? null` cannot tell those apart — `{}` would
+    // null out the value on every call. `"in"` distinguishes key-presence from
+    // value-presence.
+    const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if ("estimatedValue" in patch) {
+      row.estimated_value = patch.estimatedValue ?? null;
+    }
+
     const { data, error } = await getSupabaseClient()
       .from("lead_funnel_entries")
-      .update({
-        estimated_value: patch.estimatedValue ?? null,
-        updated_at: new Date().toISOString(),
-      })
+      .update(row)
       .eq("id", entryId)
       .select(ENTRY_COLUMNS)
       .single();
@@ -461,16 +481,21 @@ export const supabaseLeadFunnelsProvider: ILeadFunnelsProvider = {
       throw new Error(`[supabase] cannot remove membership: ${plan.reason}`);
     }
 
+    // Create-then-delete, not delete-then-create: if a movedToDefault recreate
+    // fails partway, the transient state is TWO memberships (harmless — they
+    // are in different funnels, so the unique index on (lead_id, funnel_id)
+    // tolerates it) rather than ZERO, which is exactly the invariant this
+    // whole flow exists to protect.
+    if (plan.movedToDefault && plan.recreateInFunnelId && plan.recreateInStageId) {
+      await this.addEntry(target.leadId, plan.recreateInFunnelId, plan.recreateInStageId);
+    }
+
     const { error: deleteError } = await client
       .from("lead_funnel_entries")
       .delete()
       .eq("id", entryId);
     if (deleteError)
       throw new Error(`[supabase] removeEntry(${entryId}) failed: ${deleteError.message}`);
-
-    if (plan.movedToDefault && plan.recreateInFunnelId && plan.recreateInStageId) {
-      await this.addEntry(target.leadId, plan.recreateInFunnelId, plan.recreateInStageId);
-    }
 
     return { movedToDefault: plan.movedToDefault };
   },

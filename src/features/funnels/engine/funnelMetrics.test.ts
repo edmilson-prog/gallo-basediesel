@@ -92,6 +92,25 @@ describe("summariseStage", () => {
     });
     expect(summary.overdueCount).toBe(0);
   });
+
+  // A caller may pass a whole funnel's entries (every stage mixed together)
+  // instead of pre-filtering to one column — summariseStage must still return
+  // ONLY that stage's own figures, not the funnel's total mislabelled with
+  // this stageId.
+  it("filters to only the matching stage's entries when passed a mixed-stage array", () => {
+    const summary = summariseStage({
+      stageId: "s-1",
+      entries: [
+        entry("lead-1", "catalisador", { stageId: "s-1", estimatedValue: 8000 }),
+        entry("lead-2", "catalisador", { stageId: "s-2", estimatedValue: 4400 }),
+        entry("lead-3", "catalisador", { stageId: "s-1", estimatedValue: 1000 }),
+      ],
+      nextActionByLeadId: {},
+      now,
+    });
+    expect(summary.count).toBe(2);
+    expect(summary.sumValue).toBe(9000);
+  });
 });
 
 describe("daysInStage", () => {

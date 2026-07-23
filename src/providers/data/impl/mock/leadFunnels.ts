@@ -192,10 +192,37 @@ export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
 
   async replaceStages(funnelId, next) {
     seedOnce();
-    // Upsert by id plus orphan removal, mirroring the Supabase implementation:
-    // wipe-and-reinsert would orphan the memberships that point at these ids.
-    const others = stages.filter((s) => s.funnelId !== funnelId);
-    stages = [...others, ...next.map((s) => ({ ...s, funnelId, updatedAt: nowIso() }))];
+    // Upsert by id (update in place, insert new) plus deletion of ORPHANS
+    // only — mirroring the Supabase implementation's two-step shape exactly,
+    // instead of a wipe-and-reinsert of the funnel's whole stage array. This
+    // matters because ids are stable identity here: a stage id that survives
+    // the call keeps every membership.stageId pointing at it valid; only a
+    // stage genuinely dropped from `next` disappears.
+    const nextById = new Map(next.map((s) => [s.id, s]));
+
+    // Step 1a: update — any existing stage of this funnel whose id is still
+    // present in `next` gets its content replaced in place.
+    stages = stages.map((s) => {
+      if (s.funnelId !== funnelId) return s;
+      const updated = nextById.get(s.id);
+      return updated ? { ...updated, funnelId, updatedAt: nowIso() } : s;
+    });
+
+    // Step 1b: insert — any id in `next` that didn't already exist for this
+    // funnel is a genuinely new stage.
+    const existingIds = new Set(
+      stages.filter((s) => s.funnelId === funnelId).map((s) => s.id),
+    );
+    const inserted = next
+      .filter((s) => !existingIds.has(s.id))
+      .map((s) => ({ ...s, funnelId, updatedAt: nowIso() }));
+    stages = [...stages, ...inserted];
+
+    // Step 2: delete only the orphans — stages still tagged with this funnel
+    // that are no longer present in `next`.
+    const keptIds = new Set(next.map((s) => s.id));
+    stages = stages.filter((s) => s.funnelId !== funnelId || keptIds.has(s.id));
+
     return this.listStages(funnelId);
   },
 
@@ -263,6 +290,14 @@ export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
 
   async listEntriesViaConversation(conversationId) {
     seedOnce();
+    // `leads.conversations` IS the correct join key here — do not "fix" this
+    // to match the SQL RPC's comment (lead_funnel_entries_via_conversation in
+    // 20260723123000), which is about the REAL schema, where that column is a
+    // legacy, unused text[]. In THIS mock's in-memory model `ILead.conversations`
+    // is a genuinely maintained field (see mocks/generators/bootstrap.ts,
+    // scriptedConversations.ts, providers/whatsapp/webhook/core.ts and
+    // NewLeadModal, all of which push/set it), so it is a valid — and the
+    // simplest — way to resolve a conversation's lead in mock data.
     const lead = getMockState().leads.find((l) => l.conversations.includes(conversationId));
     return lead ? entries.filter((e) => e.leadId === lead.id) : [];
   },

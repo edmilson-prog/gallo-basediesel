@@ -84,6 +84,23 @@ describe("planAddToFunnel", () => {
     if (plan.action !== "error") throw new Error("unreachable");
     expect(plan.reason).toBe("invalid_stage");
   });
+
+  // If a caller ever passes an unfiltered `stages` list (e.g. the whole
+  // store's stages instead of just the target funnel's), an explicit stageId
+  // that resolves to a stage from ANOTHER funnel must still be rejected —
+  // mirrors the same guard in planStageTransition.
+  it("errors when an explicit stageId belongs to a different funnel than the target", () => {
+    const plan = planAddToFunnel({
+      existing: [],
+      funnel: catalisador,
+      stages: [cataEntry, geralEntry],
+      leadEstimatedValue: undefined,
+      stageId: "geral-entrada",
+    });
+    expect(plan.action).toBe("error");
+    if (plan.action !== "error") throw new Error("unreachable");
+    expect(plan.reason).toBe("invalid_stage");
+  });
 });
 
 describe("planRemoveFromFunnel", () => {
