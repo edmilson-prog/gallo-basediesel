@@ -164,7 +164,7 @@ export function ProfileMenu({ customer, onMutated, onEditData }: IProfileMenuPro
               {CUSTOMER_STRINGS.menu.markDormant}
             </DropdownMenuItem>
           )}
-          {canTransfer && (
+          {canTransfer && customer.sellerId !== null && (
             <DropdownMenuItem onSelect={() => setTransferOpen(true)}>
               <Icon icon="mdi:swap-horizontal" size={14} />
               {CUSTOMER_STRINGS.menu.transferWallet}
@@ -226,7 +226,7 @@ export function ProfileMenu({ customer, onMutated, onEditData }: IProfileMenuPro
         open={transferOpen}
         customer={transferOpen ? customer : null}
         sellers={sellersQuery.data ?? []}
-        currentUserId={currentUser?.id ?? "system"}
+        currentSellerId={currentUser?.sellerId}
         onClose={() => setTransferOpen(false)}
         onCreated={() => {
           setTransferOpen(false);

@@ -254,7 +254,7 @@ export function CarteiraPage() {
           open={newOpen === "temporary"}
           sellers={sellers}
           storeId={currentStoreId ?? "00000000-0000-0000-0000-000000000001"}
-          currentUserId={currentUser.id}
+          currentSellerId={currentUser.sellerId}
           activeTransfers={activeList}
           onClose={() => setNewOpen("none")}
         />

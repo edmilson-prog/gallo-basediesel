@@ -30,7 +30,11 @@ export interface INewPermanentIndividualTransferModalProps {
   open: boolean;
   customer: ICustomer | null;
   sellers: ISeller[];
-  currentUserId: ID;
+  /**
+   * ISeller.id of the acting user — NOT the auth user id. It is stored in
+   * `carteira_transfers.created_by`, which carries a FK to sellers(id).
+   */
+  currentSellerId: ID | undefined;
   onClose: () => void;
   onCreated?: () => void;
 }
@@ -39,7 +43,7 @@ export function NewPermanentIndividualTransferModal({
   open,
   customer,
   sellers,
-  currentUserId,
+  currentSellerId,
   onClose,
   onCreated,
 }: INewPermanentIndividualTransferModalProps) {
@@ -68,7 +72,9 @@ export function NewPermanentIndividualTransferModal({
     !sameSeller &&
     !missingReason &&
     !mutation.isPending &&
-    Boolean(customer);
+    Boolean(customer) &&
+    Boolean(customer?.sellerId) &&
+    Boolean(currentSellerId);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -81,7 +87,7 @@ export function NewPermanentIndividualTransferModal({
         toSellerId: toSellerId as ID,
         customerIds: [customer.id],
         reason: reason.trim(),
-        createdBy: currentUserId,
+        createdBy: currentSellerId as ID,
       });
       toast.success(CARTEIRA_STRINGS.modals.permanentIndividual.successToast(customerName, toName));
       onCreated?.();
@@ -153,7 +159,21 @@ export function NewPermanentIndividualTransferModal({
             )}
           </div>
 
-          {toSellerId && (
+          {customer && !customer.sellerId && (
+            <Alert variant="destructive">
+              <Icon icon="mdi:alert-circle-outline" size={16} />
+              <AlertDescription>{CARTEIRA_STRINGS.modals.missingOwnerError}</AlertDescription>
+            </Alert>
+          )}
+
+          {!currentSellerId && (
+            <Alert variant="destructive">
+              <Icon icon="mdi:alert-circle-outline" size={16} />
+              <AlertDescription>{CARTEIRA_STRINGS.modals.missingSellerError}</AlertDescription>
+            </Alert>
+          )}
+
+          {toSellerId && currentSellerId && (
             <Alert>
               <Icon icon="mdi:alert-outline" size={16} />
               <AlertTitle>Confirmar transferência</AlertTitle>
