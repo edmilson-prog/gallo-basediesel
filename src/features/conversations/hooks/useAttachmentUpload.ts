@@ -81,7 +81,14 @@ export function useAttachmentUpload(conversation: IConversation): IUseAttachment
           : URL.createObjectURL(file);
       // fileName lets the send pipeline label documents with the real name on
       // the recipient side (Meta/Evolution); ignored for image/audio/video.
-      return { text: caption, mediaType: kind, mediaUrl, fileName: file.name };
+      // mediaSizeBytes lets the WAHA path route a video inline vs. as a document.
+      return {
+        text: caption,
+        mediaType: kind,
+        mediaUrl,
+        fileName: file.name,
+        mediaSizeBytes: file.size,
+      };
     },
     [conversation.customerId, conversation.id, conversation.storeId, media],
   );
