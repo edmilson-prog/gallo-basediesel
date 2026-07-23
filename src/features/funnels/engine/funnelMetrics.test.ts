@@ -43,6 +43,23 @@ describe("summariseStage", () => {
     expect(summary.count).toBe(2);
   });
 
+  // Guards against a plausible wrong-fix: deduping by leadId here would break
+  // the N:N model, since the same lead in the same funnel twice (two
+  // memberships) still represents two distinct opportunities/revenues.
+  it("sums each membership independently, never deduping by lead", () => {
+    const summary = summariseStage({
+      stageId: "s-1",
+      entries: [
+        entry("lead-1", "catalisador", { estimatedValue: 8000 }),
+        entry("lead-1", "filtros", { estimatedValue: 4400 }),
+      ],
+      nextActionByLeadId: {},
+      now,
+    });
+    expect(summary.count).toBe(2);
+    expect(summary.sumValue).toBe(12400);
+  });
+
   it("treats a membership with no value as zero", () => {
     const summary = summariseStage({
       stageId: "s-1",
