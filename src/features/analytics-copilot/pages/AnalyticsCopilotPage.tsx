@@ -45,7 +45,7 @@ export function AnalyticsCopilotPage() {
   const detailPanel = <CopilotDetailPanel answer={chat.lastResolvedAnswer} />;
 
   return (
-    <div className="flex h-[calc(100dvh-4rem)] flex-col md:h-[calc(100vh-4rem)]">
+    <div className="flex h-[calc(100dvh-4rem-var(--shell-banner-offset,0px))] flex-col md:h-[calc(100vh-4rem-var(--shell-banner-offset,0px))]">
       <CopilotHeader
         mode={mode}
         onModeChange={setMode}

@@ -430,10 +430,11 @@ export function SettingsLayout({ children }: { children?: ReactNode }) {
   }, [groups, location.pathname]);
 
   return (
-    // Fill <main> minus the sticky TopBar (4rem) and, on desktop, the AppFooter
-    // (2rem) — same `md:h-[calc(100vh-6rem)]` convention the list pages use,
-    // so <main> doesn't overflow and show a phantom outer scrollbar.
-    <div className="flex h-[calc(100vh-4rem)] md:h-[calc(100vh-6rem)]">
+    // Fill <main> minus the sticky TopBar (4rem), the AlertBannerStack
+    // (dynamic, --shell-banner-offset) and, on desktop, the AppFooter (2rem)
+    // — same `md:h-[calc(100vh-6rem)]` convention the list pages use, so
+    // <main> doesn't overflow and show a phantom outer scrollbar.
+    <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] md:h-[calc(100vh-6rem-var(--shell-banner-offset,0px))]">
       <aside className="hidden w-64 shrink-0 overflow-y-auto border-r border-border bg-card lg:block">
         <div className="px-4 py-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Configurações

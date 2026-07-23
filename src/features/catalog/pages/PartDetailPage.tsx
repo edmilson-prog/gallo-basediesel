@@ -183,7 +183,7 @@ export function PartDetailPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col bg-background">
+    <div className="flex min-h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] flex-col bg-background">
       <PartDetailHeader
         part={part}
         canEdit={canEdit}
@@ -264,7 +264,7 @@ export function PartDetailPage() {
 
 function DetailSkeleton() {
   return (
-    <div className="flex h-[calc(100vh-4rem)] items-center justify-center text-muted-foreground">
+    <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] items-center justify-center text-muted-foreground">
       <Icon icon="svg-spinners:ring-resize" size={28} />
     </div>
   );
