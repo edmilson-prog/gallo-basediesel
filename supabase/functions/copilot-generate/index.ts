@@ -10,7 +10,6 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
  * ai_usage_events (source='routed', feature='conversation_copilot').
  */
 
-import { type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
 import { requireAnyCaller } from "../_shared/auth.ts";
 import { createSecretResolver } from "../_shared/secrets.ts";
 import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
@@ -61,18 +60,6 @@ function pricingFor(settings: SettingsRow, providerId: string, model: string): M
   const m = p?.models.find((x) => x.id === model);
   if (!m) return null;
   return { inputPricePer1kUsd: m.inputPricePer1kUsd, outputPricePer1kUsd: m.outputPricePer1kUsd };
-}
-
-async function monthSpendBRL(admin: SupabaseClient): Promise<number> {
-  const start = new Date();
-  start.setUTCDate(1);
-  start.setUTCHours(0, 0, 0, 0);
-  const { data, error } = await admin
-    .from("ai_usage_events")
-    .select("cost_brl")
-    .gte("ts", start.toISOString());
-  if (error) throw new HttpError(500, `budget read failed: ${error.message}`);
-  return (data ?? []).reduce((a: number, r: { cost_brl: number | string }) => a + Number(r.cost_brl), 0);
 }
 
 function dispatch(
@@ -190,11 +177,13 @@ servePost(async (req, { log }) => {
   const userPrompt = buildReplyPrompt({ messages: promptMessages, customer, maxMessages: windowSize });
   if (!userPrompt) throw new HttpError(422, "conversa sem conteúdo do cliente para gerar resposta");
 
-  // 6. Budget hard cap (best-effort).
-  const spent = await monthSpendBRL(admin);
-  if (settings.budget.monthlyCapBRL > 0 && spent >= settings.budget.monthlyCapBRL) {
-    throw new HttpError(402, "orçamento de IA do mês esgotado");
-  }
+  // 6. Budget gate — concurrency-safe (advisory lock inside the RPC).
+  const { data: hasRoom, error: budgetErr } = await admin.rpc("ai_budget_try_consume", {
+    p_feature: FEATURE,
+    p_estimated_brl: 0,
+  });
+  if (budgetErr) throw new HttpError(500, `budget check failed: ${budgetErr.message}`);
+  if (hasRoom !== true) throw new HttpError(402, "orçamento de IA do mês esgotado");
 
   // 7. Resolve key (Vault-first).
   const resolveSecret = createSecretResolver(admin);
