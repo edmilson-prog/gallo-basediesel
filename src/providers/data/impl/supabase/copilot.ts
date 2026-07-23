@@ -10,14 +10,17 @@ import type {
   IConversation,
   ICustomer,
   ID,
+  ILead,
   IMessage,
   ISdrContextSummary,
+  LeadOrigin,
 } from "@/shared/types";
-import type { ICopilotProvider } from "../../contracts/copilot";
+import type { ICopilotProvider, ICopilotPanelOptions } from "../../contracts/copilot";
 import { NotImplementedError } from "../../errors";
 import { supabaseConversationsProvider } from "./conversations";
 import { supabaseMessagesProvider } from "./messages";
 import { supabaseCustomersProvider } from "./customers";
+import { supabaseLeadsProvider } from "./leads";
 import { supabaseSdrEscalationsProvider } from "./sdrEscalations";
 
 /**
@@ -39,28 +42,28 @@ import { supabaseSdrEscalationsProvider } from "./sdrEscalations";
  * AICopilotProvider.
  */
 
-const MESSAGES_PAGE_SIZE = 200;
+/** Fallback window when the caller passes none. Mirrors
+ *  DEFAULT_COPILOT_ASSISTANT_SETTINGS.messageWindow — kept as a literal because
+ *  this layer must not import from `src/features`. */
+const DEFAULT_MESSAGE_WINDOW = 40;
+const MAX_MESSAGE_WINDOW = 200;
 
-/** Fetches every message of a conversation, ascending by `sentAt`, by paging
- *  through the provider (whose page size is clamped server-side). */
-async function listAllMessages(conversationId: ID): Promise<IMessage[]> {
-  const all: IMessage[] = [];
-  let page = 1;
-  for (;;) {
-    const result = await supabaseMessagesProvider.list({
-      conversationId,
-      page,
-      pageSize: MESSAGES_PAGE_SIZE,
-      orderDir: "asc",
-    });
-    all.push(...result.data);
-    // A short page means the end. Don't rely on `result.total`: the
-    // conversation_messages RPC returns it only as a best-effort lower bound
-    // (it equals all.length on a full page and would stop pagination early).
-    if (result.data.length < MESSAGES_PAGE_SIZE) break;
-    page += 1;
-  }
-  return all;
+/**
+ * The most recent `window` messages, ascending by `sentAt`.
+ *
+ * Replaces the previous full pagination (up to 15 sequential round-trips on the
+ * longest conversations) — the three keyword rules and the summary only ever
+ * looked at the tail.
+ */
+async function listRecentMessages(conversationId: ID, window: number): Promise<IMessage[]> {
+  const pageSize = Math.min(MAX_MESSAGE_WINDOW, Math.max(1, Math.floor(window)));
+  const result = await supabaseMessagesProvider.list({
+    conversationId,
+    page: 1,
+    pageSize,
+    orderDir: "desc",
+  });
+  return [...result.data].reverse();
 }
 
 function customerDisplayName(customer: ICustomer): string {
@@ -83,6 +86,7 @@ function isSameCalendarMonth(iso: string | undefined, now: Date): boolean {
 
 function buildBriefing(customer: ICustomer, now: Date): ICopilotBriefing {
   return {
+    kind: "customer",
     customerName: customerDisplayName(customer),
     lifecycleStatus: customer.status,
     abcClass: customer.abcClass,
@@ -93,6 +97,26 @@ function buildBriefing(customer: ICustomer, now: Date): ICopilotBriefing {
       ? `${customer.purchaseStats.orderCount12m} pedidos · 12m`
       : undefined,
     isPositivado: isSameCalendarMonth(customer.lastPurchaseAt, now),
+  };
+}
+
+const LEAD_ORIGIN_LABELS: Record<LeadOrigin, string> = {
+  whatsapp: "WhatsApp",
+  ecommerce: "E-commerce",
+  indicacao: "Indicação",
+  google: "Google",
+  outro: "Outro",
+  import: "Importação",
+};
+
+/** Briefing for a lead-anchored conversation: no purchase history exists, so
+ *  the header shows pipeline stage and origin instead of lifecycle/ABC/ticket. */
+function buildLeadBriefing(lead: ILead): ICopilotBriefing {
+  return {
+    kind: "lead",
+    customerName: lead.name,
+    leadStage: lead.stage.name,
+    leadOrigin: LEAD_ORIGIN_LABELS[lead.origin],
   };
 }
 
@@ -127,7 +151,7 @@ function summaryFromMessages(messages: IMessage[]): ICopilotSummary | undefined 
   const text =
     first.id === last.id
       ? `Cliente: "${truncate(last.text)}".`
-      : `Cliente iniciou com "${truncate(first.text, 48)}". Pendência atual: "${truncate(last.text, 48)}".`;
+      : `Últimas mensagens: "${truncate(first.text, 48)}". Pendência atual: "${truncate(last.text, 48)}".`;
   return { text, source: "mock" };
 }
 
@@ -289,9 +313,15 @@ async function tryGetEscalation(conversationId: ID): Promise<ISdrContextSummary 
 }
 
 export const supabaseCopilotProvider: ICopilotProvider = {
-  async getPanelData(conversationId: ID): Promise<ICopilotPanelData> {
+  async getPanelData(
+    conversationId: ID,
+    options?: ICopilotPanelOptions,
+  ): Promise<ICopilotPanelData> {
     const conversation = await supabaseConversationsProvider.get(conversationId);
-    const messages = await listAllMessages(conversationId);
+    const messages = await listRecentMessages(
+      conversationId,
+      options?.messageWindow ?? DEFAULT_MESSAGE_WINDOW,
+    );
     // Read the customer gated-once by the CONVERSATION (can_access), not the
     // per-carteira customers RLS: a POOL conversation's customer would otherwise
     // 406 on the direct get — noisy in the console on every conversation open
@@ -299,11 +329,21 @@ export const supabaseCopilotProvider: ICopilotProvider = {
     const customer = conversation.customerId
       ? ((await supabaseCustomersProvider.getViaConversation(conversationId)) ?? undefined)
       : undefined;
+    // Same gated-once pattern as the customer read: the per-owner leads RLS
+    // hides an ownerless lead from non-staff, so a direct `get` would 406.
+    const lead =
+      !customer && conversation.leadId
+        ? await supabaseLeadsProvider.getViaConversation(conversationId).catch(() => null)
+        : null;
     const sdrContext = await tryGetEscalation(conversationId);
     const now = new Date();
 
     const suggestions = runCopilotRules({ conversation, messages, customer, now });
-    const briefing = customer ? buildBriefing(customer, now) : undefined;
+    const briefing = customer
+      ? buildBriefing(customer, now)
+      : lead
+        ? buildLeadBriefing(lead)
+        : undefined;
     const summary = sdrContext ? summaryFromSdr(sdrContext) : summaryFromMessages(messages);
 
     return { conversationId, briefing, summary, suggestions };

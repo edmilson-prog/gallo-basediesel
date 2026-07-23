@@ -1,5 +1,12 @@
 import type { ID, ICopilotPanelData } from "@/shared/types";
 
+/** Options resolved by the caller from the store's assistant settings. Passing
+ *  them keeps the provider free of settings I/O. */
+export interface ICopilotPanelOptions {
+  /** How many recent messages to read. Falls back to the provider's own floor. */
+  messageWindow?: number;
+}
+
 /**
  * Contrato do Copiloto de Vendas (PRD-025).
  *
@@ -9,7 +16,7 @@ import type { ID, ICopilotPanelData } from "@/shared/types";
  */
 export interface ICopilotProvider {
   /** Compõe briefing + resumo + sugestões para a conversa. */
-  getPanelData(conversationId: ID): Promise<ICopilotPanelData>;
+  getPanelData(conversationId: ID, options?: ICopilotPanelOptions): Promise<ICopilotPanelData>;
   /** Marca uma sugestão como dispensada (Fase 1: no-op + gancho de auditoria). */
   dismissSuggestion(id: ID): Promise<void>;
   /**

@@ -11,6 +11,7 @@ import type { IInsightThresholds } from "./insights";
 import type { IStorefrontConfig } from "./storefront";
 import type { IForecastConfig } from "./forecast";
 import type { ISoundSettings } from "./sound";
+import type { ICopilotAssistantSettings } from "./copilot";
 
 /** Idle-timeout (inactivity session-termination) configuration. */
 export interface ISessionTimeoutSettings {
@@ -271,6 +272,8 @@ export interface IPlatformSettings {
   conversationRescue?: IConversationRescueSettings;
   /** Notification sound center (per-store). Absent on legacy stores → DEFAULT_SOUND_SETTINGS. */
   sound?: ISoundSettings;
+  /** Conversation assistant behaviour (spec 2026-07-22). Undefined → DEFAULT_COPILOT_ASSISTANT_SETTINGS. */
+  copilotAssistant?: ICopilotAssistantSettings;
   /** Whether the SDR agent is enabled for this store (PRD-020). */
   sdrEnabled: boolean;
   /** Editable SDR message templates with variable substitution (PRD-020). */

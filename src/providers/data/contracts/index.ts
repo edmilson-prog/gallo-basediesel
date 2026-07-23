@@ -125,7 +125,7 @@ export type {
 } from "./managerDashboard";
 export type { ISdrSessionsProvider, IListSdrSessionsParams } from "./sdrSessions";
 export type { ISdrEscalationsProvider, IListSdrEscalationsParams } from "./sdrEscalations";
-export type { ICopilotProvider } from "./copilot";
+export type { ICopilotProvider, ICopilotPanelOptions } from "./copilot";
 export type { IIndicatorsProvider, IListIndicatorsParams } from "./indicators";
 export type {
   IVehicleModelsProvider,

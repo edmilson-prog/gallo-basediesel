@@ -26,3 +26,44 @@ describe("mockCopilotProvider — geração de resposta", () => {
     expect(a).toBe(b);
   });
 });
+
+describe("getPanelData — conversa de lead", () => {
+  it("monta briefing de lead quando não há cliente", async () => {
+    const conversation = (
+      await conversationsApi.list({ pageSize: 500, storeId: SEED_STORE_ID })
+    ).data.find((c) => !c.customerId && c.leadId);
+    expect(conversation, "seed precisa ter ao menos uma conversa só de lead").toBeDefined();
+
+    const panel = await mockCopilotProvider.getPanelData(conversation!.id);
+
+    expect(panel.briefing).toBeDefined();
+    expect(panel.briefing?.kind).toBe("lead");
+    expect(panel.briefing?.leadStage).toBeTruthy();
+    expect(panel.briefing?.lifecycleStatus).toBeUndefined();
+  });
+
+  it("mantém briefing de cliente quando há cliente", async () => {
+    const conversation = (
+      await conversationsApi.list({ pageSize: 500, storeId: SEED_STORE_ID })
+    ).data.find((c) => c.customerId);
+    expect(conversation).toBeDefined();
+
+    const panel = await mockCopilotProvider.getPanelData(conversation!.id);
+
+    expect(panel.briefing?.kind).toBe("customer");
+    expect(panel.briefing?.lifecycleStatus).toBeDefined();
+  });
+});
+
+describe("resumo da conversa", () => {
+  it("não afirma um começo que a janela não conhece", async () => {
+    const conversation = (
+      await conversationsApi.list({ pageSize: 500, storeId: SEED_STORE_ID })
+    ).data.find((c) => c.customerId);
+    const panel = await mockCopilotProvider.getPanelData(conversation!.id);
+    if (panel.summary && panel.summary.source !== "sdr") {
+      expect(panel.summary.text).not.toContain("Cliente iniciou com");
+      expect(panel.summary.text).toContain("Pendência atual");
+    }
+  });
+});

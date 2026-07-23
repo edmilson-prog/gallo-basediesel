@@ -1,6 +1,7 @@
 import type { ABCClass } from "./bi";
 import type { CustomerStatus } from "./customer";
 import type { ID, ISO8601, Money } from "./common";
+import type { RoleName } from "./people";
 import type { ISdrContextSummary } from "./sdr-escalation";
 
 /** Tipo de orientação que o copiloto emite. */
@@ -41,13 +42,19 @@ export interface ICopilotSuggestion {
   createdAt: ISO8601;
 }
 
+/** Which anchor the briefing describes. Absent on legacy payloads → "customer". */
+export type CopilotBriefingKind = "customer" | "lead";
+
 /**
  * Extrato de contexto do cliente. Reflete os MESMOS valores da Ficha (PRD-012),
  * sem recomputar — referência, não recálculo.
  */
 export interface ICopilotBriefing {
+  kind?: CopilotBriefingKind;
+  /** Display name of the anchor — customer or lead. */
   customerName: string;
-  lifecycleStatus: CustomerStatus;
+  /** Customer lifecycle. Absent when `kind === "lead"` (a lead has no purchase history). */
+  lifecycleStatus?: CustomerStatus;
   abcClass?: ABCClass;
   averageTicket?: Money;
   ltv?: Money;
@@ -56,6 +63,10 @@ export interface ICopilotBriefing {
   frequency?: string;
   primaryVehicle?: { brand: string; model?: string };
   isPositivado?: boolean;
+  /** Pipeline stage name. Present only when `kind === "lead"`. */
+  leadStage?: string;
+  /** Origin channel label. Present only when `kind === "lead"`. */
+  leadOrigin?: string;
 }
 
 export type CopilotSummarySource = "sdr" | "mock";
@@ -80,4 +91,50 @@ export interface ICopilotPanelData {
   briefing?: ICopilotBriefing;
   summary?: ICopilotSummary;
   suggestions: ICopilotSuggestion[];
+}
+
+/** Which conversations the assistant acts on. */
+export type CopilotReach = "all" | "customer_only" | "lead_only";
+
+/** When the analysis runs. Only meaningful once `engine === "ai"` (sub-project B). */
+export type CopilotTrigger = "on_demand" | "on_open" | "on_new_message";
+
+/** Which engine produces summary and suggestions. */
+export type CopilotEngine = "rules" | "ai";
+
+/**
+ * Conversation-assistant behaviour (spec 2026-07-22). Stored at
+ * `stores.settings->'copilotAssistant'`; absent → DEFAULT_COPILOT_ASSISTANT_SETTINGS.
+ *
+ * The panel PLACEMENT is deliberately NOT here: it stays a per-person
+ * preference in localStorage (`gallo-copilot-placement`), because it is taste,
+ * not operational policy.
+ */
+export interface ICopilotAssistantSettings {
+  enabled: boolean;
+  reach: CopilotReach;
+  /** WhatsApp accounts the assistant acts on. Empty → every account. */
+  accountIds: ID[];
+  /** Roles that see the panel. */
+  roles: RoleName[];
+
+  trigger: CopilotTrigger;
+  /** Minutes an analysis stays valid before being redone (sub-project B). */
+  cacheMinutes: number;
+  /** New inbound messages required before redoing an analysis (sub-project B). */
+  minNewMessages: number;
+  /** How many recent messages the assistant reads. */
+  messageWindow: number;
+
+  showSummary: boolean;
+  showSuggestions: boolean;
+  showReplyButton: boolean;
+  /** Open the panel automatically when there is at least one suggestion. */
+  autoExpandOnAlert: boolean;
+
+  engine: CopilotEngine;
+  /** Assistant's own monthly cap in BRL, inside the platform-wide cap. 0 = none. */
+  monthlyCapBRL: number;
+  /** Percentage of the own cap that notifies the Owner. */
+  alertThresholdPct: number;
 }

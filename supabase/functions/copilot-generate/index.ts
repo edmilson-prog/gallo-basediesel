@@ -10,7 +10,6 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
  * ai_usage_events (source='routed', feature='conversation_copilot').
  */
 
-import { type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
 import { requireAnyCaller } from "../_shared/auth.ts";
 import { createSecretResolver } from "../_shared/secrets.ts";
 import { HttpError, json, parseJsonBody } from "../_shared/http.ts";
@@ -29,7 +28,8 @@ import { buildReplyPrompt, type PromptMessage } from "./prompt.ts";
 const FEATURE = "conversation_copilot";
 const LLM_TIMEOUT_MS = 60_000;
 const MAX_REPLY_TOKENS = 600; // copilot reply is short
-const MESSAGES_LIMIT = 200;
+const DEFAULT_MESSAGE_WINDOW = 40;
+const MAX_MESSAGE_WINDOW = 200;
 const SUPPORTED = new Set(["anthropic", "openai", "openrouter"]);
 const KEY_BY_PROVIDER: Record<string, string> = {
   anthropic: "ANTHROPIC_API_KEY",
@@ -62,18 +62,6 @@ function pricingFor(settings: SettingsRow, providerId: string, model: string): M
   return { inputPricePer1kUsd: m.inputPricePer1kUsd, outputPricePer1kUsd: m.outputPricePer1kUsd };
 }
 
-async function monthSpendBRL(admin: SupabaseClient): Promise<number> {
-  const start = new Date();
-  start.setUTCDate(1);
-  start.setUTCHours(0, 0, 0, 0);
-  const { data, error } = await admin
-    .from("ai_usage_events")
-    .select("cost_brl")
-    .gte("ts", start.toISOString());
-  if (error) throw new HttpError(500, `budget read failed: ${error.message}`);
-  return (data ?? []).reduce((a: number, r: { cost_brl: number | string }) => a + Number(r.cost_brl), 0);
-}
-
 function dispatch(
   providerId: string,
   apiKey: string,
@@ -86,7 +74,7 @@ function dispatch(
 }
 
 servePost(async (req, { log }) => {
-  const { callerId, admin, callerClient, profile } = await requireAnyCaller(req);
+  const { callerId, admin, callerClient } = await requireAnyCaller(req);
   const body = await parseJsonBody(req);
   const conversationId = String(body.conversationId ?? "");
   if (!conversationId) throw new HttpError(400, "conversationId é obrigatório");
@@ -94,9 +82,9 @@ servePost(async (req, { log }) => {
   // 1. Access check + load conversation (RLS via caller — can_access_conversation).
   const { data: conv, error: convErr } = await callerClient
     .from("conversations")
-    .select("id, customer_id")
+    .select("id, customer_id, store_id")
     .eq("id", conversationId)
-    .maybeSingle<{ id: string; customer_id: string | null }>();
+    .maybeSingle<{ id: string; customer_id: string | null; store_id: string }>();
   if (convErr) throw new HttpError(500, `conversation read failed: ${convErr.message}`);
   if (!conv) throw new HttpError(403, "sem acesso a esta conversa");
 
@@ -118,14 +106,34 @@ servePost(async (req, { log }) => {
   const model = route.model;
   if (!model) throw new HttpError(400, "nenhum modelo configurado para o copiloto");
 
-  // 3. Messages (RLS via caller), ascending by sentAt.
-  const { data: msgs, error: mErr } = await callerClient
+  // Assistant message window lives with the store settings, not with ai_settings.
+  const { data: storeRow } = await admin
+    .from("stores")
+    .select("settings")
+    .eq("id", conv.store_id)
+    .maybeSingle<{ settings: { copilotAssistant?: { messageWindow?: number } } | null }>();
+  const copilotMessageWindow = storeRow?.settings?.copilotAssistant?.messageWindow;
+
+  // 3. Messages (RLS via caller). Read the MOST RECENT window, then flip to
+  // ascending for the prompt. Reading ascending with a plain limit — as this
+  // did — returns the OLDEST messages, so on a long conversation the model
+  // was answering a discussion from months ago.
+  const rawWindow = Number(copilotMessageWindow ?? DEFAULT_MESSAGE_WINDOW);
+  const windowSize = Math.min(
+    MAX_MESSAGE_WINDOW,
+    Math.max(5, Number.isFinite(rawWindow) ? rawWindow : DEFAULT_MESSAGE_WINDOW),
+  );
+  const { data: msgsDesc, error: mErr } = await callerClient
     .from("messages")
-    .select("direction, author_type, text, sent_at")
+    .select("direction, author_type, text, sent_at, id")
     .eq("conversation_id", conversationId)
-    .order("sent_at", { ascending: true })
-    .limit(MESSAGES_LIMIT);
+    .order("sent_at", { ascending: false })
+    // Stable tiebreak: `sent_at` has second granularity on imported messages and
+    // ties are common in bursts — without it the window cut is non-deterministic.
+    .order("id", { ascending: false })
+    .limit(windowSize);
   if (mErr) throw new HttpError(500, `messages read failed: ${mErr.message}`);
+  const msgs = (msgsDesc ?? []).slice().reverse();
 
   // 4. Customer (optional; RLS via caller).
   let customer: { name?: string; type?: string; status?: string } | undefined;
@@ -163,14 +171,24 @@ servePost(async (req, { log }) => {
     text: m.text ?? "",
     sentAt: m.sent_at,
   }));
-  const userPrompt = buildReplyPrompt({ messages: promptMessages, customer });
+  // Wire the store's configured window through to the prompt builder — without
+  // this, buildReplyPrompt falls back to its own DEFAULT_MAX_MESSAGES (30),
+  // silently capping any windowSize configured above 30.
+  const userPrompt = buildReplyPrompt({ messages: promptMessages, customer, maxMessages: windowSize });
   if (!userPrompt) throw new HttpError(422, "conversa sem conteúdo do cliente para gerar resposta");
 
-  // 6. Budget hard cap (best-effort).
-  const spent = await monthSpendBRL(admin);
-  if (settings.budget.monthlyCapBRL > 0 && spent >= settings.budget.monthlyCapBRL) {
-    throw new HttpError(402, "orçamento de IA do mês esgotado");
-  }
+  // 6. Budget gate — best-effort monthly ceiling (see RPC; true reservation
+  // deferred to sub-project B). The advisory lock inside the RPC serialises
+  // the check, not the spend, so concurrent in-flight requests can still
+  // jointly exceed the cap; scoped per-store for the copilot sub-cap via
+  // conv.store_id (loaded in step 1, above).
+  const { data: hasRoom, error: budgetErr } = await admin.rpc("ai_budget_try_consume", {
+    p_feature: FEATURE,
+    p_estimated_brl: 0,
+    p_store_id: conv.store_id,
+  });
+  if (budgetErr) throw new HttpError(500, `budget check failed: ${budgetErr.message}`);
+  if (hasRoom !== true) throw new HttpError(402, "orçamento de IA do mês esgotado");
 
   // 7. Resolve key (Vault-first).
   const resolveSecret = createSecretResolver(admin);
@@ -211,7 +229,10 @@ servePost(async (req, { log }) => {
       latency_ms: latencyMs,
       status: "error",
       caller_id: callerId,
-      store_id: profile.store_id,
+      // Attribute spend to the CONVERSATION's store, not the caller's profile
+      // store — the sub-cap check above (step 6) sums ai_usage_events by
+      // conv.store_id, so the write must land in the same bucket it reads.
+      store_id: conv.store_id,
     });
     if (insErr) log.error("copilot-generate error-usage insert failed", { error: insErr.message });
     log.error("copilot-generate llm call failed", { providerId, model, aborted });
@@ -245,7 +266,9 @@ servePost(async (req, { log }) => {
     latency_ms: latencyMs,
     status: "ok",
     caller_id: callerId,
-    store_id: profile.store_id,
+    // Same reasoning as the error-case insert above: keep spend attribution
+    // aligned with the per-store sub-cap read (conv.store_id, not profile.store_id).
+    store_id: conv.store_id,
   });
   if (insErr) log.error("copilot-generate usage insert failed", { error: insErr.message, costBRL });
 

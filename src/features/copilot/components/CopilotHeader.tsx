@@ -24,7 +24,17 @@ export function CopilotHeader({ briefing, trailing }: ICopilotHeaderProps) {
       <span className="text-sm font-bold text-primary">{COPILOT_STRINGS.title}</span>
       {briefing && (
         <span className="flex min-w-0 items-center gap-1.5 truncate text-[11px] text-muted-foreground">
-          <span className="font-semibold uppercase text-warning">{briefing.lifecycleStatus}</span>
+          {briefing.kind === "lead" ? (
+            <span className="font-semibold uppercase text-info">
+              Lead{briefing.leadStage ? ` · ${briefing.leadStage}` : ""}
+            </span>
+          ) : (
+            briefing.lifecycleStatus && (
+              <span className="font-semibold uppercase text-warning">
+                {briefing.lifecycleStatus}
+              </span>
+            )
+          )}
           {briefing.abcClass && (
             <>
               <span className="text-muted-foreground/60">·</span>
@@ -43,6 +53,12 @@ export function CopilotHeader({ briefing, trailing }: ICopilotHeaderProps) {
             <>
               <span className="text-muted-foreground/60">·</span>
               <span>recência {briefing.recencyDays}d</span>
+            </>
+          )}
+          {briefing.kind === "lead" && briefing.leadOrigin && (
+            <>
+              <span className="text-muted-foreground/60">·</span>
+              <span>{briefing.leadOrigin}</span>
             </>
           )}
         </span>
