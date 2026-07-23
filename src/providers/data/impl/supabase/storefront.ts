@@ -10,6 +10,7 @@ import type {
 import { DEFAULT_STOREFRONT_CONFIG } from "@/shared/types";
 import type { IStorefrontProvider } from "../../contracts/storefront";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link IStorefrontProvider} (PRD-110 — anon wiring).
@@ -37,7 +38,12 @@ const TABLE = "parts";
 const PUBLIC_COLUMNS =
   "id, sku, name, description, oem_codes, equivalent_part_ids, cross_references, segment, application_notes, applications, brand, category, subcategory, is_original, image_url, unit_price, gtin, reference, group_label, part_type, weight_kg, box_quantity, fractionable, unit_of_measure, stock_available, stock_minimum, division, active, store_id, created_at, updated_at";
 
-const CATALOG_LIMIT = 2000;
+/**
+ * Safety ceiling for the full public catalog fetch. Fulfilled in sequential
+ * ≤1000-row chunks by `fetchLargePage` (PostgREST caps any single request at
+ * 1000 rows), so this is a real ceiling — keep it above the catalog size.
+ */
+const CATALOG_LIMIT = 10_000;
 const DEFAULT_TOP_LIMIT = 2000;
 
 /** Raw row shape returned when selecting {@link PUBLIC_COLUMNS}. */
@@ -123,13 +129,21 @@ function rowToPublicPart(row: PublicPartRow): IPart {
 
 export const supabaseStorefrontProvider: IStorefrontProvider = {
   async listCatalog(): Promise<IPart[]> {
-    const { data, error } = await getSupabaseClient()
-      .from(TABLE)
-      .select(PUBLIC_COLUMNS)
-      .order("name", { ascending: true })
-      .range(0, CATALOG_LIMIT - 1);
-    if (error) throw new Error(`[supabase] storefront.listCatalog failed: ${error.message}`);
-    return (data as PublicPartRow[]).map(rowToPublicPart);
+    const { data } = await fetchLargePage<PublicPartRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await getSupabaseClient()
+          .from(TABLE)
+          .select(PUBLIC_COLUMNS, { count: "exact" })
+          .order("name", { ascending: true })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] storefront.listCatalog failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as PublicPartRow[], count: count ?? 0 };
+      },
+      0,
+      CATALOG_LIMIT,
+    );
+    return data.map(rowToPublicPart);
   },
 
   async getPart(id: ID): Promise<IPart> {

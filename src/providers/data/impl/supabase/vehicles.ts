@@ -6,6 +6,7 @@ import type {
 } from "../../contracts/vehicles";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link IVehiclesProvider} (PRD-016/104).
@@ -115,8 +116,9 @@ async function resolveScopedCustomerIds(params: IListVehiclesParams): Promise<ID
 
 export const supabaseVehiclesProvider: IVehiclesProvider = {
   async list(params: IListVehiclesParams = {}): Promise<IPaginatedResult<IVehicle>> {
-    const page = params.page ?? 1;
-    const pageSize = params.pageSize ?? 20;
+    const page = Math.max(1, Math.floor(params.page ?? 1));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
+    const from = (page - 1) * pageSize;
 
     const scopedCustomerIds = await resolveScopedCustomerIds(params);
     // Scope filters matched no customer → no vehicles.
@@ -124,42 +126,51 @@ export const supabaseVehiclesProvider: IVehiclesProvider = {
       return { data: [], total: 0, page, pageSize };
     }
 
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
 
-    if (params.customerId) query = query.eq("customer_id", params.customerId);
-    if (params.customerIds && params.customerIds.length > 0)
-      query = query.in("customer_id", params.customerIds);
-    if (scopedCustomerIds !== null) query = query.in("customer_id", scopedCustomerIds);
-    if (params.brand) query = query.eq("brand", params.brand);
-    if (params.brands && params.brands.length > 0) query = query.in("brand", params.brands);
-    if (params.model) query = query.ilike("model", `%${params.model}%`);
-    if (params.engine) query = query.ilike("engine", `%${params.engine}%`);
-    if (params.yearMin !== undefined) query = query.gte("year", params.yearMin);
-    if (params.yearMax !== undefined) query = query.lte("year", params.yearMax);
-    if (params.cadastroStatus) query = query.eq("cadastro_status", params.cadastroStatus);
-    if (params.cadastroStatuses && params.cadastroStatuses.length > 0)
-      query = query.in("cadastro_status", params.cadastroStatuses);
-    if (params.search) {
-      const q = params.search.trim();
-      if (q.length > 0) {
-        const like = `%${q}%`;
-        query = query.or(`plate.ilike.${like},vin.ilike.${like},model.ilike.${like}`);
+      if (params.customerId) query = query.eq("customer_id", params.customerId);
+      if (params.customerIds && params.customerIds.length > 0)
+        query = query.in("customer_id", params.customerIds);
+      if (scopedCustomerIds !== null) query = query.in("customer_id", scopedCustomerIds);
+      if (params.brand) query = query.eq("brand", params.brand);
+      if (params.brands && params.brands.length > 0) query = query.in("brand", params.brands);
+      if (params.model) query = query.ilike("model", `%${params.model}%`);
+      if (params.engine) query = query.ilike("engine", `%${params.engine}%`);
+      if (params.yearMin !== undefined) query = query.gte("year", params.yearMin);
+      if (params.yearMax !== undefined) query = query.lte("year", params.yearMax);
+      if (params.cadastroStatus) query = query.eq("cadastro_status", params.cadastroStatus);
+      if (params.cadastroStatuses && params.cadastroStatuses.length > 0)
+        query = query.in("cadastro_status", params.cadastroStatuses);
+      if (params.search) {
+        const q = params.search.trim();
+        if (q.length > 0) {
+          const like = `%${q}%`;
+          query = query.or(`plate.ilike.${like},vin.ilike.${like},model.ilike.${like}`);
+        }
       }
-    }
+      return query;
+    };
 
     const orderColumn = VALID_ORDER_COLUMNS[params.orderBy ?? "brand"] ?? "brand";
     const ascending = (params.orderDir ?? "asc") === "asc";
-    query = query.order(orderColumn, { ascending });
 
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-    query = query.range(from, to);
+    const { data, total } = await fetchLargePage<VehicleRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order(orderColumn, { ascending })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] vehicles.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as VehicleRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
-    const { data, error, count } = await query;
-    if (error) throw new Error(`[supabase] vehicles.list failed: ${error.message}`);
     return {
-      data: (data as VehicleRow[]).map(rowToVehicle),
-      total: count ?? 0,
+      data: data.map(rowToVehicle),
+      total,
       page,
       pageSize,
     };
