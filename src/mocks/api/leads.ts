@@ -21,12 +21,12 @@ const OPEN_CONVERSATION_STATUSES: IConversation["status"][] = [
 
 /**
  * Conversion side-effect — mirrors the DB trigger
- * `reanchor_converted_lead_conversations` (migration 20260723211000): every
+ * `reanchor_converted_lead_conversations` (migration 20260723165546): every
  * webhook resolver checks customer BEFORE lead, so once the lead is converted
  * a lead-anchored conversation becomes invisible to the lookups and the next
  * message would mint a duplicate. Keeps at most ONE open conversation per
  * (customer, WhatsApp account) — the same guarantee the partial unique index
- * (migration 20260723210000) enforces in Supabase.
+ * (migration 20260723165509) enforces in Supabase.
  */
 function reanchorConvertedLeadConversations(leadId: ID, customerId: ID): void {
   const ofLead = selectAllConversations().filter((c) => c.leadId === leadId);

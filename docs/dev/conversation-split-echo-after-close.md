@@ -149,7 +149,7 @@ O caso VOLTECH não está nesta lista porque a conversa antiga está `resolvida`
 
 ## 7. Plano de correção (por prioridade) — itens 1, 2 e 4 IMPLEMENTADOS neste PR
 
-1. ✅ **Guarda de unicidade contra a corrida** — migration `20260723210000_unique_open_conversation_guard.sql`:
+1. ✅ **Guarda de unicidade contra a corrida** — migration `20260723165509_unique_open_conversation_guard.sql`:
    limpeza (arquiva todas-menos-a-mais-recente das conversas abertas duplicadas por contato+conta,
    ~13 grupos) + **2 índices únicos parciais** (`conversations_one_open_per_customer_account` /
    `_lead_account`, `WHERE status NOT IN ('resolvida','arquivada') AND whatsapp_account_id IS NOT NULL`).
@@ -167,7 +167,7 @@ O caso VOLTECH não está nesta lista porque a conversa antiga está `resolvida`
    - b) Eco sempre reabre (simetria total; mexe em fila/métricas).
    - c) Só UI: agrupar conversas do mesmo contato+instância na Inbox.
    - d) Não mexer (documentar para o time).
-4. ✅ **Reancorar conversas na conversão de lead** — migration `20260723211000_reanchor_lead_conversations.sql`:
+4. ✅ **Reancorar conversas na conversão de lead** — migration `20260723165546_reanchor_lead_conversations.sql`:
    trigger `leads_reanchor_converted` (AFTER UPDATE de `converted_to_customer_id`) re-ancora as
    conversas do lead no cliente (histórico migra junto); conversas abertas que conflitariam com uma
    aberta do cliente na mesma conta são arquivadas (o tráfego já flui para a do cliente). Espelhado
@@ -219,7 +219,7 @@ antes do deploy derrubaria o lado perdedor de cada corrida. Ordem correta:
    (`npx supabase functions deploy <fn> --project-ref njizaasajkdqptlxddqn`) — fail-closed ativo;
    23505 ainda não ocorre. Os importadores (`whatsapp-import-history*`) só precisam de redeploy se
    forem usados após a migration.
-3. **Aplicar migration `20260723210000`** (limpeza + índices) via MCP, com OK do dono.
-4. **Aplicar migration `20260723211000`** (trigger de reancoragem) via MCP.
+3. **Aplicar migration `20260723165509`** (limpeza + índices) via MCP, com OK do dono.
+4. **Aplicar migration `20260723165546`** (trigger de reancoragem) via MCP.
 5. Smoke: enviar do celular para um contato com conversa aberta; resolver + eco (deve criar nova —
    comportamento intencional preservado); converter um lead com conversa e conferir a ficha do cliente.

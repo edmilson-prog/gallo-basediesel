@@ -787,7 +787,7 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
   //    instead of spawning a duplicate (spec 2026-07-03 §1.5). Open-first also
   //    removes the reopen-collision class under the
   //    one-open-per-contact-per-account unique index (migration
-  //    20260723210000): a reopen only ever runs when no open row exists.
+  //    20260723165509): a reopen only ever runs when no open row exists.
   let conversation: { id: string; status: string } | null =
     resolved.kind === "customer"
       ? await db.findOpenConversation(resolved.id, account.id)
