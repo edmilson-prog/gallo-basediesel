@@ -63,6 +63,27 @@ describe("planAddToFunnel", () => {
     });
     expect(plan.action).toBe("error");
   });
+
+  it("honors an explicit valid stageId instead of the entry stage", () => {
+    const cataNegociacao = stage("cata-negociacao", "catalisador", { kind: "aberta" });
+    const plan = planAddToFunnel({
+      existing: [], funnel: catalisador, stages: [cataEntry, cataNegociacao],
+      leadEstimatedValue: undefined, stageId: "cata-negociacao",
+    });
+    expect(plan.action).toBe("create");
+    if (plan.action !== "create") throw new Error("unreachable");
+    expect(plan.stageId).toBe("cata-negociacao");
+  });
+
+  it("errors when an explicit stageId does not exist in the funnel's stages", () => {
+    const plan = planAddToFunnel({
+      existing: [], funnel: catalisador, stages: [cataEntry],
+      leadEstimatedValue: undefined, stageId: "stage-inexistente",
+    });
+    expect(plan.action).toBe("error");
+    if (plan.action !== "error") throw new Error("unreachable");
+    expect(plan.reason).toBe("invalid_stage");
+  });
 });
 
 describe("planRemoveFromFunnel", () => {

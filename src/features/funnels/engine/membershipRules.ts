@@ -3,7 +3,8 @@ import type { ID, ILeadFunnel, ILeadFunnelEntry, ILeadFunnelStage, Money } from 
 export type AddPlan =
   | { action: "create"; funnelId: ID; stageId: ID; estimatedValue?: Money }
   | { action: "noop"; reason: "already_member" }
-  | { action: "error"; reason: "no_entry_stage" };
+  | { action: "error"; reason: "no_entry_stage" }
+  | { action: "error"; reason: "invalid_stage" };
 
 export type RemovePlan =
   | {
@@ -30,16 +31,28 @@ export function planAddToFunnel(input: IAddInput): AddPlan {
     return { action: "noop", reason: "already_member" };
   }
 
-  const target =
-    (input.stageId && input.stages.find((s) => s.id === input.stageId)) ??
-    input.stages.find((s) => s.kind === "entrada");
+  // An explicit stageId is a caller request, not a hint — if it doesn't
+  // resolve to a real stage, that must surface as an error, never silently
+  // fall back to the entry stage.
+  if (input.stageId !== undefined) {
+    const target = input.stages.find((s) => s.id === input.stageId);
+    if (!target) return { action: "error", reason: "invalid_stage" };
 
-  if (!target) return { action: "error", reason: "no_entry_stage" };
+    return {
+      action: "create",
+      funnelId: input.funnel.id,
+      stageId: target.id,
+      estimatedValue: input.leadEstimatedValue,
+    };
+  }
+
+  const entryStage = input.stages.find((s) => s.kind === "entrada");
+  if (!entryStage) return { action: "error", reason: "no_entry_stage" };
 
   return {
     action: "create",
     funnelId: input.funnel.id,
-    stageId: target.id,
+    stageId: entryStage.id,
     estimatedValue: input.leadEstimatedValue,
   };
 }
