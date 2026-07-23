@@ -1,4 +1,4 @@
-import type { ID, ILead, ILeadNote } from "@/shared/types";
+import type { ID, ILead, ILeadNote, ILeadStage } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 export interface IListLeadsParams extends IPaginationParams {
@@ -35,5 +35,13 @@ export interface ILeadsProvider {
   addNote(leadId: ID, content: string, authorId: ID): Promise<ILeadNote>;
   create(input: Omit<ILead, "id" | "createdAt" | "updatedAt" | "conversations">): Promise<ILead>;
   update(id: ID, patch: Partial<ILead>): Promise<ILead>;
+  /**
+   * Marks a lead as converted (closing stage + `convertedToCustomerId`) via a
+   * gated `SECURITY DEFINER` RPC in supabase, so the assigned attendant — not
+   * just staff / the owner — can convert without tripping the per-owner leads
+   * RLS. The customer itself is created through the normal `customers` INSERT
+   * (it belongs to whoever converts). Mock mirrors it as a plain lead update.
+   */
+  markConverted(leadId: ID, args: { stage: ILeadStage; customerId: ID }): Promise<void>;
   delete(id: ID): Promise<void>;
 }
