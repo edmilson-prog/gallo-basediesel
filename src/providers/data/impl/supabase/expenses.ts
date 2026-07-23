@@ -17,6 +17,7 @@ import type {
 } from "../../contracts/expenses";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link IExpensesProvider} (PRD-054 / PRD-120+).
@@ -207,36 +208,44 @@ async function getExpense(id: ID, method: string): Promise<IExpense> {
 
 export const supabaseExpensesProvider: IExpensesProvider = {
   async list(params: IListExpensesParams = {}): Promise<IPaginatedResult<IExpense>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
-
-    if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
-    if (params.categories && params.categories.length > 0) {
-      query = query.in("category", params.categories);
-    }
-    if (params.statuses && params.statuses.length > 0) {
-      query = query.in("status", params.statuses);
-    }
-    if (params.supplier) query = query.ilike("supplier", `%${params.supplier}%`);
-    if (params.paymentMethod) query = query.eq("payment_method", params.paymentMethod);
-    if (params.competenceStart) query = query.gte("competence_date", params.competenceStart);
-    if (params.competenceEnd) query = query.lte("competence_date", params.competenceEnd);
-    if (params.paymentStart) query = query.gte("payment_date", params.paymentStart);
-    if (params.paymentEnd) query = query.lte("payment_date", params.paymentEnd);
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (params.categories && params.categories.length > 0) {
+        query = query.in("category", params.categories);
+      }
+      if (params.statuses && params.statuses.length > 0) {
+        query = query.in("status", params.statuses);
+      }
+      if (params.supplier) query = query.ilike("supplier", `%${params.supplier}%`);
+      if (params.paymentMethod) query = query.eq("payment_method", params.paymentMethod);
+      if (params.competenceStart) query = query.gte("competence_date", params.competenceStart);
+      if (params.competenceEnd) query = query.lte("competence_date", params.competenceEnd);
+      if (params.paymentStart) query = query.gte("payment_date", params.paymentStart);
+      if (params.paymentEnd) query = query.lte("payment_date", params.paymentEnd);
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query
-      .order("competence_date", { ascending: false })
-      .range(from, to);
-
-    if (error) throw new Error(`[supabase] expenses.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<ExpenseRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("competence_date", { ascending: false })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] expenses.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as ExpenseRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as ExpenseRow[]).map(rowToExpense),
-      total: count ?? 0,
+      data: data.map(rowToExpense),
+      total,
       page,
       pageSize,
     };

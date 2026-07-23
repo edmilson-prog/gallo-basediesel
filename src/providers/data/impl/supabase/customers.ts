@@ -14,6 +14,7 @@ import type { IListCustomersParams, ICustomersProvider, IConvertPendingContactIn
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { buildDigitSearchCandidates } from "@/shared/utils/digitSearch";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link ICustomersProvider} (PRD-110+).
@@ -288,61 +289,71 @@ export function buildCustomerSearchOr(search: string): string | null {
 
 export const supabaseCustomersProvider: ICustomersProvider = {
   async list(params: IListCustomersParams = {}): Promise<IPaginatedResult<ICustomer>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
 
-    if (params.storeIds && params.storeIds.length > 0) {
-      query = query.in("store_id", params.storeIds);
-    } else if (params.storeId !== undefined) {
-      query = query.eq("store_id", params.storeId);
-    }
+      if (params.storeIds && params.storeIds.length > 0) {
+        query = query.in("store_id", params.storeIds);
+      } else if (params.storeId !== undefined) {
+        query = query.eq("store_id", params.storeId);
+      }
 
-    if (params.statuses && params.statuses.length > 0) {
-      query = query.in("status", params.statuses);
-    } else if (params.status !== undefined) {
-      query = query.eq("status", params.status);
-    }
+      if (params.statuses && params.statuses.length > 0) {
+        query = query.in("status", params.statuses);
+      } else if (params.status !== undefined) {
+        query = query.eq("status", params.status);
+      }
 
-    if (params.type !== undefined) query = query.eq("type", params.type);
+      if (params.type !== undefined) query = query.eq("type", params.type);
 
-    if (params.sellerIds && params.sellerIds.length > 0) {
-      query = query.in("seller_id", params.sellerIds);
-    } else if (params.sellerId !== undefined) {
-      query = query.eq("seller_id", params.sellerId);
-    }
+      if (params.sellerIds && params.sellerIds.length > 0) {
+        query = query.in("seller_id", params.sellerIds);
+      } else if (params.sellerId !== undefined) {
+        query = query.eq("seller_id", params.sellerId);
+      }
 
-    if (params.hasB2BPortal) query = query.eq("has_b2b_portal", true);
+      if (params.hasB2BPortal) query = query.eq("has_b2b_portal", true);
 
-    // Hide imported `pending_review` contacts (array overlap, negated): drop any
-    // row whose tags intersect excludeTags. Server-side so count/pagination match.
-    if (params.excludeTags && params.excludeTags.length > 0) {
-      query = query.not("tags", "ov", `{${params.excludeTags.join(",")}}`);
-    }
+      // Hide imported `pending_review` contacts (array overlap, negated): drop any
+      // row whose tags intersect excludeTags. Server-side so count/pagination match.
+      if (params.excludeTags && params.excludeTags.length > 0) {
+        query = query.not("tags", "ov", `{${params.excludeTags.join(",")}}`);
+      }
 
-    // Include filters: OR semantics — customer must carry ANY of the selected tags.
-    if (params.tag) {
-      query = query.overlaps("tags", [params.tag]);
-    }
-    if (params.tags && params.tags.length > 0) {
-      query = query.overlaps("tags", params.tags);
-    }
+      // Include filters: OR semantics — customer must carry ANY of the selected tags.
+      if (params.tag) {
+        query = query.overlaps("tags", [params.tag]);
+      }
+      if (params.tags && params.tags.length > 0) {
+        query = query.overlaps("tags", params.tags);
+      }
 
-    const searchOr = params.search ? buildCustomerSearchOr(params.search) : null;
-    if (searchOr) query = query.or(searchOr);
+      const searchOr = params.search ? buildCustomerSearchOr(params.search) : null;
+      if (searchOr) query = query.or(searchOr);
+
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query
-      .order("created_at", { ascending: true })
-      .range(from, to);
-
-    if (error) throw new Error(`[supabase] customers.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<CustomerRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] customers.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as CustomerRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as CustomerRow[]).map((row) => rowToCustomer(row)),
-      total: count ?? 0,
+      data: data.map((row) => rowToCustomer(row)),
+      total,
       page,
       pageSize,
     };

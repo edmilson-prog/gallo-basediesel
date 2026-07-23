@@ -14,6 +14,7 @@ import type {
 import type { IListPartsParams, IPartsProvider } from "../../contracts/parts";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link IPartsProvider} (PRD-110).
@@ -198,32 +199,43 @@ function createInputToRow(
 export const supabasePartsProvider: IPartsProvider = {
   async list(params: IListPartsParams = {}): Promise<IPaginatedResult<IPart>> {
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
-
-    if (typeof params.active === "boolean") query = query.eq("active", params.active);
-    if (params.brand) query = query.eq("brand", params.brand);
-    if (params.inStock) query = query.gt("stock_available", 0);
-    if (params.oem) query = query.ilike("oem_codes_text", `%${params.oem}%`);
-    if (params.search) {
-      const q = params.search;
-      query = query.or(
-        `name.ilike.%${q}%,sku.ilike.%${q}%,brand.ilike.%${q}%,oem_codes_text.ilike.%${q}%`,
-      );
-    }
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      if (typeof params.active === "boolean") query = query.eq("active", params.active);
+      if (params.brand) query = query.eq("brand", params.brand);
+      if (params.inStock) query = query.gt("stock_available", 0);
+      if (params.oem) query = query.ilike("oem_codes_text", `%${params.oem}%`);
+      if (params.search) {
+        const q = params.search;
+        query = query.or(
+          `name.ilike.%${q}%,sku.ilike.%${q}%,brand.ilike.%${q}%,oem_codes_text.ilike.%${q}%`,
+        );
+      }
+      return query;
+    };
 
     const column = ORDER_BY_COLUMN[params.orderBy ?? "name"];
     const ascending = params.orderDir !== "desc";
-    query = query.order(column, { ascending }).range(from, to);
 
-    const { data, error, count } = await query;
-    if (error) throw new Error(`[supabase] parts.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<PartRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order(column, { ascending })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] parts.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as PartRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
+
     return {
-      data: (data as PartRow[]).map(rowToPart),
-      total: count ?? 0,
+      data: data.map(rowToPart),
+      total,
       page,
       pageSize,
     };

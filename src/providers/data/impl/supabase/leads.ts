@@ -10,6 +10,7 @@ import type {
 import type { IListLeadsParams, ILeadsProvider } from "../../contracts/leads";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 import { buildDigitSearchCandidates } from "@/shared/utils/digitSearch";
 
 /**
@@ -167,32 +168,40 @@ export function buildLeadSearchOr(search: string): string | null {
 
 export const supabaseLeadsProvider: ILeadsProvider = {
   async list(params: IListLeadsParams = {}): Promise<IPaginatedResult<ILead>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
-
-    if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
-    if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
-    if (params.stageId !== undefined) query = query.eq("stage->>id", params.stageId);
-    if (params.temperature !== undefined) query = query.eq("temperature", params.temperature);
-    if (params.excludeLost) query = query.is("loss_reason", null);
-    if (params.search) {
-      const orExpr = buildLeadSearchOr(params.search);
-      if (orExpr) query = query.or(orExpr);
-    }
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
+      if (params.stageId !== undefined) query = query.eq("stage->>id", params.stageId);
+      if (params.temperature !== undefined) query = query.eq("temperature", params.temperature);
+      if (params.excludeLost) query = query.is("loss_reason", null);
+      if (params.search) {
+        const orExpr = buildLeadSearchOr(params.search);
+        if (orExpr) query = query.or(orExpr);
+      }
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query
-      .order("updated_at", { ascending: false })
-      .range(from, to);
-
-    if (error) throw new Error(`[supabase] leads.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<LeadRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("updated_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] leads.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as LeadRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as LeadRow[]).map(rowToLead),
-      total: count ?? 0,
+      data: data.map(rowToLead),
+      total,
       page,
       pageSize,
     };

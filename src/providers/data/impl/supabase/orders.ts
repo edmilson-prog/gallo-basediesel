@@ -15,6 +15,7 @@ import type {
 import type { IListOrdersParams, IOrdersProvider } from "../../contracts/orders";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link IOrdersProvider} (PRD-110+).
@@ -274,32 +275,40 @@ function createInputToRow(
 
 export const supabaseOrdersProvider: IOrdersProvider = {
   async list(params: IListOrdersParams = {}): Promise<IPaginatedResult<IOrder>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
-
-    if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
-    if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
-    if (params.customerId !== undefined) query = query.eq("customer_id", params.customerId);
-    if (params.paymentStatus !== undefined)
-      query = query.eq("payment_status", params.paymentStatus);
-    if (params.fulfillmentStatus !== undefined)
-      query = query.eq("fulfillment_status", params.fulfillmentStatus);
-    if (params.since !== undefined) query = query.gte("created_at", params.since);
-    if (params.until !== undefined) query = query.lte("created_at", params.until);
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
+      if (params.customerId !== undefined) query = query.eq("customer_id", params.customerId);
+      if (params.paymentStatus !== undefined)
+        query = query.eq("payment_status", params.paymentStatus);
+      if (params.fulfillmentStatus !== undefined)
+        query = query.eq("fulfillment_status", params.fulfillmentStatus);
+      if (params.since !== undefined) query = query.gte("created_at", params.since);
+      if (params.until !== undefined) query = query.lte("created_at", params.until);
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query
-      .order("created_at", { ascending: false })
-      .range(from, to);
-
-    if (error) throw new Error(`[supabase] orders.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<OrderRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] orders.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as OrderRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as OrderRow[]).map(rowToOrder),
-      total: count ?? 0,
+      data: data.map(rowToOrder),
+      total,
       page,
       pageSize,
     };
