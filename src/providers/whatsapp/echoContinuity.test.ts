@@ -18,7 +18,9 @@ describe("resolveEchoContinuityWindowHours", () => {
   it("defaults on malformed values instead of trusting them", () => {
     expect(resolveEchoContinuityWindowHours({ echoContinuity: { windowHours: "48" } })).toBe(24);
     expect(resolveEchoContinuityWindowHours({ echoContinuity: { windowHours: NaN } })).toBe(24);
-    expect(resolveEchoContinuityWindowHours({ echoContinuity: { windowHours: Infinity } })).toBe(24);
+    expect(resolveEchoContinuityWindowHours({ echoContinuity: { windowHours: Infinity } })).toBe(
+      24,
+    );
   });
 
   it("honors an explicit value, clamping negatives to 0 (disabled)", () => {

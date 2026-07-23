@@ -33,17 +33,19 @@ export function EchoContinuitySettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings]);
 
-  const dirty = useMemo(() => settings != null && draftHours !== savedHours, [
-    settings,
-    draftHours,
-    savedHours,
-  ]);
+  const dirty = useMemo(
+    () => settings != null && draftHours !== savedHours,
+    [settings, draftHours, savedHours],
+  );
   const unsaved = useUnsavedChanges(dirty);
 
   const handleSave = async () => {
     if (!settings) return;
     try {
-      await update({ echoContinuity: { windowHours: draftHours } }, "settings.echo_continuity.update");
+      await update(
+        { echoContinuity: { windowHours: draftHours } },
+        "settings.echo_continuity.update",
+      );
       toast.success("Configuração salva", { icon: <Icon icon="mdi:check" size={16} /> });
     } catch {
       toast.error("Não foi possível salvar.");
@@ -102,12 +104,12 @@ export function EchoContinuitySettingsPage() {
 
         <div className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground space-y-2">
           <p>
-            <strong className="text-foreground">Como funciona:</strong> quando alguém do time responde
-            um contato <em>pelo celular</em> e a conversa dele foi marcada como{" "}
+            <strong className="text-foreground">Como funciona:</strong> quando alguém do time
+            responde um contato <em>pelo celular</em> e a conversa dele foi marcada como{" "}
             <strong className="text-foreground">Resolvida</strong> há menos tempo que a janela, a
-            mensagem entra na mesma conversa — <strong className="text-foreground">sem reabri-la</strong>.
-            Se o cliente responder depois, a conversa reabre normalmente, com o histórico inteiro no
-            mesmo lugar.
+            mensagem entra na mesma conversa —{" "}
+            <strong className="text-foreground">sem reabri-la</strong>. Se o cliente responder
+            depois, a conversa reabre normalmente, com o histórico inteiro no mesmo lugar.
           </p>
           <p>
             Fora da janela (ou com ela desligada), a resposta pelo celular abre uma conversa nova —
@@ -115,10 +117,20 @@ export function EchoContinuitySettingsPage() {
             <strong className="text-foreground">arquivadas</strong> nunca participam, e mensagens do
             cliente sempre reabrem, em qualquer prazo.
           </p>
+          <p>
+            <strong className="text-foreground">Atenção:</strong> dentro da janela, a resposta
+            enviada pelo celular <em>não aparece</em> na visão padrão da Inbox — a conversa continua
+            Resolvida (o filtro padrão oculta resolvidas). Ela volta ao topo da fila quando o
+            cliente responder e reabrir o atendimento.
+          </p>
         </div>
 
         <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
-          <Button variant="outline" onClick={() => setDraftHours(savedHours)} disabled={!dirty || saving}>
+          <Button
+            variant="outline"
+            onClick={() => setDraftHours(savedHours)}
+            disabled={!dirty || saving}
+          >
             Descartar
           </Button>
           <Button onClick={handleSave} disabled={!dirty || saving}>

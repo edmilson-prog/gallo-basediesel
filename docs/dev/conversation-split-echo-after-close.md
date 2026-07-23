@@ -173,6 +173,10 @@ O caso VOLTECH não está nesta lista porque a conversa antiga está `resolvida`
    (`conversations_maintain_closed_at`, migration `20260723200000`) com backfill da trilha, lookup de
    continuidade no eco do `waha-webhook`. O pipeline legado (Meta/Evolution/Go/OpenWA) mantém
    sempre-criar **de propósito** enquanto não carrega tráfego (nota no `webhook/core.ts`).
+   **Consequência deliberada de UX** (flagada na revisão): dentro da janela, o eco anexado **não
+   aparece na visão padrão da Inbox** (a conversa segue `resolvida` e o filtro padrão oculta
+   resolvidas — antes ele viraria uma conversa nova `aguardando`, visível na fila). O thread volta ao
+   topo quando o cliente responde e reabre. O copy da tela de configuração avisa isso ao Owner.
 4. ✅ **Reancorar conversas na conversão de lead** — migration `20260723165546_reanchor_lead_conversations.sql`:
    trigger `leads_reanchor_converted` (AFTER UPDATE de `converted_to_customer_id`) re-ancora as
    conversas do lead no cliente (histórico migra junto); conversas abertas que conflitariam com uma
