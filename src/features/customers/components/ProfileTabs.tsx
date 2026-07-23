@@ -44,8 +44,10 @@ export interface IProfileTabsProps {
   overviewVariant?: "column" | "page";
   /** Enables the inline cadastral editor in the Overview tab (detail page only). */
   cadastraisEditable?: boolean;
-  /** Nonce forwarded to the cadastral card to open the editor on demand. */
+  /** Truthy pulse forwarded to the cadastral card to open the editor on demand. */
   cadastraisEditSignal?: number;
+  /** Called when the cadastral card consumes the pulse (page resets it to 0). */
+  onCadastraisEditConsumed?: () => void;
   /**
    * Render the tab bar as icon-only triggers with tooltips, for the narrow
    * lateral fiche where the text labels overflow. Defaults to text labels.
@@ -170,6 +172,7 @@ export function ProfileTabs({
   overviewVariant = "column",
   cadastraisEditable,
   cadastraisEditSignal,
+  onCadastraisEditConsumed,
   iconOnlyTabs = false,
   copilotTab,
 }: IProfileTabsProps) {
@@ -236,6 +239,7 @@ export function ProfileTabs({
               variant={overviewVariant}
               cadastraisEditable={cadastraisEditable}
               cadastraisEditSignal={cadastraisEditSignal}
+              onCadastraisEditConsumed={onCadastraisEditConsumed}
             />
           )}
         </TabsContent>

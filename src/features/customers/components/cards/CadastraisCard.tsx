@@ -30,8 +30,11 @@ export interface ICadastraisCardProps {
   /** Enables the inline editor (detail page only). The Atendimento fiche mounts
    *  the card without this prop, so it stays read-only there. */
   editable?: boolean;
-  /** Nonce bumped by the ⋮ "Editar dados" action to open the editor on demand. */
+  /** Truthy pulse from the ⋮ "Editar dados" action to open the editor on demand. */
   editSignal?: number;
+  /** Called once the pulse has been consumed, so the page can reset it to 0 and
+   *  a later remount of this card doesn't reopen the editor from a stale value. */
+  onEditConsumed?: () => void;
 }
 
 /**
@@ -43,7 +46,12 @@ export interface ICadastraisCardProps {
  * self-contained inline editor (pure engine in `../../utils/customerDraft`).
  * Telefone stays read-only by design — it is the WhatsApp anchor.
  */
-export function CadastraisCard({ customer, editable, editSignal }: ICadastraisCardProps) {
+export function CadastraisCard({
+  customer,
+  editable,
+  editSignal,
+  onEditConsumed,
+}: ICadastraisCardProps) {
   const provider = useCustomersProvider();
   const queryClient = useQueryClient();
   const { currentUser, hasRole } = useAuth();
@@ -59,7 +67,9 @@ export function CadastraisCard({ customer, editable, editSignal }: ICadastraisCa
   const [draft, setDraft] = useState<ICustomerDraft | null>(null);
   const [errors, setErrors] = useState<ICustomerDraftErrors>({});
   const [saving, setSaving] = useState(false);
-  const consumedSignal = useRef<number | undefined>(undefined);
+  // Mirror of `editing` readable from the effect without widening its deps.
+  const editingRef = useRef(false);
+  editingRef.current = editing;
 
   const startEdit = () => {
     setDraft(toCustomerDraft(customer));
@@ -73,12 +83,13 @@ export function CadastraisCard({ customer, editable, editSignal }: ICadastraisCa
     setErrors({});
   };
 
-  // Open the editor when the menu bumps `editSignal` (once per distinct value).
+  // Open the editor when the menu pulses `editSignal`, then hand the pulse back
+  // so the page resets it to 0 (a later remount won't reopen from a stale value).
+  // A pulse arriving mid-edit is swallowed — it never re-freezes the draft.
   useEffect(() => {
     if (!editSignal || !showEdit) return;
-    if (editSignal === consumedSignal.current) return;
-    consumedSignal.current = editSignal;
-    startEdit();
+    if (!editingRef.current) startEdit();
+    onEditConsumed?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editSignal, showEdit]);
 

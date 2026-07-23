@@ -12,8 +12,10 @@ export interface IOverviewTabProps {
   variant?: "column" | "page";
   /** Enables the inline cadastral editor (detail page only). */
   cadastraisEditable?: boolean;
-  /** Nonce forwarded to the cadastral card to open the editor on demand. */
+  /** Truthy pulse forwarded to the cadastral card to open the editor on demand. */
   cadastraisEditSignal?: number;
+  /** Called when the cadastral card consumes the pulse (page resets it to 0). */
+  onCadastraisEditConsumed?: () => void;
 }
 
 export function OverviewTab({
@@ -21,6 +23,7 @@ export function OverviewTab({
   variant = "column",
   cadastraisEditable,
   cadastraisEditSignal,
+  onCadastraisEditConsumed,
 }: IOverviewTabProps) {
   if (variant === "page") {
     return (
@@ -30,6 +33,7 @@ export function OverviewTab({
             customer={customer}
             editable={cadastraisEditable}
             editSignal={cadastraisEditSignal}
+            onEditConsumed={onCadastraisEditConsumed}
           />
         </div>
         <div className="space-y-3">
@@ -48,6 +52,7 @@ export function OverviewTab({
         customer={customer}
         editable={cadastraisEditable}
         editSignal={cadastraisEditSignal}
+        onEditConsumed={onCadastraisEditConsumed}
       />
       <StatusWalletCard customer={customer} />
       <TagsCard customer={customer} />

@@ -110,6 +110,7 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
               overviewVariant="page"
               cadastraisEditable
               cadastraisEditSignal={editSignal}
+              onCadastraisEditConsumed={() => setEditSignal(0)}
             />
           </div>
         </div>
