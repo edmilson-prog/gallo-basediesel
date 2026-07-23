@@ -495,6 +495,11 @@ function CnpjField({
         </Button>
       </div>
       {error && <p className="text-[11px] text-red-600 dark:text-red-400">{error}</p>}
+      {/* The disabled button can't show its `title` tooltip, so spell the reason
+          out inline (only when there's no validation error already showing). */}
+      {!canLookup && !loading && !error && (
+        <p className="text-[11px] text-muted-foreground">{COPY.lookupCnpjHint}</p>
+      )}
       {situacao && (
         <span
           className={cn(

@@ -17,8 +17,8 @@
 
 ### Gatilho e layout
 
-- No `EditView` do `CadastraisCard` (só quando `type === "B2B"`), o campo CNPJ passa a ser `input + botão` lado a lado. O botão ("Buscar na Receita", ícone `mdi:office-building-outline` / spinner em loading) fica à direita do input.
-- **Habilitado** só quando `isValidCnpj(draft.cnpj)` (checksum válido, 14 dígitos). Desabilitado com tooltip/hint caso contrário e enquanto `loading`.
+- No `EditView` do `CadastraisCard` (só quando `type === "B2B"`), o campo CNPJ passa a ser `input + botão` lado a lado. O botão ("Buscar na Receita", ícone `mdi:cloud-search-outline` / spinner `mdi:loading` em loading) fica à direita do input.
+- **Habilitado** só quando `isValidCnpj(draft.cnpj)` (checksum válido, 14 dígitos). Desabilitado caso contrário e enquanto `loading`. Como o `title` não aparece em botão desabilitado, o hint ("Informe um CNPJ válido…") é renderizado como texto inline abaixo do campo quando o botão está desabilitado e não há erro de validação em exibição.
 
 ### Fluxo
 
