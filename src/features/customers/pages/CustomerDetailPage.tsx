@@ -25,6 +25,7 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
   const { customer, isLoading, isError, notFound, refetch } = useCustomerProfile(customerId);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>("atendimento");
+  const [editSignal, setEditSignal] = useState(0);
   const tabsRef = useRef<HTMLDivElement>(null);
 
   const goToTab = (tab: TabKey) => {
@@ -32,6 +33,11 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
     tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const handleNavigateTab = (target: PendingTabTarget) => goToTab(target as TabKey);
+
+  const handleEditData = () => {
+    goToTab("overview");
+    setEditSignal((n) => n + 1);
+  };
 
   if (isLoading) {
     return (
@@ -77,7 +83,7 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex min-h-full flex-col bg-background">
-        <CustomerDetailHeader customer={customer} />
+        <CustomerDetailHeader customer={customer} onEditData={handleEditData} />
 
         <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6">
           <CustomerStatStrip customer={customer} />
@@ -102,6 +108,9 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
               activeTab={activeTab}
               onActiveTabChange={setActiveTab}
               overviewVariant="page"
+              cadastraisEditable
+              cadastraisEditSignal={editSignal}
+              onCadastraisEditConsumed={() => setEditSignal(0)}
             />
           </div>
         </div>

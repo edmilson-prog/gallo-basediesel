@@ -167,14 +167,24 @@ function rowToCustomer(row: CustomerRow, notes: ICustomerNote[] = []): ICustomer
 }
 
 /** Maps a camelCase patch to snake_case columns. `id`/`storeId`/`createdAt` and
- *  the embedded `notes` array are never written here. */
-function customerPatchToRow(patch: Partial<ICustomer>): Record<string, unknown> {
+ *  the embedded `notes` array are never written here.
+ *
+ *  `email`/`address` are the inline-editable nullable fields (see
+ *  `buildCustomerPatch`, which emits `{ field: undefined }` to mean "clear this
+ *  field"). For those two, presence of the key in the patch — not just a defined
+ *  value — decides whether the column is written, and an `undefined` value
+ *  coalesces to `null` so a clear actually clears the row instead of silently
+ *  no-oping (same fix as `leadPatchToRow`). The other optional columns below are
+ *  never cleared via this flow, so they keep the plain `!== undefined` guard.
+ *
+ *  Exported for unit testing; the production call site is `update` below. */
+export function customerPatchToRow(patch: Partial<ICustomer>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
   if (patch.type !== undefined) row.type = patch.type;
-  if (patch.email !== undefined) row.email = patch.email;
+  if ("email" in patch) row.email = patch.email ?? null;
   if (patch.phone !== undefined) row.phone = patch.phone;
   if (patch.whatsappStatus !== undefined) row.whatsapp_status = patch.whatsappStatus;
-  if (patch.address !== undefined) row.address = patch.address;
+  if ("address" in patch) row.address = patch.address ?? null;
   if (patch.sellerId !== undefined) row.seller_id = patch.sellerId;
   if (patch.status !== undefined) row.status = patch.status;
   if (patch.tags !== undefined) row.tags = patch.tags;
