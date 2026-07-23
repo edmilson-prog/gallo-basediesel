@@ -2,6 +2,7 @@ export { CopilotStrip } from "./components/CopilotStrip";
 export { CopilotCard } from "./components/CopilotCard";
 export { CopilotFicheTab } from "./components/CopilotFicheTab";
 export { CopilotPlacementField } from "./components/CopilotPlacementField";
+export { CopilotAssistantSettingsSection } from "./components/CopilotAssistantSettingsSection";
 export { CopilotSettingsProvider } from "./CopilotSettingsProvider";
 export { useCopilotPanel } from "./hooks/useCopilotPanel";
 export type { IUseCopilotPanelOptions } from "./hooks/useCopilotPanel";
