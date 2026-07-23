@@ -70,8 +70,14 @@ export function CadastraisCard({
   // Mirror of `editing` readable from the effect without widening its deps.
   const editingRef = useRef(false);
   editingRef.current = editing;
+  // The customer as it was when the editor opened. The patch is diffed against
+  // THIS snapshot, not the live prop — so a background refetch that changes an
+  // untouched field mid-edit can't be reverted on save (only touched fields are
+  // written).
+  const editBaseRef = useRef<ICustomer | null>(null);
 
   const startEdit = () => {
+    editBaseRef.current = customer;
     setDraft(toCustomerDraft(customer));
     setErrors({});
     setEditing(true);
@@ -81,6 +87,7 @@ export function CadastraisCard({
     setEditing(false);
     setDraft(null);
     setErrors({});
+    editBaseRef.current = null;
   };
 
   // Open the editor when the menu pulses `editSignal`, then hand the pulse back
@@ -98,11 +105,12 @@ export function CadastraisCard({
 
   const handleSave = async () => {
     if (!draft) return;
-    const validation = validateCustomerDraft(draft, customer.type);
+    const base = editBaseRef.current ?? customer;
+    const validation = validateCustomerDraft(draft, base.type);
     setErrors(validation);
     if (Object.keys(validation).length > 0) return;
 
-    const patch = buildCustomerPatch(customer, draft);
+    const patch = buildCustomerPatch(base, draft);
     if (Object.keys(patch).length === 0) {
       cancelEdit();
       return;
@@ -112,17 +120,17 @@ export function CadastraisCard({
     try {
       const before: Record<string, unknown> = {};
       for (const key of Object.keys(patch)) {
-        before[key] = (customer as unknown as Record<string, unknown>)[key];
+        before[key] = (base as unknown as Record<string, unknown>)[key];
       }
-      await provider.update(customer.id, patch);
+      await provider.update(base.id, patch);
       auditLog({
         action: "customer.data_updated",
         resource: "customer",
-        resourceId: customer.id,
+        resourceId: base.id,
         before,
         after: patch,
       });
-      void queryClient.invalidateQueries({ queryKey: ["customer-profile", customer.id] });
+      void queryClient.invalidateQueries({ queryKey: ["customer-profile", base.id] });
       void queryClient.invalidateQueries({ queryKey: ["customers-list"] });
       toast.success(COPY.editSavedToast);
       cancelEdit();
@@ -212,6 +220,12 @@ function ReadView({ customer, showContact }: { customer: ICustomer; showContact:
   );
 }
 
+/**
+ * When `emptyLabel` is provided (the page-only E-mail row), an empty value
+ * renders it in muted italic. Otherwise the value renders verbatim with the
+ * base classes — an empty identity field stays blank, exactly as before, so the
+ * shared Atendimento fiche is byte-for-byte unchanged.
+ */
 function Row({
   label,
   value,
@@ -227,14 +241,11 @@ function Row({
   return (
     <div className="grid grid-cols-[8rem_1fr] items-baseline gap-2">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd
-        className={cn(
-          isEmpty ? "italic text-muted-foreground" : "text-foreground",
-          !isEmpty && mono && "font-mono",
-        )}
-      >
-        {isEmpty ? (emptyLabel ?? "—") : value}
-      </dd>
+      {isEmpty && emptyLabel ? (
+        <dd className="italic text-muted-foreground">{emptyLabel}</dd>
+      ) : (
+        <dd className={mono ? "font-mono text-foreground" : "text-foreground"}>{value}</dd>
+      )}
     </div>
   );
 }

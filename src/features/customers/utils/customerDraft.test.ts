@@ -226,4 +226,23 @@ describe("buildCustomerPatch", () => {
     const draft = { ...toCustomerDraft(customer), fullName: "   " };
     expect(buildCustomerPatch(customer, draft)).toEqual({});
   });
+
+  it("does not rewrite an unchanged mixed-case email on open-and-save", () => {
+    const customer = makeB2C({ email: "Joao@Email.com" });
+    expect(buildCustomerPatch(customer, toCustomerDraft(customer))).toEqual({});
+  });
+
+  it("treats an imported address with missing keys / lowercase UF as unchanged", () => {
+    // DINTEC-imported JSONB may lack keys at runtime and store a lowercase UF.
+    const dirty = makeB2B({
+      address: {
+        street: "Av. Brasil",
+        city: "Frederico Westphalen",
+        state: "rs",
+        zipCode: "98400000",
+      } as unknown as ICustomerB2B["address"],
+    });
+    const patch = buildCustomerPatch(dirty, toCustomerDraft(dirty));
+    expect("address" in patch).toBe(false);
+  });
 });

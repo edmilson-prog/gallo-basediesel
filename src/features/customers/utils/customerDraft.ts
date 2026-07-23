@@ -113,14 +113,19 @@ function buildAddress(draft: ICustomerDraft): ICustomerAddress | undefined {
 
 function sameAddress(a: ICustomerAddress | undefined, b: ICustomerAddress | undefined): boolean {
   if (!a || !b) return !a && !b;
+  // Coalesce both sides: imported JSONB addresses may lack keys at runtime
+  // (value `undefined`) despite the string type, so a plain `===` would report
+  // a false diff and trigger a spurious rewrite on open-and-save. UF is compared
+  // case-insensitively for the same reason.
+  const s = (v?: string) => (v ?? "").trim();
   return (
-    a.street === b.street &&
-    a.number === b.number &&
-    (a.complement ?? "") === (b.complement ?? "") &&
-    a.district === b.district &&
-    a.city === b.city &&
-    a.state === b.state &&
-    onlyDigits(a.zipCode) === onlyDigits(b.zipCode)
+    s(a.street) === s(b.street) &&
+    s(a.number) === s(b.number) &&
+    s(a.complement) === s(b.complement) &&
+    s(a.district) === s(b.district) &&
+    s(a.city) === s(b.city) &&
+    s(a.state).toUpperCase() === s(b.state).toUpperCase() &&
+    onlyDigits(a.zipCode ?? "") === onlyDigits(b.zipCode ?? "")
   );
 }
 
@@ -154,8 +159,12 @@ export function buildCustomerPatch(customer: ICustomer, draft: ICustomerDraft): 
   }
   if (Object.keys(patch).length > 0) patch.type = customer.type;
 
+  // Compare the normalized draft against the normalized current email so merely
+  // opening the editor on a customer with a mixed-case stored email and saving
+  // doesn't emit a no-op write. A genuine change still differs and is written
+  // (lowercased); an emptied field still clears (`undefined`, key present).
   const email = draft.email.trim().toLowerCase() || undefined;
-  if (email !== customer.email) patch.email = email;
+  if ((email ?? "") !== (customer.email?.toLowerCase() ?? "")) patch.email = email;
 
   const address = buildAddress(draft);
   if (!sameAddress(address, customer.address)) patch.address = address;
