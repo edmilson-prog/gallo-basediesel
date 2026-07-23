@@ -39,6 +39,15 @@ export function CopilotStrip({ panel, conversationId, onInsertReply }: ICopilotS
   // the fetch resolves), so this effect auto-opens on the first suggestion —
   // but only once, so it never reopens after the user manually closes it.
   const autoExpandedRef = useRef(false);
+
+  // Reset per conversation: the page keeps this instance mounted across
+  // conversation switches (keepPreviousData, no remount key), so without this
+  // the once-only latch would stay tripped for the rest of the session.
+  useEffect(() => {
+    autoExpandedRef.current = false;
+    setExpanded(false);
+  }, [conversationId]);
+
   useEffect(() => {
     if (autoExpandedRef.current) return;
     if (settings.autoExpandOnAlert && suggestions.length > 0) {

@@ -55,6 +55,7 @@ export function useCopilotPanel(
       setSummary(undefined);
       setAllSuggestions([]);
       setLoading(false);
+      setError(false);
       return;
     }
     let cancelled = false;
