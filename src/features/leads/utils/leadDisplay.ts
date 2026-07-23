@@ -1,4 +1,5 @@
 import type { LeadOrigin, LeadTemperature, ILead, ILeadStage } from "@/shared/types";
+import { isClosingKind, resolveStageKind } from "@/features/funnels/engine/stageKind";
 import { LEADS_STRINGS } from "../i18n/pt-BR";
 
 export interface ITemperatureMeta {
@@ -158,7 +159,7 @@ export const CLOSING_STAGE_ID = "stage-fechado";
 
 export function isClosedLead(lead: ILead): boolean {
   return (
-    lead.stage.id === CLOSING_STAGE_ID ||
+    isClosingKind(resolveStageKind(lead.stage)) ||
     lead.convertedToCustomerId !== undefined ||
     lead.lossReason !== undefined
   );
