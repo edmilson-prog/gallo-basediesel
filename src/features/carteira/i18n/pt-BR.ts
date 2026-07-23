@@ -67,6 +67,19 @@ export const CARTEIRA_STRINGS = {
     clear: "Limpar filtros",
   },
   modals: {
+    /**
+     * Every transfer is stamped with the acting seller (`created_by` → sellers).
+     * A staff account without a linked seller cannot sign one, so the form
+     * blocks instead of failing at the database constraint.
+     */
+    missingSellerError:
+      "Seu usuário não está vinculado a um vendedor, então não é possível registrar a transferência. Peça ao administrador para vincular seu cadastro.",
+    /**
+     * Imported contacts pending review carry no wallet owner, so there is no
+     * origin seller to transfer from.
+     */
+    missingOwnerError:
+      "Este cliente ainda não tem vendedor responsável, então não há carteira a transferir. Defina um responsável antes.",
     temporary: {
       title: "Nova transferência temporária",
       description:
