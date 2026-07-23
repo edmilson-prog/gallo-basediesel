@@ -107,6 +107,13 @@ export const CUSTOMER_STRINGS = {
       addressCity: "Cidade",
       addressState: "UF",
       addressZip: "CEP",
+      lookupCnpj: "Buscar na Receita",
+      lookupCnpjHint: "Informe um CNPJ válido para buscar na Receita.",
+      lookupSuccessToast: "Dados preenchidos pela Receita.",
+      lookupNotFoundToast: "CNPJ não encontrado na Receita.",
+      lookupErrorToast: "Não foi possível consultar a Receita agora.",
+      situacaoActive: "Ativa na Receita",
+      situacaoLabel: "Situação na Receita:",
       errors: {
         razaoSocialRequired: "Informe a razão social.",
         fullNameRequired: "Informe o nome completo.",
