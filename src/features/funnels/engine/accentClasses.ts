@@ -9,8 +9,14 @@ export interface IFunnelAccentClasses {
   border: string;
   /** Vertical or horizontal indicator bar (active item in nav). */
   bar: string;
-  /** Icon-only usage, always paired with a `text-foreground` label. */
-  text: string;
+  /**
+   * Decorative icon glyph colour ONLY (`currentColor` on an icon ≥16px,
+   * `aria-hidden`, always paired with a `text-foreground` label alongside it).
+   * Never apply this to real text — icon glyphs are non-text content under
+   * WCAG 1.4.11 (3:1 is sufficient), while text requires 4.5:1 (WCAG 1.4.3),
+   * a bar this token does not guarantee.
+   */
+  icon: string;
 }
 
 export const FUNNEL_ACCENT_SLOTS: readonly FunnelAccent[] = [0, 1, 2, 3, 4, 5, 6, 7, 8];
@@ -25,63 +31,63 @@ const FUNNEL_CLASSES: Record<FunnelAccent, IFunnelAccentClasses> = {
     chip: "bg-muted",
     border: "border-funnel-0",
     bar: "bg-funnel-0",
-    text: "text-funnel-0",
+    icon: "text-funnel-0",
   },
   1: {
     dot: "bg-funnel-1",
     chip: "bg-funnel-1/12",
     border: "border-funnel-1",
     bar: "bg-funnel-1",
-    text: "text-funnel-1",
+    icon: "text-funnel-1",
   },
   2: {
     dot: "bg-funnel-2",
     chip: "bg-funnel-2/12",
     border: "border-funnel-2",
     bar: "bg-funnel-2",
-    text: "text-funnel-2",
+    icon: "text-funnel-2",
   },
   3: {
     dot: "bg-funnel-3",
     chip: "bg-funnel-3/12",
     border: "border-funnel-3",
     bar: "bg-funnel-3",
-    text: "text-funnel-3",
+    icon: "text-funnel-3",
   },
   4: {
     dot: "bg-funnel-4",
     chip: "bg-funnel-4/12",
     border: "border-funnel-4",
     bar: "bg-funnel-4",
-    text: "text-funnel-4",
+    icon: "text-funnel-4",
   },
   5: {
     dot: "bg-funnel-5",
     chip: "bg-funnel-5/12",
     border: "border-funnel-5",
     bar: "bg-funnel-5",
-    text: "text-funnel-5",
+    icon: "text-funnel-5",
   },
   6: {
     dot: "bg-funnel-6",
     chip: "bg-funnel-6/12",
     border: "border-funnel-6",
     bar: "bg-funnel-6",
-    text: "text-funnel-6",
+    icon: "text-funnel-6",
   },
   7: {
     dot: "bg-funnel-7",
     chip: "bg-funnel-7/12",
     border: "border-funnel-7",
     bar: "bg-funnel-7",
-    text: "text-funnel-7",
+    icon: "text-funnel-7",
   },
   8: {
     dot: "bg-funnel-8",
     chip: "bg-funnel-8/12",
     border: "border-funnel-8",
     bar: "bg-funnel-8",
-    text: "text-funnel-8",
+    icon: "text-funnel-8",
   },
 };
 
