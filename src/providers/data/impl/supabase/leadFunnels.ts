@@ -338,6 +338,16 @@ export const supabaseLeadFunnelsProvider: ILeadFunnelsProvider = {
     return (data as EntryRow[]).map(rowToEntry);
   },
 
+  async listEntriesByFunnel(funnelId) {
+    const { data, error } = await getSupabaseClient()
+      .from("lead_funnel_entries")
+      .select(ENTRY_COLUMNS)
+      .eq("funnel_id", funnelId);
+    if (error)
+      throw new Error(`[supabase] listEntriesByFunnel(${funnelId}) failed: ${error.message}`);
+    return (data as EntryRow[]).map(rowToEntry);
+  },
+
   async listEntriesViaConversation(conversationId) {
     const { data, error } = await getSupabaseClient().rpc("lead_funnel_entries_via_conversation", {
       p_conversation_id: conversationId,

@@ -4,16 +4,6 @@ import type { IPaginatedResult, IPaginationParams } from "./_shared";
 export interface IListLeadsParams extends IPaginationParams {
   storeId?: ID;
   sellerId?: ID;
-  /**
-   * Filters by the legacy embedded pipeline stage (`ILead.stage.id`) — the
-   * pre-existing behaviour, unchanged when `funnelId` is absent.
-   *
-   * When `funnelId` IS given, `stageId` instead scopes to a stage *within*
-   * that funnel (`lead_funnel_entries.stage_id`) — a different id namespace
-   * from the legacy embedded stage, so `funnelId` takes over the meaning of
-   * `stageId` rather than combining with it: only one meaning is ever active
-   * at a time.
-   */
   stageId?: ID;
   temperature?: ILead["temperature"];
   search?: string;
@@ -24,11 +14,16 @@ export interface IListLeadsParams extends IPaginationParams {
    * Restricts to leads participating in this funnel. Resolved SERVER-SIDE by
    * joining `lead_funnel_entries` — filtering in the browser would require
    * fetching the whole base, which the 1000-row ceiling already strains.
-   *
-   * See `stageId` above: when `funnelId` is set, `stageId` (if also given)
-   * scopes to a stage within THIS funnel instead of the legacy embedded one.
    */
   funnelId?: ID;
+  /**
+   * Stage *within* `funnelId` (`lead_funnel_entries.stage_id`) — a distinct
+   * id namespace from the legacy embedded pipeline stage filtered by
+   * `stageId` above (`ILead.stage.id`). Ignored unless `funnelId` is also
+   * given. Combines freely with `stageId`: the two filters address different
+   * columns and never collide.
+   */
+  funnelStageId?: ID;
 }
 
 /**

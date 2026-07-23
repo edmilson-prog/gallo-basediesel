@@ -35,6 +35,12 @@ export interface ILeadFunnelsProvider {
   getBoardSummary(funnelId: ID): Promise<IFunnelBoardSummary[]>;
 
   listEntriesByLead(leadId: ID): Promise<ILeadFunnelEntry[]>;
+  /**
+   * Every membership in this funnel, in a single fetch — for callers that
+   * need to index the whole funnel (e.g. `ILeadsProvider.list`'s funnel scope)
+   * instead of resolving membership one lead at a time.
+   */
+  listEntriesByFunnel(funnelId: ID): Promise<ILeadFunnelEntry[]>;
   /** Gated by the conversation, mirroring ILeadsProvider.getViaConversation. */
   listEntriesViaConversation(conversationId: ID): Promise<ILeadFunnelEntry[]>;
   addEntry(leadId: ID, funnelId: ID, stageId?: ID): Promise<ILeadFunnelEntry>;

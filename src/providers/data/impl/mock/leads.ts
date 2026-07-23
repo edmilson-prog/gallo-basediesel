@@ -7,30 +7,39 @@ import { assertImmutableStoreId, scopedListParams, withCreateStoreId } from "./_
 import { mockLeadFunnelsProvider } from "./leadFunnels";
 
 /**
- * Resolves the `funnelId`/`stageId` scope BEFORE pagination, mirroring what
- * the Supabase inner join does server-side. `leadsApi.list` paginates
+ * Resolves the `funnelId`/`funnelStageId` scope BEFORE pagination, mirroring
+ * what the Supabase inner join does server-side. `leadsApi.list` paginates
  * in-house, so we can't post-filter its already-sliced page without
  * corrupting `total`/`page` — instead we fetch the full matching set (the
  * mock holds everything in memory, so this is cheap), narrow it by funnel
  * membership, then paginate that filtered array ourselves.
+ *
+ * Membership lookup is a SINGLE `listEntriesByFunnel` fetch, indexed once
+ * into a `Set<leadId>` — not one `listEntriesByLead` call per lead (that
+ * previous shape was O(leads × entries): every lead re-scanned every
+ * membership row to find its own). `listEntriesByFunnel` is a new, narrow
+ * addition to `ILeadFunnelsProvider` (mock: one `Array.filter` pass over the
+ * in-memory `entries`; supabase: a plain `eq("funnel_id", …)` select) — the
+ * smallest surface that lets this provider index the funnel once instead of
+ * querying it once per lead.
  */
 async function listByFunnel(
   scoped: IListLeadsParams,
   funnelId: NonNullable<IListLeadsParams["funnelId"]>,
 ): Promise<IPaginatedResult<ILead>> {
-  const { stageId, page, pageSize, funnelId: _funnelId, ...rest } = scoped;
-  // `stageId` here means "stage within `funnelId`" (see IListLeadsParams),
-  // not the legacy embedded `ILead.stage.id` that `leadsApi.list` filters by
-  // — so it must NOT be forwarded to the unfiltered fetch below.
-  const unfiltered = await leadsApi.list({ ...rest, page: 1, pageSize: FETCH_ALL_PAGE_SIZE });
+  const { funnelStageId, page, pageSize, funnelId: _funnelId, ...rest } = scoped;
+  // `rest` still carries `stageId` (the legacy `ILead.stage.id` filter, if
+  // given) — it's a distinct id namespace from `funnelStageId` now, so it
+  // forwards to `leadsApi.list` unchanged and combines freely with the
+  // funnel scope below.
+  const [unfiltered, funnelEntries] = await Promise.all([
+    leadsApi.list({ ...rest, page: 1, pageSize: FETCH_ALL_PAGE_SIZE }),
+    mockLeadFunnelsProvider.listEntriesByFunnel(funnelId),
+  ]);
 
   const allowed = new Set<string>();
-  for (const lead of unfiltered.data) {
-    const memberships = await mockLeadFunnelsProvider.listEntriesByLead(lead.id);
-    const matches = memberships.some(
-      (e) => e.funnelId === funnelId && (!stageId || e.stageId === stageId),
-    );
-    if (matches) allowed.add(lead.id);
+  for (const entry of funnelEntries) {
+    if (funnelStageId === undefined || entry.stageId === funnelStageId) allowed.add(entry.leadId);
   }
   const filtered = unfiltered.data.filter((l) => allowed.has(l.id));
 

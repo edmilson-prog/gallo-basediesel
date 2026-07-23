@@ -256,6 +256,11 @@ export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
     return entries.filter((e) => e.leadId === leadId);
   },
 
+  async listEntriesByFunnel(funnelId) {
+    seedOnce();
+    return entries.filter((e) => e.funnelId === funnelId);
+  },
+
   async listEntriesViaConversation(conversationId) {
     seedOnce();
     const lead = getMockState().leads.find((l) => l.conversations.includes(conversationId));
