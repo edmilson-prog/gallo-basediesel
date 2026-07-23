@@ -86,13 +86,19 @@ const MEDIA_ENDPOINTS: Record<IWahaSendMediaInput["mediaType"], string> = {
 };
 
 /**
- * Media sends need far more headroom than the 15s default: WAHA fetches the
- * signed URL and re-uploads the bytes to WhatsApp synchronously before it
- * answers, so the clock covers two full transfers of the file. At the 25 MiB
- * bucket ceiling, 15s is not enough on an ordinary connection and the send
- * aborts mid-transfer — the message just lands as failed.
+ * Media sends need more headroom than the 15s default: WAHA fetches the signed
+ * URL and re-uploads the bytes to WhatsApp synchronously before it answers, so
+ * the clock covers two full transfers of the file. At the 25 MiB bucket
+ * ceiling 15s is not enough, and aborting early is worse than waiting — WAHA
+ * keeps going after we hang up, so the message can be delivered while we
+ * record it as failed.
+ *
+ * Capped at 60s rather than something larger because this same function backs
+ * the scheduled-send worker, which walks a batch of up to 50 rows in sequence
+ * inside one Edge invocation. One slow item must not eat the whole execution
+ * window and strand the rest of the batch.
  */
-const MEDIA_TIMEOUT_MS = 120_000;
+const MEDIA_TIMEOUT_MS = 60_000;
 
 export async function sendWahaMedia(
   apiKey: string,

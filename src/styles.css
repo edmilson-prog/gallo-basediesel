@@ -352,6 +352,42 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+ * Toast skin (sonner) — deliberately OUTSIDE every @layer.
+ *
+ * sonner ships its own stylesheet and injects it into <head> at runtime with
+ * no @layer wrapper. In the CSS cascade an unlayered declaration beats any
+ * layered one regardless of specificity, so Tailwind utilities — which live in
+ * @layer utilities — can never restyle a toast: sonner's own
+ * `background/border/color` always win. Utility classes on the toast are
+ * therefore inert, however specific they look.
+ *
+ * So the skin lives here instead, unlayered, mapping sonner's variables onto
+ * our semantic tokens. `html` prefixes lift specificity above sonner's own
+ * (0,2,0) rules, which are injected after this file loads. Everything below
+ * resolves through the tokens, so it follows the active theme and light/dark
+ * mode automatically.
+ * ------------------------------------------------------------------------ */
+html [data-sonner-toaster][data-sonner-theme] {
+  --normal-bg: var(--popover);
+  --normal-text: var(--popover-foreground);
+  --normal-border: var(--border);
+}
+
+/* Severity as a left rule, so an error never reads as a neutral notice. */
+html [data-sonner-toast][data-type="error"] {
+  border-left: 4px solid var(--color-severity-critical);
+}
+html [data-sonner-toast][data-type="success"] {
+  border-left: 4px solid var(--color-severity-success);
+}
+html [data-sonner-toast][data-type="warning"] {
+  border-left: 4px solid var(--color-severity-warning);
+}
+html [data-sonner-toast][data-type="info"] {
+  border-left: 4px solid var(--color-severity-info);
+}
+
 /* Hides the scrollbar visually while keeping scroll (wheel/touch) functional. */
 @utility scrollbar-hide {
   -ms-overflow-style: none; /* IE / legacy Edge */
