@@ -133,7 +133,7 @@ export type {
   ISdrPilotSettingsProvider,
   IConversationRescuesProvider,
 } from "./contracts";
-export { computeFailureRate } from "./contracts";
+export { computeFailureRate, FETCH_ALL_PAGE_SIZE } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
 export { useVehiclesProvider } from "./hooks/useVehiclesProvider";
