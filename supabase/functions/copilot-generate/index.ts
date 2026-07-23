@@ -74,7 +74,7 @@ function dispatch(
 }
 
 servePost(async (req, { log }) => {
-  const { callerId, admin, callerClient, profile } = await requireAnyCaller(req);
+  const { callerId, admin, callerClient } = await requireAnyCaller(req);
   const body = await parseJsonBody(req);
   const conversationId = String(body.conversationId ?? "");
   if (!conversationId) throw new HttpError(400, "conversationId é obrigatório");
@@ -229,7 +229,10 @@ servePost(async (req, { log }) => {
       latency_ms: latencyMs,
       status: "error",
       caller_id: callerId,
-      store_id: profile.store_id,
+      // Attribute spend to the CONVERSATION's store, not the caller's profile
+      // store — the sub-cap check above (step 6) sums ai_usage_events by
+      // conv.store_id, so the write must land in the same bucket it reads.
+      store_id: conv.store_id,
     });
     if (insErr) log.error("copilot-generate error-usage insert failed", { error: insErr.message });
     log.error("copilot-generate llm call failed", { providerId, model, aborted });
@@ -263,7 +266,9 @@ servePost(async (req, { log }) => {
     latency_ms: latencyMs,
     status: "ok",
     caller_id: callerId,
-    store_id: profile.store_id,
+    // Same reasoning as the error-case insert above: keep spend attribution
+    // aligned with the per-store sub-cap read (conv.store_id, not profile.store_id).
+    store_id: conv.store_id,
   });
   if (insErr) log.error("copilot-generate usage insert failed", { error: insErr.message, costBRL });
 

@@ -111,6 +111,11 @@ JavaScript e comparavam contra o teto em duas viagens separadas ao banco. Com um
 clicando de vez em quando isso nunca falhava; com disparo automático (Sub-projeto B),
 chamadas concorrentes podem ler o mesmo total desatualizado e passar juntas.
 
+**Escopo do Sub-projeto A:** só `copilot-generate` foi migrado para esta RPC
+concorrente. O outro Edge, `ai-generate` (Playground/teste de conexão), continua
+checando o teto da plataforma do jeito antigo — uma soma em JavaScript, sem o lock
+advisory. Unificar os dois na mesma RPC fica como trabalho futuro.
+
 A RPC (`SECURITY DEFINER`, `service_role`-only) toma `pg_advisory_xact_lock` sobre uma
 chave derivada do mês corrente, soma `ai_usage_events` dentro da mesma transação, e
 compara contra dois tetos:
