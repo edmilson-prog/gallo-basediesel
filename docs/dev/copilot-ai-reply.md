@@ -34,6 +34,18 @@ CopilotReply (botão "Gerar resposta com IA")
                    9. retorna { text }
 ```
 
+> **Correção 2026-07-22:** a leitura de mensagens era `sent_at ascending` com
+> `limit(200)` — as 200 mensagens MAIS ANTIGAS. Passou a ler a janela mais
+> recente (`descending` + desempate por `id`, revertida antes do prompt), com o
+> tamanho vindo de `stores.settings->'copilotAssistant'->>'messageWindow'`.
+>
+> Em conversa longa, o passo 5 (`buildReplyPrompt`) montava o rascunho a partir
+> de uma discussão de meses atrás — o bug afetava 157 conversas em produção
+> (>200 mensagens; a maior tinha 5.076). O tamanho da janela (`messageWindow`,
+> default `40`) e as demais regras de comportamento do assistente agora vivem
+> em `Configurações → Copiloto`, documentado em
+> `docs/dev/copilot-assistant-settings.md`.
+
 ## Gating do botão
 
 O `supabaseCopilotProvider.isReplyGenerationEnabled()` chama a RPC:
