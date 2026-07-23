@@ -261,6 +261,27 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fail CLOSED on transient DB failures (2026-07-23, PR #357 item 2): a
+    // discarded lookup/insert error used to read as "row not found" and fail
+    // open into a duplicate conversation INSERT — or into a silent 200 that
+    // dropped the message. A 503 WITHOUT markProcessed() makes WAHA redeliver
+    // the event; the deferred idempotency mark guarantees the retry
+    // reprocesses cleanly.
+    function transientDbFailure(stage: string, error: { message: string }): Response {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          msg: `waha webhook: ${stage} failed`,
+          error: error.message,
+        }),
+      );
+      return respond(json({ error: "transient-db-error", stage }, 503), {
+        outcome: "error",
+        errorMessage: `${stage}: ${error.message}`,
+        requestPayload: envelope,
+      });
+    }
+
     // Shared phone→customer lookup (suffix pre-filter + tolerant match via
     // phoneDigitsMatchBr — phone formatting varies in the base: +55...,
     // (55) 9..., etc.; a stored number may also be missing the 9th digit).
@@ -711,13 +732,14 @@ Deno.serve(async (req) => {
       // in the Atendimento thread. App-sent messages (via waha-send) echo back
       // too, so dedup by provider_message_id BEFORE any write: waha-send
       // stamps the same id WAHA later reports here as payload.id.
-      const { data: existingOutbound } = await admin
+      const { data: existingOutbound, error: echoDedupErr } = await admin
         .from("messages")
         .select("id")
         .eq("provider_message_id", parsed.providerMessageId)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (echoDedupErr) return transientDbFailure("echo dedup lookup", echoDedupErr);
       if (existingOutbound) {
         // Free signal: WAHA embeds the CURRENT ack level in every
         // message.any echo, not just in dedicated message.ack events —
@@ -815,18 +837,7 @@ Deno.serve(async (req) => {
           .select("id")
           .single();
         if (echoCustomerErr) {
-          console.warn(
-            JSON.stringify({
-              level: "warn",
-              msg: "waha webhook: echo customer insert failed",
-              error: echoCustomerErr.message,
-            }),
-          );
-          return respond(json({ ok: true, ignored: "echo-customer-insert-failed" }, 200), {
-            outcome: "ignored",
-            errorMessage: echoCustomerErr.message,
-            requestPayload: envelope,
-          });
+          return transientDbFailure("echo customer insert", echoCustomerErr);
         }
         echoAnchorId = createdEchoCustomer.id as string;
       } else {
@@ -855,18 +866,20 @@ Deno.serve(async (req) => {
       // business-sent and must NEVER reopen a closed conversation — it spawns
       // a fresh one instead, same rule as the reference `whatsapp-webhook`
       // pipeline (spec 2026-07-03 §1.5).
-      const { data: openEchoConversation } = await admin
-        .from("conversations")
-        .select("id")
-        .eq(
-          echoAnchorKind === "customer" ? "customer_id" : "lead_id",
-          echoAnchorKind === "lead" ? String(echoAnchorId) : echoAnchorId,
-        )
-        .eq("whatsapp_account_id", accountRow.id as string)
-        .not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const echoAnchorColumn = echoAnchorKind === "customer" ? "customer_id" : "lead_id";
+      const echoAnchorValue = echoAnchorKind === "lead" ? String(echoAnchorId) : echoAnchorId;
+      const findOpenEchoConversation = () =>
+        admin
+          .from("conversations")
+          .select("id")
+          .eq(echoAnchorColumn, echoAnchorValue)
+          .eq("whatsapp_account_id", accountRow.id as string)
+          .not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+      const { data: openEchoConversation, error: echoLookupErr } = await findOpenEchoConversation();
+      if (echoLookupErr) return transientDbFailure("echo conversation lookup", echoLookupErr);
 
       let echoConversationId: string;
       if (!openEchoConversation) {
@@ -890,20 +903,24 @@ Deno.serve(async (req) => {
           .select("id")
           .single();
         if (echoConvErr) {
-          console.warn(
-            JSON.stringify({
-              level: "warn",
-              msg: "waha webhook: echo conversation insert failed",
-              error: echoConvErr.message,
-            }),
-          );
-          return respond(json({ ok: true, ignored: "echo-conversation-insert-failed" }, 200), {
-            outcome: "ignored",
-            errorMessage: echoConvErr.message,
-            requestPayload: envelope,
-          });
+          if (echoConvErr.code === "23505") {
+            // Lost a concurrent-create race: the partial unique index
+            // (conversations_one_open_per_*_account) vetoed this INSERT, so
+            // the winner's row IS the open conversation now — reuse it.
+            const { data: raceWinner, error: raceErr } = await findOpenEchoConversation();
+            if (raceErr || !raceWinner) {
+              return transientDbFailure(
+                "echo race recovery",
+                raceErr ?? { message: "unique violation but no open conversation found" },
+              );
+            }
+            echoConversationId = raceWinner.id as string;
+          } else {
+            return transientDbFailure("echo conversation insert", echoConvErr);
+          }
+        } else {
+          echoConversationId = createdEchoConversation.id as string;
         }
-        echoConversationId = createdEchoConversation.id as string;
       } else {
         echoConversationId = openEchoConversation.id as string;
       }
@@ -930,18 +947,11 @@ Deno.serve(async (req) => {
         webhook_event_ids: [eventKey],
       });
       if (echoMessageErr) {
-        console.warn(
-          JSON.stringify({
-            level: "warn",
-            msg: "waha webhook: echo message insert failed",
-            error: echoMessageErr.message,
-          }),
-        );
-        return respond(json({ ok: true, ignored: "echo-message-insert-failed" }, 200), {
-          outcome: "ignored",
-          errorMessage: echoMessageErr.message,
-          requestPayload: envelope,
-        });
+        // 503 (not the old silent 200): the conversation may already exist but
+        // the message didn't land — a WAHA retry re-runs this event cleanly
+        // (markProcessed hasn't happened yet; the echo dedup + open lookup
+        // above make the retry idempotent).
+        return transientDbFailure("echo message insert", echoMessageErr);
       }
       // Mark processed only now that the message has actually landed — a retry
       // of this event while echoMessageErr was set will reprocess cleanly.
@@ -1105,17 +1115,36 @@ Deno.serve(async (req) => {
     // Anchored by customer_id OR lead_id (exactly one), mirroring THIS file's
     // local reuse-or-reopen semantics (not whatsapp-webhook's) so the reopen
     // behavior below is preserved.
-    const { data: existingConversation } = await admin
-      .from("conversations")
-      .select("id, status, unread_count")
-      .eq(
-        anchorKind === "customer" ? "customer_id" : "lead_id",
-        anchorKind === "lead" ? String(anchorId) : anchorId,
-      )
-      .eq("whatsapp_account_id", accountRow.id as string)
-      .order("last_message_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    //
+    // OPEN-FIRST (2026-07-23): prefer the open conversation over the one with
+    // the newest message. Under the one-open-per-contact-per-account unique
+    // index, reopening a closed row while another is open would violate the
+    // index — and routing new traffic into the open thread is the correct
+    // semantics whenever both exist (e.g. leftovers of a pre-index race).
+    const anchorColumn = anchorKind === "customer" ? "customer_id" : "lead_id";
+    const anchorValue = anchorKind === "lead" ? String(anchorId) : anchorId;
+    const findConversationForInbound = (openOnly: boolean) => {
+      let query = admin
+        .from("conversations")
+        .select("id, status, unread_count")
+        .eq(anchorColumn, anchorValue)
+        .eq("whatsapp_account_id", accountRow.id as string);
+      if (openOnly) {
+        query = query.not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`);
+      }
+      return query.order("last_message_at", { ascending: false }).limit(1).maybeSingle();
+    };
+    const { data: openConversation, error: openLookupErr } = await findConversationForInbound(true);
+    if (openLookupErr) return transientDbFailure("inbound conversation lookup", openLookupErr);
+    let existingConversation = openConversation;
+    if (!existingConversation) {
+      const { data: latestConversation, error: latestLookupErr } =
+        await findConversationForInbound(false);
+      if (latestLookupErr) {
+        return transientDbFailure("inbound conversation lookup (any)", latestLookupErr);
+      }
+      existingConversation = latestConversation;
+    }
 
     let conversationId: string;
     let didReopen = false;
@@ -1138,24 +1167,29 @@ Deno.serve(async (req) => {
         .select("id")
         .single();
       if (convErr) {
-        console.warn(
-          JSON.stringify({
-            level: "warn",
-            msg: "waha webhook: conversation insert failed",
-            error: convErr.message,
-          }),
-        );
-        return respond(json({ ok: true, ignored: "conversation-insert-failed" }, 200), {
-          outcome: "ignored",
-          errorMessage: convErr.message,
-          requestPayload: envelope,
-        });
+        if (convErr.code === "23505") {
+          // Lost a concurrent-create race: the partial unique index vetoed
+          // this INSERT — the winner's row is the open conversation. Reuse it
+          // (the bump below folds this message into it).
+          const { data: raceWinner, error: raceErr } = await findConversationForInbound(true);
+          if (raceErr || !raceWinner) {
+            return transientDbFailure(
+              "inbound race recovery",
+              raceErr ?? { message: "unique violation but no open conversation found" },
+            );
+          }
+          conversationId = raceWinner.id as string;
+          existingConversation = raceWinner;
+        } else {
+          return transientDbFailure("inbound conversation insert", convErr);
+        }
+      } else {
+        conversationId = createdConversation.id as string;
       }
-      conversationId = createdConversation.id as string;
     } else {
       conversationId = existingConversation.id as string;
       if (CLOSED_CONVERSATION_STATUSES.includes(existingConversation.status as string)) {
-        await admin
+        const { error: reopenErr } = await admin
           .from("conversations")
           .update({
             status: "aguardando",
@@ -1165,7 +1199,24 @@ Deno.serve(async (req) => {
             ...(parsed.adReferral ? { ad_referral: parsed.adReferral } : {}),
           })
           .eq("id", conversationId);
-        didReopen = true;
+        if (reopenErr && reopenErr.code === "23505") {
+          // A concurrent event opened another conversation between the lookup
+          // and this reopen — the unique index vetoed a second open row.
+          // Route the message into the open winner instead of reopening.
+          const { data: openWinner, error: openWinnerErr } = await findConversationForInbound(true);
+          if (openWinnerErr || !openWinner) {
+            return transientDbFailure(
+              "inbound reopen recovery",
+              openWinnerErr ?? { message: "unique violation but no open conversation found" },
+            );
+          }
+          conversationId = openWinner.id as string;
+          existingConversation = openWinner;
+        } else if (reopenErr) {
+          return transientDbFailure("inbound conversation reopen", reopenErr);
+        } else {
+          didReopen = true;
+        }
       }
     }
 
@@ -1199,18 +1250,15 @@ Deno.serve(async (req) => {
       webhook_event_ids: [eventKey],
     });
     if (messageErr) {
-      console.warn(
-        JSON.stringify({
-          level: "warn",
-          msg: "waha webhook: message insert failed",
-          error: messageErr.message,
-        }),
-      );
-    } else {
-      // Mark processed only now that the message has actually landed — a
-      // retry of this event while messageErr was set will reprocess cleanly.
-      await markProcessed();
+      // 503 (not the old log-and-continue-200): WAHA redelivers and the event
+      // reprocesses from scratch — markProcessed only runs after the row
+      // actually lands, so the retry is clean (no duplicate: this insert
+      // failed, nothing was written).
+      return transientDbFailure("inbound message insert", messageErr);
     }
+    // Mark processed only now that the message has actually landed — a retry
+    // of this event while messageErr was set will reprocess cleanly.
+    await markProcessed();
 
     // Bump last_message_at/unread_count unless the reopen above already folded
     // it in.

@@ -147,26 +147,50 @@ O caso VOLTECH não está nesta lista porque a conversa antiga está `resolvida`
   sdr-*/rescue/scheduled-send/connect não criam conversas.
 - **Não** há hoje grupos com âncora mista (0) nem clientes duplicados realizados (0).
 
-## 7. Plano de correção sugerido (por prioridade)
+## 7. Plano de correção (por prioridade) — itens 1, 2 e 4 IMPLEMENTADOS neste PR
 
-1. **Guarda de unicidade contra a corrida** — índice único parcial em `conversations`
-   (por âncora + `whatsapp_account_id`, `WHERE status NOT IN ('resolvida','arquivada')`) + tratamento
-   de conflito no INSERT dos webhooks (on-conflict → reusar). Mata as 8 divisões por corrida e as
-   futuras. É a correção de maior impacto no sintoma visível.
-2. **Checar `error` nos lookups** do eco (`:858`) e do inbound (`:1108`) — em erro, responder não-2xx
-   retryável (o WAHA reenvia) em vez de criar conversa. Elimina o §4.2.
-3. **Decisão de produto sobre o eco pós-encerramento** (os 109 históricos + fluxo futuro):
-   - a) **Janela de continuidade** — eco reabre se encerrada há < X h (24h cobre 59 dos 109); depois
-     disso, cria nova. Recomendada: preserva a intenção original.
+1. ✅ **Guarda de unicidade contra a corrida** — migration `20260723210000_unique_open_conversation_guard.sql`:
+   limpeza (arquiva todas-menos-a-mais-recente das conversas abertas duplicadas por contato+conta,
+   ~13 grupos) + **2 índices únicos parciais** (`conversations_one_open_per_customer_account` /
+   `_lead_account`, `WHERE status NOT IN ('resolvida','arquivada') AND whatsapp_account_id IS NOT NULL`).
+   Todos os escritores recuperam o 23505 reusando a linha vencedora: `waha-webhook` (eco + inbound),
+   adapter do `whatsapp-webhook`, `_shared/import-db.ts` (importadores) e `createOutbound` do app
+   ("Nova conversa" passa a navegar para a conversa aberta existente em vez de duplicar).
+2. ✅ **Fail-closed nos lookups e writes do `waha-webhook`** — helper `transientDbFailure`: erro
+   transitório em lookup/INSERT responde **503 sem `markProcessed`** (o WAHA reentrega; a marca de
+   idempotência adiada garante retry limpo) em vez do antigo fail-open (duplicata) ou 200 silencioso
+   (mensagem perdida). O inbound virou **open-first** (prefere a conversa aberta; só reabre fechada
+   quando não há nenhuma aberta — também elimina a classe de violação do índice no reopen). No
+   `whatsapp-webhook`, os lookups do adapter agora propagam erro (throw) em vez de "não achei".
+3. ⏳ **Decisão de produto sobre o eco pós-encerramento** (os 109 históricos + fluxo futuro) — PENDENTE DO DONO:
+   - a) **Janela de continuidade** — eco reabre se encerrada há < X h (24h cobre 59 dos 109). Recomendada.
    - b) Eco sempre reabre (simetria total; mexe em fila/métricas).
    - c) Só UI: agrupar conversas do mesmo contato+instância na Inbox.
    - d) Não mexer (documentar para o time).
-4. **Reancorar conversas na conversão de lead** (fechar o anchor-flip antes que o wizard #350/#351
-   comece a ser usado — há 4 conversas já sombreadas que duplicam na próxima mensagem).
-5. **Normalização de 9º dígito no resolver de lead** + dedup dos leads duplicados (2 pares visíveis).
-6. **Lookup de conversa no fluxo "Nova conversa"** do app (cliente existente hoje não checa nada).
+4. ✅ **Reancorar conversas na conversão de lead** — migration `20260723211000_reanchor_lead_conversations.sql`:
+   trigger `leads_reanchor_converted` (AFTER UPDATE de `converted_to_customer_id`) re-ancora as
+   conversas do lead no cliente (histórico migra junto); conversas abertas que conflitariam com uma
+   aberta do cliente na mesma conta são arquivadas (o tráfego já flui para a do cliente). Espelhado
+   no mock (`src/mocks/api/leads.ts` + testes).
+5. ⏳ **Normalização de 9º dígito no resolver de lead** + dedup dos leads duplicados (2 pares visíveis).
+6. ⏳ **Lookup pré-insert no fluxo "Nova conversa"** — parcialmente coberto: a recuperação de 23505 no
+   `createOutbound` já impede a duplicata e navega para a conversa existente; um lookup explícito
+   pré-insert (UX de aviso) fica como melhoria.
 
-Higiene de dados (após decisão): mesclar/arquivar as duplicatas visíveis — corridas e 9º dígito são
-mescláveis com segurança (mesmo contato real).
+Higiene de dados: a limpeza dos 13 grupos visíveis está NA PRÓPRIA migration do item 1 (recomputada
+no apply). As 4 conversas lead-ancoradas sombreadas por cliente de mesmo telefone (§4.3) são resolvidas
+organicamente pelo trigger do item 4 quando esses leads forem convertidos — ou por backfill assistido.
 
-Nenhuma alteração de código foi feita nesta investigação (doc-only).
+## 8. Ordem de rollout (INVERTIDA de propósito — código antes das migrations)
+
+O código antigo transforma falha de INSERT em 200 silencioso (mensagem descartada). Aplicar o índice
+antes do deploy derrubaria o lado perdedor de cada corrida. Ordem correta:
+
+1. **Merge do PR** → deploy Vercel (recuperação no `createOutbound` — inerte até o índice existir).
+2. **Deploy das edges** `waha-webhook` e `whatsapp-webhook`
+   (`npx supabase functions deploy <fn> --project-ref njizaasajkdqptlxddqn`) — fail-closed ativo;
+   23505 ainda não ocorre.
+3. **Aplicar migration `20260723210000`** (limpeza + índices) via MCP, com OK do dono.
+4. **Aplicar migration `20260723211000`** (trigger de reancoragem) via MCP.
+5. Smoke: enviar do celular para um contato com conversa aberta; resolver + eco (deve criar nova —
+   comportamento intencional preservado); converter um lead com conversa e conferir a ficha do cliente.

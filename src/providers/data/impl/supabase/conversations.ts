@@ -554,8 +554,30 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       ad_referral: null,
     };
     const { error } = await getSupabaseClient().from(TABLE).insert(row);
-    if (error)
+    if (error) {
+      if (error.code === "23505") {
+        // The one-open-conversation-per-contact-per-account unique index
+        // (migration 20260723210000) vetoed the INSERT: an open conversation
+        // already exists for this contact on this instance. Reuse it — the
+        // dialog then navigates into the existing thread instead of failing.
+        // RLS scopes this read: a seller without access to the open thread
+        // gets the pt-BR error below instead of a duplicate.
+        const { data: existing } = await getSupabaseClient()
+          .from(TABLE)
+          .select(COLUMNS)
+          .eq("customer_id", input.customerId)
+          .eq("whatsapp_account_id", input.whatsappAccountId)
+          .in("status", ["aguardando", "em_andamento", "aguardando_cliente"])
+          .order("last_message_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (existing) return rowToConversation(existing as ConversationRow);
+        throw new Error(
+          "Já existe uma conversa aberta para este contato nesta instância, mas você não tem acesso a ela.",
+        );
+      }
       throw new Error(`[supabase] conversations.createOutbound failed: ${error.message}`);
+    }
     return rowToConversation(row);
   },
 

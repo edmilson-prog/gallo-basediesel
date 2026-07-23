@@ -357,7 +357,12 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       if (!includeTerminal) {
         query = query.not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`);
       }
-      const { data } = await query.order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data, error } = await query
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      // Fail CLOSED — same rationale as findOpenConversation above.
+      if (error) throw new Error(`findOpenConversationForLead: ${error.message}`);
       return data ? { id: data.id as string, status: data.status as string } : null;
     },
     async linkConversationToLead(leadId, conversationId) {
@@ -409,7 +414,13 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       if (!includeTerminal) {
         query = query.not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`);
       }
-      const { data } = await query.order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data, error } = await query
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      // Fail CLOSED: a discarded lookup error used to read as "no conversation"
+      // and fail open into a duplicate INSERT (PR #357 item 2).
+      if (error) throw new Error(`findOpenConversation: ${error.message}`);
       return data
         ? { id: data.id as string, status: data.status as string, isSdrActive: Boolean(data.is_sdr_active) }
         : null;
@@ -430,7 +441,29 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         })
         .select("id")
         .single();
-      if (error) throw new Error(`createConversation: ${error.message}`);
+      if (error) {
+        if (error.code === "23505") {
+          // Lost a concurrent-create race: the one-open-per-contact-per-account
+          // unique index vetoed this INSERT — reuse the winner's open row.
+          let winnerQuery = admin
+            .from("conversations")
+            .select("id")
+            .eq("whatsapp_account_id", input.accountId)
+            .not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`);
+          winnerQuery = input.customerId
+            ? winnerQuery.eq("customer_id", input.customerId)
+            : winnerQuery.eq("lead_id", input.leadId as string);
+          const { data: winner, error: winnerErr } = await winnerQuery
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (winner) return { id: winner.id as string };
+          throw new Error(
+            `createConversation race recovery failed: ${winnerErr?.message ?? "no open conversation found"}`,
+          );
+        }
+        throw new Error(`createConversation: ${error.message}`);
+      }
       return { id: data.id as string };
     },
     async insertInboundMessage(input) {

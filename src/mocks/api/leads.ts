@@ -1,6 +1,6 @@
-import type { ID, ILead, ILeadNote } from "@/shared/types";
+import type { ID, IConversation, ILead, ILeadNote } from "@/shared/types";
 import { buildDigitSearchCandidates, digitsOf } from "@/shared/utils/digitSearch";
-import { selectAllLeads, selectLeadById } from "../store/selectors";
+import { selectAllConversations, selectAllLeads, selectLeadById } from "../store/selectors";
 import { patchById, removeById, upsert } from "../store/mutations";
 import {
   MockNotFoundError,
@@ -12,6 +12,62 @@ import {
 
 /** In-memory notes store, keyed by lead id. */
 const leadNotes = new Map<string, ILeadNote[]>();
+
+const OPEN_CONVERSATION_STATUSES: IConversation["status"][] = [
+  "aguardando",
+  "em_andamento",
+  "aguardando_cliente",
+];
+
+/**
+ * Conversion side-effect — mirrors the DB trigger
+ * `reanchor_converted_lead_conversations` (migration 20260723211000): every
+ * webhook resolver checks customer BEFORE lead, so once the lead is converted
+ * a lead-anchored conversation becomes invisible to the lookups and the next
+ * message would mint a duplicate. Keeps at most ONE open conversation per
+ * (customer, WhatsApp account) — the same guarantee the partial unique index
+ * (migration 20260723210000) enforces in Supabase.
+ */
+function reanchorConvertedLeadConversations(leadId: ID, customerId: ID): void {
+  const ofLead = selectAllConversations().filter((c) => c.leadId === leadId);
+  if (ofLead.length === 0) return;
+  const isOpen = (c: IConversation) => OPEN_CONVERSATION_STATUSES.includes(c.status);
+
+  // a) Among the lead's own open conversations, only the newest per account
+  //    survives open (pre-guard race leftovers).
+  const newestOpenByAccount = new Map<ID, IConversation>();
+  for (const conv of ofLead) {
+    if (!isOpen(conv) || !conv.whatsappAccountId) continue;
+    const current = newestOpenByAccount.get(conv.whatsappAccountId);
+    if (!current || conv.lastMessageAt > current.lastMessageAt) {
+      newestOpenByAccount.set(conv.whatsappAccountId, conv);
+    }
+  }
+
+  // b) Accounts where the destination customer already has an open thread —
+  //    the lead's open conversation there archives (traffic already flows to
+  //    the customer's thread; history migrates with the re-anchor anyway).
+  const customerOpenAccounts = new Set(
+    selectAllConversations()
+      .filter((c) => c.customerId === customerId && isOpen(c) && c.whatsappAccountId)
+      .map((c) => c.whatsappAccountId as ID),
+  );
+
+  for (const conv of ofLead) {
+    const mustArchive =
+      isOpen(conv) &&
+      conv.whatsappAccountId !== undefined &&
+      (newestOpenByAccount.get(conv.whatsappAccountId)?.id !== conv.id ||
+        customerOpenAccounts.has(conv.whatsappAccountId));
+    patchById("conversations", conv.id, {
+      customerId,
+      leadId: undefined,
+      ...(mustArchive
+        ? { status: "arquivada" as const, assignedSellerId: undefined, isSdrActive: false }
+        : {}),
+    });
+  }
+}
 
 export interface IListLeadsParams extends IPaginationParams {
   storeId?: ID;
@@ -94,8 +150,15 @@ export const leadsApi = {
 
   async update(id: ID, patch: Partial<ILead>): Promise<ILead> {
     return runApi("leadsApi", "update", () => {
+      const before = selectLeadById(id);
       const updated = patchById("leads", id, { ...patch, updatedAt: new Date().toISOString() });
       if (!updated) throw new MockNotFoundError("lead", id);
+      if (
+        patch.convertedToCustomerId &&
+        patch.convertedToCustomerId !== before?.convertedToCustomerId
+      ) {
+        reanchorConvertedLeadConversations(id, patch.convertedToCustomerId);
+      }
       return updated;
     });
   },
