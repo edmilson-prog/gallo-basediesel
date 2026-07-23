@@ -148,12 +148,21 @@ Documentação oficial do WAHA (engine GOWS/whatsmeow, a que usamos):
   "payload": {
     "fromMe": false,
     "timestamp": 1710481111.853,
-    "reaction": { "text": "🙏", "messageId": "<id da mensagem reagida>" }
+    "reaction": { "text": "🙏", "messageId": "true_79111111@c.us_1111111111111111111" }
   }
 }
 ```
 
-- `reaction.messageId` é o `provider_message_id` da mensagem reagida.
+- `reaction.messageId` é o `provider_message_id` da mensagem reagida. O
+  exemplo oficial acima já mostra o formato composto (`fromMe_chatId_serial`)
+  — o mesmo formato que `parseWahaMessageEvent` grava em
+  `provider_message_id` para toda mensagem WAHA —, então a busca por
+  igualdade (`.eq("provider_message_id", reaction.targetProviderMessageId)`)
+  é correta por construção, não uma aposta. Ainda assim, o 1º smoke em
+  produção deve confirmar ponta a ponta: reagir a uma mensagem real e
+  conferir `outcome: "processed"` em `webhook_deliveries` — um
+  `outcome: "ignored"` com motivo `reaction-target-missing` indicaria que o
+  formato divergiu na prática.
 - `payload.fromMe` diz quem reagiu — `false` = cliente, `true` = a loja.
 - **`reaction.text` vazio (`""`) significa reação REMOVIDA**, não "reação sem
   emoji". É o WhatsApp reportando que a pessoa tocou de novo no emoji para
@@ -209,25 +218,82 @@ função que decide o próximo estado:
 ### Webhook (`waha-webhook/index.ts`)
 
 Branch para `event === "message.reaction"`, antes do guard de evento não
-suportado:
+suportado. Endurecido numa revisão xhigh (23/07, commit `271772dc`) contra
+falhas silenciosas, corridas de escrita concorrente e resubscribe cego —
+detalhado abaixo.
 
 1. `parseWahaReactionEvent` — lançou (sem `reaction` ou sem `messageId`) ⇒
    `outcome: "ignored"` com o motivo, mesmo contrato de descarte auditável já
    usado para envelopes sem conteúdo.
-2. Localiza a mensagem por `provider_message_id`. Não encontrada ⇒ `ignored`
-   (reação a uma mensagem anterior à importação — esperado e benigno, não é
-   erro).
-3. `UPDATE messages SET reactions = <resultado de applyReaction>`.
-4. **Só quando `fromMe === false` e `reaction.emoji` não é vazio** (reação
-   genuína do cliente, não remoção): toca a conversa (`last_message_at`) e
-   soma 1 a `unread_count`. Uma reação do cliente conta como interação — um
-   👍 não pode continuar lendo como "sem resposta".
+2. Localiza a mensagem por `provider_message_id`.
+   - **Erro no SELECT** (ex.: timeout transitório) ⇒ **503**,
+     `outcome: "error"`, **sem** `markProcessed()`. Tratar erro de lookup
+     como "alvo ausente" marcaria o evento como processado e a reação seria
+     perdida para sempre — a reentrega do WAHA bateria no guard de
+     `processed_events` e seria descartada como duplicata antes de a escrita
+     ser tentada de novo.
+   - **Não encontrada** (sem erro) ⇒ `ignored` + `markProcessed()` (reação a
+     uma mensagem anterior à importação — esperado e benigno, não é erro).
+3. **Patch otimista** (`patchReactionTarget`): a `UPDATE messages SET
+   reactions = <resultado de applyReaction>, webhook_event_ids = [...,
+   eventKey]` é condicionada à snapshot exata de `reactions` lida nesta
+   chamada (`.eq("reactions", JSON.stringify(snapshot))` ou
+   `.is("reactions", null)`). Duas reações concorrentes no mesmo segundo
+   (cliente e loja reagindo quase ao mesmo tempo) fariam um simples
+   SELECT-então-UPDATE perder um dos dois lados; aqui a segunda escrita casa
+   0 linhas em vez de sobrescrever o slot da primeira. Um match de 0 linhas
+   sem erro dispara **uma única retentativa**: reconsulta a linha por `id` e
+   repete o patch com a snapshot já atualizada (`applyReaction` funde os dois
+   lados corretamente). Também é aqui que `eventKey` passa a entrar em
+   `webhook_event_ids`, fechando a trilha forense
+   mensagem → `webhook_event_ids` → `processed_events`/`webhook_deliveries`
+   que `applyWahaAckToMessage` já usa.
+   - Qualquer falha real (erro no UPDATE, ou a retentativa também perdendo a
+     corrida) ⇒ **503**, `outcome: "error"`, **sem** `markProcessed()` — é o
+     não-2xx que faz o WAHA reentregar; um 200 aqui (o bug original) nunca
+     seria reprocessado, porque WAHA só reenvia em resposta não-2xx.
+4. **Toque da conversa — só para reação genuína do cliente, e best-effort.**
+   Quando `fromMe === false` **e** `reaction.emoji` não é vazio (reação real,
+   não remoção): chama a RPC atômica `waha_reaction_touch(p_conversation_id,
+   p_ts)` (migration `20260721190000_waha_reaction_touch.sql`), que soma 1 a
+   `unread_count` e avança `last_message_at` com `greatest(...)` numa única
+   `UPDATE` — substitui o antigo SELECT-então-UPDATE em JS, que podia
+   sobrescrever um `markRead` concorrente ou regredir `last_message_at` numa
+   reentrega. **A RPC não toca conversa fechada** (`resolvida`/`arquivada`) —
+   ver "Conversa fechada não é tocada" abaixo. Falha na RPC é só um
+   `console.warn`: **não** vira 503 nem impede `markProcessed()` — a reação
+   já está gravada na mensagem (passo 3), e um 503 aqui reprocessaria o
+   patch inteiro e duplicaria `eventKey` em `webhook_event_ids` numa
+   reentrega.
 5. Idempotência: o evento passa pelo mesmo guard de `processed_events` que
    todos os outros — uma reentrega do WAHA não soma `unread_count` duas
-   vezes.
+   vezes (reforçado pela RPC atômica do passo 4).
 
-Reação da própria loja e remoção de reação **gravam o emoji/estado**, mas
-**não** tocam a conversa nem mexem em `unread_count`.
+Reação da própria loja e remoção de reação **gravam o emoji/estado** (passo
+3), mas **não** disparam a RPC do passo 4 — não tocam a conversa nem mexem em
+`unread_count`.
+
+### Conversa fechada não é tocada
+
+**Decisão do dono, 2026-07-24.** Uma reação numa conversa `resolvida` ou
+`arquivada` grava o chip normalmente na mensagem (passo 3 acima), mas **não**
+sobe a conversa na lista, **não** marca não lida e **não** mexe em
+`last_message_at` — a `WHERE status NOT IN ('resolvida', 'arquivada')` da RPC
+`waha_reaction_touch` garante isso no próprio SQL, não numa checagem em JS
+que alguém poderia esquecer de replicar.
+
+O raciocínio: um 👍 num atendimento já encerrado é agradecimento, não uma
+nova demanda — uma mensagem de texto real ainda reabre a conversa
+normalmente (é o trigger de `messages`, não este código, que decide isso).
+Tratar a reação como se fosse a mesma coisa teria dois efeitos colaterais
+indesejados:
+
+- **KPIs do Painel de Atendimento** que calculam a média de
+  `last_message_at - first_in` sobre conversas resolvidas ficariam distorcidos
+  por um evento que não é uma nova interação de atendimento.
+- **Contador de não lido fantasma**: a conversa reapareceria como "não lida"
+  numa lista que a Inbox já filtra como resolvida/arquivada — não lida em algo
+  que ninguém vai abrir de novo.
 
 ### `awaiting_reply_since` — por que a reação NÃO limpa a coluna
 
@@ -249,39 +315,60 @@ conversa desapareceria da fila de acompanhamento sem que o cliente tivesse
 sido atendido. Por isso o webhook deixa a coluna inteiramente para o trigger
 existente — nenhum código novo nesta feature a toca.
 
-### Por que não foi preciso tocar no realtime congelado
+### Realtime — o chip chega ao vivo por dois canais
 
-O cache/realtime do Atendimento (`useRealtimeMessages`, query keys, pipeline
-de signing) está sob ordem expressa de não alteração — e não precisou ser
-tocado.
+> Esta seção descrevia originalmente por que **não** era preciso tocar no
+> cache/realtime congelado do Atendimento. Uma revisão xhigh (23/07) encontrou
+> dois defeitos reais nesse mesmo cache, e o dono **autorizou explicitamente**
+> (24/07) duas edições cirúrgicas — commit `7fa6936d` — para corrigi-los. Nada
+> mais no cache congelado (`useRealtimeMessages`, query keys, pipeline de
+> signing) foi tocado; o texto abaixo substitui a versão anterior.
 
-O motivo: `useRealtimeMessages` já mantém um **fallback** por design (ver o
-doc-comment do hook). A assinatura rápida em `messages` (INSERT/UPDATE) não
-mapeia a coluna `reactions` em `IMessageRealtimeRow`/`rowToMessage` — ela
-nunca carregou esse campo, e continua sem carregar. O que resolve é o segundo
-canal: o hook também assina `conversations` e, ao detectar um *touch* na
-conversa aberta (`last_message_at` mudando), roda `syncLatest()` com debounce
-de 250 ms — que refaz a busca da última página pelo provider normal (que já
-lê a coluna `reactions` inteira via `COLUMNS`) e mescla via `applyRealtimeRow`.
+**Achado #1 — o mapper do canal rápido não carregava `reactions`.**
+`IMessageRealtimeRow`/`rowToMessage` (`useRealtimeMessages.ts`) não incluíam a
+coluna `reactions`: uma reação chegando pelo canal rápido de `messages`
+(INSERT/UPDATE) se perdia no mapeamento antes mesmo de tocar o cache, e o chip
+nunca aparecia (nem sumia, numa remoção) por esse caminho. Correção: `reactions`
+agora é lido direto da linha (`payload.new` sempre carrega a linha completa),
+nunca um `undefined` fixo — então o chip passa a chegar ao vivo pelo canal
+rápido, **inclusive a reação da própria loja**, que não tem nenhum outro
+caminho ao vivo (ver adiante).
 
-Como uma reação genuína do cliente **toca a conversa** (passo 4 do webhook,
-acima), a reação chega ao thread aberto por esse caminho já existente, sem
-nenhuma linha de código nova no realtime.
+**Achado #2 — um UPDATE fora das páginas carregadas virava INSERT.**
+`applyRealtimeRow` (`useMessages.ts`) tratava qualquer UPDATE de uma linha
+ausente do cache local como se fosse mensagem nova. O branch de reação do
+`waha-webhook` é o primeiro *writer* que dá UPDATE numa linha de `messages` de
+**qualquer idade** — reagir a uma mensagem de meses atrás injetava esse balão
+antigo no topo do thread aberto (fora de contexto) e o duplicava na paginação
+seguinte. Correção: `useRealtimeMessages` agora repassa
+`payload.eventType === "UPDATE"` como segunda flag para `apply`, e
+`applyRealtimeRow` **pula a inserção** quando a flag está ligada e a linha não
+está no cache — a mensagem antiga simplesmente não é injetada, em vez de
+aparecer no lugar errado e duplicar depois. `syncLatest` (o fallback abaixo)
+continua chamando `apply` sem essa flag, então seu próprio caminho de
+recuperação de linhas fora de ordem não muda.
 
-**Consequência aceita:** a reação da própria loja **não** toca a conversa
-(passo 4 é condicionado a `fromMe === false`), então ela só aparece no thread
-aberto ao reabrir a conversa (ou quando outro evento tocar a conversa por
-outro motivo). É informação de baixo valor operacional — o vendedor sabe que
-reagiu, o que falta comunicar é a reação *do cliente*, e essa chega ao vivo.
+**Como os dois canais coexistem agora:**
 
-**A remoção de reação tem exatamente o mesmo comportamento**, de qualquer um
-dos dois lados: `applyReaction` grava o slot correspondente como ausente
-(`reactions` pode virar `null`) sem que o passo 4 seja acionado (não é
-`fromMe === false` com `reaction.emoji` não-vazio), então a conversa não é
-tocada e `syncLatest()` nunca dispara. O chip removido continua visível no
-thread aberto até a conversa ser reaberta (ou tocada por outro motivo) — o
-vendedor vê o cliente "desfazer" um 👍 só depois de sair e voltar à
-conversa.
+- **Canal rápido (`messages`, INSERT/UPDATE da conversa aberta)** — com o
+  Achado #1 corrigido, já carrega o chip diretamente. Continua best-effort: a
+  avaliação por-linha de `can_access_conversation` no autorizador do Realtime
+  é o mesmo custo que motivou a otimização de leitura por RPC (ver
+  `docs/dev/conversation-access-model.md`) — o canal pode perder o evento.
+- **Canal de fallback (`conversations`, touch de `last_message_at`)** — só
+  dispara quando a RPC `waha_reaction_touch` toca a conversa, ou seja, só para
+  reação **genuína de cliente** numa conversa **aberta**. Ao detectar o touch,
+  `syncLatest()` (debounce 250 ms) remescla a última página pelo provider
+  normal, que já lê `reactions` inteira via `COLUMNS` — cobre a reação de
+  cliente mesmo quando o canal rápido perde o evento.
+
+**Consequência que permanece:** a reação da própria loja e qualquer remoção
+não disparam a RPC (passo 4 do webhook), então dependem **só** do canal
+rápido, sem a rede de segurança do touch. Com o Achado #1 corrigido elas
+chegam ao vivo na maioria dos casos — mas se o canal rápido especificamente
+perder esse evento, o chip só aparece ao reabrir a conversa (ou quando outro
+evento tocar a conversa por outro motivo), diferente da reação de cliente, que
+sempre tem o segundo canal como rede de segurança.
 
 ### Exibição
 
@@ -296,16 +383,36 @@ lados reagiram, os dois chips aparecem lado a lado.
 
 `message.reaction` entra em `WAHA_DEFAULT_EVENTS`
 (`src/providers/whatsapp/waha/constants.ts`) — mas isso só cobre sessões
-**criadas depois** desta mudança. Sessões já pareadas foram configuradas com a
-lista anterior de eventos e continuam sem reações até serem reconfiguradas —
-mesma mecânica de quando `message.ack` foi adicionado (ver
+**criadas depois** desta mudança **e depois do redeploy da Edge Function que
+as cria**. Sessões já pareadas foram configuradas com a lista anterior de
+eventos e continuam sem reações até serem reconfiguradas — mesma mecânica de
+quando `message.ack` foi adicionado (ver
 `scripts/waha-resubscribe-message-ack.ts`, o modelo espelhado aqui).
+
+⚠️ `WAHA_DEFAULT_EVENTS` está compilada no bundle de **duas** Edge Functions,
+não só do `waha-webhook`: é `waha-connect` quem chama
+`createWahaSession`/`buildWahaConfig` ao parear uma instância nova. Sem
+redeployar o `waha-connect` também, toda instância pareada **depois** deste
+PR nasce assinando a lista velha de eventos e nunca recebe reações — ver o
+passo 2 de "Ordem de rollout" abaixo.
 
 ## Ordem de rollout
 
 A ordem importa e não é intercambiável:
 
-1. **Migration primeiro, sempre antes do deploy do frontend.**
+1. **Migrations — agora são DUAS, ambas antes do merge do PR** (a Vercel
+   auto-deploya o frontend no merge para `main`, e o webhook chama a RPC do
+   passo 4 incondicionalmente no branch de reação genuína — nenhuma das duas
+   pode ficar pra trás):
+   - `supabase/migrations/20260721180000_message_reactions.sql` — a coluna
+     `messages.reactions jsonb` (ver "O modelo de dois slots" acima).
+   - `supabase/migrations/20260721190000_waha_reaction_touch.sql` — a RPC
+     `waha_reaction_touch(p_conversation_id, p_ts)`: soma 1 a `unread_count`
+     e avança `last_message_at` com `greatest(...)` numa única `UPDATE`
+     atômica (substitui o antigo SELECT-então-UPDATE do webhook), e **não
+     toca conversa fechada** (`resolvida`/`arquivada`) — ver "Conversa
+     fechada não é tocada" acima.
+
    `messages.reactions` entrou em `COLUMNS`
    (`src/providers/data/impl/supabase/messages.ts`) — mas o thread do
    Atendimento **não** depende dela: `list()` (~linha 121) lê a página pela
@@ -322,20 +429,30 @@ A ordem importa e não é intercambiável:
    mesmo padrão do incidente do PR #218 (coluna nova referenciada em
    `COLUMNS` antes da migration em produção), só que contido às
    leitura/escritas que passam por `COLUMNS`, não ao `SELECT` do thread.
-   Aplicar `supabase/migrations/20260721180000_message_reactions.sql`
-   requer OK explícito do dono antes do `apply_migration`.
+   Aplicar as duas migrations requer OK explícito do dono antes do
+   `apply_migration` — a ordem entre elas não importa tecnicamente (a RPC só
+   depende de `conversations`, já existente), mas ambas precisam estar em
+   produção antes do deploy da Edge Function (passo 2).
 
-2. **Deploy manual da Edge Function — o workflow do GitHub é no-op.**
+2. **Deploy manual das Edge Functions — o workflow do GitHub é no-op — e são
+   DUAS funções, não uma.**
    "Edge Functions deploy" no GitHub Actions fica **verde sem deployar nada**
    (secrets de deploy ausentes no repositório). O deploy real é manual:
 
    ```bash
    npx supabase functions deploy waha-webhook --project-ref njizaasajkdqptlxddqn
+   npx supabase functions deploy waha-connect --project-ref njizaasajkdqptlxddqn
    ```
 
-   Sem isso, o branch `message.reaction` do webhook simplesmente não existe
+   Sem o `waha-webhook`, o branch `message.reaction` simplesmente não existe
    em produção — o evento continuaria caindo no guard de "evento não
-   suportado" mesmo depois da migration.
+   suportado" mesmo depois da migration. Sem o `waha-connect`: a constante
+   `WAHA_DEFAULT_EVENTS` (que agora inclui `message.reaction`) também está
+   compilada no bundle do `waha-connect` — é ele quem chama
+   `createWahaSession`/`buildWahaConfig` ao parear uma instância nova. Sem
+   redeployá-lo também, **toda instância pareada depois deste PR** (não só as
+   antigas, cobertas pelo passo 3) nasce assinando a lista velha de eventos e
+   nunca recebe reações.
 
 3. **Re-inscrição das sessões já pareadas — reinicia TODAS as sessões
    conectadas, não é um script benigno.**
@@ -348,8 +465,8 @@ A ordem importa e não é intercambiável:
 
    Sem rodar isso, as instâncias que já estavam conectadas antes desta
    mudança continuam sem enviar `message.reaction` ao webhook — só sessões
-   pareadas **depois** da mudança pegam o evento automaticamente (via
-   `WAHA_DEFAULT_EVENTS` no `createWahaSession`). O script é sequencial e
+   pareadas **depois** da mudança pegam o evento automaticamente (e só se o
+   `waha-connect` também foi redeployado, passo 2). O script é sequencial e
    best-effort: uma falha numa conta é logada e não interrompe as demais.
 
    **Atenção ao que o `PUT` por baixo do capô realmente faz:**
@@ -362,23 +479,30 @@ A ordem importa e não é intercambiável:
    de WhatsApp, não um ajuste de configuração silencioso. Por isso:
    - rode numa **janela de baixo tráfego** e acompanhe cada sessão voltar a
      `WORKING` antes de considerar o rollout concluído;
-   - o script filtra `.eq("status", "connected")` na consulta inicial que
-     lista as contas — uma instância que estiver desconectada **no momento
-     da execução** nem entra no loop: fica **pulada silenciosamente**, sem
-     reações, até alguém rodar o script de novo depois que ela reconectar.
-     Ela não aparece nem como sucesso nem como falha — some do resumo
-     inteiro, porque nunca foi selecionada;
-   - o resumo final (`Done. ${ok} succeeded, ${failed} failed/skipped.`)
-     só cobre as contas que **entraram no loop** (falha real: sem
-     `sessionName`/`waha_server_id`, servidor ou segredos ausentes, ou erro
-     do `PUT`). Por isso `${ok} + ${failed}` menor que o total de contas
-     WAHA cadastradas é o sinal de que algo ficou desconectado na hora e
-     precisa de uma segunda rodada — a contagem exige essa checagem
-     manual, o script não avisa sozinho.
+   - o script agora consulta **todas** as contas `provider = 'waha'` (sem
+     filtro de status na query) e particiona em JS: `connectable` (status
+     `connected`, entra no loop de re-inscrição) e `skipped` (qualquer outro
+     status). Cada conta pulada é **impressa nominalmente** —
+     `SKIPPED: <label> (<id>) status=<status> — re-run this script after the
+     instance reconnects` — em vez de simplesmente desaparecer do resumo como
+     na primeira versão do script;
+   - o resumo final mudou para `Done. ${ok} ok, ${failed} failed, ${skipped}
+     skipped.` e o script agora **sai com código 1** sempre que
+     `failed + skipped > 0` — uma instância pulada continua na lista antiga
+     de eventos até uma nova execução do script contra ela, e o processo de
+     rollout falha visivelmente em vez de reportar sucesso incompleto quando
+     alguma conta ficou de fora.
 
 4. **Smoke.**
-   - Reagir a uma mensagem pelo celular (conta já re-inscrita) e conferir
-     que o emoji aparece no thread aberto (ou ao reabrir a conversa).
+   - Reagir a uma mensagem pelo celular (conta já re-inscrita) com a conversa
+     aberta na plataforma e conferir que o emoji aparece **ao vivo** no
+     thread — e, em `webhook_deliveries`, que o evento fechou com
+     `outcome: "processed"` (um `outcome: "ignored"` com motivo
+     `reaction-target-missing` sinalizaria que o formato de `messageId`
+     divergiu do documentado — ver "O contrato do evento" acima).
+   - Reagir a uma mensagem numa conversa já **resolvida/arquivada** e
+     conferir que ela **não** sobe na lista nem fica marcada como não lida —
+     o chip ainda deve aparecer ao abrir a conversa manualmente.
    - Enviar/receber uma cobrança de chave PIX pelo celular e conferir o card
      — recebedor + chave formatada + botão de copiar funcionando.
 

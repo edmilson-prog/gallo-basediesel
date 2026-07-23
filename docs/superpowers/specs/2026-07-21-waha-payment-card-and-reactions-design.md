@@ -278,9 +278,10 @@ Fluxo no webhook:
 1. Parseia. Lançou ⇒ `outcome: "ignored"` com o motivo (mesmo contrato de
    descarte auditável já usado para envelopes sem conteúdo).
 2. Localiza a mensagem por `provider_message_id` **dentro da conta/sessão**.
-   Não encontrada ⇒ `ignored` com motivo (reação a mensagem anterior à
-   importação — esperado e benigno).
-3. `UPDATE messages SET reactions = <novo>`.
+   Não encontrada (sem erro) ⇒ `ignored` com motivo (reação a mensagem
+   anterior à importação — esperado e benigno).
+3. `UPDATE messages SET reactions = <novo>, webhook_event_ids = [...,
+   eventKey]`.
 4. Se `fromMe === false` **e** não é remoção: toca a conversa
    (`last_message_at`) e soma 1 a `unread_count` — conta como interação do
    cliente.
@@ -298,6 +299,53 @@ demais, então uma reentrega do WAHA não soma `unread_count` duas vezes.
 
 Reação da própria loja (`fromMe: true`) grava o emoji mas **não** toca a
 conversa nem marca não lida.
+
+### Endurecimento pós-revisão xhigh (23/07) — o que mudou no fluxo acima
+
+Uma revisão xhigh do branch encontrou 7 achados no fluxo desenhado acima.
+Fixados no commit `271772dc`, com o histórico do desenho original preservado
+nos parágrafos anteriores desta seção:
+
+- **Erro de lookup ≠ alvo ausente (passo 2).** O `SELECT` do passo 2 agora
+  distingue **erro** (timeout, etc.) de **não encontrado**. Um erro real
+  responde **503** (`outcome: "error"`, sem `markProcessed()`), porque
+  tratá-lo como "alvo ausente" marcaria o evento como processado e a reação
+  se perderia para sempre na próxima reentrega (bateria no guard de
+  `processed_events` como duplicata). Só a ausência genuína (sem erro) segue
+  `ignored` + `markProcessed()`.
+- **Guarda otimista + uma retentativa (passo 3).** O `UPDATE` do passo 3
+  passou a ser condicionado à snapshot exata de `reactions` lida na mesma
+  chamada (`patchReactionTarget`, com `.eq("reactions", ...)` ou
+  `.is("reactions", null)`). Duas reações concorrentes no mesmo segundo
+  (cliente e loja reagindo quase ao mesmo tempo) faziam o `UPDATE` original
+  perder um dos dois lados; agora a segunda escrita casa 0 linhas em vez de
+  sobrescrever, dispara **uma retentativa** (reconsulta por `id`, repete o
+  patch), e só falha de verdade (503, sem `markProcessed()`) se a retentativa
+  também colidir ou o `UPDATE` errar de fato — WAHA só reentrega em resposta
+  não-2xx, então um 200 nessa falha (o comportamento original) nunca seria
+  reprocessado.
+- **RPC atômica substitui o passo 4 (SELECT-então-UPDATE em JS).** O "toca a
+  conversa" do passo 4 virou uma chamada a
+  `waha_reaction_touch(p_conversation_id, p_ts)` — nova migration
+  `supabase/migrations/20260721190000_waha_reaction_touch.sql`, `SECURITY
+  DEFINER`, `service_role`-only. Numa única `UPDATE`: soma 1 a
+  `unread_count` e avança `last_message_at` com
+  `greatest(coalesce(last_message_at, p_ts), p_ts)`. O SELECT-então-UPDATE
+  original podia sobrescrever um `markRead` concorrente ou regredir
+  `last_message_at` numa reentrega — a RPC elimina as duas corridas ao fazer
+  tudo numa única sentença SQL. Falha na RPC é best-effort (`console.warn`,
+  não vira 503 nem bloqueia `markProcessed()`): a reação já está gravada na
+  mensagem pelo passo 3, e um 503 aqui reprocessaria o patch inteiro.
+- **Conversa fechada não é tocada — decisão do dono, 2026-07-24.** A `UPDATE`
+  da RPC ganhou `WHERE status NOT IN ('resolvida', 'arquivada')`: uma reação
+  numa conversa já encerrada grava o chip na mensagem (passo 3) normalmente,
+  mas não sobe a conversa, não marca não lida e não mexe em
+  `last_message_at`. Um 👍 em atendimento encerrado é agradecimento, não uma
+  nova demanda — só uma mensagem real (via o trigger existente em
+  `messages`) reabre. Sem essa exclusão, os KPIs do Painel de Atendimento que
+  calculam `last_message_at - first_in` sobre conversas resolvidas ficariam
+  distorcidos, e a Inbox mostraria um contador de não lido fantasma numa
+  conversa que ela mesma já filtra como resolvida/arquivada.
 
 ### Exibição
 
@@ -362,6 +410,15 @@ exatamente o incidente do PR #218.
 
 Sem mudança de RLS: a coluna herda as policies da tabela, e a RPC continua
 `SECURITY DEFINER` gated-once.
+
+**Migration adicional (revisão xhigh, 23/07):**
+`supabase/migrations/20260721190000_waha_reaction_touch.sql` cria a RPC
+`waha_reaction_touch` descrita em "Endurecimento pós-revisão xhigh" acima —
+não altera nenhuma tabela, só adiciona a função (`service_role`-only) e
+notifica o PostgREST. Assim como a migration da coluna, precisa de OK
+explícito do dono antes do `apply_migration`, e ambas precisam estar em
+produção antes do deploy do `waha-webhook` (que passou a chamar a RPC
+incondicionalmente no branch de reação genuína).
 
 ---
 
