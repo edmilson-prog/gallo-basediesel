@@ -1,89 +1,172 @@
-# Conversa dividida em duas: eco do celular após encerramento
+# Conversas divididas: eco pós-encerramento e os demais mecanismos
 
-> Investigação de 2026-07-23. Caso relatado: **VOLTECH OFICINA ESPECIALIZADA EM VEICULOS A DIESEL**
-> (+55 49 9973-4586) aparecendo como **duas conversas** na Inbox — mesmo número, mesma instância
-> (`Vendas — WAHA`, +55 55 9985-0110), histórico partido ao meio.
+> Investigação de 2026-07-23 + **double-check adversarial** no mesmo dia (workflow com 3 agentes
+> independentes: refutação de código, varredura de dados recomputada do zero e forense das anomalias).
+> Caso relatado: **VOLTECH OFICINA ESPECIALIZADA EM VEICULOS A DIESEL** (+55 49 9973-4586) aparecendo
+> como **duas conversas** — mesmo número, mesma instância (`Vendas — WAHA`).
 
-## 1. Veredito
+## 1. Veredito (revisado pós double-check)
 
-**Não é bug de deduplicação, nem `@lid`, nem 9º dígito.** É o efeito colateral de uma **regra de
-negócio deliberada e documentada**: um **eco** (mensagem enviada pelo aparelho, fora da plataforma)
-**nunca reabre** uma conversa encerrada — ele **cria uma conversa nova**.
+O diagnóstico original **sobrevive ao double-check como mecanismo dominante**, mas era **incompleto**:
 
-Regra em `docs/dev/attendance-close-history.md` §"Matriz de reabertura":
+1. **Eco pós-encerramento** (regra intencional): um **eco** (mensagem enviada pelo aparelho, fora da
+   plataforma) **nunca reabre** uma conversa encerrada — cria uma nova. O inbound do cliente reabre.
+   É o criador de **109 das 130** conversas extras classificáveis. ✅ Confirmado com números
+   recomputados independentemente e com o caso VOLTECH reverificado ao milissegundo.
+2. **Porém a escala real é ~4× maior que a reportada de início**: a primeira varredura agrupava só por
+   `customer_id` (22 pares / 51 conversas). Agrupando por **telefone + instância**, são
+   **106 grupos duplicados / 236 conversas** — 84 grupos ancorados em **lead** eram invisíveis ao
+   agrupamento original. O eco continua dominante também nos leads.
+3. **E o mecanismo não é único.** O double-check encontrou outros criadores de duplicata, incluindo
+   **2 bugs genuínos** (§4) — e o achado mais contraintuitivo: das **13 divisões visíveis hoje**
+   (2+ conversas abertas ao mesmo tempo), **nenhuma** é eco pós-encerramento (§5).
 
-| Evento numa conversa encerrada | Comportamento |
-|---|---|
-| **Inbound do cliente** | **Reabre** para `aguardando` (topo da fila) |
-| **Eco do celular** (outbound pelo aparelho) | **NÃO reabre** — cria conversa nova |
+A regra do eco está documentada em `docs/dev/attendance-close-history.md` §"Matriz de reabertura" e
+implementada **identicamente** nos dois pipelines de webhook:
 
-Implementação: `supabase/functions/waha-webhook/index.ts`
+- `supabase/functions/waha-webhook/index.ts` — eco `:858-869` (lookup OPEN-ONLY,
+  `.not("status","in","(resolvida,arquivada)")` → INSERT `:873`); inbound `:1108-1118` (sem filtro de
+  status → REOPEN `:1157-1169`).
+- `supabase/functions/_shared/whatsapp/webhook/core.ts` `:661-676` — o pipeline Meta/Evolution/Go/OpenWA
+  (`whatsapp-webhook`) tem **a mesma regra** (`findOpenConversation` sem `includeTerminal` no eco).
 
-- **Eco** (`:854-869`) — lookup **OPEN-ONLY**: `.not("status","in","(resolvida,arquivada)")`.
-  Não achando conversa aberta, insere uma nova (`:873`) com `assigned_seller_id: null` (cai no pool).
-- **Inbound** (`:1108-1118`) — lookup **sem filtro de status** → acha a conversa encerrada e
-  **reabre** (`:1157`, `didReopen`).
-
-Espelhado em `_shared/whatsapp/webhook/core.ts` (`findOpenConversation` + `includeTerminal`).
-
-## 2. Linha do tempo do caso VOLTECH (evidência)
+## 2. Caso VOLTECH (evidência, reverificada)
 
 Cliente `0d02ed7d-6b65-4df9-bfaa-4a6e0330b6f7`, conta `d1a9f086` (`Vendas — WAHA`).
 
 | Quando (UTC) | O quê | Fonte |
 |---|---|---|
 | 20/07 19:31:26 | Última mensagem da conversa **A** (`a5081f8f`, 612 msgs) | `messages` |
-| **20/07 20:23:22** | **Lucas Costa marca a conversa A como `resolvida`** | `conversation_activity` (`status`, `em_andamento→resolvida`) |
-| **20/07 20:50:02** | **Sistema cria a conversa B** (`2a9dcfb4`) — primeira msg `"turbodieselscfilial@gmail.com"`, enviada **pelo celular** | `conversation_activity` (`created`, `actor_kind: system`) |
-| 21/07 10:47 | Tiago assume a conversa B (`em_andamento`) | `conversation_activity` |
+| **20/07 20:23:22.956** | **Lucas Costa marca a conversa A como `resolvida`** | `conversation_activity` |
+| **20/07 20:50:02.391** | **Sistema cria a conversa B** (`2a9dcfb4`) — primeira msg enviada **pelo celular** | `conversation_activity` (`created`, system) |
 
-**27 minutos** entre encerrar e o vendedor responder pelo aparelho. As duas conversas carregam
-mensagens do **mesmo chat** (`252101812834367@lid`) — não há ambiguidade de identidade do contato.
+Contraprova na mesma trilha: a conversa A foi **reaberta** 3× (08/07, 17/07 ×2) — nessas vezes quem
+falou primeiro foi **o cliente** (inbound). A 3ª conversa do contato (`eddb0fbb`) está em **outra
+instância** (`Comercial Lucas`) — esperada no modelo por-instância, não faz parte da divisão.
 
-Contraprova na mesma trilha: em **08/07 16:28**, **17/07 11:12** e **17/07 17:25** a conversa A foi
-**reaberta** (`type: reopen`, `actor_kind: system`) — nessas três vezes quem falou primeiro depois do
-encerramento foi **o cliente** (inbound). Inbound reabre; eco não.
+## 3. Escala corrigida (recomputada em 23/07)
 
-## 3. Escala em produção
+| Métrica | 1ª investigação | Double-check |
+|---|---|---|
+| Grupos duplicados (telefone + instância) | 22 (só customer) | **106** (84 lead + 22 customer; 236 conversas) |
+| Conversas criadas por eco (total, maioria legítima) | 632 | **737** (drift de banco vivo) |
+| …com conversa anterior já encerrada (= histórico partido) | 102 | **109** |
+| …dentro de 1h / 24h do encerramento | 24 / 54 | **27 / 59** |
+| Grupos com **2+ conversas abertas simultaneamente** | não medido | **13** |
 
-| Métrica | Valor |
+Classificação das **130 conversas extras** (cada conversa de um grupo além da mais antiga, janela
+coberta pela trilha `conversation_activity`, que existe desde 04/07):
+
+| Causa | Qtde |
 |---|---|
-| Pares "mesmo cliente + mesma instância" com >1 conversa | **22** (51 conversas) |
-| Desses, a conversa mais nova começa com **eco do celular** | **20 de 22** |
-| Conversas criadas por eco (total) | **632** |
-| …criadas **depois** de a anterior ter sido encerrada (= histórico partido) | **102** |
-| …dentro de **1h** do encerramento | 24 |
-| …dentro de **24h** do encerramento | 54 |
+| Eco pós-encerramento (regra intencional) | **109** |
+| Corrida de webhooks concorrentes (TOCTOU) | **13** |
+| Divisão por 9º dígito (2 leads distintos p/ mesmo número real) | 2 |
+| Eco ignorou conversa ABERTA (bug do erro engolido, §4.2) | 1 |
+| Inbound criou nova com anterior aberta/recém-fechada (evidência fraca — reancoragem retroativa da Frente B) | 3 |
+| Estado anterior desconhecido (conversa pré-trilha/import) | 2 |
 
-Interpretação: das 632 conversas abertas por eco, a **grande maioria é legítima** (o vendedor iniciou
-pelo celular um contato que ainda não tinha conversa). O sintoma relatado corresponde às **102** em
-que já existia conversa encerrada do mesmo contato na mesma instância — e **metade delas (54)**
-ocorreu em menos de 24h do encerramento, ou seja, é a continuação imediata do mesmo assunto.
+Metodologia: primeira mensagem por **`created_at`** (ordem de inserção), não `sent_at` — entregas
+atrasadas de webhook e imports de histórico retrodatam `sent_at` e geram falsos "inbound-first"
+(foi exatamente o caso do par G. L. DE LIMA, reclassificado de anomalia para confirmação da tese).
 
-## 4. O que NÃO é
+## 4. Bugs genuínos encontrados pelo double-check
 
-- **Não** é falha de dedup do eco: envios feitos **pela plataforma** (`waha-send`) são deduplicados por
-  `provider_message_id` antes de qualquer escrita (`waha-webhook/index.ts:714-738`) e nunca criam
-  conversa nova.
-- **Não** é `@lid` vs `@c.us`: ambas as conversas contêm mensagens do mesmo `252101812834367@lid`, e o
-  cliente é o mesmo registro em `customers` (busca por telefone retorna 1 linha).
-- **Não** é multi-instância: `whatsapp_account_id` idêntico nas duas.
-- **Não** é regressão recente do webhook: a regra vem do PRD de Encerramento & Histórico de
-  Atendimento. O aumento em julho acompanha o uso crescente do botão "Resolver".
+### 4.1 Corrida TOCTOU na criação de conversa (ativo, recorrente)
 
-## 5. Decisão pendente (produto)
+`conversations` **não tem índice único** por (âncora, `whatsapp_account_id`) e a idempotência do
+webhook é **por evento**, não por contato. Dois eventos diferentes do mesmo contato processados em
+paralelo passam ambos pelo lookup antes do INSERT do outro comitar → **os dois inserem**.
+Confirmado em produção: **10+ pares no mesmo instante** (gaps de 35 µs a 13 s; combinações in/in,
+in/out e out/out; WAHA e Evolution; um burst criou 3 conversas em 13 s durante drenagem de fila;
+uma corrida também criou **2 leads duplicados** para o mesmo telefone). Último caso: **22/07** — segue
+acontecendo. É a causa de **8 das 13 divisões visíveis hoje** (§5).
 
-A regra atual foi escrita para **não deixar o eco do próprio aparelho ressuscitar** uma conversa que o
-time deu por encerrada — o que protege fila e métricas de atendimento. O preço é o histórico partido
-que o dono viu na Inbox. Caminhos possíveis, em ordem de invasividade:
+### 4.2 Erro de query engolido → INSERT "fail-open" (provado por exclusão)
 
-1. **Janela de continuidade** — o eco reabre a conversa encerrada se o encerramento foi há menos de
-   X horas (24h cobriria 54 dos 102 casos); passado isso, segue criando nova. Preserva a intenção
-   original e mata o sintoma mais incômodo.
-2. **Eco sempre reabre** — simetria total com o inbound. Elimina a divisão, mas ressuscita conversas
-   encerradas e mexe na fila/métricas de atendimento.
-3. **Manter e resolver na UI** — agrupar na Inbox conversas do mesmo contato+instância (a aba
-   "Histórico" da ficha já mostra os atendimentos anteriores). Zero mudança de backend.
-4. **Não mexer** — tratar como comportamento esperado, documentando para o time.
+`waha-webhook/index.ts:858` desestrutura só `{ data }` do lookup do eco e **descarta `error`** — uma
+falha transitória (timeout/PostgREST) vira "não existe conversa aberta" e o código **cria uma nova**.
+O lookup do inbound (`:1108`) tem o **mesmo defeito latente**.
 
-Nenhuma alteração de código foi feita nesta investigação.
+Prova (caso GILBERTO FISCHER, conv `3bde1e20`): em 16/07 às 12:35:46/12:35:56/12:36:36 três ecos do
+mesmo contato foram roteados **para dentro** da conversa aberta `91b5746d` — provando que ela
+satisfazia o lookup naquele minuto. Às 12:39:31 um eco idêntico **não a encontrou** e criou `3bde1e20`.
+A trilha por trigger (`conversation_activity_capture`, ativa e comprovadamente disparando na semana)
+não registra **nenhuma** transição da conversa antiga entre 13/07 e 17/07 — ela esteve continuamente
+aberta; sem cliente duplicado, sem troca de conta, sem corrida (3 min de gap). A única explicação
+restante é o lookup ter falhado com erro descartado.
+
+### 4.3 Riscos armados (0 ocorrências até hoje, mas sem guarda)
+
+- **Anchor-flip na conversão de lead**: `ConvertLeadModal` (modos link/create) só atualiza o lead —
+  **nenhum código reancora as conversas** do lead para o cliente. Como todo resolver checa cliente
+  ANTES de lead, após a conversão o telefone resolve para o cliente e o lookup por `customer_id` não
+  enxerga a conversa ancorada no lead → duplicata no próximo eco **e** no próximo inbound. Exposição
+  atual: 0 conversões registradas (wizard #350/#351 recém-entregue), **4 conversas lead-ancoradas já
+  sombreadas** por cliente de mesmo telefone na mesma loja — duplicam na próxima mensagem.
+- **"Nova conversa" no app** (`NewConversationDialog` → `createOutbound`): o fluxo de cliente
+  existente **não faz lookup nenhum** de conversa — pode duplicar até com conversa ABERTA; o fluxo de
+  número novo usa lookup OPEN-ONLY (duplica com encerrada). Nenhum caso em prod atribuível ainda.
+- **`findCustomerByPhone`** pega o primeiro match tolerante de lista sem ordenação — dois clientes com
+  o mesmo telefone podem resolver diferente a cada invocação (não realizado: 0 grupos com clientes
+  duplicados hoje).
+- **Importadores de histórico** (`whatsapp-import-history`/`-go`): ~10 duplicatas históricas com a
+  assinatura do importador (primeira msg sem `webhook_event_ids`), provavelmente correndo contra o
+  webhook vivo na migração WAHA de meados de julho.
+
+## 5. As 13 divisões visíveis HOJE (2+ conversas abertas) — nenhuma é eco pós-encerramento
+
+O eco pós-encerramento, por construção, deixa a anterior **fechada** — ele parte o histórico, mas
+raramente produz duas conversas abertas. O que o usuário vê partido **agora** tem outras causas:
+
+| Contato (chave) | Causa |
+|---|---|
+| 553188071974 @ Vendas—WAHA | corrida (46 ms, par in+out) |
+| 554899860870 @ Vendas—WAHA | **9º dígito** (2 leads p/ mesmo número) |
+| 554999412825 @ GALLO Site | corrida (14 ms) |
+| 554999625626 @ Vendas—WAHA | corrida (39 ms) + 2 leads duplicados |
+| 555197539632 @ GALLO Site | corrida (75 ms) |
+| 555399511127 @ Vendas—WAHA | **bug do erro engolido** (§4.2) |
+| 555481572275 @ conta 5cfd2beb | **9º dígito** (2 leads) |
+| 555484008996 @ Vendas—WAHA | corrida (35 µs) |
+| 555581156781 @ GALLO Site | corrida (91 ms, mesmo cliente) |
+| 555584151576 @ Vendas—WAHA | corrida em burst (3 convs em 13 s) |
+| 555599003314 @ Vendas—WAHA | anomalias sequenciais (evidência fraca — Frente B) |
+| 555599755317 @ GALLO Site | desconhecida (conversa pré-trilha, import) |
+| 556792908840 @ Vendas—WAHA | corrida (8 ms, par in+out) |
+
+O caso VOLTECH não está nesta lista porque a conversa antiga está `resolvida` — ele é o padrão
+"histórico partido" (109 casos), visível ao buscar/abrir a antiga, mas não duas abertas em fila.
+
+## 6. O que NÃO é
+
+- **Não** é falha de dedup do envio pela plataforma: `waha-send` é deduplicado por
+  `provider_message_id` antes de qualquer escrita (`waha-webhook/index.ts:714-738`).
+- **Não** é `@lid` vs `@c.us` no caso VOLTECH: mesmo registro em `customers`, mesmas contas.
+- **Não** há RPC/trigger SQL inserindo em `conversations` (grep de todas as migrations: zero), e
+  sdr-*/rescue/scheduled-send/connect não criam conversas.
+- **Não** há hoje grupos com âncora mista (0) nem clientes duplicados realizados (0).
+
+## 7. Plano de correção sugerido (por prioridade)
+
+1. **Guarda de unicidade contra a corrida** — índice único parcial em `conversations`
+   (por âncora + `whatsapp_account_id`, `WHERE status NOT IN ('resolvida','arquivada')`) + tratamento
+   de conflito no INSERT dos webhooks (on-conflict → reusar). Mata as 8 divisões por corrida e as
+   futuras. É a correção de maior impacto no sintoma visível.
+2. **Checar `error` nos lookups** do eco (`:858`) e do inbound (`:1108`) — em erro, responder não-2xx
+   retryável (o WAHA reenvia) em vez de criar conversa. Elimina o §4.2.
+3. **Decisão de produto sobre o eco pós-encerramento** (os 109 históricos + fluxo futuro):
+   - a) **Janela de continuidade** — eco reabre se encerrada há < X h (24h cobre 59 dos 109); depois
+     disso, cria nova. Recomendada: preserva a intenção original.
+   - b) Eco sempre reabre (simetria total; mexe em fila/métricas).
+   - c) Só UI: agrupar conversas do mesmo contato+instância na Inbox.
+   - d) Não mexer (documentar para o time).
+4. **Reancorar conversas na conversão de lead** (fechar o anchor-flip antes que o wizard #350/#351
+   comece a ser usado — há 4 conversas já sombreadas que duplicam na próxima mensagem).
+5. **Normalização de 9º dígito no resolver de lead** + dedup dos leads duplicados (2 pares visíveis).
+6. **Lookup de conversa no fluxo "Nova conversa"** do app (cliente existente hoje não checa nada).
+
+Higiene de dados (após decisão): mesclar/arquivar as duplicatas visíveis — corridas e 9º dígito são
+mescláveis com segurança (mesmo contato real).
+
+Nenhuma alteração de código foi feita nesta investigação (doc-only).
