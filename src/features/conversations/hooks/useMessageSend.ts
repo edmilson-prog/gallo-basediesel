@@ -74,6 +74,8 @@ export interface ISendOptions {
   mediaUrl?: string;
   /** Original filename of an attached file — labels documents for the recipient (PRD-119). */
   fileName?: string;
+  /** Byte size of the attached file — lets WAHA route a video inline vs. as a document. */
+  mediaSizeBytes?: number;
   /** Marks this message as a template HSM send (uses provider = meta). */
   template?: boolean;
   /** Real HSM payload (PRD-116) — supabase source sends kind='template'. */
@@ -119,6 +121,7 @@ export function useMessageSend(
       mediaType,
       mediaUrl,
       fileName,
+      mediaSizeBytes,
       template,
       templateMeta,
       overrideInvalid,
@@ -179,7 +182,12 @@ export function useMessageSend(
                   text: optimistic.text,
                   messageId,
                   ...(mediaType
-                    ? { mediaUrl, mediaType, ...(fileName ? { filename: fileName } : {}) }
+                    ? {
+                        mediaUrl,
+                        mediaType,
+                        ...(fileName ? { filename: fileName } : {}),
+                        ...(mediaSizeBytes !== undefined ? { sizeBytes: mediaSizeBytes } : {}),
+                      }
                     : {}),
                 })
               : await invokeSendFunction(

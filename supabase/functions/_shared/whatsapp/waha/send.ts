@@ -1,7 +1,7 @@
 // AUTO-GENERATED MIRROR — DO NOT EDIT.
 // Source: src/providers/whatsapp/waha/send.ts (sync: bun run scripts/sync-whatsapp-shared.ts)
 
-/** WAHA outbound send — text (`/api/sendText`) and media (`/api/sendImage`/`/api/sendVoice`/`/api/sendFile`). */
+/** WAHA outbound send — text (`/api/sendText`) and media (`/api/sendImage`/`/api/sendVoice`/`/api/sendVideo`/`/api/sendFile`). */
 
 import { WhatsAppProviderError } from "../errors.ts";
 import { wahaRequest } from "./client.ts";
@@ -76,6 +76,8 @@ export interface IWahaSendMediaInput {
   mimetype?: string;
   caption?: string;
   filename?: string;
+  /** Byte size of the file — decides whether a video goes inline or as a document. */
+  sizeBytes?: number;
 }
 
 const MEDIA_ENDPOINTS: Record<IWahaSendMediaInput["mediaType"], string> = {
@@ -84,6 +86,15 @@ const MEDIA_ENDPOINTS: Record<IWahaSendMediaInput["mediaType"], string> = {
   video: "/api/sendFile",
   document: "/api/sendFile",
 };
+
+/**
+ * WhatsApp only renders a video as an inline, playable bubble (thumbnail +
+ * play) up to 16 MB — that path is `/api/sendVideo`. A larger video has to go
+ * as a document (`/api/sendFile`), which the recipient downloads instead of
+ * playing in place. So a video routes by size: inline when it fits, document
+ * otherwise. Matches WhatsApp's own gallery-media ceiling.
+ */
+const INLINE_VIDEO_MAX_BYTES = 16 * 1024 * 1024;
 
 /**
  * Media sends need more headroom than the 15s default: WAHA fetches the signed
@@ -112,16 +123,31 @@ export async function sendWahaMedia(
   // webm/opus) into the OGG/Opus container WhatsApp requires. WAHA voice
   // notes carry no caption, so it's never sent on this endpoint.
   const isVoice = input.mediaType === "audio";
+  // A video small enough for WhatsApp's inline limit goes through
+  // /api/sendVideo so it plays in the conversation; `convert: true` lets WAHA
+  // normalise odd codecs (e.g. HEVC) to the mp4/h264 WhatsApp needs. Anything
+  // larger falls back to the document endpoint below.
+  const asInlineVideo =
+    input.mediaType === "video" &&
+    input.sizeBytes !== undefined &&
+    input.sizeBytes <= INLINE_VIDEO_MAX_BYTES;
+  const path = asInlineVideo ? "/api/sendVideo" : MEDIA_ENDPOINTS[input.mediaType];
   const response = await wahaRequest(apiKey, fetchFn, {
     baseUrl: target.baseUrl,
-    path: MEDIA_ENDPOINTS[input.mediaType],
+    path,
     timeoutMs: MEDIA_TIMEOUT_MS,
     json: {
       session: target.sessionName,
       chatId: input.chatId ?? toChatId(input.toPhone),
-      file: { mimetype: input.mimetype, url: input.mediaUrl, filename: input.filename },
+      file: {
+        // sendVideo needs the mimetype to route to the inline video bubble;
+        // default to video/mp4 when the caller didn't carry one through.
+        mimetype: asInlineVideo ? (input.mimetype ?? "video/mp4") : input.mimetype,
+        url: input.mediaUrl,
+        filename: input.filename,
+      },
       ...(input.caption && !isVoice ? { caption: input.caption } : {}),
-      ...(isVoice ? { convert: true } : {}),
+      ...(isVoice || asInlineVideo ? { convert: true } : {}),
     },
   });
   return { providerMessageId: extractMessageId(response.body) };
