@@ -14,7 +14,7 @@
 
 /**
  * `storage.buckets.file_size_limit` for `whatsapp-media`, in bytes (64 MiB).
- * Set by `supabase/migrations/20260723180000_whatsapp_media_bucket_64mb.sql`
+ * Set by `supabase/migrations/20260723180313_whatsapp_media_bucket_64mb.sql`
  * (was 25 MiB in `…_storage_106_buckets_policies.sql`). Matches the WhatsApp
  * engines' own 64 MiB ceiling: a WAHA video goes out via `/api/sendFile` (as a
  * document, whose WhatsApp limit is ~100 MB), so 64 MiB is a comfortable,

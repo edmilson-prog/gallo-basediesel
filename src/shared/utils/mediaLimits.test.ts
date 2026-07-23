@@ -3,7 +3,7 @@ import { MEDIA_MAX_SIZE_BYTES, STORAGE_BUCKET_MAX_BYTES, formatMaxSizeMb } from 
 
 describe("media upload limits", () => {
   it("pins the bucket ceiling to the whatsapp-media file_size_limit", () => {
-    // Set by supabase/migrations/20260723180000_whatsapp_media_bucket_64mb.sql
+    // Set by supabase/migrations/20260723180313_whatsapp_media_bucket_64mb.sql
     // and applied live in production: 67108864 bytes (64 MiB).
     expect(STORAGE_BUCKET_MAX_BYTES).toBe(67_108_864);
   });
