@@ -91,7 +91,7 @@ create index lead_funnel_access_seller_idx on public.lead_funnel_access (seller_
 -- "exactly one". This deferred constraint trigger closes that gap, and being
 -- deferred lets replaceStages reorder without tripping mid-transaction.
 create or replace function public.assert_funnel_has_terminal_stages()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
 declare
   target_funnel uuid := coalesce(new.funnel_id, old.funnel_id);
   missing text;

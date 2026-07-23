@@ -1,5 +1,10 @@
--- RLS for the multi-funnel model. Membership visibility mirrors `leads` exactly;
--- the accessible-funnel filter is applied by the board query, NOT here, so a
+-- RLS for the multi-funnel model. Membership visibility mirrors `leads` exactly,
+-- including the seller_handles_lead() branch on SELECT (see 20260614183000,
+-- narrowed by 20260619170000): a seller assigned to the lead's conversation
+-- reads the lead's memberships even without carteira ownership. Without this a
+-- lead_funnel_entries!inner embed (Phase 3's funnel-filtered leads.list) would
+-- silently drop the lead for that seller while it still shows up unfiltered.
+-- The accessible-funnel filter is applied by the board query, NOT here, so a
 -- seller never loses sight of their own lead just because it sits in a funnel
 -- they cannot open.
 
@@ -48,14 +53,27 @@ create policy lead_funnel_stages_write on public.lead_funnel_stages
   ));
 
 -- ---------- lead_funnel_entries ----------
--- Same semantics as `leads`. store_id/seller_id are derived by the before-insert
--- trigger, so the with check is evaluated against unforgeable values — a forged
--- membership fails it rather than passing.
+-- SELECT mirrors `leads_select` exactly, including its third branch
+-- (public.seller_handles_lead) — otherwise a seller assigned to the lead's
+-- conversation could read the lead itself but not its memberships, and
+-- `leads.list({ funnelId })` (an inner join on this table) would silently drop
+-- the lead from every funnel-filtered board for that seller while it still
+-- shows up unfiltered.
+-- INSERT/UPDATE/DELETE mirror `leads_insert`/`leads_update`/`leads_delete`,
+-- which do NOT carry that branch (checked against 20260608235552) — write
+-- access to a membership stays staff-or-owner only. store_id/seller_id are
+-- derived by the before-insert trigger, so the with check is evaluated
+-- against unforgeable values — a forged membership fails it rather than
+-- passing.
 create policy lead_funnel_entries_select on public.lead_funnel_entries
   for select to authenticated
   using (
     store_id = (select public.current_store_id())
-    and ((select public.is_staff()) or seller_id = (select public.current_seller_id()))
+    and (
+      (select public.is_staff())
+      or seller_id = (select public.current_seller_id())
+      or public.seller_handles_lead(lead_id)
+    )
   );
 
 create policy lead_funnel_entries_insert on public.lead_funnel_entries

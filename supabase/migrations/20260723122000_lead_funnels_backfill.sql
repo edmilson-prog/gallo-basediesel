@@ -68,7 +68,20 @@ begin
         values (
           funnel,
           left(stage_json->>'name', 24),
-          0,
+          -- Map the legacy free-form hex to its funnel accent slot (mirrors the
+          -- TS engine hexToAccentSlot's HSL-hue buckets — see src/features/
+          -- funnels/engine/legacyStageColor.ts). Case-insensitive; anything
+          -- unrecognised (including a missing/malformed colour) defaults to
+          -- neutral slot 0 rather than failing the backfill.
+          case lower(stage_json->>'color')
+            when '#5b6b7a' then 0
+            when '#c4151c' then 1
+            when '#c8262c' then 1
+            when '#d2a809' then 2
+            when '#c79c2c' then 2
+            when '#337648' then 3
+            else 0
+          end,
           next_position,
           case when entry_stage is null then 'entrada' else 'aberta' end
         )
