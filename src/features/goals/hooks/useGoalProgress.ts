@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ID, IGoal, IGoalProgress } from "@/shared/types";
-import { useCustomersProvider, useGoalsProvider, useOrdersProvider } from "@/providers/data";
+import {
+  FETCH_ALL_PAGE_SIZE,
+  useCustomersProvider,
+  useGoalsProvider,
+  useOrdersProvider,
+} from "@/providers/data";
 import { calculateGoalProgress } from "../engine/calculate";
 
 export interface IUseGoalProgressResult {
@@ -48,7 +53,8 @@ export function useGoalProgress(goalId: ID | undefined): IUseGoalProgressResult 
 
   const customersQuery = useQuery({
     queryKey: ["goals", "progress-customers", goal?.storeId],
-    queryFn: () => customersProvider.list({ storeId: goal?.storeId, pageSize: 2000 }),
+    queryFn: () =>
+      customersProvider.list({ storeId: goal?.storeId, pageSize: FETCH_ALL_PAGE_SIZE }),
     staleTime: STALE_MS,
     enabled: Boolean(goal),
   });

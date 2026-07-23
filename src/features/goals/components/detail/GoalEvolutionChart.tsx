@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/Icon";
 import type { IGoal } from "@/shared/types";
-import { useCustomersProvider, useOrdersProvider } from "@/providers/data";
+import { FETCH_ALL_PAGE_SIZE, useCustomersProvider, useOrdersProvider } from "@/providers/data";
 import { formatDateBR } from "@/shared/utils/format";
 import { GOALS_STRINGS as S } from "../../i18n/pt-BR";
 import { buildEvolutionSeries } from "../../utils/composition";
@@ -50,7 +50,8 @@ export function GoalEvolutionChart({ goal }: IGoalEvolutionChartProps) {
       },
       {
         queryKey: ["goal-evolution", "customers", goal.storeId],
-        queryFn: () => customersProvider.list({ storeId: goal.storeId, pageSize: 2000 }),
+        queryFn: () =>
+          customersProvider.list({ storeId: goal.storeId, pageSize: FETCH_ALL_PAGE_SIZE }),
         staleTime: STALE_MS,
       },
     ],
@@ -62,8 +63,8 @@ export function GoalEvolutionChart({ goal }: IGoalEvolutionChartProps) {
   const data = useMemo(() => {
     if (isLoading) return [];
     return buildEvolutionSeries(goal, {
-      orders: ordersQuery.data?.items ?? [],
-      customers: customersQuery.data?.items ?? [],
+      orders: ordersQuery.data?.data ?? [],
+      customers: customersQuery.data?.data ?? [],
     });
   }, [goal, ordersQuery.data, customersQuery.data, isLoading]);
 

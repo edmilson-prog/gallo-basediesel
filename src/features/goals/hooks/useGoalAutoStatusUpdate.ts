@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ICustomer, ID, IGoal, IOrder } from "@/shared/types";
 import {
+  FETCH_ALL_PAGE_SIZE,
   useCustomersProvider,
   useGoalsProvider,
   useOrdersProvider,
@@ -62,7 +63,7 @@ export function useGoalAutoStatusUpdate(params: IUseGoalAutoStatusUpdateParams =
       const now = new Date();
       try {
         const goalsRes = await goalsProvider.list({ storeId: params.storeId, pageSize: 500 });
-        const overdue = goalsRes.items.filter(
+        const overdue = goalsRes.data.filter(
           (g) => (g.status ?? "ativa") === "ativa" && new Date(g.period.end) < now,
         );
         if (overdue.length === 0) {
@@ -76,14 +77,14 @@ export function useGoalAutoStatusUpdate(params: IUseGoalAutoStatusUpdateParams =
         });
         const customersRes = await customersProvider.list({
           storeId: params.storeId,
-          pageSize: 2000,
+          pageSize: FETCH_ALL_PAGE_SIZE,
         });
 
         await Promise.all(
           overdue.map((g) =>
             transitionGoal(g, {
-              orders: ordersRes.items,
-              customers: customersRes.items,
+              orders: ordersRes.data,
+              customers: customersRes.data,
               goalsProvider,
             }),
           ),
