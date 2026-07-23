@@ -134,6 +134,9 @@ export type {
   SegmentScope,
 } from "./customer";
 
+// Funnel identity (multi-funnel leads foundation)
+export type { FunnelAccent, LeadFunnelStageKind } from "./funnel";
+
 // Lead, pipeline, wallet transfer
 export type {
   ILead,
