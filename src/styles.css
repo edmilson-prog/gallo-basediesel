@@ -13,6 +13,15 @@
  * Componentes consomem APENAS tokens semânticos.
  * ============================================================ */
 
+/* -------- Métricas de layout do shell (não são tokens de marca) -------- */
+:root {
+  /* Altura ao vivo da pilha de banners de alerta sob a TopBar (ver
+     AlertBannerStack), publicada via ResizeObserver. Layouts de altura fixa
+     (calc(100vh-4rem) e afins) a subtraem para não empurrar seu próprio
+     rodapé (ex.: o composer do Atendimento) para fora da viewport. */
+  --shell-banner-offset: 0px;
+}
+
 /* -------- Camada 1: tokens primitivos (paleta GALLO) -------- */
 :root {
   /* Institucional */

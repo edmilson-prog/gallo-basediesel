@@ -6,9 +6,8 @@ import { BottomNav } from "@/features/shell/components/BottomNav";
 import { AppFooter } from "@/features/shell/components/AppFooter";
 import { DataSourceBanner } from "@/features/shell/components/DataSourceBanner";
 import { DemoModeBanner } from "@/features/shell/components/DemoModeBanner";
-import { WhatsAppDisconnectedBanner } from "@/features/shell/components/WhatsAppDisconnectedBanner";
-import { OutsideHoursBanner } from "@/features/access";
-import { IdleCriticalBanner, DailyBriefingGate } from "@/features/idle-alerts";
+import { AlertBannerStack } from "@/features/shell/components/AlertBannerStack";
+import { DailyBriefingGate } from "@/features/idle-alerts";
 import { WhatsNewModal } from "@/features/whats-new";
 import { VersionUpdatePrompt } from "@/features/version-update";
 import { CollaboratorAddedPrompt } from "@/features/conversations/components/CollaboratorAddedPrompt";
@@ -65,11 +64,11 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
               content scrolls *behind* it — required for the glass effect. */}
           <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
             <TopBar />
-            {/* Critical operational alert — sticky right under the TopBar
-                (top-16) so it survives scrolling, unlike the banners above. */}
-            <WhatsAppDisconnectedBanner />
-            <OutsideHoursBanner />
-            <IdleCriticalBanner />
+            {/* Operational alerts — sticky right under the TopBar so they
+                survive scrolling, unlike the banners above. Publishes its
+                rendered height as --shell-banner-offset for fixed-viewport
+                pages (ConversationLayout & co.) to subtract. */}
+            <AlertBannerStack />
             {children ?? <Outlet />}
           </main>
           {/* Status bar pinned to the bottom of the content column (desktop). */}
