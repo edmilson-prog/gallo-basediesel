@@ -42,6 +42,10 @@ export interface IProfileTabsProps {
   onActiveTabChange?: (tab: TabKey) => void;
   /** Layout density of the Overview tab. */
   overviewVariant?: "column" | "page";
+  /** Enables the inline cadastral editor in the Overview tab (detail page only). */
+  cadastraisEditable?: boolean;
+  /** Nonce forwarded to the cadastral card to open the editor on demand. */
+  cadastraisEditSignal?: number;
   /**
    * Render the tab bar as icon-only triggers with tooltips, for the narrow
    * lateral fiche where the text labels overflow. Defaults to text labels.
@@ -164,6 +168,8 @@ export function ProfileTabs({
   activeTab,
   onActiveTabChange,
   overviewVariant = "column",
+  cadastraisEditable,
+  cadastraisEditSignal,
   iconOnlyTabs = false,
   copilotTab,
 }: IProfileTabsProps) {
@@ -225,7 +231,12 @@ export function ProfileTabs({
         </TabsContent>
         <TabsContent value="overview" className="m-0 p-3 focus-visible:outline-none">
           {activeString === "overview" && (
-            <OverviewTab customer={customer} variant={overviewVariant} />
+            <OverviewTab
+              customer={customer}
+              variant={overviewVariant}
+              cadastraisEditable={cadastraisEditable}
+              cadastraisEditSignal={cadastraisEditSignal}
+            />
           )}
         </TabsContent>
         <TabsContent value="orders" className="m-0 p-3 focus-visible:outline-none">

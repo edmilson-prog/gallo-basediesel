@@ -12,9 +12,11 @@ import { ProfileMenu } from "../ProfileMenu";
 
 export interface ICustomerDetailHeaderProps {
   customer: ICustomer;
+  /** Wired to open the inline cadastral editor in the Overview tab. */
+  onEditData?: () => void;
 }
 
-export function CustomerDetailHeader({ customer }: ICustomerDetailHeaderProps) {
+export function CustomerDetailHeader({ customer, onEditData }: ICustomerDetailHeaderProps) {
   const display = getCustomerDisplay(customer);
   const navigate = useNavigate();
 
@@ -61,7 +63,7 @@ export function CustomerDetailHeader({ customer }: ICustomerDetailHeaderProps) {
               <Icon icon="mdi:file-document-plus-outline" size={14} />
               {CUSTOMER_STRINGS.header.createQuote}
             </Button>
-            <ProfileMenu customer={customer} />
+            <ProfileMenu customer={customer} onEditData={onEditData} />
           </div>
         </div>
 
