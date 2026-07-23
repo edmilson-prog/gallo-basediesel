@@ -69,3 +69,29 @@ Efeitos colaterais esperados e aceitos: sessões com o thread aberto no momento 
 eventos Realtime (executar fora de pico); caches de mensagens por conversa ficam stale até reload.
 Rollback: as fontes de cada mensagem movida ficam registradas pelo próprio plano (grupo → winner), e
 um snapshot `(message_id, conversation_id)` das 31k linhas é salvo em tabela `_backup` antes do UPDATE.
+
+---
+
+## 7. EXECUTADO em 2026-07-23 (autorizado pelo dono)
+
+Plano recomputado ao vivo no momento da execução (banco vivo havia ganhado 1 divisão desde o
+dry-run): **130 fontes / 105 winners / 31.137 mensagens**.
+
+| Verificação pós-merge | Resultado |
+|---|---|
+| Mensagens restantes nas fontes (após varredura de retardatários) | **0** |
+| `media_assets` restantes nas fontes | **0** |
+| Fontes não arquivadas | **0** |
+| Grupos com >1 conversa não-arquivada (âncora+instância) | **0** |
+| **VOLTECH** — winner `2a9dcfb4` | **651 msgs** (612 migradas + 39), `em_andamento` |
+| **VOLTECH** — casca `a5081f8f` | 0 msgs, `arquivada` |
+| Webhook durante a operação | 0×5xx |
+
+Snapshots de rollback persistidos (service_role-only; RLS fail-closed + revoke de anon/authenticated):
+`_merge_plan_20260723`, `_merge_backup_messages_20260723` (31.137 linhas),
+`_merge_backup_satellites_20260723` (49), `_merge_backup_conversations_20260723` (235 — estado
+pré-merge de fontes e winners: status/tags/closed_at). **Descartar após o smoke do dono** —
+`drop table` das 4.
+
+Rollback, se necessário: reverter `messages.conversation_id`/`media_assets`/`conversation_notes`
+pelas tabelas de backup e restaurar `status`/`tags` das conversas pelo snapshot de conversas.
