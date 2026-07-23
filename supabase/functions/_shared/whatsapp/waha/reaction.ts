@@ -71,7 +71,14 @@ export function parseWahaReactionEvent(rawPayload: unknown): IWahaReaction {
     // An empty text is meaningful: it means the reaction was taken back. A
     // non-string text is treated the same way — we can't render it.
     emoji: typeof reaction.text === "string" ? reaction.text : "",
-    fromMe: payload?.fromMe === true,
+    // whatsmeow (WAHA's GOWS engine) has been observed emitting string-typed
+    // values where the docs promise a boolean — same precedent as
+    // normalizeWahaAdMediaType (parser.ts), which accepts number OR string
+    // for the same field family. A plain `=== true` would degrade the string
+    // "true" to `false`, which would route the SHOP's own reaction as if the
+    // customer sent it — wrong side of applyReaction, and it would wrongly
+    // bump the queue.
+    fromMe: payload?.fromMe === true || payload?.fromMe === "true",
     timestamp: tsToIso(typeof payload?.timestamp === "number" ? payload.timestamp : undefined),
   };
 }

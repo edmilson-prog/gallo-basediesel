@@ -52,6 +52,26 @@ describe("parseWahaReactionEvent", () => {
   it("falls back to now() when the timestamp is not a number", () => {
     expect(() => parseWahaReactionEvent({ ...payload, timestamp: "ontem" })).not.toThrow();
   });
+
+  // whatsmeow (WAHA's GOWS engine) has already been observed emitting
+  // string-typed values where the docs promise a boolean/number — see
+  // normalizeWahaAdMediaType, which accepts number OR string for the same
+  // reason. `fromMe: "true"` degrading to `false` would route the shop's own
+  // reaction as if the customer sent it, which also bumps the queue.
+  it('treats the string "true" as fromMe (whatsmeow precedent)', () => {
+    const parsed = parseWahaReactionEvent({ ...payload, fromMe: "true" });
+    expect(parsed.fromMe).toBe(true);
+  });
+
+  it('treats the string "false" as not fromMe', () => {
+    const parsed = parseWahaReactionEvent({ ...payload, fromMe: "false" });
+    expect(parsed.fromMe).toBe(false);
+  });
+
+  it("treats a non-boolean, non-string fromMe as not fromMe", () => {
+    const parsed = parseWahaReactionEvent({ ...payload, fromMe: 1 });
+    expect(parsed.fromMe).toBe(false);
+  });
 });
 
 describe("applyReaction", () => {

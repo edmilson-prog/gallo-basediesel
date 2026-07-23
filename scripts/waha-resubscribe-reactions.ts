@@ -11,13 +11,22 @@
  * buildWahaConfig, not passed here). Sequential, best-effort: a failure on
  * one account is logged and does not stop the rest.
  *
+ * Queries ALL `provider = 'waha'` accounts (not just `status = 'connected'`)
+ * so a momentarily disconnected instance is still named and counted as
+ * SKIPPED, instead of silently vanishing from both the loop and the summary
+ * — it stays on the old webhook event list until this script is re-run
+ * against it. Exits non-zero whenever anything failed or was skipped.
+ *
  * Usage:
  *   SUPABASE_URL=https://<ref>.supabase.co \
  *   SUPABASE_SERVICE_ROLE_KEY=<service role key> \
  *   bun run scripts/waha-resubscribe-reactions.ts
  */
 import { createClient } from "@supabase/supabase-js";
-import { updateWahaSessionConfig, type IWahaSessionSettings } from "../src/providers/whatsapp/waha/session";
+import {
+  updateWahaSessionConfig,
+  type IWahaSessionSettings,
+} from "../src/providers/whatsapp/waha/session";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -39,13 +48,20 @@ interface IAccountRow {
   label: string;
   provider_config: { sessionName?: string; waha?: IWahaSessionSettings } | null;
   waha_server_id: string | null;
+  status: string;
 }
 
+// Fetch EVERY waha account, not just `connected` ones. Filtering the query
+// itself (the previous `.eq("status", "connected")`) made a momentarily
+// disconnected instance disappear from BOTH the loop below and the final
+// tally — `Done. N succeeded, M failed.` would then report total success
+// while that instance silently kept subscribing to the OLD event list
+// forever. Partition instead, so a disconnected instance is always
+// accounted for and named in the summary.
 const { data: accounts, error: accountsError } = await admin
   .from("whatsapp_accounts")
-  .select("id, label, provider_config, waha_server_id")
-  .eq("provider", "waha")
-  .eq("status", "connected");
+  .select("id, label, provider_config, waha_server_id, status")
+  .eq("provider", "waha");
 if (accountsError) {
   console.error(`Failed to list WAHA accounts: ${accountsError.message}`);
   process.exit(1);
@@ -54,9 +70,15 @@ if (accountsError) {
 const webhookUrl = `${supabaseUrl}/functions/v1/waha-webhook`;
 let ok = 0;
 let failed = 0;
-
+const skipped: IAccountRow[] = [];
+const connectable: IAccountRow[] = [];
 for (const raw of accounts ?? []) {
   const account = raw as IAccountRow;
+  if (account.status === "connected") connectable.push(account);
+  else skipped.push(account);
+}
+
+for (const account of connectable) {
   const sessionName = account.provider_config?.sessionName;
   if (!sessionName) {
     console.warn(`Skipping ${account.label} (${account.id}): no sessionName in provider_config.`);
@@ -104,4 +126,16 @@ for (const raw of accounts ?? []) {
   }
 }
 
-console.log(`Done. ${ok} succeeded, ${failed} failed/skipped.`);
+for (const account of skipped) {
+  console.warn(
+    `SKIPPED: ${account.label} (${account.id}) status=${account.status} — re-run this script after the instance reconnects`,
+  );
+}
+
+console.log(`Done. ${ok} ok, ${failed} failed, ${skipped.length} skipped.`);
+if (failed + skipped.length > 0) {
+  console.error(
+    "Some accounts were not re-subscribed — skipped instances keep receiving the OLD webhook event list until this script is re-run against them.",
+  );
+  process.exit(1);
+}

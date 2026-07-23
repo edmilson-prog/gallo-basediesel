@@ -33,7 +33,11 @@
  *   - "message.reaction": a 👍/❤️/etc. attached to an already-persisted
  *     message (or "" to remove one) — patches messages.reactions in place. A
  *     genuine customer reaction (not fromMe, not a removal) also counts as an
- *     interaction: it bumps the conversation and marks it unread.
+ *     interaction: it bumps the conversation and marks it unread via the
+ *     atomic RPC waha_reaction_touch — UNLESS the conversation is closed
+ *     (resolvida/arquivada), which the RPC leaves untouched by owner decision
+ *     (2026-07-24): a reaction on a closed conversation is almost always a
+ *     thank-you, not a new demand.
  * Any other envelope event is acknowledged (200) and ignored.
  *
  * Spec: docs/superpowers/specs/2026-07-10-waha-whatsapp-integration-design.md
@@ -109,18 +113,20 @@ Deno.serve(async (req) => {
       errorMessage?: string | null;
     },
   ) => {
-    runInBackground(logWebhookDelivery(admin, {
-      integrationName: "whatsapp_waha",
-      accountId: accountIdForLog,
-      eventType: meta?.eventType ?? sessionForLog ?? null,
-      endpoint: "/waha-webhook",
-      httpStatus: res.status,
-      outcome: meta?.outcome ?? (res.status >= 400 ? "rejected" : "processed"),
-      errorMessage: meta?.errorMessage ?? null,
-      latencyMs: Date.now() - startedAt,
-      requestPayload: meta?.requestPayload ?? null,
-      traceId: null,
-    }));
+    runInBackground(
+      logWebhookDelivery(admin, {
+        integrationName: "whatsapp_waha",
+        accountId: accountIdForLog,
+        eventType: meta?.eventType ?? sessionForLog ?? null,
+        endpoint: "/waha-webhook",
+        httpStatus: res.status,
+        outcome: meta?.outcome ?? (res.status >= 400 ? "rejected" : "processed"),
+        errorMessage: meta?.errorMessage ?? null,
+        latencyMs: Date.now() - startedAt,
+        requestPayload: meta?.requestPayload ?? null,
+        traceId: null,
+      }),
+    );
     return res;
   };
 
@@ -622,7 +628,10 @@ Deno.serve(async (req) => {
       const patch: Record<string, unknown> = { status, webhook_event_ids: eventIds };
       if (status === "delivered") patch.delivered_at = timestamp;
       if (status === "read") patch.read_at = timestamp;
-      await admin.from("messages").update(patch).eq("id", data.id as string);
+      await admin
+        .from("messages")
+        .update(patch)
+        .eq("id", data.id as string);
     }
 
     // Needed by both the inbound @lid resolution below and the outbound-echo
@@ -688,11 +697,31 @@ Deno.serve(async (req) => {
 
       // The reacted message must already exist here. A reaction to a message
       // older than the import is expected and benign — record and move on.
-      const { data: target } = await admin
+      // A SELECT *error* (e.g. a transient timeout) is NOT the same thing as
+      // "target missing": treating it as missing would mark the event
+      // processed and lose the reaction forever, since WAHA's redelivery
+      // would then hit the processed_events guard and be discarded as a
+      // duplicate before the write is ever retried.
+      const { data: target, error: targetErr } = await admin
         .from("messages")
-        .select("id, conversation_id, reactions")
+        .select("id, conversation_id, reactions, webhook_event_ids")
         .eq("provider_message_id", reaction.targetProviderMessageId)
         .maybeSingle();
+
+      if (targetErr) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            msg: "waha webhook: reaction target lookup failed",
+            error: targetErr.message,
+          }),
+        );
+        return respond(json({ error: "reaction target lookup failed" }, 503), {
+          outcome: "error",
+          errorMessage: targetErr.message,
+          requestPayload: envelope,
+        });
+      }
 
       if (!target) {
         await markProcessed();
@@ -703,61 +732,128 @@ Deno.serve(async (req) => {
         });
       }
 
-      const next = applyReaction(
-        (target.reactions as Parameters<typeof applyReaction>[0]) ?? null,
-        reaction,
-      );
-      const { error: reactionUpdateErr } = await admin
-        .from("messages")
-        .update({ reactions: next })
-        .eq("id", target.id);
+      // Optimistic patch of the reacted message: the UPDATE is conditioned on
+      // the exact `reactions` snapshot this call read, so a concurrent writer
+      // (the other side reacting on the same message in the same second)
+      // makes the write match 0 rows instead of silently overwriting their
+      // slot. Also appends `eventKey` to `webhook_event_ids`, mirroring
+      // applyWahaAckToMessage above, so the forensic trail (message →
+      // webhook_event_ids → processed_events/webhook_deliveries) can find the
+      // delivery that changed the slot.
+      type TargetRow = {
+        id: string;
+        conversation_id: string;
+        reactions: unknown;
+        webhook_event_ids: unknown;
+      };
+      async function patchReactionTarget(
+        row: TargetRow,
+      ): Promise<{ applied: boolean; errorMessage?: string }> {
+        const snapshot = (row.reactions as Parameters<typeof applyReaction>[0]) ?? null;
+        const next = applyReaction(snapshot, reaction);
+        const eventIds = [...((row.webhook_event_ids as string[] | undefined) ?? []), eventKey];
+        let query = admin
+          .from("messages")
+          .update({ reactions: next, webhook_event_ids: eventIds })
+          .eq("id", row.id);
+        // Optimistic guard: only write over the exact snapshot we computed from
+        // — a concurrent writer (the other side reacting in the same second)
+        // makes this match 0 rows instead of silently losing their slot.
+        query =
+          snapshot === null
+            ? query.is("reactions", null)
+            : query.eq("reactions", JSON.stringify(snapshot));
+        const { data, error } = await query.select("id");
+        if (error) return { applied: false, errorMessage: error.message };
+        return { applied: (data?.length ?? 0) > 0 };
+      }
 
-      if (reactionUpdateErr) {
-        // Mirrors the message-insert discipline below ("Mark processed only
-        // now that the message has actually landed"): if the write failed, do
-        // NOT mark processed and do NOT touch the conversation — a retry of
-        // this event will reprocess cleanly. Marking processed here would
-        // lose the reaction forever, since WAHA's redelivery of the same
-        // event would then hit the processed_events guard and be discarded
-        // as a duplicate before the write is ever retried.
+      let patchResult = await patchReactionTarget(target as TargetRow);
+      if (!patchResult.applied && !patchResult.errorMessage) {
+        // Lost the optimistic race against a concurrent reaction on the same
+        // message — refetch the (now different) snapshot and retry exactly
+        // once. The refetch already sees the concurrent writer's slot, and
+        // applyReaction merges the two sides cleanly.
+        const { data: refetched, error: refetchErr } = await admin
+          .from("messages")
+          .select("id, conversation_id, reactions, webhook_event_ids")
+          .eq("id", target.id)
+          .maybeSingle();
+        if (refetchErr || !refetched) {
+          console.warn(
+            JSON.stringify({
+              level: "warn",
+              msg: "waha webhook: reaction retry refetch failed",
+              error: refetchErr?.message ?? "target row disappeared",
+            }),
+          );
+          return respond(json({ error: "reaction target lookup failed" }, 503), {
+            outcome: "error",
+            errorMessage: refetchErr?.message ?? "target row disappeared",
+            requestPayload: envelope,
+          });
+        }
+        patchResult = await patchReactionTarget(refetched as TargetRow);
+      }
+
+      if (!patchResult.applied) {
+        // Either the UPDATE itself errored, or the retry above also lost its
+        // optimistic race. Do NOT mark processed and do NOT touch the
+        // conversation: WAHA only redelivers on a non-2xx response, so the
+        // 503 (not a 200) is what actually makes a retry of this event
+        // happen — a retry then reprocesses cleanly, since the refetch will
+        // see whatever won the race.
         console.warn(
           JSON.stringify({
             level: "warn",
             msg: "waha webhook: reaction update failed",
-            error: reactionUpdateErr.message,
+            error: patchResult.errorMessage ?? "optimistic write conflict after retry",
           }),
         );
-        return respond(json({ ok: true, ignored: "reaction-update-failed" }, 200), {
+        return respond(json({ error: "reaction update failed" }, 503), {
           outcome: "error",
-          errorMessage: reactionUpdateErr.message,
+          errorMessage: patchResult.errorMessage ?? "optimistic write conflict after retry",
           requestPayload: envelope,
         });
       }
 
       // A customer reaction IS an interaction: it bumps the conversation and
       // marks it unread, so a 👍 stops reading as "no answer". The shop's own
-      // reaction is recorded but must not touch the queue.
+      // reaction is recorded but must not touch the queue. The bump itself is
+      // one atomic RPC (waha_reaction_touch — see its migration) instead of a
+      // SELECT-then-UPDATE: the old read-modify-write silently overwrote a
+      // concurrent markRead and could regress last_message_at on a
+      // redelivered event. The RPC also skips closed conversations
+      // (resolvida/arquivada) — owner decision 2026-07-24: a reaction on a
+      // closed conversation is almost always a thank-you, not a new demand,
+      // so it must not reopen the queue.
       //
-      // `awaiting_reply_since` is deliberately NOT cleared here. That column
-      // means "since when the customer has been waiting on US", and it is owned
-      // by the trigger on `messages` (sync_conversation_awaiting_reply), which
-      // clears it only on a genuine outbound. A reaction is not the shop
-      // answering — the customer is still waiting — so clearing it would
-      // silently disarm the idle-conversation alerts for an unanswered
-      // question. Leave the column entirely to the trigger.
+      // `awaiting_reply_since` is deliberately NOT touched here, nor by the
+      // RPC. That column means "since when the customer has been waiting on
+      // US", and it is owned by the trigger on `messages`
+      // (sync_conversation_awaiting_reply), which clears it only on a genuine
+      // outbound. A reaction is not the shop answering — the customer is
+      // still waiting — so clearing it would silently disarm the
+      // idle-conversation alerts for an unanswered question. Leave the column
+      // entirely to the trigger.
       if (!reaction.fromMe && reaction.emoji) {
-        const { data: conversation } = await admin
-          .from("conversations")
-          .select("unread_count")
-          .eq("id", target.conversation_id as string)
-          .maybeSingle();
-        await admin
-          .from("conversations")
-          .update({
-            last_message_at: reaction.timestamp,
-            unread_count: ((conversation?.unread_count as number | null) ?? 0) + 1,
-          })
-          .eq("id", target.conversation_id as string);
+        const { error: touchErr } = await admin.rpc("waha_reaction_touch", {
+          p_conversation_id: target.conversation_id as string,
+          p_ts: reaction.timestamp,
+        });
+        if (touchErr) {
+          // Best-effort: the reaction itself already landed on the message.
+          // Losing one unread bump in a rare transient failure beats failing
+          // the whole event (a 503 here would re-run the message patch and
+          // double-append the event key on redelivery).
+          console.warn(
+            JSON.stringify({
+              level: "warn",
+              msg: "waha webhook: reaction touch failed",
+              error: touchErr.message,
+            }),
+          );
+        }
       }
 
       await markProcessed();
