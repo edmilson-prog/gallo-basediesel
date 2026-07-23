@@ -162,7 +162,7 @@ export function CadastraisCard({
           onChange={changeDraft}
         />
       ) : (
-        <ReadView customer={customer} />
+        <ReadView customer={customer} showContact={Boolean(editable)} />
       )}
 
       {editing && (
@@ -179,7 +179,13 @@ export function CadastraisCard({
   );
 }
 
-function ReadView({ customer }: { customer: ICustomer }) {
+/**
+ * `showContact` adds the E-mail/Telefone rows. Enabled only on the detail page
+ * (where the header doesn't surface them). The compact Atendimento fiche keeps
+ * it off — its `ProfileHeader` already shows both — so the card there is
+ * unchanged.
+ */
+function ReadView({ customer, showContact }: { customer: ICustomer; showContact: boolean }) {
   return (
     <dl className="space-y-2 text-xs">
       {customer.type === "B2B" ? (
@@ -195,8 +201,12 @@ function ReadView({ customer }: { customer: ICustomer }) {
           <Row label={COPY.cpf} value={formatCPF(customer.cpf)} mono />
         </>
       )}
-      <Row label={COPY.email} value={customer.email} emptyLabel={COPY.noEmail} />
-      <Row label={COPY.phone} value={formatPhone(customer.phone)} mono />
+      {showContact && (
+        <>
+          <Row label={COPY.email} value={customer.email} emptyLabel={COPY.noEmail} />
+          <Row label={COPY.phone} value={formatPhone(customer.phone)} mono />
+        </>
+      )}
       <AddressRow address={customer.address} />
     </dl>
   );
