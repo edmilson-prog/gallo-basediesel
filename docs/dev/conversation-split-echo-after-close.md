@@ -162,11 +162,21 @@ O caso VOLTECH não está nesta lista porque a conversa antiga está `resolvida`
    (mensagem perdida). O inbound virou **open-first** (prefere a conversa aberta; só reabre fechada
    quando não há nenhuma aberta — também elimina a classe de violação do índice no reopen). No
    `whatsapp-webhook`, os lookups do adapter agora propagam erro (throw) em vez de "não achei".
-3. ⏳ **Decisão de produto sobre o eco pós-encerramento** (os 109 históricos + fluxo futuro) — PENDENTE DO DONO:
-   - a) **Janela de continuidade** — eco reabre se encerrada há < X h (24h cobre 59 dos 109). Recomendada.
-   - b) Eco sempre reabre (simetria total; mexe em fila/métricas).
-   - c) Só UI: agrupar conversas do mesmo contato+instância na Inbox.
-   - d) Não mexer (documentar para o time).
+3. ✅ **DECIDIDO (2026-07-23, dono) e implementado: janela de continuidade do eco** — variante
+   "anexa sem reabrir": quando o eco chega e a conversa mais recente do contato na instância está
+   `resolvida` há menos de N horas, a mensagem **entra nela sem mudar o status** (o próximo inbound
+   do cliente reabre esse mesmo thread pela regra normal). `arquivada` nunca participa; fora da
+   janela, segue criando conversa nova. N é **por loja** (`stores.settings->echoContinuity.windowHours`,
+   default 24, 0 = desligada) com tela Owner-only em **Configurações → Atendimento → Continuidade de
+   conversas**. Peças: engine puro `src/providers/whatsapp/echoContinuity.ts` (+testes, espelhado em
+   `_shared/`), coluna `conversations.closed_at` mantida por trigger
+   (`conversations_maintain_closed_at`, migration `20260723175834`) com backfill da trilha, lookup de
+   continuidade no eco do `waha-webhook`. O pipeline legado (Meta/Evolution/Go/OpenWA) mantém
+   sempre-criar **de propósito** enquanto não carrega tráfego (nota no `webhook/core.ts`).
+   **Consequência deliberada de UX** (flagada na revisão): dentro da janela, o eco anexado **não
+   aparece na visão padrão da Inbox** (a conversa segue `resolvida` e o filtro padrão oculta
+   resolvidas — antes ele viraria uma conversa nova `aguardando`, visível na fila). O thread volta ao
+   topo quando o cliente responde e reabre. O copy da tela de configuração avisa isso ao Owner.
 4. ✅ **Reancorar conversas na conversão de lead** — migration `20260723165546_reanchor_lead_conversations.sql`:
    trigger `leads_reanchor_converted` (AFTER UPDATE de `converted_to_customer_id`) re-ancora as
    conversas do lead no cliente (histórico migra junto); conversas abertas que conflitariam com uma

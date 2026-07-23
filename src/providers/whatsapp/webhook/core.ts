@@ -657,7 +657,12 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     const resolved = await resolveContact(db, account.storeId, parsed.toPhone, undefined);
     // OPEN-ONLY lookup (includeTerminal omitted): the echo is business-sent,
     // never reopens a closed conversation — spawns a fresh one instead
-    // (spec 2026-07-03 §1.5).
+    // (spec 2026-07-03 §1.5). NOTE: the WAHA pipeline additionally applies
+    // the echo-continuity window (appends to a recently-`resolvida` thread —
+    // docs/dev/conversation-split-echo-after-close.md §7 item 3). This legacy
+    // pipeline (Meta/Evolution/Go/OpenWA) keeps always-create ON PURPOSE
+    // while it carries no live traffic — port the window here if these
+    // providers return.
     let conversation: { id: string } | null =
       resolved.kind === "customer"
         ? await db.findOpenConversation(resolved.id, account.id)

@@ -194,6 +194,20 @@ export interface IConversationRescueSettings {
   fallbackSellerIds: ID[];
 }
 
+/**
+ * Echo continuity window (decision 2026-07-23 —
+ * docs/dev/conversation-split-echo-after-close.md §7 item 3). A phone-sent
+ * echo may APPEND to the contact's most recent `resolvida` conversation on
+ * the same WhatsApp account when it was closed less than `windowHours` ago —
+ * WITHOUT reopening it (the customer's next inbound reopens that same
+ * thread). 0 disables the window (echo always opens a fresh conversation).
+ * `arquivada` never participates (a deliberate discard). Stored at
+ * `stores.settings->'echoContinuity'` and read by the waha-webhook echo path.
+ */
+export interface IEchoContinuitySettings {
+  windowHours: number;
+}
+
 /** Reference (not the credential itself) to a WhatsApp account. */
 export interface IWhatsAppAccountRef {
   id: ID;
@@ -269,6 +283,8 @@ export interface IPlatformSettings {
   idleAlerts?: IIdleAlertsSettings;
   /** Offline-rescue broadcast (spec 2026-07-17). Undefined → DEFAULT_CONVERSATION_RESCUE_SETTINGS. */
   conversationRescue?: IConversationRescueSettings;
+  /** Echo continuity window (2026-07-23). Undefined → 24h (DEFAULT_ECHO_CONTINUITY_WINDOW_HOURS). */
+  echoContinuity?: IEchoContinuitySettings;
   /** Notification sound center (per-store). Absent on legacy stores → DEFAULT_SOUND_SETTINGS. */
   sound?: ISoundSettings;
   /** Whether the SDR agent is enabled for this store (PRD-020). */
