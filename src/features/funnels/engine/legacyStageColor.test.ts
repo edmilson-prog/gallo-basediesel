@@ -24,4 +24,17 @@ describe("hexToAccentSlot", () => {
     expect(hexToAccentSlot("not-a-colour")).toBe(0);
     expect(hexToAccentSlot("#12")).toBe(0);
   });
+
+  it("maps the seeded default stage colour (#5b6b7a) to neutral slot 0", () => {
+    // #5b6b7a is the most commonly rendered stage colour in the app (the
+    // seeded default pipeline stage "Novo"). HSL saturation ~= 14.6%, which
+    // must clear the achromatic gate and land on neutral, not on a hue slot.
+    expect(hexToAccentSlot("#5b6b7a")).toBe(0);
+  });
+
+  it("does not treat a saturated medium-lightness colour as neutral", () => {
+    // The seeded gold (#D2A809) has HSL saturation ~= 92% and must still
+    // resolve to its hue slot, not fall into the neutral gate.
+    expect(hexToAccentSlot("#D2A809")).not.toBe(0);
+  });
 });

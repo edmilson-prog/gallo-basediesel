@@ -37,9 +37,18 @@ export function hexToAccentSlot(hex: string | undefined): FunnelAccent {
   const min = Math.min(r, g, b);
   const delta = max - min;
 
-  // Near-achromatic colours (the seeded #5b6b7a steel included) land on neutral
-  // only when they are genuinely grey; a desaturated blue still reads as blue.
-  if (delta < 0.06) return 0;
+  // Achromatic gate uses true HSL saturation, not raw RGB delta — delta alone
+  // is not comparable across lightness levels, so a fixed delta cutoff either
+  // lets mid-lightness greys through or clips real chroma at extremes.
+  // S = delta / (1 - |2L - 1|), with L = (max + min) / 2.
+  // Threshold picked at 0.20: the seeded default stage colour #5b6b7a (the
+  // most commonly rendered stage colour in the app) has S ~= 0.146 and must
+  // land on neutral slot 0, while the seeded chromatic colours (#c8262c red,
+  // #337648 green, #D2A809/#C79C2C gold, #C4151C crimson) all sit at S > 0.4
+  // and must keep resolving to their hue slot. 0.20 clears both with margin.
+  const lightness = (max + min) / 2;
+  const saturation = delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
+  if (saturation < 0.2) return 0;
 
   let hue: number;
   if (max === r) hue = 60 * (((g - b) / delta) % 6);
