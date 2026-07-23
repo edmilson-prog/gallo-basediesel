@@ -81,7 +81,7 @@ export interface IUseMessagesResult {
    * UPDATEs patch in place. Status never regresses (e.g. a late `queued`
    * INSERT event cannot downgrade an already `sent` bubble).
    */
-  applyRealtimeRow: (incoming: IMessage) => void;
+  applyRealtimeRow: (incoming: IMessage, isUpdate?: boolean) => void;
   /**
    * Live catch-up fallback: refetch the latest page and merge each row through
    * `applyRealtimeRow`. Used when the `messages` Realtime channel misses an
@@ -241,7 +241,7 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
   );
 
   const applyRealtimeRow = useCallback(
-    (incoming: IMessage) => {
+    (incoming: IMessage, isUpdate?: boolean) => {
       // Read-then-write is safe here: this runs synchronously from the Realtime
       // callback, so no concurrent mutation lands between the lookup and write.
       const cache = queryClient.getQueryData<MessagesCache>(messagesKey(conversationId));
@@ -250,6 +250,15 @@ export function useMessages(conversationId: ID): IUseMessagesResult {
         // New row → insert in its chronological slot. For a live INSERT (the
         // newest) this is the head; for a catch-up row recovered out of order by
         // syncLatest it lands correctly instead of jumping above newer rows.
+        //
+        // An UPDATE of a row outside the loaded pages must NOT be inserted as
+        // if it were a new message: the reaction branch of waha-webhook is the
+        // first writer that UPDATEs a messages row of arbitrary age, and
+        // splicing a months-old bubble into page 1 both shows it out of
+        // context and duplicates it when pagination re-fetches that row.
+        // Catch-up rows from syncLatest arrive without the flag, so their
+        // insertion path is unchanged.
+        if (isUpdate) return;
         insertByRecency(incoming);
         return;
       }
