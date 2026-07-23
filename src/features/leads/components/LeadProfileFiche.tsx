@@ -39,6 +39,7 @@ import {
   isLost,
 } from "../utils/leadDisplay";
 import { resolveLeadFicheIdentity } from "../utils/leadFiche";
+import { canConvertLead } from "../utils/canConvertLead";
 import { LEADS_STRINGS } from "../i18n/pt-BR";
 
 const COPY = LEADS_STRINGS.fiche;
@@ -190,10 +191,11 @@ function LeadProfileBody({
   const isLeadOwner = !!lead?.sellerId && lead.sellerId === mySellerId;
   const isAssignee = !!conversation.assignedSellerId && conversation.assignedSellerId === mySellerId;
   const canOpenLeadPage = canViewLeadStore || (canViewLeadOwn && (isLeadOwner || isAssignee));
-  // Conversion writes (customers INSERT + leads UPDATE) pass RLS only for
-  // staff or the lead's own owner — the gated write-RPC stays a v2 item (spec
-  // "Fora de escopo"), so v1 simply never offers a CTA that would 42501.
-  const canConvert = canEditLeadStore || (canEditLeadOwn && isLeadOwner);
+  // Conversion is now backed by the gated `convert_lead_mark` RPC, so the
+  // assigned attendant of the conversation can convert too — not just staff or
+  // the lead's owner. The customer belongs to whoever converts, so its INSERT
+  // already passes the customers RLS; only the lead UPDATE needs the RPC.
+  const canConvert = canConvertLead({ canEditLeadStore, canEditLeadOwn, isLeadOwner, isAssignee });
 
   const ownerId: ID | null = lead?.sellerId ?? null;
   const ownerQuery = useQuery({
