@@ -85,6 +85,15 @@ const MEDIA_ENDPOINTS: Record<IWahaSendMediaInput["mediaType"], string> = {
   document: "/api/sendFile",
 };
 
+/**
+ * Media sends need far more headroom than the 15s default: WAHA fetches the
+ * signed URL and re-uploads the bytes to WhatsApp synchronously before it
+ * answers, so the clock covers two full transfers of the file. At the 25 MiB
+ * bucket ceiling, 15s is not enough on an ordinary connection and the send
+ * aborts mid-transfer — the message just lands as failed.
+ */
+const MEDIA_TIMEOUT_MS = 120_000;
+
 export async function sendWahaMedia(
   apiKey: string,
   fetchFn: typeof fetch,
@@ -100,6 +109,7 @@ export async function sendWahaMedia(
   const response = await wahaRequest(apiKey, fetchFn, {
     baseUrl: target.baseUrl,
     path: MEDIA_ENDPOINTS[input.mediaType],
+    timeoutMs: MEDIA_TIMEOUT_MS,
     json: {
       session: target.sessionName,
       chatId: input.chatId ?? toChatId(input.toPhone),
