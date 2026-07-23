@@ -29,7 +29,8 @@ import { buildReplyPrompt, type PromptMessage } from "./prompt.ts";
 const FEATURE = "conversation_copilot";
 const LLM_TIMEOUT_MS = 60_000;
 const MAX_REPLY_TOKENS = 600; // copilot reply is short
-const MESSAGES_LIMIT = 200;
+const DEFAULT_MESSAGE_WINDOW = 40;
+const MAX_MESSAGE_WINDOW = 200;
 const SUPPORTED = new Set(["anthropic", "openai", "openrouter"]);
 const KEY_BY_PROVIDER: Record<string, string> = {
   anthropic: "ANTHROPIC_API_KEY",
@@ -94,9 +95,9 @@ servePost(async (req, { log }) => {
   // 1. Access check + load conversation (RLS via caller — can_access_conversation).
   const { data: conv, error: convErr } = await callerClient
     .from("conversations")
-    .select("id, customer_id")
+    .select("id, customer_id, store_id")
     .eq("id", conversationId)
-    .maybeSingle<{ id: string; customer_id: string | null }>();
+    .maybeSingle<{ id: string; customer_id: string | null; store_id: string }>();
   if (convErr) throw new HttpError(500, `conversation read failed: ${convErr.message}`);
   if (!conv) throw new HttpError(403, "sem acesso a esta conversa");
 
@@ -118,14 +119,33 @@ servePost(async (req, { log }) => {
   const model = route.model;
   if (!model) throw new HttpError(400, "nenhum modelo configurado para o copiloto");
 
-  // 3. Messages (RLS via caller), ascending by sentAt.
-  const { data: msgs, error: mErr } = await callerClient
+  // Assistant message window lives with the store settings, not with ai_settings.
+  const { data: storeRow } = await admin
+    .from("stores")
+    .select("settings")
+    .eq("id", conv.store_id)
+    .maybeSingle<{ settings: { copilotAssistant?: { messageWindow?: number } } | null }>();
+  const copilotMessageWindow = storeRow?.settings?.copilotAssistant?.messageWindow;
+
+  // 3. Messages (RLS via caller). Read the MOST RECENT window, then flip to
+  // ascending for the prompt. Reading ascending with a plain limit — as this
+  // did — returns the OLDEST messages, so on a long conversation the model
+  // was answering a discussion from months ago.
+  const windowSize = Math.min(
+    MAX_MESSAGE_WINDOW,
+    Math.max(5, Number(copilotMessageWindow ?? DEFAULT_MESSAGE_WINDOW)),
+  );
+  const { data: msgsDesc, error: mErr } = await callerClient
     .from("messages")
-    .select("direction, author_type, text, sent_at")
+    .select("direction, author_type, text, sent_at, id")
     .eq("conversation_id", conversationId)
-    .order("sent_at", { ascending: true })
-    .limit(MESSAGES_LIMIT);
+    .order("sent_at", { ascending: false })
+    // Stable tiebreak: `sent_at` has second granularity on imported messages and
+    // ties are common in bursts — without it the window cut is non-deterministic.
+    .order("id", { ascending: false })
+    .limit(windowSize);
   if (mErr) throw new HttpError(500, `messages read failed: ${mErr.message}`);
+  const msgs = (msgsDesc ?? []).slice().reverse();
 
   // 4. Customer (optional; RLS via caller).
   let customer: { name?: string; type?: string; status?: string } | undefined;

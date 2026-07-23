@@ -65,4 +65,18 @@ describe("buildReplyPrompt", () => {
     });
     expect(out).toContain("SDR: posso te ajudar");
   });
+
+  it("usa as mensagens MAIS RECENTES quando há mais que a janela", () => {
+    const messages = Array.from({ length: 60 }, (_, i) => ({
+      direction: (i % 2 === 0 ? "in" : "out") as "in" | "out",
+      authorType: i % 2 === 0 ? "customer" : "seller",
+      text: `mensagem ${i}`,
+      sentAt: `2026-07-${String((i % 28) + 1).padStart(2, "0")}T10:00:00Z`,
+    }));
+
+    const prompt = buildReplyPrompt({ messages, maxMessages: 30 });
+
+    expect(prompt).toContain("mensagem 59");
+    expect(prompt).not.toContain("mensagem 0");
+  });
 });
