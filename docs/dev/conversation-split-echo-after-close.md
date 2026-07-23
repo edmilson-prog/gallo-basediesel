@@ -170,7 +170,7 @@ O caso VOLTECH não está nesta lista porque a conversa antiga está `resolvida`
    default 24, 0 = desligada) com tela Owner-only em **Configurações → Atendimento → Continuidade de
    conversas**. Peças: engine puro `src/providers/whatsapp/echoContinuity.ts` (+testes, espelhado em
    `_shared/`), coluna `conversations.closed_at` mantida por trigger
-   (`conversations_maintain_closed_at`, migration `20260723200000`) com backfill da trilha, lookup de
+   (`conversations_maintain_closed_at`, migration `20260723175834`) com backfill da trilha, lookup de
    continuidade no eco do `waha-webhook`. O pipeline legado (Meta/Evolution/Go/OpenWA) mantém
    sempre-criar **de propósito** enquanto não carrega tráfego (nota no `webhook/core.ts`).
    **Consequência deliberada de UX** (flagada na revisão): dentro da janela, o eco anexado **não
