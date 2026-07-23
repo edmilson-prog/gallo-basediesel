@@ -177,10 +177,15 @@ servePost(async (req, { log }) => {
   const userPrompt = buildReplyPrompt({ messages: promptMessages, customer, maxMessages: windowSize });
   if (!userPrompt) throw new HttpError(422, "conversa sem conteúdo do cliente para gerar resposta");
 
-  // 6. Budget gate — concurrency-safe (advisory lock inside the RPC).
+  // 6. Budget gate — best-effort monthly ceiling (see RPC; true reservation
+  // deferred to sub-project B). The advisory lock inside the RPC serialises
+  // the check, not the spend, so concurrent in-flight requests can still
+  // jointly exceed the cap; scoped per-store for the copilot sub-cap via
+  // conv.store_id (loaded in step 1, above).
   const { data: hasRoom, error: budgetErr } = await admin.rpc("ai_budget_try_consume", {
     p_feature: FEATURE,
     p_estimated_brl: 0,
+    p_store_id: conv.store_id,
   });
   if (budgetErr) throw new HttpError(500, `budget check failed: ${budgetErr.message}`);
   if (hasRoom !== true) throw new HttpError(402, "orçamento de IA do mês esgotado");
