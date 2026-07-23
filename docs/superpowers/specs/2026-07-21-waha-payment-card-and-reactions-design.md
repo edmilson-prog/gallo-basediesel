@@ -327,7 +327,7 @@ nos parágrafos anteriores desta seção:
 - **RPC atômica substitui o passo 4 (SELECT-então-UPDATE em JS).** O "toca a
   conversa" do passo 4 virou uma chamada a
   `waha_reaction_touch(p_conversation_id, p_ts)` — nova migration
-  `supabase/migrations/20260721190000_waha_reaction_touch.sql`, `SECURITY
+  `supabase/migrations/20260723180907_waha_reaction_touch.sql`, `SECURITY
   DEFINER`, `service_role`-only. Numa única `UPDATE`: soma 1 a
   `unread_count` e avança `last_message_at` com
   `greatest(coalesce(last_message_at, p_ts), p_ts)`. O SELECT-então-UPDATE
@@ -412,7 +412,7 @@ Sem mudança de RLS: a coluna herda as policies da tabela, e a RPC continua
 `SECURITY DEFINER` gated-once.
 
 **Migration adicional (revisão xhigh, 23/07):**
-`supabase/migrations/20260721190000_waha_reaction_touch.sql` cria a RPC
+`supabase/migrations/20260723180907_waha_reaction_touch.sql` cria a RPC
 `waha_reaction_touch` descrita em "Endurecimento pós-revisão xhigh" acima —
 não altera nenhuma tabela, só adiciona a função (`service_role`-only) e
 notifica o PostgREST. Assim como a migration da coluna, precisa de OK

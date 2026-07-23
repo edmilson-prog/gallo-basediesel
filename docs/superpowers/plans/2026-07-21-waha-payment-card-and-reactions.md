@@ -738,7 +738,7 @@ git commit -m "feat(conversations): PIX key card with copy action"
 ### Task 5: Migration da coluna `reactions`
 
 **Files:**
-- Create: `supabase/migrations/20260721180000_message_reactions.sql`
+- Create: `supabase/migrations/20260723180846_message_reactions.sql`
 
 - [ ] **Step 1: Write the migration**
 
@@ -774,7 +774,7 @@ Expected: sem erro de sintaxe. **NÃO aplicar em produção** — a aplicação 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add supabase/migrations/20260721180000_message_reactions.sql
+git add supabase/migrations/20260723180846_message_reactions.sql
 git commit -m "feat(db): reactions column on messages"
 ```
 
@@ -1346,7 +1346,7 @@ git commit -m "docs: PIX key card and WhatsApp reactions"
 
 ## Rollout (fora do plano de código — exige OK do dono)
 
-1. Aplicar a migration `20260721180000_message_reactions.sql` em produção.
+1. Aplicar a migration `20260723180846_message_reactions.sql` em produção.
 2. Deploy manual: `npx supabase functions deploy waha-webhook --project-ref njizaasajkdqptlxddqn`
    (o workflow do GitHub é no-op — secrets ausentes).
 3. Rodar `scripts/waha-resubscribe-reactions.ts` — sem isso as instâncias já pareadas continuam sem enviar reações.

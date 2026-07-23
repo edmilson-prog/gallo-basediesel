@@ -182,7 +182,7 @@ ficou sem resposta.
 
 Nova coluna `messages.reactions jsonb`, nullable, sem índice — nenhuma
 consulta filtra por reação (migration
-`supabase/migrations/20260721180000_message_reactions.sql`):
+`supabase/migrations/20260723180846_message_reactions.sql`):
 
 ```json
 {
@@ -255,7 +255,7 @@ detalhado abaixo.
 4. **Toque da conversa — só para reação genuína do cliente, e best-effort.**
    Quando `fromMe === false` **e** `reaction.emoji` não é vazio (reação real,
    não remoção): chama a RPC atômica `waha_reaction_touch(p_conversation_id,
-   p_ts)` (migration `20260721190000_waha_reaction_touch.sql`), que soma 1 a
+   p_ts)` (migration `20260723180907_waha_reaction_touch.sql`), que soma 1 a
    `unread_count` e avança `last_message_at` com `greatest(...)` numa única
    `UPDATE` — substitui o antigo SELECT-então-UPDATE em JS, que podia
    sobrescrever um `markRead` concorrente ou regredir `last_message_at` numa
@@ -404,9 +404,9 @@ A ordem importa e não é intercambiável:
    auto-deploya o frontend no merge para `main`, e o webhook chama a RPC do
    passo 4 incondicionalmente no branch de reação genuína — nenhuma das duas
    pode ficar pra trás):
-   - `supabase/migrations/20260721180000_message_reactions.sql` — a coluna
+   - `supabase/migrations/20260723180846_message_reactions.sql` — a coluna
      `messages.reactions jsonb` (ver "O modelo de dois slots" acima).
-   - `supabase/migrations/20260721190000_waha_reaction_touch.sql` — a RPC
+   - `supabase/migrations/20260723180907_waha_reaction_touch.sql` — a RPC
      `waha_reaction_touch(p_conversation_id, p_ts)`: soma 1 a `unread_count`
      e avança `last_message_at` com `greatest(...)` numa única `UPDATE`
      atômica (substitui o antigo SELECT-então-UPDATE do webhook), e **não
