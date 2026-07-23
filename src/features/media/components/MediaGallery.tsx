@@ -1,6 +1,8 @@
 // src/features/media/components/MediaGallery.tsx
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { STORAGE_BUCKET_MAX_BYTES, formatMaxSizeMb } from "@/shared/utils/mediaLimits";
 import type { ID, IMediaAsset, IMediaClassification } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
@@ -84,6 +86,12 @@ export function MediaGallery({
     const file = event.target.files?.[0];
     event.target.value = ""; // allow re-picking the same file
     if (!file) return;
+    // Checked here rather than left to Storage: past the bucket ceiling the
+    // upload comes back as a bare 413, which says nothing useful to the user.
+    if (file.size > STORAGE_BUCKET_MAX_BYTES) {
+      toast.error(`Arquivo muito grande (máx. ${formatMaxSizeMb(STORAGE_BUCKET_MAX_BYTES)} MB).`);
+      return;
+    }
     setUploading(true);
     try {
       await actions.upload({
