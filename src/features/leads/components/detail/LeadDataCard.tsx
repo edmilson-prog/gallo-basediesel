@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { formatBRL, formatDateBR, formatPhone } from "@/shared/utils/format";
+import { getAccentClasses } from "@/features/funnels/engine/accentClasses";
+import { hexToAccentSlot } from "@/features/funnels/engine/legacyStageColor";
 import {
   TEMPERATURE_META,
   daysInStage,
@@ -62,8 +64,10 @@ export function LeadDataCard({
       {/* Status strip */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
         <span
-          className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium"
-          style={{ borderColor: lead.stage.color, color: lead.stage.color }}
+          className={cn(
+            "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium text-foreground",
+            getAccentClasses(hexToAccentSlot(lead.stage.color)).border,
+          )}
         >
           {lead.stage.name}
         </span>

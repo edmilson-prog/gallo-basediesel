@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { formatPhone } from "@/shared/utils/format";
+import { getAccentClasses } from "@/features/funnels/engine/accentClasses";
+import { hexToAccentSlot } from "@/features/funnels/engine/legacyStageColor";
 import {
   getOriginMeta,
   TEMPERATURE_META,
@@ -66,8 +68,10 @@ export function LeadHeader({
           <p className="text-sm text-muted-foreground">{formatPhone(lead.phone)}</p>
           <div className="mt-1 flex flex-wrap gap-1.5">
             <span
-              className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium"
-              style={{ borderColor: lead.stage.color, color: lead.stage.color }}
+              className={cn(
+                "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium text-foreground",
+                getAccentClasses(hexToAccentSlot(lead.stage.color)).border,
+              )}
             >
               {lead.stage.name}
             </span>

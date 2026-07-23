@@ -3,6 +3,8 @@ import { useState } from "react";
 import type { ID, ILead, IPipelineStage, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
+import { getAccentClasses } from "@/features/funnels/engine/accentClasses";
+import { hexToAccentSlot } from "@/features/funnels/engine/legacyStageColor";
 import { LeadCard } from "../LeadCard";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 
@@ -51,12 +53,10 @@ export function KanbanColumn({
       aria-label={`Coluna ${stage.name}, ${count} ${count === 1 ? "lead" : "leads"}`}
     >
       <header
-        className="flex items-center justify-between gap-2 border-b border-border px-3 py-2"
-        style={{
-          borderTop: `3px solid ${stage.color}`,
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
-        }}
+        className={cn(
+          "flex items-center justify-between gap-2 rounded-t-lg border-b border-t-[3px] border-border px-3 py-2",
+          getAccentClasses(hexToAccentSlot(stage.color)).border,
+        )}
       >
         <div className="min-w-0">
           <p className="truncate text-xs font-semibold uppercase tracking-wide text-foreground">
