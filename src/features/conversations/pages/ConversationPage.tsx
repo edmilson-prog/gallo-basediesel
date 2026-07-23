@@ -324,13 +324,22 @@ export function ConversationPage() {
                 onSelectTemplate={() => setTemplateSignal((s) => s + 1)}
               />
 
-              {copilot.placement === "strip" && copilotMounts && !copilot.error && (
-                <CopilotStrip
-                  panel={copilot}
-                  conversationId={conversation.id}
-                  onInsertReply={setDraft}
-                />
-              )}
+              {(copilot.placement === "strip" ||
+                // Lead-anchored conversations have no fiche tab to host the copilot
+                // (LeadProfileFiche has no tabbed layout, unlike CustomerProfileFiche's
+                // `copilotTab` slot) — fall back to the strip so a user configured for
+                // "tab" placement still gets the copilot on lead conversations.
+                (copilot.placement === "tab" &&
+                  !conversation.customerId &&
+                  !!conversation.leadId)) &&
+                copilotMounts &&
+                !copilot.error && (
+                  <CopilotStrip
+                    panel={copilot}
+                    conversationId={conversation.id}
+                    onInsertReply={setDraft}
+                  />
+                )}
 
               <ConversationRunners
                 conversation={conversation}
@@ -368,7 +377,7 @@ export function ConversationPage() {
                 open={fiche.open}
                 onOpenChange={fiche.setOpen}
                 copilotTab={
-                  copilot.placement === "tab" && !copilot.error ? (
+                  copilot.placement === "tab" && copilotMounts && !copilot.error ? (
                     <CopilotFicheTab
                       panel={copilot}
                       conversationId={conversation.id}
