@@ -131,9 +131,10 @@ servePost(async (req, { log }) => {
   // ascending for the prompt. Reading ascending with a plain limit — as this
   // did — returns the OLDEST messages, so on a long conversation the model
   // was answering a discussion from months ago.
+  const rawWindow = Number(copilotMessageWindow ?? DEFAULT_MESSAGE_WINDOW);
   const windowSize = Math.min(
     MAX_MESSAGE_WINDOW,
-    Math.max(5, Number(copilotMessageWindow ?? DEFAULT_MESSAGE_WINDOW)),
+    Math.max(5, Number.isFinite(rawWindow) ? rawWindow : DEFAULT_MESSAGE_WINDOW),
   );
   const { data: msgsDesc, error: mErr } = await callerClient
     .from("messages")
@@ -183,7 +184,10 @@ servePost(async (req, { log }) => {
     text: m.text ?? "",
     sentAt: m.sent_at,
   }));
-  const userPrompt = buildReplyPrompt({ messages: promptMessages, customer });
+  // Wire the store's configured window through to the prompt builder — without
+  // this, buildReplyPrompt falls back to its own DEFAULT_MAX_MESSAGES (30),
+  // silently capping any windowSize configured above 30.
+  const userPrompt = buildReplyPrompt({ messages: promptMessages, customer, maxMessages: windowSize });
   if (!userPrompt) throw new HttpError(422, "conversa sem conteúdo do cliente para gerar resposta");
 
   // 6. Budget hard cap (best-effort).

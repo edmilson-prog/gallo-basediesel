@@ -79,4 +79,19 @@ describe("buildReplyPrompt", () => {
     expect(prompt).toContain("mensagem 59");
     expect(prompt).not.toContain("mensagem 0");
   });
+
+  it("honra um maxMessages explícito maior que o default de 30 (janela configurável)", () => {
+    const messages = Array.from({ length: 50 }, (_, i) => msg({ text: `msg${i}` }));
+
+    // With the default (30) this older message would be dropped; with an
+    // explicit maxMessages of 50 (e.g. a store's configured window) it must
+    // survive — this is what guards the Edge Function wiring windowSize through.
+    const prompt = buildReplyPrompt({ messages, maxMessages: 50 });
+
+    expect(prompt).toContain("msg0"); // oldest message, only kept by the wider window
+    expect(prompt).toContain("msg49");
+
+    const defaultPrompt = buildReplyPrompt({ messages });
+    expect(defaultPrompt).not.toContain("msg0"); // sanity: default 30-cap really does drop it
+  });
 });
