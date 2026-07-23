@@ -10,6 +10,7 @@ export interface IListAuditsParams extends IPaginationParams {
   resource?: string;
   resources?: string[];
   resourceId?: ID;
+  resourceIds?: ID[];
   action?: string;
   actions?: string[];
   /** Lower bound on ISO timestamp (inclusive). */
@@ -41,7 +42,9 @@ export const auditsApi = {
         if (params.resource) all = all.filter((a) => a.resource === params.resource);
         if (params.resources?.length)
           all = all.filter((a) => params.resources!.includes(a.resource));
-        if (params.resourceId) all = all.filter((a) => a.resourceId === params.resourceId);
+        if (params.resourceIds?.length)
+          all = all.filter((a) => params.resourceIds!.includes(a.resourceId));
+        else if (params.resourceId) all = all.filter((a) => a.resourceId === params.resourceId);
         if (params.action) all = all.filter((a) => a.action === params.action);
         if (params.actions?.length) all = all.filter((a) => params.actions!.includes(a.action));
         if (params.since) all = all.filter((a) => a.timestamp >= params.since!);

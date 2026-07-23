@@ -18,13 +18,21 @@ export function useCreateTransfer() {
   });
 }
 
+export interface IRevertOrExpireArgs {
+  transferId: ID;
+  /** ISeller.id of the acting user — attributes the audit_logs entry. */
+  actorId?: ID;
+}
+
 export function useRevertTransfer() {
   const provider = useTransfersProvider();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (transferId: ID) => provider.revert(transferId),
+    mutationFn: ({ transferId, actorId }: IRevertOrExpireArgs) =>
+      provider.revert(transferId, actorId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["carteira-transfers"] });
+      void queryClient.invalidateQueries({ queryKey: ["carteira-audit"] });
       void queryClient.invalidateQueries({ queryKey: ["customers"] });
       void queryClient.invalidateQueries({ queryKey: ["customer-detail"] });
       void queryClient.invalidateQueries({ queryKey: ["customer-profile"] });
@@ -37,9 +45,11 @@ export function useExpireTransfer() {
   const provider = useTransfersProvider();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (transferId: ID) => provider.expire(transferId),
+    mutationFn: ({ transferId, actorId }: IRevertOrExpireArgs) =>
+      provider.expire(transferId, actorId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["carteira-transfers"] });
+      void queryClient.invalidateQueries({ queryKey: ["carteira-audit"] });
       void queryClient.invalidateQueries({ queryKey: ["customers"] });
       void queryClient.invalidateQueries({ queryKey: ["customer-detail"] });
       void queryClient.invalidateQueries({ queryKey: ["customer-profile"] });

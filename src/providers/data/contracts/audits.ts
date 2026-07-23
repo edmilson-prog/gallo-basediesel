@@ -8,6 +8,7 @@ export interface IListAuditsParams extends IPaginationParams {
   resource?: string;
   resources?: string[];
   resourceId?: ID;
+  resourceIds?: ID[];
   action?: string;
   actions?: string[];
   /** Lower bound on ISO timestamp (inclusive). */

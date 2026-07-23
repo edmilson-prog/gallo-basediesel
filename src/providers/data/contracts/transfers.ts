@@ -33,6 +33,11 @@ export interface ICreateTransferInput {
 export interface ITransfersProvider {
   list(params?: IListTransfersParams): Promise<IPaginatedResult<ICarteiraTransfer>>;
   create(input: ICreateTransferInput): Promise<ICarteiraTransfer>;
-  revert(transferId: ID): Promise<ICarteiraTransfer>;
-  expire(transferId: ID): Promise<ICarteiraTransfer>;
+  /**
+   * `actorId` is the ISeller.id closing the transfer — used only to attribute
+   * the audit_logs entry (`transfer.revert`). Optional because the auto-revert
+   * timer has no human actor to attribute `transfer.expire` to; omit it there.
+   */
+  revert(transferId: ID, actorId?: ID): Promise<ICarteiraTransfer>;
+  expire(transferId: ID, actorId?: ID): Promise<ICarteiraTransfer>;
 }
