@@ -47,6 +47,13 @@ import { transcribeMessageAudio } from "../_shared/ai/transcribeAudio.ts";
 
 const CLOSED_CONVERSATION_STATUSES = ["resolvida", "arquivada"];
 
+// Tagged transient-DB failure thrown by the DB adapter below. The handler's
+// catch converts it into a 503 WITHOUT any processed-mark so Meta/Evolution
+// redeliver on their non-2xx backoff (fail-closed, PR #357 item 2); every
+// other error keeps the RF-090 always-200 "error-logged" contract (no retry
+// storms on permanent failures).
+class TransientDbError extends Error {}
+
 /**
  * Deep-clones a JSON payload truncating every string longer than `max` chars
  * (diagnostic logging only — inline base64 media would otherwise bloat
@@ -362,7 +369,7 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         .limit(1)
         .maybeSingle();
       // Fail CLOSED — same rationale as findOpenConversation above.
-      if (error) throw new Error(`findOpenConversationForLead: ${error.message}`);
+      if (error) throw new TransientDbError(`findOpenConversationForLead: ${error.message}`);
       return data ? { id: data.id as string, status: data.status as string } : null;
     },
     async linkConversationToLead(leadId, conversationId) {
@@ -420,7 +427,7 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         .maybeSingle();
       // Fail CLOSED: a discarded lookup error used to read as "no conversation"
       // and fail open into a duplicate INSERT (PR #357 item 2).
-      if (error) throw new Error(`findOpenConversation: ${error.message}`);
+      if (error) throw new TransientDbError(`findOpenConversation: ${error.message}`);
       return data
         ? { id: data.id as string, status: data.status as string, isSdrActive: Boolean(data.is_sdr_active) }
         : null;
@@ -458,11 +465,11 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
             .limit(1)
             .maybeSingle();
           if (winner) return { id: winner.id as string };
-          throw new Error(
+          throw new TransientDbError(
             `createConversation race recovery failed: ${winnerErr?.message ?? "no open conversation found"}`,
           );
         }
-        throw new Error(`createConversation: ${error.message}`);
+        throw new TransientDbError(`createConversation: ${error.message}`);
       }
       return { id: data.id as string };
     },
@@ -550,7 +557,7 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         .select("unread_count")
         .eq("id", conversationId)
         .maybeSingle();
-      await admin
+      const { error } = await admin
         .from("conversations")
         .update({
           status: "aguardando",
@@ -560,6 +567,12 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
           updated_at: new Date().toISOString(),
         })
         .eq("id", conversationId);
+      // Fail CLOSED (PR #357): a swallowed error here — notably the 23505 the
+      // one-open-per-contact-per-account unique index raises when another open
+      // row exists — used to strand the inbound message inside the still-closed
+      // conversation. A 503 makes the provider redeliver; the retry resolves
+      // open-first (core.ts) and lands in the open winner.
+      if (error) throw new TransientDbError(`reopenConversation: ${error.message}`);
     },
     async findOutboundMessageByProviderMessageId(providerMessageId) {
       const { data } = await admin
@@ -1218,6 +1231,16 @@ Deno.serve(async (req) => {
     const message = err instanceof Error ? err.message : String(err);
     log.error("webhook processing failed", { error: message });
     captureException(err, { traceId, functionName: "whatsapp-webhook" });
+    if (err instanceof TransientDbError) {
+      // Fail closed: the idempotency mark only runs after the message lands,
+      // so the provider's non-2xx redelivery reprocesses this event cleanly
+      // instead of the old silent-200 drop (PR #357 item 2).
+      return respond(json({ error: "transient-db-error", traceId }, 503), {
+        outcome: "error",
+        eventType: message,
+        requestPayload: payload,
+      });
+    }
     return respond(json({ status: "error-logged", traceId }, 200), {
       outcome: "error",
       eventType: message,

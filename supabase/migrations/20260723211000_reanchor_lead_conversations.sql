@@ -17,6 +17,13 @@ security definer
 set search_path to ''
 as $$
 begin
+  -- Serialize concurrent conversions targeting the same customer: two leads
+  -- linked to one customer at once would both pass step (b)'s EXISTS check on
+  -- their own snapshots and collide in step (c).
+  perform pg_advisory_xact_lock(
+    hashtextextended('lead-reanchor:' || new.converted_to_customer_id::text, 0)
+  );
+
   -- a) The lead's own surplus OPEN conversations per account (pre-index race
   --    leftovers): keep the newest, archive the rest — after re-anchoring,
   --    the partial unique index allows only one open row per (customer,
@@ -62,8 +69,43 @@ begin
      );
 
   -- c) Re-anchor everything that pointed at the lead (any status) — the
-  --    conversation history shows up under the customer from now on.
-  update public.conversations
+  --    conversation history shows up under the customer from now on. On the
+  --    rare concurrent webhook INSERT committing between (b)'s snapshot and
+  --    this UPDATE, the unique index raises 23505 — re-run the (b) archive
+  --    against the fresh snapshot and retry once.
+  begin
+    update public.conversations
+       set customer_id = new.converted_to_customer_id,
+           lead_id = null
+     where lead_id = new.id
+       and customer_id is null;
+  exception when unique_violation then
+    update public.conversations c
+       set status = 'arquivada',
+           assigned_seller_id = null,
+           is_sdr_active = false,
+           updated_at = now()
+     where c.lead_id = new.id
+       and c.whatsapp_account_id is not null
+       and c.status not in ('resolvida', 'arquivada')
+       and exists (
+         select 1
+           from public.conversations k
+          where k.customer_id = new.converted_to_customer_id
+            and k.whatsapp_account_id = c.whatsapp_account_id
+            and k.status not in ('resolvida', 'arquivada')
+       );
+    update public.conversations
+       set customer_id = new.converted_to_customer_id,
+           lead_id = null
+     where lead_id = new.id
+       and customer_id is null;
+  end;
+
+  -- d) The activity-trail rows captured while the conversations were
+  --    lead-anchored carry customer_id NULL — re-point them so the ficha's
+  --    Histórico shows the migrated timeline under the destination customer.
+  update public.conversation_activity
      set customer_id = new.converted_to_customer_id,
          lead_id = null
    where lead_id = new.id;

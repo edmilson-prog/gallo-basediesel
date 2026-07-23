@@ -181,15 +181,44 @@ Higiene de dados: a limpeza dos 13 grupos visíveis está NA PRÓPRIA migration 
 no apply). As 4 conversas lead-ancoradas sombreadas por cliente de mesmo telefone (§4.3) são resolvidas
 organicamente pelo trigger do item 4 quando esses leads forem convertidos — ou por backfill assistido.
 
+### 7.1 Revisão adversarial da implementação (rodada 2)
+
+Um workflow de revisão (3 lentes × verificação adversarial por finding, 22 confirmados) endureceu a
+primeira implementação:
+
+- **`whatsapp-webhook` ganhou paridade com o WAHA**: `TransientDbError` taggeada → o catch responde
+  **503 sem processed-mark** (Meta/Evolution reentregam) em vez do 200 "error-logged" que descartava
+  a mensagem; `reopenConversation` agora propaga erro (inclusive o 23505 do índice); o **core
+  compartilhado virou open-first** (editado em `src/providers/whatsapp/webhook/core.ts` e espelhado
+  via `scripts/sync-whatsapp-shared.ts` — **redeploy do `whatsapp-webhook` obrigatório**).
+- **`waha-webhook`**: `findCustomerByPhone`/`findLeadByPhone` fail-closed (o furo acima do lookup que
+  o índice não bloqueia — erro virava "número desconhecido" → lead duplicado); os **resolvers de lead
+  seguem o ponteiro de conversão** (`converted_to_customer_id` → âncora cliente, senão a conversão
+  recriaria a divisão quando o telefone do cliente difere do lead); o silent-200 do insert de cliente
+  @lid inbound virou 503; o **bump de unread saiu do reopen** (uma mensagem = um incremento, mesmo com
+  redelivery após 503).
+- **Migrations**: advisory lock por cliente + retry de 23505 no passo (c) do trigger + reancoragem da
+  trilha `conversation_activity` (Histórico da ficha mostra a linha do tempo migrada); `LOCK TABLE ...
+  SHARE ROW EXCLUSIVE` na migration do índice (fecha a janela cleanup→index contra INSERT concorrente).
+- **App**: `update()` mapeia o 23505 de reabertura para mensagem pt-BR amigável; recuperação do
+  `createOutbound` distingue erro transitório de "sem acesso"; `waha-connect` (merge @lid→real)
+  arquiva a conversa aberta colidente antes de reapontar.
+
+**Follow-ups deliberados (não bloqueantes):** ponteiro de conversão nos resolvers do pipeline legado
+(`_shared/whatsapp/webhook/core.ts` `resolveContact`) e do importador; RPC atômico de reabertura
+app-side (hoje o par assign+status não é atômico — o 23505 aborta o status mas o assign pode ter
+aplicado); bump de unread server-side (`unread_count = unread_count + 1`).
+
 ## 8. Ordem de rollout (INVERTIDA de propósito — código antes das migrations)
 
 O código antigo transforma falha de INSERT em 200 silencioso (mensagem descartada). Aplicar o índice
 antes do deploy derrubaria o lado perdedor de cada corrida. Ordem correta:
 
 1. **Merge do PR** → deploy Vercel (recuperação no `createOutbound` — inerte até o índice existir).
-2. **Deploy das edges** `waha-webhook` e `whatsapp-webhook`
+2. **Deploy das edges** `waha-webhook`, `whatsapp-webhook` e `waha-connect`
    (`npx supabase functions deploy <fn> --project-ref njizaasajkdqptlxddqn`) — fail-closed ativo;
-   23505 ainda não ocorre.
+   23505 ainda não ocorre. Os importadores (`whatsapp-import-history*`) só precisam de redeploy se
+   forem usados após a migration.
 3. **Aplicar migration `20260723210000`** (limpeza + índices) via MCP, com OK do dono.
 4. **Aplicar migration `20260723211000`** (trigger de reancoragem) via MCP.
 5. Smoke: enviar do celular para um contato com conversa aberta; resolver + eco (deve criar nova —

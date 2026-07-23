@@ -15,6 +15,14 @@
 -- transient failures. Applying the index against the old code would drop the
 -- losing side of every race.
 
+-- Close the cleanup→index race entirely: block concurrent conversation writes
+-- for the (sub-second) duration of this migration — a webhook INSERT landing
+-- between the cleanup's snapshot and the index build would abort the CREATE
+-- UNIQUE INDEX with a 23505. Reads stay unaffected; if the apply still aborts
+-- for any reason, simply re-run it (the cleanup recomputes and the indexes
+-- are `if not exists`).
+lock table public.conversations in share row exclusive mode;
+
 -- 1) Data fix: archive all-but-newest OPEN conversation per (contact, account).
 --    13 groups as of 2026-07-23 (webhook races, 9th-digit splits, legacy
 --    anomalies) — recomputed at apply time. The kept conversation is the one

@@ -62,6 +62,12 @@ interface IWahaEnvelope {
 
 const CLOSED_CONVERSATION_STATUSES = ["resolvida", "arquivada"];
 
+// Tagged transient-DB failure thrown by helpers deep in the call tree
+// (contact resolution, lead upserts). The global catch converts it into a 503
+// WITHOUT the idempotency mark so WAHA redelivers (fail-closed, PR #357 item
+// 2); every other error keeps the legacy 200 "error-logged" contract.
+class TransientDbError extends Error {}
+
 // Fallback pipeline stage when the store has none configured yet — mirrors the
 // app-level default (src/mocks/data/platform.ts) and the reference
 // whatsapp-webhook's DEFAULT_FIRST_STAGE. Used by the lead helpers below.
@@ -299,11 +305,15 @@ Deno.serve(async (req) => {
       phoneDigits: string,
       opts?: { adoptCanonical?: boolean },
     ): Promise<string | undefined> {
-      const { data: candidates } = await admin
+      const { data: candidates, error: candidatesErr } = await admin
         .from("customers")
         .select("id, phone")
         .eq("store_id", accountRow.store_id as string)
         .like("phone", `%${phoneDigits.slice(-8)}`);
+      // Fail CLOSED: a discarded error here read as "unknown number" and fell
+      // through to lead creation — a duplicate anchor the unique index cannot
+      // veto (different anchor column).
+      if (candidatesErr) throw new TransientDbError(`findCustomerByPhone: ${candidatesErr.message}`);
       const match = (candidates ?? []).find((c) =>
         phoneDigitsMatchBr(String(c.phone).replace(/\D/g, ""), phoneDigits),
       );
@@ -382,14 +392,22 @@ Deno.serve(async (req) => {
     // 55, 9th-digit divergence). leads.phone_digits is a generated digits-only
     // column (migration 20260716210000). Returns the lead's owner + loss state
     // so the caller can decide reuse / reopen / owner-assignment.
-    async function findLeadByPhone(
-      phoneDigits: string,
-    ): Promise<{ id: string; sellerId: string | null; lossReason: string | null } | undefined> {
-      const { data: candidates } = await admin
+    async function findLeadByPhone(phoneDigits: string): Promise<
+      | {
+          id: string;
+          sellerId: string | null;
+          lossReason: string | null;
+          convertedToCustomerId: string | null;
+        }
+      | undefined
+    > {
+      const { data: candidates, error: candidatesErr } = await admin
         .from("leads")
-        .select("id, seller_id, loss_reason, phone_digits")
+        .select("id, seller_id, loss_reason, phone_digits, converted_to_customer_id")
         .eq("store_id", accountRow.store_id as string)
         .like("phone_digits", `%${phoneDigits.slice(-8)}`);
+      // Fail CLOSED — same rationale as findCustomerByPhone above.
+      if (candidatesErr) throw new TransientDbError(`findLeadByPhone: ${candidatesErr.message}`);
       const match = (candidates ?? []).find((l) =>
         phoneDigitsMatchBr(String(l.phone_digits ?? "").replace(/\D/g, ""), phoneDigits),
       );
@@ -398,6 +416,7 @@ Deno.serve(async (req) => {
         id: match.id as string,
         sellerId: (match.seller_id as string | null) ?? null,
         lossReason: (match.loss_reason as string | null) ?? null,
+        convertedToCustomerId: (match.converted_to_customer_id as string | null) ?? null,
       };
     }
 
@@ -455,8 +474,25 @@ Deno.serve(async (req) => {
       phoneDigits: string,
       fromPhone: string,
       contactName: string | undefined,
-    ): Promise<string> {
+    ): Promise<{ kind: "customer" | "lead"; id: string }> {
       const existing = await findLeadByPhone(phoneDigits);
+      if (existing?.convertedToCustomerId) {
+        // Converted lead (PR #357 item 4): its conversations were re-anchored
+        // to the customer by leads_reanchor_converted — resolving as a lead
+        // again would mint a fresh empty lead-anchored conversation and
+        // recreate the split (reachable when the linked customer's phone
+        // differs from the lead's). Follow the conversion pointer instead.
+        console.log(
+          JSON.stringify({
+            level: "info",
+            msg: "waha webhook: converted lead resolved as customer",
+            leadId: existing.id,
+            customerId: existing.convertedToCustomerId,
+            path: "inbound",
+          }),
+        );
+        return { kind: "customer", id: existing.convertedToCustomerId };
+      }
       if (existing) {
         if (existing.lossReason !== null) {
           // Lost lead came back to life — clear the loss/restore the stage and
@@ -494,7 +530,7 @@ Deno.serve(async (req) => {
             }),
           );
         }
-        return existing.id;
+        return { kind: "lead", id: existing.id };
       }
       const sellerId = await assignRotationSeller();
       const leadId = await insertLead({
@@ -511,7 +547,7 @@ Deno.serve(async (req) => {
           path: "inbound",
         }),
       );
-      return leadId;
+      return { kind: "lead", id: leadId };
     }
 
     // OUTBOUND ECHO resolution (we messaged them from the phone): reuse an
@@ -523,8 +559,22 @@ Deno.serve(async (req) => {
       phoneDigits: string,
       toPhone: string,
       contactName: string | undefined,
-    ): Promise<string> {
+    ): Promise<{ kind: "customer" | "lead"; id: string }> {
       const existing = await findLeadByPhone(phoneDigits);
+      if (existing?.convertedToCustomerId) {
+        // Converted lead — same conversion-pointer rule as the inbound
+        // resolver above.
+        console.log(
+          JSON.stringify({
+            level: "info",
+            msg: "waha webhook: converted lead resolved as customer",
+            leadId: existing.id,
+            customerId: existing.convertedToCustomerId,
+            path: "echo",
+          }),
+        );
+        return { kind: "customer", id: existing.convertedToCustomerId };
+      }
       if (existing) {
         console.log(
           JSON.stringify({
@@ -534,7 +584,7 @@ Deno.serve(async (req) => {
             path: "echo",
           }),
         );
-        return existing.id;
+        return { kind: "lead", id: existing.id };
       }
       const leadId = await insertLead({
         phone: toPhone,
@@ -550,7 +600,7 @@ Deno.serve(async (req) => {
           path: "echo",
         }),
       );
-      return leadId;
+      return { kind: "lead", id: leadId };
     }
 
     // Shared media download+upload — best-effort, never fails the caller (only
@@ -858,8 +908,9 @@ Deno.serve(async (req) => {
         } catch {
           /* name is decorative — never blocks the lead */
         }
-        echoAnchorId = await resolveLeadForEcho(echoPhoneDigits, toPhone, contactName);
-        echoAnchorKind = "lead";
+        const echoResolved = await resolveLeadForEcho(echoPhoneDigits, toPhone, contactName);
+        echoAnchorId = echoResolved.id;
+        echoAnchorKind = echoResolved.kind;
       }
 
       // OPEN-ONLY lookup (excludes resolvida/arquivada): an echo is
@@ -1089,25 +1140,15 @@ Deno.serve(async (req) => {
           .select("id")
           .single();
         if (customerErr) {
-          console.warn(
-            JSON.stringify({
-              level: "warn",
-              msg: "waha webhook: customer insert failed",
-              error: customerErr.message,
-            }),
-          );
-          return respond(json({ ok: true, ignored: "customer-insert-failed" }, 200), {
-            outcome: "ignored",
-            errorMessage: customerErr.message,
-            requestPayload: envelope,
-          });
+          return transientDbFailure("inbound customer insert", customerErr);
         }
         anchorId = createdCustomer.id as string;
       } else {
         // Unknown number → Lead (live inbound): resolve/reopen/create and assign
         // the rotation owner at this moment (the person just wrote to us).
-        anchorId = await resolveLeadForInbound(phoneDigits, fromPhone, contactName);
-        anchorKind = "lead";
+        const inboundResolved = await resolveLeadForInbound(phoneDigits, fromPhone, contactName);
+        anchorId = inboundResolved.id;
+        anchorKind = inboundResolved.kind;
       }
     }
 
@@ -1147,7 +1188,6 @@ Deno.serve(async (req) => {
     }
 
     let conversationId: string;
-    let didReopen = false;
     if (!existingConversation) {
       const { data: createdConversation, error: convErr } = await admin
         .from("conversations")
@@ -1189,15 +1229,13 @@ Deno.serve(async (req) => {
     } else {
       conversationId = existingConversation.id as string;
       if (CLOSED_CONVERSATION_STATUSES.includes(existingConversation.status as string)) {
+        // Reopen sets ONLY status/assignee — the last_message_at/unread bump
+        // moved to the single post-insert bump below, so a 503 after a
+        // successful reopen but failed message insert can't double-count
+        // unread on the WAHA redelivery.
         const { error: reopenErr } = await admin
           .from("conversations")
-          .update({
-            status: "aguardando",
-            assigned_seller_id: null,
-            last_message_at: parsed.timestamp,
-            unread_count: ((existingConversation.unread_count as number | undefined) ?? 0) + 1,
-            ...(parsed.adReferral ? { ad_referral: parsed.adReferral } : {}),
-          })
+          .update({ status: "aguardando", assigned_seller_id: null })
           .eq("id", conversationId);
         if (reopenErr && reopenErr.code === "23505") {
           // A concurrent event opened another conversation between the lookup
@@ -1214,8 +1252,6 @@ Deno.serve(async (req) => {
           existingConversation = openWinner;
         } else if (reopenErr) {
           return transientDbFailure("inbound conversation reopen", reopenErr);
-        } else {
-          didReopen = true;
         }
       }
     }
@@ -1260,9 +1296,10 @@ Deno.serve(async (req) => {
     // of this event while messageErr was set will reprocess cleanly.
     await markProcessed();
 
-    // Bump last_message_at/unread_count unless the reopen above already folded
-    // it in.
-    if (!didReopen && existingConversation) {
+    // Bump last_message_at/unread_count AFTER the message actually landed —
+    // exactly one increment per persisted message, in first delivery and in
+    // WAHA redeliveries alike (the reopen above no longer folds the bump).
+    if (existingConversation) {
       await admin
         .from("conversations")
         .update({
@@ -1289,6 +1326,15 @@ Deno.serve(async (req) => {
     console.error(
       JSON.stringify({ level: "error", msg: "waha webhook processing failed", error: message }),
     );
+    if (err instanceof TransientDbError) {
+      // Fail closed: no idempotency mark ran, so WAHA's redelivery reprocesses
+      // the event cleanly instead of it failing open into a duplicate anchor.
+      return respond(json({ error: "transient-db-error" }, 503), {
+        outcome: "error",
+        errorMessage: message,
+        requestPayload: envelope,
+      });
+    }
     return respond(json({ status: "error-logged" }, 200), {
       outcome: "error",
       errorMessage: message,

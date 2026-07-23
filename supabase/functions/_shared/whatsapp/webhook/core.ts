@@ -781,14 +781,23 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     }
   }
 
-  // 6. Conversation resolution (RF-040.3) — includeTerminal:true reuses the
-  //    latest conversation regardless of status; a closed one (resolvida/
-  //    arquivada) is REOPENED on customer inbound instead of spawning a
-  //    duplicate (spec 2026-07-03 §1.5).
+  // 6. Conversation resolution (RF-040.3) — OPEN-FIRST (PR #357): prefer the
+  //    open conversation; only when none is open, look up regardless of status
+  //    and REOPEN a closed one (resolvida/arquivada) on customer inbound
+  //    instead of spawning a duplicate (spec 2026-07-03 §1.5). Open-first also
+  //    removes the reopen-collision class under the
+  //    one-open-per-contact-per-account unique index (migration
+  //    20260723210000): a reopen only ever runs when no open row exists.
   let conversation: { id: string; status: string } | null =
     resolved.kind === "customer"
-      ? await db.findOpenConversation(resolved.id, account.id, true)
-      : await db.findOpenConversationForLead(resolved.id, account.id, true);
+      ? await db.findOpenConversation(resolved.id, account.id)
+      : await db.findOpenConversationForLead(resolved.id, account.id);
+  if (!conversation) {
+    conversation =
+      resolved.kind === "customer"
+        ? await db.findOpenConversation(resolved.id, account.id, true)
+        : await db.findOpenConversationForLead(resolved.id, account.id, true);
+  }
   let didReopen = false;
   if (!conversation) {
     const created = await db.createConversation({

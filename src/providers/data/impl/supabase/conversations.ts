@@ -442,7 +442,22 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       .eq("id", id)
       .select(COLUMNS)
       .single();
-    if (error) throw new Error(`[supabase] conversations.update(${id}) failed: ${error.message}`);
+    if (error) {
+      if (
+        error.code === "23505" &&
+        patch.status !== undefined &&
+        !["resolvida", "arquivada"].includes(patch.status)
+      ) {
+        // Reopen vetoed by the one-open-per-contact-per-account unique index
+        // (migration 20260723210000): another conversation of this contact is
+        // already open on the same instance — surface a human message instead
+        // of the raw constraint error (undo toasts / status dropdown).
+        throw new Error(
+          "Este contato já tem outra conversa aberta nesta instância. Continue por ela — ou resolva-a antes de reabrir esta.",
+        );
+      }
+      throw new Error(`[supabase] conversations.update(${id}) failed: ${error.message}`);
+    }
     return rowToConversation(data as ConversationRow);
   },
 
@@ -562,7 +577,7 @@ export const supabaseConversationsProvider: IConversationsProvider = {
         // dialog then navigates into the existing thread instead of failing.
         // RLS scopes this read: a seller without access to the open thread
         // gets the pt-BR error below instead of a duplicate.
-        const { data: existing } = await getSupabaseClient()
+        const { data: existing, error: recoveryError } = await getSupabaseClient()
           .from(TABLE)
           .select(COLUMNS)
           .eq("customer_id", input.customerId)
@@ -571,6 +586,12 @@ export const supabaseConversationsProvider: IConversationsProvider = {
           .order("last_message_at", { ascending: false })
           .limit(1)
           .maybeSingle();
+        // A transient failure here must read as retryable — not as the
+        // "no access" message below.
+        if (recoveryError)
+          throw new Error(
+            `[supabase] conversations.createOutbound recovery lookup failed: ${recoveryError.message}`,
+          );
         if (existing) return rowToConversation(existing as ConversationRow);
         throw new Error(
           "Já existe uma conversa aberta para este contato nesta instância, mas você não tem acesso a ela.",
