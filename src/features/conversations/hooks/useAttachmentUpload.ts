@@ -2,22 +2,16 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import type { IConversation, IMediaUploadInput } from "@/shared/types";
 import { getActiveDataSource, useMediaStorageProvider } from "@/providers/data";
+import {
+  MEDIA_MAX_SIZE_BYTES,
+  formatMaxSizeMb,
+  type MediaUploadKind,
+} from "@/shared/utils/mediaLimits";
 import type { ISendOptions } from "./useMessageSend";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
 
 /** File kinds offered by the composer attach menu (PRD-119 RF-026). */
-export type AttachmentKind = "image" | "video" | "audio" | "document";
-
-/**
- * Per-kind size caps. Image/audio/video mirror the Meta Cloud API media
- * limits; document is a conservative cap below the Storage bucket default.
- */
-const MAX_SIZE_BYTES: Record<AttachmentKind, number> = {
-  image: 5 * 1024 * 1024,
-  video: 16 * 1024 * 1024,
-  audio: 16 * 1024 * 1024,
-  document: 25 * 1024 * 1024,
-};
+export type AttachmentKind = MediaUploadKind;
 
 /** File-picker `accept` per kind. */
 export const ATTACHMENT_ACCEPT: Record<AttachmentKind, string> = {
@@ -59,9 +53,9 @@ export function useAttachmentUpload(conversation: IConversation): IUseAttachment
 
   const prepareAttachment = useCallback(
     async (file: File, kind: AttachmentKind, caption: string): Promise<ISendOptions | null> => {
-      const maxBytes = MAX_SIZE_BYTES[kind];
+      const maxBytes = MEDIA_MAX_SIZE_BYTES[kind];
       if (file.size > maxBytes) {
-        toast.error(CONVERSATION_STRINGS.attachTooLarge(Math.round(maxBytes / 1024 / 1024)));
+        toast.error(CONVERSATION_STRINGS.attachTooLarge(formatMaxSizeMb(maxBytes)));
         return null;
       }
       // The Supabase media provider requires the owning store (the mock injects

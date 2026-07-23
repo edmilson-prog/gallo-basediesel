@@ -2,15 +2,14 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import type { IConversation, IMediaUploadInput, ScheduledMediaType } from "@/shared/types";
 import { getActiveDataSource, useMediaStorageProvider } from "@/providers/data";
+import { MEDIA_MAX_SIZE_BYTES, formatMaxSizeMb } from "@/shared/utils/mediaLimits";
 import type { IScheduledMediaDraft } from "../engine/scheduleComposer";
 
-/** Per-kind size caps for scheduled attachments (mirror useAttachmentUpload + video). */
-const MAX_SIZE_BYTES: Record<ScheduledMediaType, number> = {
-  image: 5 * 1024 * 1024,
-  audio: 16 * 1024 * 1024,
-  video: 16 * 1024 * 1024,
-  document: 25 * 1024 * 1024,
-};
+/**
+ * Scheduled attachments land in the same bucket as the composer's, so they
+ * share the one cap — see `@/shared/utils/mediaLimits`.
+ */
+const MAX_SIZE_BYTES: Record<ScheduledMediaType, number> = MEDIA_MAX_SIZE_BYTES;
 
 /** File-picker `accept` per kind. */
 export const SCHEDULE_ATTACH_ACCEPT: Record<ScheduledMediaType, string> = {
@@ -46,7 +45,7 @@ export function useScheduleMediaUpload(
     async (file: File, kind: ScheduledMediaType): Promise<IScheduledMediaDraft | null> => {
       const maxBytes = MAX_SIZE_BYTES[kind];
       if (file.size > maxBytes) {
-        toast.error(`Arquivo acima do limite (${Math.round(maxBytes / 1024 / 1024)} MB).`);
+        toast.error(`Arquivo acima do limite (${formatMaxSizeMb(maxBytes)} MB).`);
         return null;
       }
       const uploaded = await media.upload({
