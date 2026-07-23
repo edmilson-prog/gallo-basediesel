@@ -48,8 +48,9 @@ create policy lead_funnel_stages_write on public.lead_funnel_stages
   ));
 
 -- ---------- lead_funnel_entries ----------
--- Same semantics as `leads`. store_id/seller_id are derived by trigger, so the
--- with check below is true by construction and cannot be forged.
+-- Same semantics as `leads`. store_id/seller_id are derived by the before-insert
+-- trigger, so the with check is evaluated against unforgeable values — a forged
+-- membership fails it rather than passing.
 create policy lead_funnel_entries_select on public.lead_funnel_entries
   for select to authenticated
   using (
@@ -89,8 +90,14 @@ create policy lead_funnel_access_select on public.lead_funnel_access
 
 create policy lead_funnel_access_write on public.lead_funnel_access
   for all to authenticated
-  using ((select public.is_staff()))
-  with check ((select public.is_staff()));
+  using ((select public.is_staff()) and exists (
+    select 1 from public.lead_funnels f
+     where f.id = funnel_id and f.store_id = (select public.current_store_id())
+  ))
+  with check ((select public.is_staff()) and exists (
+    select 1 from public.lead_funnels f
+     where f.id = funnel_id and f.store_id = (select public.current_store_id())
+  ));
 
 -- ---------- triggers ----------
 -- INSERT: derive owner and store from the lead itself. Without this a seller
