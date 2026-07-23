@@ -449,7 +449,7 @@ export const supabaseConversationsProvider: IConversationsProvider = {
         !["resolvida", "arquivada"].includes(patch.status)
       ) {
         // Reopen vetoed by the one-open-per-contact-per-account unique index
-        // (migration 20260723210000): another conversation of this contact is
+        // (migration 20260723165509): another conversation of this contact is
         // already open on the same instance — surface a human message instead
         // of the raw constraint error (undo toasts / status dropdown).
         throw new Error(
@@ -572,7 +572,7 @@ export const supabaseConversationsProvider: IConversationsProvider = {
     if (error) {
       if (error.code === "23505") {
         // The one-open-conversation-per-contact-per-account unique index
-        // (migration 20260723210000) vetoed the INSERT: an open conversation
+        // (migration 20260723165509) vetoed the INSERT: an open conversation
         // already exists for this contact on this instance. Reuse it — the
         // dialog then navigates into the existing thread instead of failing.
         // RLS scopes this read: a seller without access to the open thread
