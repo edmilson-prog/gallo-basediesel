@@ -148,9 +148,16 @@ export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
 
   async createFunnel(input) {
     seedOnce();
+    // Post-seed create — id must be collision-safe against every id already
+    // handed out (seed entries, prior creates), hence `crypto.randomUUID()`
+    // instead of a length-derived id. See `addEntry`/`removeEntry` for why a
+    // length-derived id is unsafe once the backing array can shrink; funnels
+    // never shrink today (archive only sets `archivedAt`), but matching the
+    // rest of the mock layer's convention (see `messageTemplates.ts`,
+    // `conversationTags.ts`) is the right default regardless.
     const created: ILeadFunnel = {
       ...input,
-      id: makeId("funnel", funnels.length),
+      id: `funnel-${crypto.randomUUID()}`,
       createdAt: nowIso(),
       updatedAt: nowIso(),
     };
@@ -173,7 +180,8 @@ export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
   async archiveFunnel(id) {
     seedOnce();
     const target = funnels.find((f) => f.id === id);
-    if (target?.isDefault) throw new Error("[mock] the default funnel cannot be archived");
+    if (!target) throw new Error(`[mock] funnel ${id} not found`);
+    if (target.isDefault) throw new Error("[mock] the default funnel cannot be archived");
     funnels = funnels.map((f) => (f.id === id ? { ...f, archivedAt: nowIso() } : f));
   },
 
@@ -276,8 +284,16 @@ export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
       return existing;
     }
 
+    // Post-seed create — `entries.length` is NOT a safe id source here: unlike
+    // seeding (a one-shot pass before any mutation), `removeEntry` shrinks
+    // `entries` via `.filter()`, so a length-derived id can collide with a
+    // surviving seed entry's id (e.g. `entry-(N-1)`) after a remove. That
+    // collision corrupts membership identity: `.find()`/`.filter()` by id then
+    // silently operate on/delete both entries at once. `crypto.randomUUID()`
+    // never collides with the `entry-N` seed prefix, matching the convention
+    // used by the rest of the mock layer for post-seed creates.
     const created: ILeadFunnelEntry = {
-      id: makeId("entry", entries.length),
+      id: `entry-${crypto.randomUUID()}`,
       leadId,
       funnelId: plan.funnelId,
       stageId: plan.stageId,
@@ -338,11 +354,16 @@ export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
     entries = entries.filter((e) => e.id !== entryId);
 
     if (plan.movedToDefault && plan.recreateInFunnelId && plan.recreateInStageId) {
+      // Same collision-safety concern as `addEntry` above — this recreate runs
+      // right after `entries` was shrunk by the `.filter()` a few lines up,
+      // so a length-derived id here is exactly the routine remove→recreate
+      // sequence that produces the collision. `crypto.randomUUID()` sidesteps
+      // it entirely.
       entries = [
         ...entries,
         {
           ...target,
-          id: makeId("entry", entries.length + 1),
+          id: `entry-${crypto.randomUUID()}`,
           funnelId: plan.recreateInFunnelId,
           stageId: plan.recreateInStageId,
           enteredStageAt: nowIso(),
