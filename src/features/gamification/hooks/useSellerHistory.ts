@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ID, IGamificationRules, IRankingEntry } from "@/shared/types";
 import {
+  FETCH_ALL_PAGE_SIZE,
   useCustomersProvider,
   useGoalsProvider,
   useOrdersProvider,
@@ -130,7 +131,7 @@ export function useSellerHistory(params: IUseSellerHistoryParams): IUseSellerHis
       customersProvider.list({
         storeId,
         sellerIds: [sellerId],
-        pageSize: 3000,
+        pageSize: FETCH_ALL_PAGE_SIZE,
       }),
     staleTime: STALE_MS,
     enabled,

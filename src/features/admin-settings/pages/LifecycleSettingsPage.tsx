@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ICustomer } from "@/shared/types";
 import { useCurrentStore } from "@/features/multistore";
-import { useCustomersProvider } from "@/providers/data";
+import { FETCH_ALL_PAGE_SIZE, useCustomersProvider } from "@/providers/data";
 import { SectionHeader } from "../components/SectionHeader";
 import { usePlatformSettings } from "../hooks/usePlatformSettings";
 import { UnsavedChangesDialog } from "../components/UnsavedChangesDialog";
@@ -53,7 +53,7 @@ export function LifecycleSettingsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    customersProvider.list({ storeId, pageSize: 500 }).then((res) => {
+    customersProvider.list({ storeId, pageSize: FETCH_ALL_PAGE_SIZE }).then((res) => {
       if (!cancelled) setAllCustomers(res.data);
     });
     return () => {

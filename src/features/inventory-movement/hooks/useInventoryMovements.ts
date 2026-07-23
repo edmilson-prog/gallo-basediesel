@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ID, IInventoryMovement, IOrder, IPart, MovementType } from "@/shared/types";
-import { useOrdersProvider, usePartsProvider } from "@/providers/data";
+import { FETCH_ALL_PAGE_SIZE, useOrdersProvider, usePartsProvider } from "@/providers/data";
 import { deriveInventoryMovements } from "../engine";
 import type { MovementPeriod } from "./useInventoryMovementsFilters";
 
 const STALE_MS = 60_000;
-const PAGE_SIZE_PROVIDER = 1000;
+const PAGE_SIZE_PROVIDER = FETCH_ALL_PAGE_SIZE;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const PERIOD_TO_DAYS: Record<MovementPeriod, number | null> = {

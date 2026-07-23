@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { IGamificationRules, ID, IRankingEntry, ISeller } from "@/shared/types";
 import {
+  FETCH_ALL_PAGE_SIZE,
   useCustomersProvider,
   useGoalsProvider,
   useOrdersProvider,
@@ -141,7 +142,7 @@ export function useRanking(params: IUseRankingParams): IUseRankingResult {
       customersProvider.list({
         storeId,
         sellerIds: scope.sellerId ? [scope.sellerId] : undefined,
-        pageSize: 3000,
+        pageSize: FETCH_ALL_PAGE_SIZE,
       }),
     staleTime: STALE_MS,
     enabled,

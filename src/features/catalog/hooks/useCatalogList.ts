@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ID, IPart } from "@/shared/types";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 import {
   toListParams,
@@ -113,9 +114,14 @@ export function useCatalogList(
   const provider = usePartsProvider();
   const queryClient = useQueryClient();
 
-  // Always fetch a large window from the provider (mock has only ~200 parts).
+  // The window intentionally covers the whole catalog — filtering, sorting and
+  // pagination all happen client-side below.
   const params = useMemo(
-    () => ({ ...toListParams(filters, sort, page, pageSize), page: 1, pageSize: 1000 }),
+    () => ({
+      ...toListParams(filters, sort, page, pageSize),
+      page: 1,
+      pageSize: FETCH_ALL_PAGE_SIZE,
+    }),
     [filters, sort, page, pageSize],
   );
 

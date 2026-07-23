@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ID, IPart } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Input } from "@/components/ui/input";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
 
@@ -31,7 +32,7 @@ export function EquivalentsEditor({ selectedIds, excludeId, onChange }: IEquival
     queryKey: ["parts-by-ids", selectedIds] as const,
     queryFn: async () => {
       if (selectedIds.length === 0) return [] as IPart[];
-      const result = await provider.list({ pageSize: 2000 });
+      const result = await provider.list({ pageSize: FETCH_ALL_PAGE_SIZE });
       return result.data.filter((p) => selectedIds.includes(p.id));
     },
     staleTime: 60_000,

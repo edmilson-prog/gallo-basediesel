@@ -15,7 +15,7 @@ import {
 import type { ID, IOrder, IPart, IVehicle } from "@/shared/types";
 import { Card } from "@/components/ui/card";
 import { formatBRL, formatBRLCompact } from "@/shared/utils/format";
-import { usePartsProvider } from "@/providers/data";
+import { FETCH_ALL_PAGE_SIZE, usePartsProvider } from "@/providers/data";
 import { usePortalSession } from "../hooks/usePortalSession";
 import { usePortalOrders, usePortalVehicles } from "../hooks/usePortalResources";
 import { PORTAL_STRINGS as S } from "../i18n/pt-BR";
@@ -117,7 +117,7 @@ export function PortalAnalyticsPage() {
   const { data: partsPage } = useQuery({
     queryKey: ["portal", "parts"] as const,
     staleTime: 5 * 60_000,
-    queryFn: () => partsProvider.list({ pageSize: 2000 }),
+    queryFn: () => partsProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE }),
   });
 
   const partsById = useMemo(() => {

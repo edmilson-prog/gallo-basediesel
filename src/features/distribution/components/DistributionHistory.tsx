@@ -19,6 +19,7 @@ import type {
   ISeller,
 } from "@/shared/types";
 import {
+  FETCH_ALL_PAGE_SIZE,
   useCustomersProvider,
   useDistributionTracesProvider,
   useLeadsProvider,
@@ -60,8 +61,8 @@ export function DistributionHistory({ storeId }: IDistributionHistoryProps) {
     let cancelled = false;
     Promise.all([
       sellersProvider.list({ active: true }),
-      customersProvider.list({ pageSize: 100 }).then((r) => r.data),
-      leadsProvider.list({ pageSize: 100 }).then((r) => r.data),
+      customersProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE }).then((r) => r.data),
+      leadsProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE }).then((r) => r.data),
     ])
       .then(([s, c, l]) => {
         if (cancelled) return;

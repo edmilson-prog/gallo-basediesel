@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { CustomerStatus, ICustomer, ID, IOrder, IQuote, ISeller } from "@/shared/types";
 import {
+  FETCH_ALL_PAGE_SIZE,
   useCustomersProvider,
   useOrdersProvider,
   useQuotesProvider,
@@ -233,7 +234,8 @@ export function useCockpitMetrics(params: IUseCockpitMetricsParams): IUseCockpit
 
   const customersQuery = useQuery({
     queryKey: ["cockpit", "customers", scope.storeId],
-    queryFn: () => customersProvider.list({ storeId: scope.storeId, pageSize: 3000 }),
+    queryFn: () =>
+      customersProvider.list({ storeId: scope.storeId, pageSize: FETCH_ALL_PAGE_SIZE }),
     staleTime: STALE_MS,
     enabled,
   });

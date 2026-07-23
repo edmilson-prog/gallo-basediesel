@@ -10,11 +10,16 @@ import type {
   IPart,
 } from "@/shared/types";
 import type { PartCategory } from "@/shared/types/part-identification";
-import { useOrdersProvider, usePartsProvider, useSettingsProvider } from "@/providers/data";
+import {
+  FETCH_ALL_PAGE_SIZE,
+  useOrdersProvider,
+  usePartsProvider,
+  useSettingsProvider,
+} from "@/providers/data";
 import { calculateInventoryAnalysis, calculateInventoryMetrics } from "../engine";
 
 const STALE_MS = 60_000;
-const PAGE_SIZE = 1000;
+const PAGE_SIZE = FETCH_ALL_PAGE_SIZE;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export interface IInventoryFilters {

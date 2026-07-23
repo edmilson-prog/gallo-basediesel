@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { IPart, IVehicle } from "@/shared/types";
 import { searchPartsByApplication, searchPartsByText } from "@/features/catalog";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 
 export interface IUseItemSearchArgs {
@@ -29,7 +30,8 @@ export function useItemSearch({
   const partsProvider = usePartsProvider();
   const partsQuery = useQuery({
     queryKey: ["parts-for-quote"] as const,
-    queryFn: async () => (await partsProvider.list({ pageSize: 1000, active: true })).data,
+    queryFn: async () =>
+      (await partsProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE, active: true })).data,
     enabled,
     staleTime: 60_000,
   });

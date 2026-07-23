@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import {
+  FETCH_ALL_PAGE_SIZE,
   useCustomersProvider,
   useLeadsProvider,
   useOrdersProvider,
@@ -74,7 +75,7 @@ export function useAnalyticsDataAccess(): IAnalyticsDataAccess {
       const result = await customersProvider.list({
         storeId: scope?.storeId,
         sellerIds: scope?.sellerId ? [scope.sellerId] : undefined,
-        pageSize: 3000,
+        pageSize: FETCH_ALL_PAGE_SIZE,
       });
       return result.data ?? [];
     };
@@ -179,7 +180,7 @@ export function useAnalyticsDataAccess(): IAnalyticsDataAccess {
         const leadsResult = await leadsProvider.list({
           storeId: query.scope?.storeId,
           sellerId: query.scope?.sellerId,
-          pageSize: 2000,
+          pageSize: FETCH_ALL_PAGE_SIZE,
         });
         const leads = leadsResult.data ?? [];
         const realizedValue = sumBy(orders, (o) => o.total);

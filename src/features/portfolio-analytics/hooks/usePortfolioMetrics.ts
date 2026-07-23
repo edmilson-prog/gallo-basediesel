@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ICustomer, ID, IOrder } from "@/shared/types";
 import {
+  FETCH_ALL_PAGE_SIZE,
   useCustomersProvider,
   useOrdersProvider,
   useSellersProvider,
@@ -174,7 +175,7 @@ export function usePortfolioMetrics(
       customersProvider.list({
         storeId: scope.storeId,
         sellerIds: scope.sellerId ? [scope.sellerId] : undefined,
-        pageSize: 3000,
+        pageSize: FETCH_ALL_PAGE_SIZE,
       }),
     staleTime: STALE_MS,
     enabled,

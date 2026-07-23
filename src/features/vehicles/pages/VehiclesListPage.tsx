@@ -21,6 +21,7 @@ import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { useVehiclesProvider } from "@/providers/data/hooks/useVehiclesProvider";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
@@ -82,7 +83,7 @@ export function VehiclesListPage() {
             storeId: isManagerOrOwner ? undefined : (currentStoreId ?? undefined),
             sellerIds:
               !isManagerOrOwner && currentUser?.sellerId ? [currentUser.sellerId] : undefined,
-            pageSize: 1000,
+            pageSize: FETCH_ALL_PAGE_SIZE,
           }),
         staleTime: 60_000,
       },

@@ -18,7 +18,7 @@ import {
 import type { ICustomer, ITagSuggestion } from "@/shared/types";
 import { useCurrentStore } from "@/features/multistore";
 import { useAuth } from "@/features/auth/useAuth";
-import { useCustomersProvider } from "@/providers/data";
+import { FETCH_ALL_PAGE_SIZE, useCustomersProvider } from "@/providers/data";
 import { SectionHeader } from "../components/SectionHeader";
 import { usePlatformSettings } from "../hooks/usePlatformSettings";
 
@@ -70,7 +70,7 @@ export function TagsSettingsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    customersProvider.list({ storeId, pageSize: 500 }).then((res) => {
+    customersProvider.list({ storeId, pageSize: FETCH_ALL_PAGE_SIZE }).then((res) => {
       if (!cancelled) setCustomers(res.data);
     });
     return () => {

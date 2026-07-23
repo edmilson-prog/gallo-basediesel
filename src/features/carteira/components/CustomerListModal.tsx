@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Icon } from "@/components/Icon";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
 import { getCustomerName } from "@/features/customers/utils/customerDisplay";
 import { CARTEIRA_STRINGS } from "../i18n/pt-BR";
@@ -26,7 +27,8 @@ export function CustomerListModal({ open, customerIds, onClose }: ICustomerListM
     queryKey: ["carteira-customer-list", customerIds],
     queryFn: async () => {
       if (customerIds.length === 0) return [] as ICustomer[];
-      const result = await provider.list({ pageSize: customerIds.length });
+      // The contract has no ids filter — fetch the full set and match ids client-side.
+      const result = await provider.list({ pageSize: FETCH_ALL_PAGE_SIZE });
       return result.data.filter((c) => customerIds.includes(c.id));
     },
     enabled: open,

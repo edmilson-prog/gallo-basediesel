@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ID, ICustomer, IOrder, IOrderItem, IPart } from "@/shared/types";
 import type { PartCategory } from "@/shared/types/part-identification";
 import {
+  FETCH_ALL_PAGE_SIZE,
   useCustomersProvider,
   useOrdersProvider,
   usePartsProvider,
@@ -335,13 +336,14 @@ export function useSalesAnalytics(params: IUseSalesAnalyticsParams): IUseSalesAn
 
   const customersQuery = useQuery({
     queryKey: ["sales-analytics", "customers", scope.storeId],
-    queryFn: () => customersProvider.list({ storeId: scope.storeId, pageSize: 2000 }),
+    queryFn: () =>
+      customersProvider.list({ storeId: scope.storeId, pageSize: FETCH_ALL_PAGE_SIZE }),
     staleTime: STALE_MS,
   });
 
   const partsQuery = useQuery({
     queryKey: ["sales-analytics", "parts"],
-    queryFn: () => partsProvider.list({ pageSize: 2000 }),
+    queryFn: () => partsProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE }),
     staleTime: STALE_MS,
   });
 

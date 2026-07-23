@@ -10,6 +10,7 @@ import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
 import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
@@ -154,10 +155,10 @@ export function CustomersListPage() {
   );
 
   const handleSelectAllFiltered = useCallback(async () => {
-    // Recarrega todos os clientes filtrados (até 500) para selecionar.
+    // Recarrega todos os clientes filtrados (conjunto completo) para selecionar.
     const all = await customersProvider.list({
-      ...toListParams(filters, sort, 1, 500),
-      pageSize: 500,
+      ...toListParams(filters, sort, 1, FETCH_ALL_PAGE_SIZE),
+      pageSize: FETCH_ALL_PAGE_SIZE,
     });
     setSelectedIds(new Set(all.data.map((c) => c.id)));
     setSelectAllScope("filtered");
