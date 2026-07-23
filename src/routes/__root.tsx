@@ -94,10 +94,10 @@ function RootComponent() {
                     modules). Without it sonner queues toasts into the void:
                     no element, no warning, no console trace — which is exactly
                     how an oversized attachment could be rejected while the
-                    user saw nothing at all. Top-right so it never covers the
-                    conversation composer at the bottom of the screen.
+                    user saw nothing at all. Bottom-right is sonner's default
+                    and the position the owner asked for.
                   */}
-                  <Toaster position="top-right" duration={5000} closeButton />
+                  <Toaster position="bottom-right" duration={5000} closeButton />
                 </MultistoreProvider>
               </AuthProvider>
             </NotificationProvidersProvider>
