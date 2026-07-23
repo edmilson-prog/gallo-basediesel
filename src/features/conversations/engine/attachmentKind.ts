@@ -27,7 +27,10 @@ const DOCUMENT_EXTENSIONS = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", "
  * use it and video/ogg is vanishingly rare in this workflow.
  */
 const MEDIA_EXTENSIONS: ReadonlyArray<readonly [AttachmentKind, readonly string[]]> = [
-  ["video", [".mp4", ".mov", ".3gp", ".3gpp", ".webm", ".mkv", ".avi", ".m4v"]],
+  // Deliberately excludes .mkv/.avi: WhatsApp does not render them, and
+  // guessing "video" would trade a clear "unsupported file" notice for a
+  // wasted upload followed by a failed send.
+  ["video", [".mp4", ".mov", ".3gp", ".3gpp", ".webm", ".m4v"]],
   ["image", [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".heic", ".heif"]],
   ["audio", [".mp3", ".ogg", ".oga", ".opus", ".m4a", ".aac", ".wav", ".amr"]],
 ];

@@ -48,7 +48,11 @@ viraram file picker real:
   PRD-027); o pipeline `whatsapp-send` repassa URLs absolutas ao engine.
 - Em **mock**, o asset é registrado (galeria consistente) e a bolha renderiza
   um object URL local da sessão — demo fiel sem rede.
-- Limites por tipo: imagem 5 MB, áudio 16 MB (caps da Meta), documento 25 MB.
+- Limite: **25 MiB para todos os tipos** — o `file_size_limit` do bucket
+  `whatsapp-media`, único teto real do caminho (o upload vai direto do browser
+  para o Storage). Fonte única em `@/shared/utils/mediaLimits`. Até 2026-07-23
+  os caps espelhavam a Meta (imagem 5 MB, vídeo/áudio 16 MB), o que rejeitava
+  no cliente arquivos que todos os outros engines aceitam.
 - A janela de 24h e o gate de número inválido aplicam como em qualquer envio
   livre (bounce abre o picker de template / diálogo de confirmação staff).
 
