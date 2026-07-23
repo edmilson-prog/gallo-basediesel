@@ -48,7 +48,10 @@ export type CatalogOrderBy =
   | "status";
 export type CatalogOrderDir = "asc" | "desc";
 
-/** Order fields the parts provider can sort natively; others are sorted client-side. */
+/** Order fields the parts provider can sort natively; others are sorted client-side.
+ *  NOTE: useCatalogList strips orderBy/orderDir before its full-window fetch
+ *  (sortParts re-sorts locally and a sort-free params object keeps the queryKey
+ *  stable) — these only matter for consumers that paginate server-side. */
 const PROVIDER_ORDER_BY = new Set<CatalogOrderBy>(["name", "unitPrice", "stockAvailable"]);
 
 export interface ICatalogListSort {

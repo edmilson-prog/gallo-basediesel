@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
@@ -11,13 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type {
-  DistributionMatchedCriterion,
-  ICustomer,
-  IDistributionTrace,
-  ILead,
-  ISeller,
-} from "@/shared/types";
+import type { DistributionMatchedCriterion, IDistributionTrace, ISeller } from "@/shared/types";
 import {
   FETCH_ALL_PAGE_SIZE,
   useCustomersProvider,
@@ -48,8 +43,6 @@ export function DistributionHistory({ storeId }: IDistributionHistoryProps) {
 
   const [traces, setTraces] = useState<IDistributionTrace[]>([]);
   const [sellers, setSellers] = useState<ISeller[]>([]);
-  const [customers, setCustomers] = useState<ICustomer[]>([]);
-  const [leads, setLeads] = useState<ILead[]>([]);
   const [page, setPage] = useState(1);
   const [criterion, setCriterion] = useState<DistributionMatchedCriterion | "all">("all");
   const [sellerFilter, setSellerFilter] = useState<string>("all");
@@ -59,22 +52,32 @@ export function DistributionHistory({ storeId }: IDistributionHistoryProps) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      sellersProvider.list({ active: true }),
-      customersProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE }).then((r) => r.data),
-      leadsProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE }).then((r) => r.data),
-    ])
-      .then(([s, c, l]) => {
-        if (cancelled) return;
-        setSellers(s);
-        setCustomers(c);
-        setLeads(l);
+    sellersProvider
+      .list({ active: true })
+      .then((s) => {
+        if (!cancelled) setSellers(s);
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [sellersProvider, customersProvider, leadsProvider]);
+  }, [sellersProvider]);
+
+  // Customer/lead name lookups live under STABLE query keys with a long
+  // staleTime: the parent remounts this component (key={historyKey}) after
+  // every simulated inbound, and these full-table fetches must come from the
+  // cache instead of repeating ~7 requests each time. The traces fetch below
+  // intentionally re-runs on remount — that is the point of historyKey.
+  const customersQuery = useQuery({
+    queryKey: ["distribution-name-lookup", "customers"] as const,
+    queryFn: () => customersProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE }).then((r) => r.data),
+    staleTime: 5 * 60_000,
+  });
+  const leadsQuery = useQuery({
+    queryKey: ["distribution-name-lookup", "leads"] as const,
+    queryFn: () => leadsProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE }).then((r) => r.data),
+    staleTime: 5 * 60_000,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -107,6 +110,8 @@ export function DistributionHistory({ storeId }: IDistributionHistoryProps) {
   }, [sellers]);
 
   const participantLabel = useMemo(() => {
+    const customers = customersQuery.data ?? [];
+    const leads = leadsQuery.data ?? [];
     const cm = new Map(
       customers.map((c) => [c.id, c.type === "B2B" ? c.nomeFantasia : c.fullName]),
     );
@@ -116,7 +121,7 @@ export function DistributionHistory({ storeId }: IDistributionHistoryProps) {
       if (trace.leadId) return lm.get(trace.leadId) ?? trace.leadId;
       return "—";
     };
-  }, [customers, leads]);
+  }, [customersQuery.data, leadsQuery.data]);
 
   return (
     <section aria-labelledby="distribution-history" className="space-y-3">

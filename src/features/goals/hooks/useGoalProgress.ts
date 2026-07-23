@@ -37,22 +37,26 @@ export function useGoalProgress(goalId: ID | undefined): IUseGoalProgressResult 
   });
 
   const goal = goalsQuery.data?.data.find((g) => g.id === goalId);
+  // Effective seller scope — shared query key with GoalEvolutionChart /
+  // GoalCompositionSection so React Query dedups the identical fetches on the
+  // detail page.
+  const scopeSellerId = goal?.level === "individual" ? goal.targetId : undefined;
 
   const ordersQuery = useQuery({
-    queryKey: ["goals", "progress-orders", goal?.storeId, goal?.targetId, goal?.level],
+    queryKey: ["goals-scope-orders", goal?.storeId, scopeSellerId],
     queryFn: () =>
       ordersProvider.list({
         storeId: goal?.storeId,
-        sellerId: goal?.level === "individual" ? goal.targetId : undefined,
+        sellerId: scopeSellerId,
         paymentStatus: "pago",
-        pageSize: 2000,
+        pageSize: FETCH_ALL_PAGE_SIZE,
       }),
     staleTime: STALE_MS,
     enabled: Boolean(goal),
   });
 
   const customersQuery = useQuery({
-    queryKey: ["goals", "progress-customers", goal?.storeId],
+    queryKey: ["goals-scope-customers", goal?.storeId],
     queryFn: () =>
       customersProvider.list({ storeId: goal?.storeId, pageSize: FETCH_ALL_PAGE_SIZE }),
     staleTime: STALE_MS,

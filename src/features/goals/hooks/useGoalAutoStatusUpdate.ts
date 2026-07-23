@@ -18,6 +18,16 @@ export interface IUseGoalAutoStatusUpdateParams {
 const STORAGE_KEY = "gallo-goal-auto-status-run";
 const ONE_DAY_MS = 24 * 3600_000;
 
+/**
+ * Metrics whose progress `calculateGoalProgress` cannot actually compute — the
+ * engine falls back to the stored `goal.currentValue` snapshot for these (see
+ * `../engine/calculate.ts`, "recovery"/"conversion" branch; real implementations
+ * live in PRDs 044/053). Auto-archiving an overdue goal based on that stale
+ * snapshot (≈0%) would act on a value the engine admits it cannot compute, so
+ * these goals are excluded from the sweep and stay "ativa" for manual review.
+ */
+const SNAPSHOT_FALLBACK_METRICS: ReadonlySet<IGoal["metric"]> = new Set(["recovery", "conversion"]);
+
 function shouldRunNow(): boolean {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -64,7 +74,10 @@ export function useGoalAutoStatusUpdate(params: IUseGoalAutoStatusUpdateParams =
       try {
         const goalsRes = await goalsProvider.list({ storeId: params.storeId, pageSize: 500 });
         const overdue = goalsRes.data.filter(
-          (g) => (g.status ?? "ativa") === "ativa" && new Date(g.period.end) < now,
+          (g) =>
+            (g.status ?? "ativa") === "ativa" &&
+            new Date(g.period.end) < now &&
+            !SNAPSHOT_FALLBACK_METRICS.has(g.metric),
         );
         if (overdue.length === 0) {
           markRanNow();
@@ -73,7 +86,7 @@ export function useGoalAutoStatusUpdate(params: IUseGoalAutoStatusUpdateParams =
         const ordersRes = await ordersProvider.list({
           storeId: params.storeId,
           paymentStatus: "pago",
-          pageSize: 2000,
+          pageSize: FETCH_ALL_PAGE_SIZE,
         });
         const customersRes = await customersProvider.list({
           storeId: params.storeId,

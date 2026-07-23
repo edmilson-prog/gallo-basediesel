@@ -9,6 +9,7 @@ import type {
 } from "@/shared/types";
 import { DEFAULT_STOREFRONT_CONFIG } from "@/shared/types";
 import type { IStorefrontProvider } from "../../contracts/storefront";
+import { FETCH_ALL_PAGE_SIZE } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { fetchLargePage } from "./_pagination";
 
@@ -39,11 +40,12 @@ const PUBLIC_COLUMNS =
   "id, sku, name, description, oem_codes, equivalent_part_ids, cross_references, segment, application_notes, applications, brand, category, subcategory, is_original, image_url, unit_price, gtin, reference, group_label, part_type, weight_kg, box_quantity, fractionable, unit_of_measure, stock_available, stock_minimum, division, active, store_id, created_at, updated_at";
 
 /**
- * Safety ceiling for the full public catalog fetch. Fulfilled in sequential
- * ≤1000-row chunks by `fetchLargePage` (PostgREST caps any single request at
- * 1000 rows), so this is a real ceiling — keep it above the catalog size.
+ * Safety ceiling for the full public catalog fetch — the shared fetch-all
+ * ceiling, fulfilled in sequential ≤1000-row chunks by `fetchLargePage`
+ * (PostgREST caps any single request at 1000 rows). `FETCH_ALL_PAGE_SIZE`
+ * must stay above the catalog size.
  */
-const CATALOG_LIMIT = 10_000;
+const CATALOG_LIMIT = FETCH_ALL_PAGE_SIZE;
 const DEFAULT_TOP_LIMIT = 2000;
 
 /** Raw row shape returned when selecting {@link PUBLIC_COLUMNS}. */

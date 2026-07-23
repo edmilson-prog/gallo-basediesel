@@ -35,21 +35,25 @@ export function GoalEvolutionChart({ goal }: IGoalEvolutionChartProps) {
   const ordersProvider = useOrdersProvider();
   const customersProvider = useCustomersProvider();
 
+  // Shared key family with useGoalProgress / GoalCompositionSection — identical
+  // fetch params, so React Query dedups the detail-page requests.
+  const scopeSellerId = goal.level === "individual" ? goal.targetId : undefined;
+
   const queries = useQueries({
     queries: [
       {
-        queryKey: ["goal-evolution", "orders", goal.storeId, goal.targetId, goal.level],
+        queryKey: ["goals-scope-orders", goal.storeId, scopeSellerId],
         queryFn: () =>
           ordersProvider.list({
             storeId: goal.storeId,
-            sellerId: goal.level === "individual" ? goal.targetId : undefined,
+            sellerId: scopeSellerId,
             paymentStatus: "pago",
-            pageSize: 2000,
+            pageSize: FETCH_ALL_PAGE_SIZE,
           }),
         staleTime: STALE_MS,
       },
       {
-        queryKey: ["goal-evolution", "customers", goal.storeId],
+        queryKey: ["goals-scope-customers", goal.storeId],
         queryFn: () =>
           customersProvider.list({ storeId: goal.storeId, pageSize: FETCH_ALL_PAGE_SIZE }),
         staleTime: STALE_MS,
