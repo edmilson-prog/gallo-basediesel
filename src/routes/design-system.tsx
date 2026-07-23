@@ -326,15 +326,11 @@ function DesignSystemPage() {
               </Grid>
             </Section>
 
-            {/* Identidade de funil — Task 2: slots calibrados no styles.css (Task 1) */}
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold text-foreground">Identidade de funil</h2>
-              <p className="text-sm text-muted-foreground">
-                Nove slots dedicados, constantes nos quatro temas, com variante para o modo escuro.
-                Usados somente em superfície não-textual (ponto, borda, barra, fundo suave) — o nome
-                do funil é sempre <code className="text-xs">text-foreground</code>. Alterne tema e
-                modo no topo da página para conferir os dois modos.
-              </p>
+            {/* Funnel accent identity — Task 2: slots calibrated in styles.css (Task 1) */}
+            <Section
+              title="Identidade de funil"
+              description="Nove slots dedicados, constantes nos quatro temas, com variante para o modo escuro. Usados somente em superfície não-textual (ponto, borda, barra, fundo suave) — o nome do funil usa sempre o token de texto padrão, nunca a cor do accent. Alterne tema e modo no topo da página para conferir os dois modos."
+            >
               <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
                 {FUNNEL_ACCENT_SLOTS.map((slot) => {
                   const c = getAccentClasses(slot);
@@ -357,7 +353,7 @@ function DesignSystemPage() {
                   );
                 })}
               </div>
-            </section>
+            </Section>
 
             {/* Tipografia */}
             <Section
