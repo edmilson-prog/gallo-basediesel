@@ -152,6 +152,37 @@ describe("sendWahaMedia", () => {
     expect(fetchFn.mock.calls[0][0]).toBe("https://waha.example.com/api/sendVideo");
   });
 
+  it("falls back to /api/sendFile when /api/sendVideo is rejected (engine without the endpoint)", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(404, { error: "Not Found" })) // sendVideo → 404
+      .mockResolvedValueOnce(jsonResponse(200, { id: "true_vid@c.us_F" })); // sendFile → ok
+    const result = await sendWahaMedia("key", fetchFn, target, {
+      toPhone: "+5511988887777",
+      mediaType: "video",
+      mediaUrl: "https://storage.example.com/signed/clipe.mp4",
+      sizeBytes: 5 * 1024 * 1024,
+    });
+    expect(result.providerMessageId).toBe("true_vid@c.us_F");
+    expect(fetchFn.mock.calls[0][0]).toBe("https://waha.example.com/api/sendVideo");
+    expect(fetchFn.mock.calls[1][0]).toBe("https://waha.example.com/api/sendFile");
+  });
+
+  it("does NOT fall back on a timeout/abort — WAHA may have sent it, so a retry would duplicate", async () => {
+    const abort = Object.assign(new Error("aborted"), { name: "AbortError" });
+    const fetchFn = vi.fn().mockRejectedValue(abort);
+    await expect(
+      sendWahaMedia("key", fetchFn, target, {
+        toPhone: "+5511988887777",
+        mediaType: "video",
+        mediaUrl: "https://storage.example.com/signed/clipe.mp4",
+        sizeBytes: 5 * 1024 * 1024,
+      }),
+    ).rejects.toThrow();
+    // Only the sendVideo attempt — no second (sendFile) call.
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
   it("does not send a caption on /api/sendVoice (WAHA voice notes carry no text)", async () => {
     const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_999@c.us_JKL" }));
     await sendWahaMedia("key", fetchFn, target, {

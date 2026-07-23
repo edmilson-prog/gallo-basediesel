@@ -108,11 +108,14 @@ const INLINE_VIDEO_MAX_BYTES = 16 * 1024 * 1024;
  */
 const MEDIA_TIMEOUT_MS = 60_000;
 
-export async function sendWahaMedia(
+/** Posts one media message to a specific WAHA endpoint. */
+async function postWahaMedia(
   apiKey: string,
   fetchFn: typeof fetch,
   target: IWahaSessionTarget,
   input: IWahaSendMediaInput,
+  path: string,
+  asInlineVideo: boolean,
 ): Promise<IWahaSendResult> {
   // Audio goes through /api/sendVoice (not /api/sendFile) so WhatsApp renders
   // a native playable voice-note bubble instead of a downloadable document —
@@ -120,15 +123,6 @@ export async function sendWahaMedia(
   // webm/opus) into the OGG/Opus container WhatsApp requires. WAHA voice
   // notes carry no caption, so it's never sent on this endpoint.
   const isVoice = input.mediaType === "audio";
-  // A video small enough for WhatsApp's inline limit goes through
-  // /api/sendVideo so it plays in the conversation; `convert: true` lets WAHA
-  // normalise odd codecs (e.g. HEVC) to the mp4/h264 WhatsApp needs. Anything
-  // larger falls back to the document endpoint below.
-  const asInlineVideo =
-    input.mediaType === "video" &&
-    input.sizeBytes !== undefined &&
-    input.sizeBytes <= INLINE_VIDEO_MAX_BYTES;
-  const path = asInlineVideo ? "/api/sendVideo" : MEDIA_ENDPOINTS[input.mediaType];
   const response = await wahaRequest(apiKey, fetchFn, {
     baseUrl: target.baseUrl,
     path,
@@ -148,4 +142,35 @@ export async function sendWahaMedia(
     },
   });
   return { providerMessageId: extractMessageId(response.body) };
+}
+
+export async function sendWahaMedia(
+  apiKey: string,
+  fetchFn: typeof fetch,
+  target: IWahaSessionTarget,
+  input: IWahaSendMediaInput,
+): Promise<IWahaSendResult> {
+  // A video small enough for WhatsApp's inline limit goes through
+  // /api/sendVideo so it plays in the conversation; `convert: true` lets WAHA
+  // normalise odd codecs (e.g. HEVC) to the mp4/h264 WhatsApp needs. Anything
+  // larger goes as a document.
+  const asInlineVideo =
+    input.mediaType === "video" &&
+    input.sizeBytes !== undefined &&
+    input.sizeBytes <= INLINE_VIDEO_MAX_BYTES;
+
+  if (asInlineVideo) {
+    try {
+      return await postWahaMedia(apiKey, fetchFn, target, input, "/api/sendVideo", true);
+    } catch (err) {
+      // If WAHA rejected the request outright — e.g. the running engine has no
+      // /api/sendVideo — fall back to the document endpoint so the video still
+      // goes out (as a file). A WhatsAppProviderError means WAHA answered a
+      // non-2xx, i.e. it did NOT send; a timeout/abort or network error is
+      // rethrown, because WAHA may have sent it and a retry would duplicate.
+      if (!(err instanceof WhatsAppProviderError)) throw err;
+    }
+  }
+
+  return postWahaMedia(apiKey, fetchFn, target, input, MEDIA_ENDPOINTS[input.mediaType], false);
 }
