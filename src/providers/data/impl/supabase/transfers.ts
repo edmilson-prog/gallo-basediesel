@@ -7,6 +7,7 @@ import type {
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { fetchLargePage } from "./_pagination";
+import { recordAuditLog } from "../../auditLogger";
 
 /**
  * Supabase implementation of {@link ITransfersProvider} (PRD-120+).
@@ -26,6 +27,23 @@ import { fetchLargePage } from "./_pagination";
  * PostgREST calls — so each mutation compensates on failure (delete the fresh
  * transfer / restore the previous status) instead of leaving a transfer whose
  * effect never landed.
+ *
+ * Each mutation also records an `audit_logs` entry (`transfer.create/.revert/
+ * .expire`, resource `transfer`) — the mock backend has always done this via
+ * `logMockMutation`; this provider previously didn't, leaving the "Auditoria"
+ * tab permanently empty and the "Histórico" tab's "Executado por"/"Encerrado
+ * em" columns bound to `created_by`/`created_at` (who/when it was CREATED,
+ * mislabeled as who/when it was CLOSED — `carteira_transfers` itself has no
+ * closedBy/closedAt columns). The audit trail is the actual source of truth
+ * for closure attribution; the UI now derives it from here instead.
+ *
+ * `revert`'s actor comes from the caller (a human clicking "Reverter"); recorded
+ * fire-and-forget-safe via `recordAuditLog`, which never throws — a logging
+ * failure must not undo a mutation that already succeeded. `expire`'s actor is
+ * optional because the auto-revert timer has no human actor to attribute it
+ * to, and `audit_logs.actor_id` is a NOT NULL FK to sellers — there is no
+ * honest "system" value to fall back to, so that entry is simply skipped
+ * rather than fabricated.
  */
 
 interface TransferRow {
@@ -225,15 +243,33 @@ export const supabaseTransfersProvider: ITransfersProvider = {
       throw new Error(`[supabase] transfers.create failed: ${reassignError}`);
     }
 
-    return rowToTransfer(data as unknown as TransferRow);
+    const transfer = rowToTransfer(data as unknown as TransferRow);
+    await recordAuditLog({
+      actorId: input.createdBy,
+      action: "transfer.create",
+      resource: "transfer",
+      resourceId: id,
+      storeId: input.storeId,
+      after: {
+        type: input.type,
+        fromSellerId: input.fromSellerId,
+        toSellerId: input.toSellerId,
+        customerCount: input.customerIds.length,
+        reason: input.reason,
+        endDate: input.endDate,
+        autoRevertAt: transfer.autoRevertAt,
+      },
+    });
+
+    return transfer;
   },
 
-  async revert(transferId: ID): Promise<ICarteiraTransfer> {
-    return undoTransfer(transferId, "reverted");
+  async revert(transferId: ID, actorId?: ID): Promise<ICarteiraTransfer> {
+    return undoTransfer(transferId, "reverted", actorId);
   },
 
-  async expire(transferId: ID): Promise<ICarteiraTransfer> {
-    return undoTransfer(transferId, "expired");
+  async expire(transferId: ID, actorId?: ID): Promise<ICarteiraTransfer> {
+    return undoTransfer(transferId, "expired", actorId);
   },
 };
 
@@ -248,6 +284,7 @@ export const supabaseTransfersProvider: ITransfersProvider = {
 async function undoTransfer(
   transferId: ID,
   status: "reverted" | "expired",
+  actorId: ID | undefined,
 ): Promise<ICarteiraTransfer> {
   const { data, error } = await getSupabaseClient()
     .from(TABLE)
@@ -269,6 +306,23 @@ async function undoTransfer(
     if (moved.length > 0) await reassignCustomers(moved, transfer.toSellerId);
     await getSupabaseClient().from(TABLE).update({ status: "active" }).eq("id", transferId);
     throw new Error(`[supabase] transfers.${op}(${transferId}) failed: ${reassignError}`);
+  }
+
+  if (actorId) {
+    await recordAuditLog({
+      actorId,
+      action: `transfer.${op}`,
+      resource: "transfer",
+      resourceId: transferId,
+      storeId: transfer.storeId,
+      before: { status: "active" },
+      after: {
+        status,
+        fromSellerId: transfer.fromSellerId,
+        toSellerId: transfer.toSellerId,
+        customerCount: transfer.customerIds.length,
+      },
+    });
   }
 
   return transfer;

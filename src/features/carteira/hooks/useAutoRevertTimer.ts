@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTransfersProvider } from "@/providers/data/hooks/useTransfersProvider";
+import { useAuth } from "@/features/auth/useAuth";
 import { CARTEIRA_STRINGS } from "../i18n/pt-BR";
 
 const POLL_INTERVAL_MS = 60_000;
@@ -19,6 +20,11 @@ const POLL_INTERVAL_MS = 60_000;
 export function useAutoRevertTimer(enabled: boolean) {
   const provider = useTransfersProvider();
   const queryClient = useQueryClient();
+  const { currentUser } = useAuth();
+  // Whichever seller's browser tab happens to run the tick is attributed as
+  // the actor — the closest available signal, since there is no true "system"
+  // identity: `audit_logs.actor_id` is a NOT NULL FK to sellers.
+  const actorId = currentUser?.sellerId;
   const runningRef = useRef(false);
 
   useEffect(() => {
@@ -43,7 +49,7 @@ export function useAutoRevertTimer(enabled: boolean) {
         for (const t of expiring) {
           if (cancelled) return;
           try {
-            await provider.expire(t.id);
+            await provider.expire(t.id, actorId);
             toast(CARTEIRA_STRINGS.notifications.autoReverted, {
               icon: "⏱",
             });
@@ -72,5 +78,5 @@ export function useAutoRevertTimer(enabled: boolean) {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [provider, queryClient, enabled]);
+  }, [provider, queryClient, enabled, actorId]);
 }

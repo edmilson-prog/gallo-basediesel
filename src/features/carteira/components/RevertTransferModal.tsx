@@ -16,6 +16,12 @@ import { CARTEIRA_STRINGS } from "../i18n/pt-BR";
 export interface IRevertTransferModalProps {
   transfer: ICarteiraTransfer | null;
   sellersById: Map<ID, ISeller>;
+  /**
+   * ISeller.id of the acting user — attributes the `transfer.revert`
+   * audit_logs entry. Undefined leaves the entry unrecorded rather than
+   * misattributed (see `impl/supabase/transfers.ts`).
+   */
+  currentSellerId: ID | undefined;
   onClose: () => void;
   onSuccess?: (transfer: ICarteiraTransfer) => void;
 }
@@ -23,6 +29,7 @@ export interface IRevertTransferModalProps {
 export function RevertTransferModal({
   transfer,
   sellersById,
+  currentSellerId,
   onClose,
   onSuccess,
 }: IRevertTransferModalProps) {
@@ -39,7 +46,10 @@ export function RevertTransferModal({
 
   const handleConfirm = async () => {
     try {
-      const updated = await mutation.mutateAsync(transfer.id);
+      const updated = await mutation.mutateAsync({
+        transferId: transfer.id,
+        actorId: currentSellerId,
+      });
       toast.success(CARTEIRA_STRINGS.modals.revert.successToast(count, fromName));
       onSuccess?.(updated);
       onClose();
