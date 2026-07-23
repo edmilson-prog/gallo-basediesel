@@ -35,6 +35,8 @@ begin
     closing_seen := false;
     entry_stage := null;
     last_open_stage := null;
+    won_stage := null;
+    lost_stage := null;
 
     -- Legacy stages, in order. The terminal one is identified by NAME, not by a
     -- literal id: 'stage-fechado' comes from the frontend fallback and may not
@@ -45,14 +47,22 @@ begin
       ) order by (value->>'order')::int
     loop
       if lower(stage_json->>'name') ~ '(fechad|convertid|perdid)' then
+        -- Only the FIRST terminal match creates the Convertido/Perdido pair: the
+        -- unique indexes on (funnel_id) where kind in ('ganho','perda') allow only
+        -- one of each per funnel, so a store whose pipeline has multiple stages
+        -- matching this regex (e.g. separate "Convertido" and "Perdido" stages)
+        -- must skip the rest. Their leads still resolve correctly via the
+        -- converted_to_customer_id/loss_reason branches below.
+        if not closing_seen then
+          -- The legacy stage conflated both outcomes; split it in two.
+          insert into public.lead_funnel_stages (funnel_id, name, accent, position, kind)
+          values (funnel, 'Convertido', 3, next_position, 'ganho') returning id into won_stage;
+          next_position := next_position + 1;
+          insert into public.lead_funnel_stages (funnel_id, name, accent, position, kind)
+          values (funnel, 'Perdido', 1, next_position, 'perda') returning id into lost_stage;
+          next_position := next_position + 1;
+        end if;
         closing_seen := true;
-        -- The legacy stage conflated both outcomes; split it in two.
-        insert into public.lead_funnel_stages (funnel_id, name, accent, position, kind)
-        values (funnel, 'Convertido', 3, next_position, 'ganho') returning id into won_stage;
-        next_position := next_position + 1;
-        insert into public.lead_funnel_stages (funnel_id, name, accent, position, kind)
-        values (funnel, 'Perdido', 1, next_position, 'perda') returning id into lost_stage;
-        next_position := next_position + 1;
       else
         insert into public.lead_funnel_stages (funnel_id, name, accent, position, kind)
         values (
@@ -111,7 +121,7 @@ begin
         else coalesce(
           (select s.id from public.lead_funnel_stages s
             where s.funnel_id = funnel
-              and lower(s.name) = lower(l.stage->>'name')
+              and lower(s.name) = lower(left(l.stage->>'name', 24))
               and s.kind not in ('ganho','perda')
             limit 1),
           coalesce(last_open_stage, entry_stage)
