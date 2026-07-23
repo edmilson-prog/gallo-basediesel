@@ -15,7 +15,10 @@
  *   - "message.any": WAHA's (GOWS engine) only channel for `fromMe: true`
  *     messages — someone replied straight from the paired phone, outside the
  *     platform. Plain "message" never carries these. Mirrored with
- *     open-only-lookup semantics so it never reopens a closed conversation;
+ *     open-only-lookup semantics so it never REOPENS a closed conversation —
+ *     though within the echo-continuity window (default 24h, per-store
+ *     setting) it may APPEND to a recently-`resolvida` thread without
+ *     changing its status (decision 2026-07-23, doc §7 item 3);
  *     any "message.any" envelope that turns out NOT to be an echo (i.e.
  *     genuine inbound, already covered by "message") is ignored to avoid
  *     double-processing. A duplicate echo (app-sent message already
@@ -48,6 +51,10 @@ import { wahaStateToAccountStatus } from "../_shared/whatsapp/waha/constants.ts"
 import { getWahaContactName, resolveWahaLid } from "../_shared/whatsapp/waha/contacts.ts";
 import { buildWahaEventKey } from "../_shared/whatsapp/waha/eventKey.ts";
 import { statusAdvances, type DeliveryStatus } from "../_shared/whatsapp/messageStatus.ts";
+import {
+  echoContinuityCutoffIso,
+  resolveEchoContinuityWindowHours,
+} from "../_shared/whatsapp/echoContinuity.ts";
 import { phoneDigitsMatchBr } from "../_shared/whatsapp/phoneBr.ts";
 import { logWebhookDelivery } from "../_shared/webhookDeliveryLog.ts";
 import { runInBackground } from "../_shared/backgroundTask.ts";
@@ -372,6 +379,20 @@ Deno.serve(async (req) => {
         ?.pipelineStages;
       if (!stages || stages.length === 0) return DEFAULT_FIRST_STAGE;
       return [...stages].sort((a, b) => (a.order as number) - (b.order as number))[0]!;
+    }
+
+    // Echo-continuity window setting (decision 2026-07-23, doc §7 item 3) —
+    // per store, stores.settings->echoContinuity.windowHours (default 24,
+    // 0 = disabled). A transient read failure fails CLOSED (503 → WAHA
+    // retries) instead of silently degrading to always-create.
+    async function getEchoContinuityWindowHours(): Promise<number> {
+      const { data, error } = await admin
+        .from("stores")
+        .select("settings")
+        .eq("id", accountRow.store_id as string)
+        .maybeSingle();
+      if (error) throw new TransientDbError(`echo continuity settings read: ${error.message}`);
+      return resolveEchoContinuityWindowHours(data?.settings);
     }
 
     // Rotation owner for a live inbound lead. The RPC is frozen (never returns
@@ -932,8 +953,37 @@ Deno.serve(async (req) => {
       const { data: openEchoConversation, error: echoLookupErr } = await findOpenEchoConversation();
       if (echoLookupErr) return transientDbFailure("echo conversation lookup", echoLookupErr);
 
-      let echoConversationId: string;
-      if (!openEchoConversation) {
+      let echoConversationId: string | undefined = openEchoConversation
+        ? (openEchoConversation.id as string)
+        : undefined;
+
+      if (echoConversationId === undefined) {
+        // Continuity window (decision 2026-07-23, doc §7 item 3): append to
+        // the contact's most recent `resolvida` conversation on this account
+        // when it was closed less than N hours ago — WITHOUT reopening it
+        // (the customer's next inbound reopens that same thread through the
+        // normal inbound rule; `arquivada` is a deliberate discard and never
+        // participates). Governed per store by
+        // settings->echoContinuity.windowHours (default 24, 0 = off).
+        const windowHours = await getEchoContinuityWindowHours();
+        const continuityCutoff = echoContinuityCutoffIso(Date.now(), windowHours);
+        if (continuityCutoff) {
+          const { data: recentlyClosed, error: continuityErr } = await admin
+            .from("conversations")
+            .select("id")
+            .eq(echoAnchorColumn, echoAnchorValue)
+            .eq("whatsapp_account_id", accountRow.id as string)
+            .eq("status", "resolvida")
+            .gte("closed_at", continuityCutoff)
+            .order("closed_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (continuityErr) return transientDbFailure("echo continuity lookup", continuityErr);
+          if (recentlyClosed) echoConversationId = recentlyClosed.id as string;
+        }
+      }
+
+      if (echoConversationId === undefined) {
         const { data: createdEchoConversation, error: echoConvErr } = await admin
           .from("conversations")
           .insert({
@@ -972,8 +1022,12 @@ Deno.serve(async (req) => {
         } else {
           echoConversationId = createdEchoConversation.id as string;
         }
-      } else {
-        echoConversationId = openEchoConversation.id as string;
+      }
+      if (echoConversationId === undefined) {
+        // Unreachable — every branch above either returned or assigned.
+        return transientDbFailure("echo conversation resolution", {
+          message: "no conversation id resolved",
+        });
       }
 
       const echoMessageId = crypto.randomUUID();

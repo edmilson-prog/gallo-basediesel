@@ -151,6 +151,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner"],
       },
       {
+        label: "Continuidade de conversas",
+        icon: "mdi:history",
+        to: "/app/configuracoes/atendimento/continuidade",
+        roles: ["Owner"],
+      },
+      {
         label: "Sons de notificação",
         icon: "mdi:music-note-outline",
         to: "/app/configuracoes/sons",

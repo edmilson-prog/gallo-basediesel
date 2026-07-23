@@ -192,6 +192,7 @@ import { Route as AppConfiguracoesAtendimentoPipelineRouteImport } from './route
 import { Route as AppConfiguracoesAtendimentoMotivosPerdaRouteImport } from './routes/app.configuracoes.atendimento.motivos-perda'
 import { Route as AppConfiguracoesAtendimentoLifecycleRouteImport } from './routes/app.configuracoes.atendimento.lifecycle'
 import { Route as AppConfiguracoesAtendimentoHorarioComercialRouteImport } from './routes/app.configuracoes.atendimento.horario-comercial'
+import { Route as AppConfiguracoesAtendimentoContinuidadeRouteImport } from './routes/app.configuracoes.atendimento.continuidade'
 import { Route as AppConfiguracoesAtendimentoAlertasOciosidadeRouteImport } from './routes/app.configuracoes.atendimento.alertas-ociosidade'
 import { Route as AppKitsModelIdKitNovoRouteImport } from './routes/app.kits.$modelId.kit.novo'
 import { Route as AppKitsModelIdKitKitIdEditarRouteImport } from './routes/app.kits.$modelId.kit.$kitId.editar'
@@ -1160,6 +1161,12 @@ const AppConfiguracoesAtendimentoHorarioComercialRoute =
     path: '/configuracoes/atendimento/horario-comercial',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesAtendimentoContinuidadeRoute =
+  AppConfiguracoesAtendimentoContinuidadeRouteImport.update({
+    id: '/configuracoes/atendimento/continuidade',
+    path: '/configuracoes/atendimento/continuidade',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesAtendimentoAlertasOciosidadeRoute =
   AppConfiguracoesAtendimentoAlertasOciosidadeRouteImport.update({
     id: '/configuracoes/atendimento/alertas-ociosidade',
@@ -1329,6 +1336,7 @@ export interface FileRoutesByFullPath {
   '/pwa/agenda/': typeof PwaAgendaIndexRoute
   '/pwa/carteira/': typeof PwaCarteiraIndexRoute
   '/app/configuracoes/atendimento/alertas-ociosidade': typeof AppConfiguracoesAtendimentoAlertasOciosidadeRoute
+  '/app/configuracoes/atendimento/continuidade': typeof AppConfiguracoesAtendimentoContinuidadeRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
@@ -1493,6 +1501,7 @@ export interface FileRoutesByTo {
   '/pwa/agenda': typeof PwaAgendaIndexRoute
   '/pwa/carteira': typeof PwaCarteiraIndexRoute
   '/app/configuracoes/atendimento/alertas-ociosidade': typeof AppConfiguracoesAtendimentoAlertasOciosidadeRoute
+  '/app/configuracoes/atendimento/continuidade': typeof AppConfiguracoesAtendimentoContinuidadeRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
@@ -1682,6 +1691,7 @@ export interface FileRoutesById {
   '/pwa/agenda/': typeof PwaAgendaIndexRoute
   '/pwa/carteira/': typeof PwaCarteiraIndexRoute
   '/app/configuracoes/atendimento/alertas-ociosidade': typeof AppConfiguracoesAtendimentoAlertasOciosidadeRoute
+  '/app/configuracoes/atendimento/continuidade': typeof AppConfiguracoesAtendimentoContinuidadeRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
@@ -1872,6 +1882,7 @@ export interface FileRouteTypes {
     | '/pwa/agenda/'
     | '/pwa/carteira/'
     | '/app/configuracoes/atendimento/alertas-ociosidade'
+    | '/app/configuracoes/atendimento/continuidade'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
     | '/app/configuracoes/atendimento/motivos-perda'
@@ -2036,6 +2047,7 @@ export interface FileRouteTypes {
     | '/pwa/agenda'
     | '/pwa/carteira'
     | '/app/configuracoes/atendimento/alertas-ociosidade'
+    | '/app/configuracoes/atendimento/continuidade'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
     | '/app/configuracoes/atendimento/motivos-perda'
@@ -2224,6 +2236,7 @@ export interface FileRouteTypes {
     | '/pwa/agenda/'
     | '/pwa/carteira/'
     | '/app/configuracoes/atendimento/alertas-ociosidade'
+    | '/app/configuracoes/atendimento/continuidade'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
     | '/app/configuracoes/atendimento/motivos-perda'
@@ -3557,6 +3570,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesAtendimentoHorarioComercialRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/atendimento/continuidade': {
+      id: '/app/configuracoes/atendimento/continuidade'
+      path: '/configuracoes/atendimento/continuidade'
+      fullPath: '/app/configuracoes/atendimento/continuidade'
+      preLoaderRoute: typeof AppConfiguracoesAtendimentoContinuidadeRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/atendimento/alertas-ociosidade': {
       id: '/app/configuracoes/atendimento/alertas-ociosidade'
       path: '/configuracoes/atendimento/alertas-ociosidade'
@@ -3915,6 +3935,7 @@ interface AppRouteChildren {
   AppConfiguracoesIndexRoute: typeof AppConfiguracoesIndexRoute
   AppGestaoIndexRoute: typeof AppGestaoIndexRoute
   AppConfiguracoesAtendimentoAlertasOciosidadeRoute: typeof AppConfiguracoesAtendimentoAlertasOciosidadeRoute
+  AppConfiguracoesAtendimentoContinuidadeRoute: typeof AppConfiguracoesAtendimentoContinuidadeRoute
   AppConfiguracoesAtendimentoHorarioComercialRoute: typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   AppConfiguracoesAtendimentoLifecycleRoute: typeof AppConfiguracoesAtendimentoLifecycleRoute
   AppConfiguracoesAtendimentoMotivosPerdaRoute: typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
@@ -4005,6 +4026,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppGestaoIndexRoute: AppGestaoIndexRoute,
   AppConfiguracoesAtendimentoAlertasOciosidadeRoute:
     AppConfiguracoesAtendimentoAlertasOciosidadeRoute,
+  AppConfiguracoesAtendimentoContinuidadeRoute:
+    AppConfiguracoesAtendimentoContinuidadeRoute,
   AppConfiguracoesAtendimentoHorarioComercialRoute:
     AppConfiguracoesAtendimentoHorarioComercialRoute,
   AppConfiguracoesAtendimentoLifecycleRoute:
