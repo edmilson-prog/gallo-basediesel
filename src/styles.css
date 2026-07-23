@@ -374,6 +374,29 @@ html [data-sonner-toaster][data-sonner-theme] {
   --normal-border: var(--border);
 }
 
+/* The inner parts are unlayered too — sonner even hard-codes the description
+ * colour (#3f3f3f), which is unreadable on a dark surface. Same treatment. */
+html [data-sonner-toast] [data-description] {
+  color: var(--muted-foreground);
+}
+html [data-sonner-toast] [data-button] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+html [data-sonner-toast] [data-cancel] {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+html [data-sonner-toast] [data-close-button] {
+  background: var(--popover);
+  border-color: var(--border);
+  color: var(--muted-foreground);
+}
+html [data-sonner-toast] [data-close-button]:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
 /* Severity as a left rule, so an error never reads as a neutral notice. */
 html [data-sonner-toast][data-type="error"] {
   border-left: 4px solid var(--color-severity-critical);

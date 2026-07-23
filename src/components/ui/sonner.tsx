@@ -3,29 +3,20 @@ import { useTheme } from "@/hooks/useTheme";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
+/**
+ * Toast host. The visual skin lives in styles.css, deliberately outside every
+ * @layer — sonner injects its own unlayered stylesheet at runtime, and in the
+ * cascade an unlayered declaration beats a layered one whatever its
+ * specificity, so Tailwind utilities are inert here (on the toast surface and
+ * on its inner parts alike). Only behaviour is configured in this file.
+ */
 const Toaster = ({ ...props }: ToasterProps) => {
   // sonner defaults to its light palette, which would render a white toast
   // with near-black text over a dark app. Feeding it the resolved mode keeps
-  // its internal grays (close button, description) in step with the theme.
+  // its internal grays in step with the theme.
   const { resolvedMode } = useTheme();
 
-  return (
-    <Sonner
-      className="toaster group"
-      theme={resolvedMode}
-      toastOptions={{
-        classNames: {
-          // Only the inner parts are styled through utilities. The toast
-          // surface itself is skinned in styles.css, outside @layer — sonner's
-          // unlayered stylesheet beats any layered utility we could put here.
-          description: "group-[.toast]:text-muted-foreground",
-          actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
-        },
-      }}
-      {...props}
-    />
-  );
+  return <Sonner className="toaster group" theme={resolvedMode} {...props} />;
 };
 
 export { Toaster };
