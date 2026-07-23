@@ -336,19 +336,27 @@ O componente continua consumindo apenas tokens. O que é dinâmico é *qual* tok
 `bg-accent-3` seria lido como "um tom do accent do shadcn". `bg-funnel-3` é inequívoco e dá grep
 limpo. O slot neutro é `funnel-0`.
 
+**Os slots seguem o padrão já estabelecido da escala de severidade**, não o dos temas. `styles.css:71`
+descreve `--gallo-sev-*` como "escala dedicada (**constante nos 4 temas**; tratamento tonal)":
+declarada uma vez em `:root` e sobrescrita apenas em `.dark` (`:199-203`). Identidade de funil tem a
+mesma natureza — é um eixo próprio, ortogonal à identidade de marca, e não deve mudar quando o
+usuário troca de tema.
+
 ```css
-/* 1 — primitivos */
-:root { --gallo-funnel-1: …; /* … */ --gallo-funnel-8: …; }
+/* 1 — primitivos, constantes nos 4 temas */
+:root { --gallo-funnel-0: …; --gallo-funnel-1: …; /* … */ --gallo-funnel-8: …; }
+
+/* variante dark (paridade AA), ao lado das severidades já existentes */
+.dark { --gallo-funnel-0: …; /* … */ --gallo-funnel-8: …; }
 
 /* 2 — @theme inline (gera as utilities) */
---color-funnel-0: var(--funnel-0);
+--color-funnel-0: var(--gallo-funnel-0);
 /* … */
---color-funnel-8: var(--funnel-8);
-
-/* 3 — cada [data-theme] × .light|.dark reescreve os 9 semânticos */
+--color-funnel-8: var(--gallo-funnel-8);
 ```
 
-São 9 × 4 × 2 = **72 valores calibrados uma vez**. Finito e auditável, ao contrário de hex livre.
+São 9 × 2 = **18 valores calibrados uma vez** — não 72. Finito, auditável e coerente com o
+precedente do projeto.
 
 No componente, **mapa de literais tipado + acesso null-safe**:
 
@@ -390,7 +398,7 @@ O arquivo mora em `engine/` (é lógica pura testada), não em `utils/`.
 **Redundância não-cromática:** o ícone é **obrigatório** por funil e é o portador do significado; a
 cor é reforço periférico. Quem não distingue cores lê pelo ícone e pelo nome.
 
-A rota `/design-system`, que já tem validador de contraste WCAG, ganha a grade 9 × 4 × 2.
+A rota `/design-system`, que já tem validador de contraste WCAG, ganha a grade 9 × 2.
 
 ### 4.4 Regras de uso
 
@@ -1070,5 +1078,5 @@ Se for preciso cortar, a linha natural é **1–4 num PR e 5–7 noutro**.
 | Usuário estranha o mesmo lead em vários boards | **alta** | dica no primeiro uso; indicador no card; hover listando os funis |
 | Funil `Geral` vira depósito permanente | **alta** | fase 7 (triagem + lote) é parte da entrega, não opcional |
 | Valor estimado divergente entre lead e participações | média | participação herda na criação; `leads.estimated_value` marcado legado e não lido pela UI |
-| Regressão de contraste ao introduzir os slots | média | grade 9 × 4 × 2 no `/design-system` com o validador WCAG existente |
+| Regressão de contraste ao introduzir os slots | média | grade 9 × 2 no `/design-system` com o validador WCAG existente |
 | PR grande demais para revisão | média | corte natural em 1–4 / 5–7, decidido pelo dono |
