@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ILead, ID } from "@/shared/types";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { useLeadsProvider } from "@/providers/data/hooks/useLeadsProvider";
 import { CLOSING_STAGE_ID, daysInStage, isConverted, isLost } from "../utils/leadDisplay";
 import { getNextActionInfo } from "../utils/leadDisplay";
@@ -42,10 +43,10 @@ export function useLeadsList({
     queryFn: () =>
       provider.list({
         storeId: ownerCrossStore ? undefined : storeId,
-        pageSize: 1000,
+        pageSize: FETCH_ALL_PAGE_SIZE,
         // Mirrors filters.includeLost: default false, so lost leads are
-        // excluded server-side and can't crowd the 1000-row window out of
-        // active leads. When the toggle is on, the exclusion is lifted.
+        // excluded server-side and don't inflate the fetched set with
+        // inactive rows. When the toggle is on, the exclusion is lifted.
         excludeLost,
       }),
     staleTime: 30_000,

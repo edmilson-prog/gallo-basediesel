@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Icon } from "@/components/Icon";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
 import { getCustomerName } from "@/features/customers/utils/customerDisplay";
 import { CARTEIRA_STRINGS } from "../i18n/pt-BR";
@@ -20,13 +21,31 @@ export interface ICustomerListModalProps {
   onClose: () => void;
 }
 
+/**
+ * Above this many ids, resolving one-by-one via `get()` costs more round trips
+ * than pulling the full list once and filtering client-side.
+ */
+const PER_ID_FETCH_THRESHOLD = 30;
+
 export function CustomerListModal({ open, customerIds, onClose }: ICustomerListModalProps) {
   const provider = useCustomersProvider();
   const query = useQuery({
     queryKey: ["carteira-customer-list", customerIds],
     queryFn: async () => {
       if (customerIds.length === 0) return [] as ICustomer[];
-      const result = await provider.list({ pageSize: customerIds.length });
+      if (customerIds.length <= PER_ID_FETCH_THRESHOLD) {
+        // Small set — single-row reads are cheaper than fetching the whole
+        // customer base. Missing/inaccessible ids are silently omitted, same
+        // as the list+filter path below.
+        const results = await Promise.all(
+          customerIds.map((id) => provider.get(id).catch(() => null)),
+        );
+        return results.filter((c): c is ICustomer => c !== null);
+      }
+      // The contract has no ids filter — fetch the full set and match ids
+      // client-side. A carteira transfer can carry thousands of ids, where N
+      // single-row gets would be worse than the chunked full list.
+      const result = await provider.list({ pageSize: FETCH_ALL_PAGE_SIZE });
       return result.data.filter((c) => customerIds.includes(c.id));
     },
     enabled: open,

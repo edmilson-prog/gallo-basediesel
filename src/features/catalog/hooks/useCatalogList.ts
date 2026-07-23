@@ -1,8 +1,10 @@
 import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ID, IPart } from "@/shared/types";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 import {
+  DEFAULT_SORT,
   toListParams,
   type CatalogPageSize,
   type ICatalogListFilters,
@@ -113,11 +115,18 @@ export function useCatalogList(
   const provider = usePartsProvider();
   const queryClient = useQueryClient();
 
-  // Always fetch a large window from the provider (mock has only ~200 parts).
-  const params = useMemo(
-    () => ({ ...toListParams(filters, sort, page, pageSize), page: 1, pageSize: 1000 }),
-    [filters, sort, page, pageSize],
-  );
+  // The window intentionally covers the whole catalog — filtering, sorting and
+  // pagination all happen client-side below. orderBy/orderDir are deliberately
+  // stripped (not sent to the provider): sortParts() re-sorts every column
+  // locally — its default matches the provider's name-asc order — so keeping
+  // sort out of the params keeps the queryKey stable across sort toggles
+  // instead of refetching the same full window in a different server order.
+  const params = useMemo(() => {
+    const base = toListParams(filters, DEFAULT_SORT, page, pageSize);
+    delete base.orderBy;
+    delete base.orderDir;
+    return { ...base, page: 1, pageSize: FETCH_ALL_PAGE_SIZE };
+  }, [filters, page, pageSize]);
 
   const query = useQuery({
     queryKey: ["catalog-list", params] as const,

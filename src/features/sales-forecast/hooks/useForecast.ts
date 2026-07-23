@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { useSalesAnalytics, type ISalesFiltersState } from "@/features/sales-analytics";
 import { useGoalsWithProgress } from "@/features/goals";
-import { useLeadsProvider } from "@/providers/data";
+import { FETCH_ALL_PAGE_SIZE, useLeadsProvider } from "@/providers/data";
 import type { GoalLevel, IGoalPeriod } from "@/shared/types/bi";
 import type { ID } from "@/shared/types/common";
 import type { ForecastMetric, IForecast, IForecastConfig } from "@/shared/types/forecast";
@@ -78,7 +78,7 @@ export function useForecast(filters: IUseForecastFilters): IUseForecastResult {
   const leadsProvider = useLeadsProvider();
   const leadsQuery = useQuery({
     queryKey: ["forecast", "leads", storeId, sellerId ?? "all"],
-    queryFn: () => leadsProvider.list({ storeId, sellerId, pageSize: 1000 }),
+    queryFn: () => leadsProvider.list({ storeId, sellerId, pageSize: FETCH_ALL_PAGE_SIZE }),
     staleTime: 30_000,
   });
 

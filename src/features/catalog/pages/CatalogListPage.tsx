@@ -8,6 +8,7 @@ import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 import { CatalogHeader } from "../components/list/CatalogHeader";
 import { CatalogFiltersBar } from "../components/list/CatalogFiltersBar";
@@ -38,7 +39,7 @@ export function CatalogListPage() {
   // Auxiliary dataset for filter dropdowns — fetched once.
   const allParts = useQuery({
     queryKey: ["catalog-all-for-filters"] as const,
-    queryFn: () => partsProvider.list({ pageSize: 2000 }),
+    queryFn: () => partsProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE }),
     staleTime: 5 * 60_000,
   });
 

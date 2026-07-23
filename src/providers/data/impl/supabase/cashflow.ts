@@ -12,6 +12,7 @@ import type {
 } from "../../contracts/cashflow";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link ICashFlowProvider} (PRD-055 / PRD-104+).
@@ -67,24 +68,35 @@ function rowToCashFlowEntry(row: CashFlowEntryRow): ICashFlowEntry {
 
 export const supabaseCashFlowProvider: ICashFlowProvider = {
   async list(params: IListCashFlowEntriesParams = {}): Promise<IPaginatedResult<ICashFlowEntry>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
-
-    if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
-    if (params.start !== undefined) query = query.gte("date", params.start);
-    if (params.end !== undefined) query = query.lte("date", params.end);
-
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.floor(params.pageSize ?? 1000));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 1000)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query.order("date", { ascending: false }).range(from, to);
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
 
-    if (error) throw new Error(`[supabase] cashflow.list failed: ${error.message}`);
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (params.start !== undefined) query = query.gte("date", params.start);
+      if (params.end !== undefined) query = query.lte("date", params.end);
+      return query;
+    };
+
+    const { data, total } = await fetchLargePage<CashFlowEntryRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("date", { ascending: false })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] cashflow.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as CashFlowEntryRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as CashFlowEntryRow[]).map(rowToCashFlowEntry),
-      total: count ?? 0,
+      data: data.map(rowToCashFlowEntry),
+      total,
       page,
       pageSize,
     };

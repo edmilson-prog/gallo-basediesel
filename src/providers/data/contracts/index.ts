@@ -59,6 +59,7 @@ import type { ISdrPilotSettingsProvider } from "./sdrPilotSettings";
 import type { IConversationRescuesProvider } from "./conversationRescues";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
+export { FETCH_ALL_PAGE_SIZE } from "./_shared";
 
 export type { ICustomersProvider, IListCustomersParams, IConvertPendingContactInput } from "./customers";
 export type {

@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/Icon";
 import type { ICustomer, IGoal, IOrder } from "@/shared/types";
-import { useCustomersProvider, useOrdersProvider } from "@/providers/data";
+import { FETCH_ALL_PAGE_SIZE, useCustomersProvider, useOrdersProvider } from "@/providers/data";
 import { formatBRL, formatDateBR } from "@/shared/utils/format";
 import { GOALS_STRINGS as S } from "../../i18n/pt-BR";
 import {
@@ -30,22 +30,27 @@ export function GoalCompositionSection({ goal }: IGoalCompositionSectionProps) {
   const ordersProvider = useOrdersProvider();
   const customersProvider = useCustomersProvider();
 
+  // Shared key family with useGoalProgress / GoalEvolutionChart — identical
+  // fetch params, so React Query dedups the detail-page requests.
+  const scopeSellerId = goal.level === "individual" ? goal.targetId : undefined;
+
   const queries = useQueries({
     queries: [
       {
-        queryKey: ["goal-composition", "orders", goal.storeId, goal.targetId, goal.level],
+        queryKey: ["goals-scope-orders", goal.storeId, scopeSellerId],
         queryFn: () =>
           ordersProvider.list({
             storeId: goal.storeId,
-            sellerId: goal.level === "individual" ? goal.targetId : undefined,
+            sellerId: scopeSellerId,
             paymentStatus: "pago",
-            pageSize: 2000,
+            pageSize: FETCH_ALL_PAGE_SIZE,
           }),
         staleTime: STALE_MS,
       },
       {
-        queryKey: ["goal-composition", "customers", goal.storeId],
-        queryFn: () => customersProvider.list({ storeId: goal.storeId, pageSize: 2000 }),
+        queryKey: ["goals-scope-customers", goal.storeId],
+        queryFn: () =>
+          customersProvider.list({ storeId: goal.storeId, pageSize: FETCH_ALL_PAGE_SIZE }),
         staleTime: STALE_MS,
       },
     ],
@@ -54,8 +59,8 @@ export function GoalCompositionSection({ goal }: IGoalCompositionSectionProps) {
   const [ordersQuery, customersQuery] = queries;
   const isLoading = ordersQuery.isLoading || customersQuery.isLoading;
 
-  const orders = useMemo(() => ordersQuery.data?.items ?? [], [ordersQuery.data]);
-  const customers = useMemo(() => customersQuery.data?.items ?? [], [customersQuery.data]);
+  const orders = useMemo(() => ordersQuery.data?.data ?? [], [ordersQuery.data]);
+  const customers = useMemo(() => customersQuery.data?.data ?? [], [customersQuery.data]);
 
   const contributingOrders = useMemo(() => getContributingOrders(goal, orders), [goal, orders]);
 

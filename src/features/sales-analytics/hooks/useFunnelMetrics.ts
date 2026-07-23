@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ID, ILead, IOrder, IQuote } from "@/shared/types";
-import { useLeadsProvider, useOrdersProvider, useQuotesProvider } from "@/providers/data";
+import {
+  FETCH_ALL_PAGE_SIZE,
+  useLeadsProvider,
+  useOrdersProvider,
+  useQuotesProvider,
+} from "@/providers/data";
 import type { ISalesWindow } from "./useSalesFilters";
 
 export interface IFunnelStage {
@@ -77,7 +82,7 @@ export function useFunnelMetrics(params: IUseFunnelMetricsParams): IUseFunnelMet
 
   const leadsQuery = useQuery({
     queryKey: ["funnel", "leads", storeId, sellerId],
-    queryFn: () => leadsProvider.list({ storeId, sellerId, pageSize: 2000 }),
+    queryFn: () => leadsProvider.list({ storeId, sellerId, pageSize: FETCH_ALL_PAGE_SIZE }),
     staleTime: STALE_MS,
   });
 
