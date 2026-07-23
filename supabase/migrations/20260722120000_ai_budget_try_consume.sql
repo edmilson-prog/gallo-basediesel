@@ -29,7 +29,8 @@
 create or replace function public.ai_budget_try_consume(
   p_feature text,
   p_estimated_brl numeric default 0,
-  p_store_id text default null
+  -- uuid to match the live schema: stores.id / ai_usage_events.store_id are uuid, not text.
+  p_store_id uuid default null
 )
 returns boolean
 language plpgsql
@@ -92,9 +93,9 @@ begin
 end;
 $$;
 
-revoke all on function public.ai_budget_try_consume(text, numeric, text) from public;
-revoke all on function public.ai_budget_try_consume(text, numeric, text) from anon, authenticated;
-grant execute on function public.ai_budget_try_consume(text, numeric, text) to service_role;
+revoke all on function public.ai_budget_try_consume(text, numeric, uuid) from public;
+revoke all on function public.ai_budget_try_consume(text, numeric, uuid) from anon, authenticated;
+grant execute on function public.ai_budget_try_consume(text, numeric, uuid) to service_role;
 
-comment on function public.ai_budget_try_consume(text, numeric, text) is
+comment on function public.ai_budget_try_consume(text, numeric, uuid) is
   'Best-effort monthly AI budget gate: global platform cap + per-store conversation_copilot sub-cap (spec 2026-07-22). service_role only — called from Edge Functions. Serialises the CHECK via an advisory lock; does not atomically reserve the spend (see header comment) — true reservation deferred to sub-project B.';
