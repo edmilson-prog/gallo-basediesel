@@ -1,5 +1,6 @@
 import type { ICustomer, ICustomerAddress } from "@/shared/types";
 import { formatCnpj, formatCpf, isValidCnpj, isValidCpf, onlyDigits } from "./cnpjCpf";
+import type { ICnpjCompany } from "./minhaReceitaMapper";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
 
 const ERR = CUSTOMER_STRINGS.overview.cadastrais.errors;
@@ -170,4 +171,32 @@ export function buildCustomerPatch(customer: ICustomer, draft: ICustomerDraft): 
   if (!sameAddress(address, customer.address)) patch.address = address;
 
   return patch as Partial<ICustomer>;
+}
+
+/**
+ * Overlays the official Receita company data onto the draft. Called from the
+ * inline editor's "Buscar na Receita" button; nothing persists until the user
+ * clicks Salvar, so it overwrites the fields the API provides and leaves the
+ * rest untouched. A blank field from the API never wipes an existing value, and
+ * `cnpj`/`contactName`/`email`/`fullName`/`cpf` are never touched (the CNPJ is
+ * the lookup key; the Receita doesn't supply contact/e-mail reliably).
+ */
+export function applyCnpjCompanyToDraft(
+  draft: ICustomerDraft,
+  company: ICnpjCompany,
+): ICustomerDraft {
+  const next: ICustomerDraft = { ...draft };
+  if (company.razaoSocial.trim()) next.razaoSocial = company.razaoSocial.trim();
+  if (company.nomeFantasia.trim()) next.nomeFantasia = company.nomeFantasia.trim();
+  const addr = company.address;
+  if (addr) {
+    next.street = addr.street;
+    next.number = addr.number;
+    next.complement = addr.complement ?? "";
+    next.district = addr.district;
+    next.city = addr.city;
+    next.state = addr.state.toUpperCase();
+    next.zipCode = formatCep(addr.zipCode);
+  }
+  return next;
 }

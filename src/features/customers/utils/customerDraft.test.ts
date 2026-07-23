@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { ICustomerB2B, ICustomerB2C } from "@/shared/types";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
+import type { ICnpjCompany } from "../hooks/useMinhaReceita";
 import {
+  applyCnpjCompanyToDraft,
   buildCustomerPatch,
   formatCep,
   toCustomerDraft,
@@ -244,5 +246,72 @@ describe("buildCustomerPatch", () => {
     });
     const patch = buildCustomerPatch(dirty, toCustomerDraft(dirty));
     expect("address" in patch).toBe(false);
+  });
+});
+
+describe("applyCnpjCompanyToDraft", () => {
+  const company: ICnpjCompany = {
+    cnpj: "49786918000105",
+    razaoSocial: "RD Diesel Comércio de Peças Ltda",
+    nomeFantasia: "RD DIESEL",
+    situacaoCadastral: "ATIVA",
+    address: {
+      street: "Rua das Indústrias",
+      number: "500",
+      complement: "Galpão 2",
+      district: "Distrito Industrial",
+      city: "Chapecó",
+      state: "sc",
+      zipCode: "89805-000",
+    },
+  };
+
+  it("overwrites razão social and nome fantasia from the company", () => {
+    const draft = { ...toCustomerDraft(makeB2B()), razaoSocial: "antigo", nomeFantasia: "old" };
+    const next = applyCnpjCompanyToDraft(draft, company);
+    expect(next.razaoSocial).toBe("RD Diesel Comércio de Peças Ltda");
+    expect(next.nomeFantasia).toBe("RD DIESEL");
+  });
+
+  it("keeps the current nome fantasia when the company has none", () => {
+    const draft = { ...toCustomerDraft(makeB2B()), nomeFantasia: "Apelido do vendedor" };
+    const next = applyCnpjCompanyToDraft(draft, { ...company, nomeFantasia: "  " });
+    expect(next.nomeFantasia).toBe("Apelido do vendedor");
+  });
+
+  it("fills the address (uppercase UF, masked CEP) when present", () => {
+    const next = applyCnpjCompanyToDraft(toCustomerDraft(makeB2C()), company);
+    expect(next.street).toBe("Rua das Indústrias");
+    expect(next.number).toBe("500");
+    expect(next.complement).toBe("Galpão 2");
+    expect(next.district).toBe("Distrito Industrial");
+    expect(next.city).toBe("Chapecó");
+    expect(next.state).toBe("SC");
+    expect(next.zipCode).toBe("89805-000");
+  });
+
+  it("keeps the current address when the company has none", () => {
+    const draft = toCustomerDraft(makeB2B());
+    const next = applyCnpjCompanyToDraft(draft, { ...company, address: undefined });
+    expect(next.street).toBe(draft.street);
+    expect(next.city).toBe(draft.city);
+    expect(next.zipCode).toBe(draft.zipCode);
+  });
+
+  it("never touches cnpj, contact, email, or B2C document fields", () => {
+    const draft = {
+      ...toCustomerDraft(makeB2B()),
+      cnpj: "49.786.918/0001-05",
+      contactName: "Fulano",
+      email: "x@y.com",
+      cpf: "529.982.247-25",
+      fullName: "João",
+    };
+    const next = applyCnpjCompanyToDraft(draft, company);
+    expect(next.cnpj).toBe("49.786.918/0001-05");
+    expect(next.contactName).toBe("Fulano");
+    expect(next.email).toBe("x@y.com");
+    expect(next.cpf).toBe("529.982.247-25");
+    expect(next.fullName).toBe("João");
   });
 });

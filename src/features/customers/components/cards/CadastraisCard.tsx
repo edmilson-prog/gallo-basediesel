@@ -13,8 +13,11 @@ import { useAuth } from "@/features/auth/useAuth";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
 import { formatCNPJ, formatCPF, formatPhone } from "@/shared/utils/format";
-import { formatCnpj, formatCpf } from "../../utils/cnpjCpf";
+import { formatCnpj, formatCpf, isValidCnpj, onlyDigits } from "../../utils/cnpjCpf";
+import { useMinhaReceita } from "../../hooks/useMinhaReceita";
+import { isSituacaoAtiva } from "../../utils/minhaReceitaMapper";
 import {
+  applyCnpjCompanyToDraft,
   buildCustomerPatch,
   formatCep,
   toCustomerDraft,
@@ -67,6 +70,10 @@ export function CadastraisCard({
   const [draft, setDraft] = useState<ICustomerDraft | null>(null);
   const [errors, setErrors] = useState<ICustomerDraftErrors>({});
   const [saving, setSaving] = useState(false);
+  // CNPJ enrichment against Minha Receita (reuses the ConvertLeadModal infra).
+  const { lookup, status: lookupStatus, data: cnpjData, reset: resetLookup } = useMinhaReceita();
+  const cnpjValid = draft ? isValidCnpj(draft.cnpj) : false;
+  const lookupLoading = lookupStatus === "loading";
   // Mirror of `editing` readable from the effect without widening its deps.
   const editingRef = useRef(false);
   editingRef.current = editing;
@@ -80,6 +87,7 @@ export function CadastraisCard({
     editBaseRef.current = customer;
     setDraft(toCustomerDraft(customer));
     setErrors({});
+    resetLookup();
     setEditing(true);
   };
 
@@ -88,6 +96,7 @@ export function CadastraisCard({
     setDraft(null);
     setErrors({});
     editBaseRef.current = null;
+    resetLookup();
   };
 
   // Open the editor when the menu pulses `editSignal`, then hand the pulse back
@@ -102,6 +111,23 @@ export function CadastraisCard({
 
   const changeDraft = (patch: Partial<ICustomerDraft>) =>
     setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+
+  const handleLookup = async () => {
+    if (!draft || !cnpjValid) return;
+    const company = await lookup(onlyDigits(draft.cnpj));
+    if (company) {
+      setDraft((prev) => (prev ? applyCnpjCompanyToDraft(prev, company) : prev));
+      toast.success(COPY.lookupSuccessToast);
+    }
+  };
+
+  // Surface the non-success outcomes as toasts. `lookup` returns null for both
+  // invalid and error and settles `status` on the next render, so keying off
+  // `status` (not the return value) avoids a same-tick race.
+  useEffect(() => {
+    if (lookupStatus === "invalid") toast.error(COPY.lookupNotFoundToast);
+    else if (lookupStatus === "error") toast.error(COPY.lookupErrorToast);
+  }, [lookupStatus]);
 
   const handleSave = async () => {
     if (!draft) return;
@@ -168,6 +194,10 @@ export function CadastraisCard({
           draft={draft}
           errors={errors}
           onChange={changeDraft}
+          onLookupCnpj={handleLookup}
+          cnpjLookupLoading={lookupLoading}
+          cnpjValid={cnpjValid}
+          situacao={cnpjData?.situacaoCadastral}
         />
       ) : (
         <ReadView customer={customer} showContact={Boolean(editable)} />
@@ -278,12 +308,20 @@ function EditView({
   draft,
   errors,
   onChange,
+  onLookupCnpj,
+  cnpjLookupLoading,
+  cnpjValid,
+  situacao,
 }: {
   type: ICustomer["type"];
   phone: string;
   draft: ICustomerDraft;
   errors: ICustomerDraftErrors;
   onChange: (patch: Partial<ICustomerDraft>) => void;
+  onLookupCnpj: () => void;
+  cnpjLookupLoading: boolean;
+  cnpjValid: boolean;
+  situacao?: string;
 }) {
   return (
     <div className="space-y-3">
@@ -300,13 +338,14 @@ function EditView({
             value={draft.nomeFantasia}
             onChange={(v) => onChange({ nomeFantasia: v })}
           />
-          <Field
-            label={COPY.cnpj}
+          <CnpjField
             value={draft.cnpj}
             error={errors.cnpj}
-            mono
-            inputMode="numeric"
             onChange={(v) => onChange({ cnpj: formatCnpj(v) })}
+            onLookup={onLookupCnpj}
+            loading={cnpjLookupLoading}
+            canLookup={cnpjValid}
+            situacao={situacao}
           />
           <Field
             label={COPY.contactName}
@@ -400,6 +439,78 @@ function EditView({
           />
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * CNPJ field with an inline "Buscar na Receita" button. Clicking it enriches
+ * the draft (razão social / nome fantasia / endereço) from the Minha Receita
+ * service and surfaces the company's registration status as a colored badge.
+ */
+function CnpjField({
+  value,
+  error,
+  onChange,
+  onLookup,
+  loading,
+  canLookup,
+  situacao,
+}: {
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
+  onLookup: () => void;
+  loading: boolean;
+  canLookup: boolean;
+  situacao?: string;
+}) {
+  const active = situacao ? isSituacaoAtiva(situacao) : false;
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{COPY.cnpj}</Label>
+      <div className="flex items-center gap-2">
+        <Input
+          value={value}
+          inputMode="numeric"
+          onChange={(e) => onChange(e.target.value)}
+          className="h-8 flex-1 font-mono text-xs"
+          aria-invalid={error ? true : undefined}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 shrink-0 gap-1.5"
+          onClick={onLookup}
+          disabled={!canLookup || loading}
+          title={canLookup ? COPY.lookupCnpj : COPY.lookupCnpjHint}
+        >
+          <Icon
+            icon={loading ? "mdi:loading" : "mdi:cloud-search-outline"}
+            size={14}
+            className={loading ? "animate-spin" : undefined}
+          />
+          <span className="hidden sm:inline">{COPY.lookupCnpj}</span>
+        </Button>
+      </div>
+      {error && <p className="text-[11px] text-red-600 dark:text-red-400">{error}</p>}
+      {/* The disabled button can't show its `title` tooltip, so spell the reason
+          out inline (only when there's no validation error already showing). */}
+      {!canLookup && !loading && !error && (
+        <p className="text-[11px] text-muted-foreground">{COPY.lookupCnpjHint}</p>
+      )}
+      {situacao && (
+        <span
+          className={cn(
+            "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+            active ? "bg-success/15 text-success" : "bg-warning/15 text-warning",
+          )}
+        >
+          <Icon icon={active ? "mdi:check" : "mdi:alert-outline"} size={10} />
+          {active ? COPY.situacaoActive : `${COPY.situacaoLabel} ${situacao}`}
+        </span>
+      )}
     </div>
   );
 }
