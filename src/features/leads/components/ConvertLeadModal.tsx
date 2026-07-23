@@ -207,9 +207,9 @@ export function ConvertLeadModal({
       setBusy(true);
       try {
         const closingStage = stages.find((s) => s.id === CLOSING_STAGE_ID) ?? lead.stage;
-        await leadsProvider.update(lead.id, {
+        await leadsProvider.markConverted(lead.id, {
           stage: closingStage,
-          convertedToCustomerId: selectedCustomer.id,
+          customerId: selectedCustomer.id,
         });
 
         auditLog({
@@ -243,7 +243,9 @@ export function ConvertLeadModal({
       const nowIso = new Date().toISOString();
       const baseCustomer = {
         storeId: lead.storeId,
-        sellerId: lead.sellerId,
+        // Whoever converts owns the customer (uniform rule). Fallback to the
+        // lead's owner if the current user has no seller id.
+        sellerId: currentUser?.sellerId ?? lead.sellerId,
         phone: lead.phone,
         email: email.trim() ? email.trim() : lead.email,
         status: "ativo" as const,
@@ -277,9 +279,9 @@ export function ConvertLeadModal({
             } as Omit<ICustomer, "id" | "createdAt" | "notes">);
 
       const closingStage = stages.find((s) => s.id === CLOSING_STAGE_ID) ?? lead.stage;
-      await leadsProvider.update(lead.id, {
+      await leadsProvider.markConverted(lead.id, {
         stage: closingStage,
-        convertedToCustomerId: customer.id,
+        customerId: customer.id,
       });
 
       auditLog({
