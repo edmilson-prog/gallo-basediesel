@@ -1784,6 +1784,57 @@ begin
 end $$;
 reset role;
 
+-- ---------------------------------------------------------------------------
+-- find_customers_by_document (2026-07-24): the duplicate guard must see a
+-- customer owned by ANOTHER seller — that is its whole reason to exist, since
+-- customers_select hides those rows from a non-staff caller and the lead
+-- conversion would otherwise mint a second ficha for the same CNPJ. It must
+-- still respect the store boundary.
+-- ---------------------------------------------------------------------------
+reset role;
+do $$
+declare v_customer uuid := gen_random_uuid();
+begin
+  -- owned by OWNER, so lucas cannot see it through customers_select
+  insert into public.customers (id, store_id, seller_id, type, phone, status, razao_social, nome_fantasia, cnpj)
+  values (v_customer, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
+          'B2B', '+5555999993333', 'ativo', 'RLS Fixture — dup guard', 'RLS Fixture Dup', '11444777000161');
+  perform set_config('rls_regression.dup_customer', v_customer::text, true);
+end $$;
+
+select set_config('request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}', true);
+set local role authenticated;
+do $$
+begin
+  -- baseline: the per-carteira policy really does hide it from lucas
+  if (select count(*) from public.customers
+       where id = current_setting('rls_regression.dup_customer', true)::uuid) <> 0 then
+    raise exception 'dup guard: fixture should be invisible to lucas via customers_select';
+  end if;
+  -- masked input must still match the digits-only stored value
+  if (select count(*) from public.find_customers_by_document('11.444.777/0001-61')) <> 1 then
+    raise exception 'dup guard: lucas should find another seller''s customer by document';
+  end if;
+  -- blank/garbage input must not return the whole store
+  if (select count(*) from public.find_customers_by_document('   ')) <> 0 then
+    raise exception 'dup guard: blank document must return nothing';
+  end if;
+end $$;
+reset role;
+
+-- negative: a seller scoped to another store must not see the match
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000aa","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"00000000-0000-0000-0000-0000000000bb","store_id":"00000000-0000-0000-0000-000000000002"}}', true);
+set local role authenticated;
+do $$
+begin
+  if (select count(*) from public.find_customers_by_document('11444777000161')) <> 0 then
+    raise exception 'dup guard: cross-store leak';
+  end if;
+end $$;
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;

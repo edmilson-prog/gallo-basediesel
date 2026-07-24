@@ -1,6 +1,23 @@
 import type { ABCClass, ICustomer, ICustomerNote, ID } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
+/**
+ * Minimal identification of a customer that already holds a given document —
+ * the duplicate guard's payload. Deliberately narrow (no address, e-mail or
+ * financials): it answers "this CNPJ/CPF is already a customer of this store,
+ * owned by X" for any member of the store, which the per-carteira
+ * `customers_select` policy would otherwise hide.
+ */
+export interface ICustomerDocumentMatch {
+  id: ID;
+  type: ICustomer["type"];
+  /** nomeFantasia → razaoSocial → fullName, whichever is filled first. */
+  displayName: string;
+  sellerId: ID | null;
+  /** Wallet owner's name, null when the customer sits in the queue. */
+  sellerName: string | null;
+}
+
 export interface IConvertPendingContactInput {
   customerId: ID;
   type: ICustomer["type"];
@@ -109,6 +126,16 @@ export interface ICustomersProvider {
    * `conversation_customer` RPC. Notes are not embedded on this pool path.
    */
   getViaConversation(conversationId: ID): Promise<ICustomer | null>;
+  /**
+   * Customers of the current store already holding `document` (CNPJ or CPF),
+   * compared digits-only so masked input matches. Powers the duplicate guard in
+   * the lead→customer conversion: a plain {@link list} search cannot do this
+   * job because `customers_select` hides other sellers' customers from a
+   * non-staff caller, so the check would report "none" and the duplicate would
+   * be created anyway. Supabase: the SECURITY DEFINER `find_customers_by_document`
+   * RPC (store-scoped, minimal columns). Empty array when nothing matches.
+   */
+  findByDocument(document: string): Promise<ICustomerDocumentMatch[]>;
   /** Promote an imported pending_review contact to a real customer. */
   convertPendingContact(input: IConvertPendingContactInput): Promise<ICustomer>;
   /** Mark a pending_review contact as reviewed-and-not-a-customer (archived). */
