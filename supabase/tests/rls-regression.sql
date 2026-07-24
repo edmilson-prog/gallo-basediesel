@@ -1731,8 +1731,16 @@ begin
   if (select count(*) from public.lead_funnel_entries) = 0 then
     raise notice 'lead_funnel_entries: lucas has no visible memberships in fixtures — cross-leak check is vacuous';
   end if;
-  if (select count(*) from public.lead_funnel_entries where seller_id <> lucas) <> 0 then
-    raise exception 'lead_funnel_entries: lucas must not read another seller''s membership (cross-leak)';
+  -- lead_funnel_entries_select deliberately carries the same third branch as
+  -- leads_select (public.seller_handles_lead) — a seller assigned to the
+  -- lead's conversation legitimately reads its memberships regardless of who
+  -- owns the lead. Exclude those rows, exactly like the customers cross-leak
+  -- check above (lines ~84-92): the case must still fail if a genuinely
+  -- unreachable row (no ownership AND no accessible conversation) is visible.
+  if (select count(*) from public.lead_funnel_entries e
+        where e.seller_id is distinct from lucas
+          and not public.seller_handles_lead(e.lead_id)) <> 0 then
+    raise exception 'lead_funnel_entries: lucas must not read another seller''s membership without an accessible conversation (cross-leak)';
   end if;
 end $$;
 
@@ -1866,6 +1874,13 @@ begin
     return;
   end if;
 
+  -- v_lead already got a membership in default_funnel from
+  -- leads_assign_default_funnel_membership (20260723124000) when it was
+  -- inserted above — remove it first so this attempt actually reaches the
+  -- composite FK instead of colliding with lead_funnel_entries_unique
+  -- (lead_id, funnel_id) before the FK is ever checked.
+  delete from public.lead_funnel_entries where lead_id = v_lead and funnel_id = default_funnel;
+
   begin
     insert into public.lead_funnel_entries (lead_id, funnel_id, stage_id)
     values (v_lead, default_funnel, restricted_stage);
@@ -1977,6 +1992,14 @@ begin
   -- (b) Forge seller_id = someone else over lucas's OWN lead: the trigger
   -- re-derives the real (his own) owner regardless of what was submitted —
   -- the forged value never survives.
+  -- own_lead already got its own membership in target_funnel (the default
+  -- funnel) from leads_assign_default_funnel_membership when it was inserted
+  -- above. Lucas owns that membership (seller_id = lucas), so he can remove
+  -- it under RLS — do so first, otherwise this INSERT would collide with
+  -- lead_funnel_entries_unique before ever reaching the derive trigger we're
+  -- testing here.
+  delete from public.lead_funnel_entries where lead_id = own_lead and funnel_id = target_funnel;
+
   insert into public.lead_funnel_entries (lead_id, funnel_id, stage_id, seller_id)
   values (own_lead, target_funnel, target_stage, '57706ecc-01b5-4a96-b403-0359a4bb767f')
   returning id into new_entry;
@@ -2011,7 +2034,7 @@ do $$
 declare
   v_lead uuid := gen_random_uuid();
   default_funnel uuid;
-  entry_stage uuid;
+  membership_count int;
   mismatched int;
 begin
   if current_setting('test.funnels_ready', true) is distinct from 'true' then
@@ -2024,15 +2047,25 @@ begin
     raise notice 'skipped: default funnel not backfilled yet';
     return;
   end if;
-  select s.id into entry_stage from public.lead_funnel_stages s
-   where s.funnel_id = default_funnel and s.kind = 'entrada' limit 1;
 
+  -- No explicit lead_funnel_entries insert: leads_assign_default_funnel_
+  -- membership (20260723124000) already gives v_lead a membership in
+  -- default_funnel the instant it's inserted below. Inserting a second row
+  -- for the same (lead_id, funnel_id) would collide with
+  -- lead_funnel_entries_unique.
   insert into public.leads (id, store_id, seller_id, name, phone, stage, temperature, origin, conversations, tags)
   values (v_lead, '00000000-0000-0000-0000-000000000001', '5a6400ed-5aec-4bf1-b641-31635f15c887',
           'RLS Fixture — lead sync trigger', '+5555999995555',
           '{"id":"stage-novo","name":"Novo","color":"#5b6b7a","order":1}'::jsonb, 'frio', 'whatsapp', '{}', '{}');
-  insert into public.lead_funnel_entries (lead_id, funnel_id, stage_id)
-  values (v_lead, default_funnel, entry_stage);
+
+  -- Guard against a vacuous pass below: if the trigger somehow created no
+  -- membership, `mismatched` would stay 0 for the wrong reason and the
+  -- assertion after the update would pass without testing anything.
+  select count(*) into membership_count
+    from public.lead_funnel_entries where lead_id = v_lead and funnel_id = default_funnel;
+  if membership_count = 0 then
+    raise exception 'sync trigger fixture: v_lead got no default-funnel membership from the trigger';
+  end if;
 
   update public.leads set seller_id = '57706ecc-01b5-4a96-b403-0359a4bb767f' where id = v_lead;
 

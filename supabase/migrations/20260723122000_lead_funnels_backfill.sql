@@ -120,11 +120,19 @@ begin
     -- One membership per lead. Destination:
     --   converted            -> won
     --   has a loss reason    -> lost
-    --   otherwise            -> the stage matching its legacy snapshot, or the
-    --                           entry stage when no name matches.
-    -- A lead parked on the legacy closing stage with NEITHER outcome lands on
-    -- the last open stage, never on 'lost': inventing a loss would poison the
-    -- historical conversion rate.
+    --   otherwise            -> the stage matching its legacy snapshot by
+    --                           name. When no stage matches, two distinct
+    --                           cases share the "no name match" fallback and
+    --                           must NOT share one destination:
+    --     (a) the legacy name IS the closing stage (matches the same
+    --         fechad|convertid|perdid regex used above to spot it) but this
+    --         particular lead recorded NEITHER outcome -> the LAST OPEN
+    --         stage, never 'lost': inventing a loss would poison the
+    --         historical conversion rate.
+    --     (b) the legacy name matches nothing at all (renamed/removed stage,
+    --         or store had no pipeline configured) -> the ENTRY (triage)
+    --         stage, so the lead is at least visibly awaiting triage rather
+    --         than silently parked wherever the loop last left last_open_stage.
     insert into public.lead_funnel_entries
       (lead_id, funnel_id, stage_id, store_id, seller_id, estimated_value,
        converted_to_customer_id, loss_reason, loss_notes, entered_stage_at)
@@ -140,7 +148,11 @@ begin
               and lower(s.name) = lower(left(l.stage->>'name', 24))
               and s.kind not in ('ganho','perda')
             limit 1),
-          coalesce(last_open_stage, entry_stage)
+          case
+            when lower(l.stage->>'name') ~ '(fechad|convertid|perdid)'
+              then coalesce(last_open_stage, entry_stage) -- case (a)
+            else entry_stage                              -- case (b)
+          end
         )
       end,
       l.store_id,
