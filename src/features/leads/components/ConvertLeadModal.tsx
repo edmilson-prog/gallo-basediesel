@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
+import type { ICustomerDocumentMatch } from "@/providers/data";
 import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
 import { useLeadsProvider } from "@/providers/data/hooks/useLeadsProvider";
 import { useAuth } from "@/features/auth/useAuth";
@@ -34,6 +35,36 @@ const COPY = LEADS_STRINGS.convertModal;
 type CustomerType = "B2B" | "B2C";
 type ConvertMode = "new" | "link";
 type B2bStep = 1 | 2;
+
+/**
+ * What the "link" mode actually needs: an id plus two display lines. Kept
+ * lighter than {@link ICustomer} on purpose — a duplicate surfaced by the
+ * document guard may belong to ANOTHER seller, so `customers_select` would
+ * hide the full row from a non-staff caller and `get()` would 406. The guard's
+ * RPC returns just enough to identify it and link to it.
+ */
+interface ILinkTarget {
+  id: ID;
+  label: string;
+  sublabel: string;
+}
+
+function customerToLinkTarget(c: ICustomer): ILinkTarget {
+  const doc = c.type === "B2B" ? `CNPJ ${c.cnpj}` : `CPF ${c.cpf}`;
+  return {
+    id: c.id,
+    label: (c.type === "B2B" ? c.nomeFantasia || c.razaoSocial : c.fullName) || "—",
+    sublabel: `${doc} · ${c.phone}`,
+  };
+}
+
+function matchToLinkTarget(m: ICustomerDocumentMatch): ILinkTarget {
+  return {
+    id: m.id,
+    label: m.displayName,
+    sublabel: m.sellerName ? COPY.duplicateOwner(m.sellerName) : COPY.duplicateOwnerQueue,
+  };
+}
 
 /** Visual validation state for the CNPJ field (drives icon + message). */
 type CnpjFieldState = "idle" | "checking" | "valid" | "invalid" | "warning";
@@ -75,9 +106,13 @@ export function ConvertLeadModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [query, setQuery] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<ILinkTarget | null>(null);
   const [searchResults, setSearchResults] = useState<ICustomer[]>([]);
   const debouncedQuery = useDebounce(query, 400);
+
+  // Duplicate guard: the store may already have a customer with this document.
+  const [duplicates, setDuplicates] = useState<ICustomerDocumentMatch[]>([]);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
   const {
     lookup: lookupCnpj,
@@ -103,6 +138,7 @@ export function ConvertLeadModal({
     setQuery("");
     setSelectedCustomer(null);
     setSearchResults([]);
+    setDuplicates([]);
     resetCnpj();
   }, [lead, initialMode, resetCnpj]);
 
@@ -155,6 +191,50 @@ export function ConvertLeadModal({
       active = false;
     };
   }, [mode, lead, selectedCustomer, debouncedQuery, customersProvider]);
+
+  // Duplicate guard — the store already has a customer with this CNPJ/CPF?
+  // Runs off a SECURITY DEFINER RPC rather than a customers search on purpose:
+  // `customers_select` hides other sellers' customers from a non-staff caller,
+  // so a plain search would answer "none" and the duplicate would be created.
+  const activeDocument = type === "B2B" ? cnpj : cpf;
+  const debouncedDocument = useDebounce(activeDocument, 400);
+  useEffect(() => {
+    if (mode !== "new") {
+      setDuplicates([]);
+      return;
+    }
+    const digits = onlyDigits(debouncedDocument);
+    const complete = type === "B2B" ? digits.length === 14 : digits.length === 11;
+    if (!complete) {
+      setDuplicates([]);
+      return;
+    }
+    let active = true;
+    setCheckingDuplicate(true);
+    void customersProvider
+      .findByDocument(digits)
+      .then((rows) => {
+        if (active) setDuplicates(rows);
+      })
+      .catch(() => {
+        // Fail open: a guard outage must not block a legitimate conversion.
+        if (active) setDuplicates([]);
+      })
+      .finally(() => {
+        if (active) setCheckingDuplicate(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [mode, type, debouncedDocument, customersProvider]);
+
+  /** Jump straight into "link" mode with the duplicate pre-selected. */
+  const handleLinkToDuplicate = (match: ICustomerDocumentMatch) => {
+    setSelectedCustomer(matchToLinkTarget(match));
+    setMode("link");
+    setErrors({});
+    setB2bStep(1);
+  };
 
   // True while the debounced value hasn't caught up with the latest typed
   // digits yet — cnpjStatus/cnpjData still describe the PREVIOUS CNPJ during
@@ -321,9 +401,13 @@ export function ConvertLeadModal({
     void handleSubmit();
   };
 
+  // A confirmed duplicate blocks the "create" path in both flows — the whole
+  // point of the guard is that the seller links instead of creating a second
+  // ficha for the same document. "link" mode is never blocked.
+  const blockedByDuplicate = mode === "new" && duplicates.length > 0;
   const primaryDisabled = inB2bStepOne
-    ? cnpjFieldState !== "valid"
-    : busy || cnpjChecking || (mode === "link" && !selectedCustomer);
+    ? cnpjFieldState !== "valid" || checkingDuplicate || blockedByDuplicate
+    : busy || cnpjChecking || checkingDuplicate || blockedByDuplicate || (mode === "link" && !selectedCustomer);
 
   const primaryLabel = inB2bStepOne
     ? COPY.continueLabel
@@ -361,15 +445,10 @@ export function ConvertLeadModal({
                 <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">
-                      {selectedCustomer.type === "B2B"
-                        ? selectedCustomer.nomeFantasia || selectedCustomer.razaoSocial
-                        : selectedCustomer.fullName}
+                      {selectedCustomer.label}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {selectedCustomer.type === "B2B"
-                        ? `CNPJ ${selectedCustomer.cnpj}`
-                        : `CPF ${selectedCustomer.cpf}`}{" "}
-                      · {selectedCustomer.phone}
+                      {selectedCustomer.sublabel}
                     </p>
                   </div>
                   <button
@@ -406,7 +485,7 @@ export function ConvertLeadModal({
                             key={c.id}
                             type="button"
                             className="flex w-full items-center justify-between gap-3 border-b border-border px-3 py-2 text-left text-sm last:border-b-0 hover:bg-muted"
-                            onClick={() => setSelectedCustomer(c)}
+                            onClick={() => setSelectedCustomer(customerToLinkTarget(c))}
                           >
                             <span className="min-w-0 flex-1 truncate">
                               {c.type === "B2B" ? c.nomeFantasia || c.razaoSocial : c.fullName}
@@ -452,6 +531,14 @@ export function ConvertLeadModal({
                   <Field label={COPY.email}>
                     <Input value={email} onChange={(e) => setEmail(e.target.value)} />
                   </Field>
+                  <div className="col-span-2">
+                    <DuplicateNotice
+                      matches={duplicates}
+                      checking={checkingDuplicate}
+                      isCnpj={false}
+                      onLink={handleLinkToDuplicate}
+                    />
+                  </div>
                 </div>
               ) : (
                 <>
@@ -561,6 +648,12 @@ export function ConvertLeadModal({
                             </button>
                           </div>
                         )}
+                        <DuplicateNotice
+                          matches={duplicates}
+                          checking={checkingDuplicate}
+                          isCnpj
+                          onLink={handleLinkToDuplicate}
+                        />
                       </div>
                     </div>
                   ) : (
@@ -657,6 +750,56 @@ export function ConvertLeadModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Duplicate-document warning. Shown as soon as a complete CNPJ/CPF matches a
+ * customer the store already has — including one owned by another seller, which
+ * the caller may not be able to see anywhere else in the app.
+ */
+function DuplicateNotice({
+  matches,
+  checking,
+  isCnpj,
+  onLink,
+}: {
+  matches: ICustomerDocumentMatch[];
+  checking: boolean;
+  isCnpj: boolean;
+  onLink: (match: ICustomerDocumentMatch) => void;
+}) {
+  if (checking) {
+    return (
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Icon icon="mdi:loading" size={14} className="animate-spin motion-reduce:animate-none" />
+        {COPY.duplicateChecking}
+      </p>
+    );
+  }
+  if (matches.length === 0) return null;
+  return (
+    <div className="space-y-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2.5">
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-warning">
+        <Icon icon="mdi:account-alert-outline" size={14} />
+        {isCnpj ? COPY.duplicateTitleCnpj : COPY.duplicateTitleCpf}
+      </p>
+      {matches.map((m) => (
+        <div key={m.id} className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-foreground">{m.displayName}</p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {m.sellerName ? COPY.duplicateOwner(m.sellerName) : COPY.duplicateOwnerQueue}
+            </p>
+          </div>
+          <Button type="button" size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={() => onLink(m)}>
+            <Icon icon="mdi:link-variant" size={14} />
+            {COPY.duplicateLinkCta}
+          </Button>
+        </div>
+      ))}
+      <p className="text-[11px] text-muted-foreground">{COPY.duplicateHint}</p>
+    </div>
   );
 }
 

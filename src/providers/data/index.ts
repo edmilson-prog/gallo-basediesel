@@ -22,6 +22,7 @@ export type {
   ICustomersProvider,
   IListCustomersParams,
   IConvertPendingContactInput,
+  ICustomerDocumentMatch,
   IVehiclesProvider,
   IListVehiclesParams,
   IAddServiceEntryInput,
