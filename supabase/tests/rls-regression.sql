@@ -1694,6 +1694,96 @@ begin
 end $$;
 reset role;
 
+-- ---------------------------------------------------------------------------
+-- convert_lead_mark (2026-07-24): the assigned attendant of a lead-anchored
+-- conversation converts a lead he does NOT own. Exercises both halves that
+-- broke in production: the RPC's authorization (seller_handles_lead) and the
+-- AFTER UPDATE re-anchor trigger, which compared conversations.lead_id (TEXT)
+-- against leads.id (UUID) and raised 42883 on EVERY conversion — surfacing to
+-- the client as a misleading HTTP 404.
+-- ---------------------------------------------------------------------------
+reset role;
+do $$
+declare
+  v_lead     uuid := gen_random_uuid();
+  v_customer uuid := gen_random_uuid();
+  v_conv     uuid := gen_random_uuid();
+begin
+  -- Destination customer + a lead owned by OWNER (not lucas)
+  insert into public.customers (id, store_id, seller_id, type, phone, status, razao_social, nome_fantasia, cnpj)
+  values (v_customer, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
+          'B2B', '+5555999992222', 'ativo', 'RLS Fixture — convert target', 'RLS Fixture', '00000000000191');
+
+  insert into public.leads (id, store_id, seller_id, name, phone, stage, temperature, origin, conversations, tags)
+  values (v_lead, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
+          'RLS Fixture — convert lead', '+5555999992222',
+          '{"id":"stage-novo","name":"Novo","color":"#5b6b7a","order":1}'::jsonb, 'frio', 'whatsapp', '{}', '{}');
+
+  -- Lead-anchored conversation ASSIGNED to lucas → makes him the attendant
+  insert into public.conversations (id, store_id, lead_id, assigned_seller_id, channel, status, last_message_at)
+  values (v_conv, '00000000-0000-0000-0000-000000000001', v_lead::text,
+          '5a6400ed-5aec-4bf1-b641-31635f15c887', 'whatsapp', 'em_andamento', now());
+
+  perform set_config('rls_regression.convert_lead', v_lead::text, true);
+  perform set_config('rls_regression.convert_customer', v_customer::text, true);
+  perform set_config('rls_regression.convert_conv', v_conv::text, true);
+end $$;
+
+-- lucas (non-staff, NOT the lead owner, but the assigned attendant) converts
+select set_config('request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}', true);
+set local role authenticated;
+do $$
+begin
+  perform public.convert_lead_mark(
+    current_setting('rls_regression.convert_lead', true)::uuid,
+    current_setting('rls_regression.convert_customer', true)::uuid,
+    '{"id":"stage-ganho","name":"Ganho","color":"#22c55e","order":6}'::jsonb
+  );
+end $$;
+reset role;
+
+do $$
+begin
+  if (select converted_to_customer_id from public.leads
+       where id = current_setting('rls_regression.convert_lead', true)::uuid)
+     is distinct from current_setting('rls_regression.convert_customer', true)::uuid then
+    raise exception 'convert_lead_mark: assigned attendant should mark the lead as converted';
+  end if;
+  -- the re-anchor trigger must have moved the conversation onto the customer
+  if (select customer_id from public.conversations
+       where id = current_setting('rls_regression.convert_conv', true)::uuid)
+     is distinct from current_setting('rls_regression.convert_customer', true)::uuid then
+    raise exception 'convert_lead_mark: re-anchor trigger should repoint the conversation to the customer';
+  end if;
+  if (select lead_id from public.conversations
+       where id = current_setting('rls_regression.convert_conv', true)::uuid) is not null then
+    raise exception 'convert_lead_mark: re-anchored conversation should drop lead_id';
+  end if;
+end $$;
+
+-- negative: a seller who is neither staff, owner nor attendant must be refused
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000aa","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"00000000-0000-0000-0000-0000000000bb","store_id":"00000000-0000-0000-0000-000000000001"}}', true);
+set local role authenticated;
+do $$
+declare v_refused boolean := false;
+begin
+  begin
+    perform public.convert_lead_mark(
+      current_setting('rls_regression.convert_lead', true)::uuid,
+      current_setting('rls_regression.convert_customer', true)::uuid,
+      '{"id":"stage-ganho","name":"Ganho","color":"#22c55e","order":6}'::jsonb
+    );
+  exception when insufficient_privilege then
+    v_refused := true;
+  end;
+  if not v_refused then
+    raise exception 'convert_lead_mark: unrelated seller must NOT be able to convert';
+  end if;
+end $$;
+reset role;
+
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 
 rollback;
