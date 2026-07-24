@@ -1735,6 +1735,15 @@ declare
   v_customer uuid := gen_random_uuid();
   v_conv     uuid := gen_random_uuid();
 begin
+  -- `reset role` does NOT clear request.jwt.claims — set_config(..., true) is
+  -- transaction-local and survives it. Inserting a conversation while the
+  -- previous block's forged claims are still in place makes
+  -- conversation_activity_capture stamp actor_id = that seller, and the
+  -- fixtures above use ids that do not exist in `sellers`, so the
+  -- conversation_activity_actor_id_fkey blows up. Clear them: with no seller
+  -- the trigger records the row as actor_kind 'system' (actor_id null).
+  perform set_config('request.jwt.claims', '', true);
+
   -- Destination customer + a lead owned by OWNER (not lucas)
   insert into public.customers (id, store_id, seller_id, type, phone, status, razao_social, nome_fantasia, cnpj)
   values (v_customer, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
@@ -1821,6 +1830,10 @@ reset role;
 do $$
 declare v_customer uuid := gen_random_uuid();
 begin
+  -- Same reason as the block above: drop the previous principal's forged
+  -- claims before writing fixtures.
+  perform set_config('request.jwt.claims', '', true);
+
   -- owned by OWNER, so lucas cannot see it through customers_select
   insert into public.customers (id, store_id, seller_id, type, phone, status, razao_social, nome_fantasia, cnpj)
   values (v_customer, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
