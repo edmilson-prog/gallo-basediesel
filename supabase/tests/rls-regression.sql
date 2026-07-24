@@ -1582,8 +1582,14 @@ begin
   begin
     perform public.claim_conversation_rescue(v_rescue_id);
     raise exception 'claim_conversation_rescue: claiming an already-claimed rescue should fail';
-  exception when others then
-    if sqlstate <> 'P0004' then raise; end if; -- expected: P0004
+  -- The rejection must be named explicitly: claim_conversation_rescue raises
+  -- 'already claimed' with errcode P0004, which Postgres maps to
+  -- ASSERT_FAILURE — and `when others` deliberately does NOT catch that (nor
+  -- QUERY_CANCELED). Caught by `when others`, the expected rejection escaped
+  -- and failed the whole run. A P0001 from the line above still propagates,
+  -- so a claim that wrongly SUCCEEDS is still reported.
+  exception
+    when sqlstate 'P0004' then null; -- expected: already claimed
   end;
 end $$;
 reset role;
