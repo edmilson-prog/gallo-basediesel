@@ -139,6 +139,7 @@ export function ConvertLeadModal({
     setSelectedCustomer(null);
     setSearchResults([]);
     setDuplicates([]);
+    setCheckingDuplicate(false);
     resetCnpj();
   }, [lead, initialMode, resetCnpj]);
 
@@ -199,14 +200,20 @@ export function ConvertLeadModal({
   const activeDocument = type === "B2B" ? cnpj : cpf;
   const debouncedDocument = useDebounce(activeDocument, 400);
   useEffect(() => {
+    // Every exit path must clear `checkingDuplicate`: the cleanup below flips
+    // `active` to false, which turns the in-flight `.finally` into a no-op, so
+    // an early return that skipped the reset would latch the flag at true and
+    // disable the primary button for good.
     if (mode !== "new") {
       setDuplicates([]);
+      setCheckingDuplicate(false);
       return;
     }
     const digits = onlyDigits(debouncedDocument);
     const complete = type === "B2B" ? digits.length === 14 : digits.length === 11;
     if (!complete) {
       setDuplicates([]);
+      setCheckingDuplicate(false);
       return;
     }
     let active = true;
@@ -227,6 +234,19 @@ export function ConvertLeadModal({
       active = false;
     };
   }, [mode, type, debouncedDocument, customersProvider]);
+
+  // The guard runs off the DEBOUNCED document, so between the last keystroke
+  // and the check landing, `duplicates` still describes the PREVIOUS document —
+  // pasting a duplicate CNPJ/CPF and submitting inside that window would create
+  // exactly the duplicate this guard exists to prevent. Same reasoning (and
+  // shape) as `cnpjPendingDebounce` below.
+  const liveDocumentDigits = onlyDigits(activeDocument);
+  const documentComplete =
+    type === "B2B" ? liveDocumentDigits.length === 14 : liveDocumentDigits.length === 11;
+  const duplicateCheckPending =
+    mode === "new" &&
+    documentComplete &&
+    (liveDocumentDigits !== onlyDigits(debouncedDocument) || checkingDuplicate);
 
   /** Jump straight into "link" mode with the duplicate pre-selected. */
   const handleLinkToDuplicate = (match: ICustomerDocumentMatch) => {
@@ -406,8 +426,12 @@ export function ConvertLeadModal({
   // ficha for the same document. "link" mode is never blocked.
   const blockedByDuplicate = mode === "new" && duplicates.length > 0;
   const primaryDisabled = inB2bStepOne
-    ? cnpjFieldState !== "valid" || checkingDuplicate || blockedByDuplicate
-    : busy || cnpjChecking || checkingDuplicate || blockedByDuplicate || (mode === "link" && !selectedCustomer);
+    ? cnpjFieldState !== "valid" || duplicateCheckPending || blockedByDuplicate
+    : busy ||
+      cnpjChecking ||
+      duplicateCheckPending ||
+      blockedByDuplicate ||
+      (mode === "link" && !selectedCustomer);
 
   const primaryLabel = inB2bStepOne
     ? COPY.continueLabel
@@ -533,8 +557,8 @@ export function ConvertLeadModal({
                   </Field>
                   <div className="col-span-2">
                     <DuplicateNotice
-                      matches={duplicates}
-                      checking={checkingDuplicate}
+                      matches={duplicateCheckPending ? [] : duplicates}
+                      checking={duplicateCheckPending}
                       isCnpj={false}
                       onLink={handleLinkToDuplicate}
                     />
@@ -649,8 +673,8 @@ export function ConvertLeadModal({
                           </div>
                         )}
                         <DuplicateNotice
-                          matches={duplicates}
-                          checking={checkingDuplicate}
+                          matches={duplicateCheckPending ? [] : duplicates}
+                          checking={duplicateCheckPending}
                           isCnpj
                           onLink={handleLinkToDuplicate}
                         />
@@ -769,9 +793,11 @@ function DuplicateNotice({
   isCnpj: boolean;
   onLink: (match: ICustomerDocumentMatch) => void;
 }) {
+  // aria-live so the async verdict is announced — the B2C field has no live
+  // region of its own (the B2B step borrows the CNPJ one).
   if (checking) {
     return (
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <p role="status" aria-live="polite" className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Icon icon="mdi:loading" size={14} className="animate-spin motion-reduce:animate-none" />
         {COPY.duplicateChecking}
       </p>
@@ -779,9 +805,16 @@ function DuplicateNotice({
   }
   if (matches.length === 0) return null;
   return (
-    <div className="space-y-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2.5">
-      <p className="flex items-center gap-1.5 text-xs font-semibold text-warning">
-        <Icon icon="mdi:account-alert-outline" size={14} />
+    <div
+      role="status"
+      aria-live="polite"
+      className="space-y-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2.5"
+    >
+      {/* Title uses `text-foreground`, not `text-warning`: the amber token on
+          the tinted surface lands around 2:1, well under WCAG AA for 12px text.
+          The icon and the border carry the warning colour instead. */}
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+        <Icon icon="mdi:account-alert-outline" size={14} className="text-warning" />
         {isCnpj ? COPY.duplicateTitleCnpj : COPY.duplicateTitleCpf}
       </p>
       {matches.map((m) => (
