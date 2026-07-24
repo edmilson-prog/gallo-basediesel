@@ -77,16 +77,22 @@ import { describe, expect, it } from "vitest";
 import { resolveSellerPeriod } from "./period";
 
 describe("resolveSellerPeriod", () => {
-  it("resolves 'hoje' as a 1-day window ending now, with the previous 1-day window before it", () => {
-    const w = resolveSellerPeriod("hoje", "2026-07-23T18:00:00.000Z");
+  it("resolves 'hoje' as the BRT calendar day (00:00 BRT to now), with the full previous BRT day before it", () => {
+    const w = resolveSellerPeriod("hoje", "2026-07-23T17:00:00.000Z"); // 14h BRT
     expect(w.label).toBe("Hoje");
-    expect(w.endIso).toBe("2026-07-23T18:00:00.000Z");
-    expect(w.startIso).toBe("2026-07-22T18:00:00.000Z");
+    expect(w.startIso).toBe("2026-07-23T03:00:00.000Z"); // 00:00 BRT = 03:00 UTC
+    expect(w.endIso).toBe("2026-07-23T17:00:00.000Z");
+    expect(w.previousStartIso).toBe("2026-07-22T03:00:00.000Z"); // 00:00 BRT the day before
     expect(w.previousEndIso).toBe(w.startIso);
-    expect(w.previousStartIso).toBe("2026-07-21T18:00:00.000Z");
   });
 
-  it("resolves '7d' and '30d' with matching-length previous windows", () => {
+  it("keeps 'hoje' anchored to the same BRT day just after midnight", () => {
+    const w2 = resolveSellerPeriod("hoje", "2026-07-23T03:30:00.000Z"); // 00:30 BRT
+    expect(w2.startIso).toBe("2026-07-23T03:00:00.000Z");
+    expect(w2.endIso).toBe("2026-07-23T03:30:00.000Z");
+  });
+
+  it("resolves '7d' and '30d' as rolling windows with matching-length previous windows", () => {
     const w7 = resolveSellerPeriod("7d", "2026-07-23T12:00:00.000Z");
     expect(w7.label).toBe("7 dias");
     expect(w7.startIso).toBe("2026-07-16T12:00:00.000Z");
@@ -121,8 +127,9 @@ export interface ISellerPeriodWindow {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
 
-const PERIOD_DAYS: Record<SellerPeriodKey, number> = { hoje: 1, "7d": 7, "30d": 30 };
+const PERIOD_DAYS: Record<"7d" | "30d", number> = { "7d": 7, "30d": 30 };
 const PERIOD_LABELS: Record<SellerPeriodKey, string> = {
   hoje: "Hoje",
   "7d": "7 dias",
@@ -130,10 +137,41 @@ const PERIOD_LABELS: Record<SellerPeriodKey, string> = {
 };
 
 /**
- * Resolves a rolling window (and the matching-length window right before it,
- * for delta comparisons) ending at `nowIso`.
+ * Midnight of the BRT calendar day containing `iso`, as a UTC ISO instant.
+ * BRT is a fixed UTC-3 offset (Brazil has had no DST since 2019), so this is
+ * a plain arithmetic shift — same technique as `engine/hourlyActivity.ts`.
+ */
+function brtMidnightIso(iso: string): string {
+  const brt = new Date(new Date(iso).getTime() - BRT_OFFSET_MS);
+  const midnightUtcMs =
+    Date.UTC(brt.getUTCFullYear(), brt.getUTCMonth(), brt.getUTCDate()) + BRT_OFFSET_MS;
+  return new Date(midnightUtcMs).toISOString();
+}
+
+/**
+ * Resolves a window ending at `nowIso`, plus the matching-length window
+ * right before it (for delta comparisons).
+ *
+ * "hoje" uses the BRT calendar day (00:00 BRT to now) rather than a rolling
+ * 24h window — this must agree with `bucketConversationsByHour`
+ * (`engine/hourlyActivity.ts`), which buckets by BRT calendar day too, so
+ * the "Atendimentos" KPI total and the sum of the hourly chart bars match
+ * for the same period. "7d"/"30d" use plain rolling N-day windows.
  */
 export function resolveSellerPeriod(key: SellerPeriodKey, nowIso: string): ISellerPeriodWindow {
+  if (key === "hoje") {
+    const startIso = brtMidnightIso(nowIso);
+    const previousStartIso = new Date(new Date(startIso).getTime() - DAY_MS).toISOString();
+    return {
+      key,
+      label: PERIOD_LABELS.hoje,
+      startIso,
+      endIso: nowIso,
+      previousStartIso,
+      previousEndIso: startIso,
+    };
+  }
+
   const endMs = new Date(nowIso).getTime();
   const days = PERIOD_DAYS[key];
   const startMs = endMs - days * DAY_MS;
@@ -152,7 +190,7 @@ export function resolveSellerPeriod(key: SellerPeriodKey, nowIso: string): ISell
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `bunx vitest run src/features/seller-dashboard/engine/period.test.ts`
-Expected: PASS (2 tests).
+Expected: PASS (3 tests).
 
 - [ ] **Step 5: Commit**
 
@@ -234,6 +272,11 @@ export function formatMinutesLabel(ms: number): string {
 }
 
 /** Compact elapsed-since label from an ISO instant: "25 min", "3h", "4d 2h". */
+// Deliberately not imported from `@/features/idle-alerts` (which has an
+// equivalent `formatElapsed`): that function isn't exported from the
+// feature's barrel (`src/features/idle-alerts/index.ts`), and reaching past
+// another feature's barrel into its internals isn't this codebase's
+// pattern. This ~10-line duplicate keeps `seller-dashboard` self-contained.
 export function formatWaitLabel(fromIso: string, now: Date): string {
   const ms = Math.max(0, now.getTime() - new Date(fromIso).getTime());
   const minutes = Math.floor(ms / 60_000);
