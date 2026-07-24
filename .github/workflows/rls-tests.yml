@@ -21,6 +21,11 @@ on:
   pull_request:
     paths:
       - "supabase/tests/**"
+      # Migrations are what actually change policies and helper functions, so
+      # they must run the suite too. Without this the instance-gate leak fixed
+      # in 20260724200000 shipped and sat unnoticed: no PR touching only
+      # migrations ever triggered these tests.
+      - "supabase/migrations/**"
       - ".github/workflows/rls-tests.yml"
   workflow_dispatch: {}
 

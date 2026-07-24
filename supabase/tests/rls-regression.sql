@@ -58,6 +58,19 @@ reset role;
 -- ---------------------------------------------------------------------------
 -- Principal: LUCAS (seller_internal, non-staff) — own carteira + pool only.
 -- ---------------------------------------------------------------------------
+-- "Should see" assertions test that RLS does not HIDE what belongs to the
+-- principal — they are not a statement about the dataset having rows. Against a
+-- database where the table happens to be empty (`orders` is empty in
+-- production) a bare `count(*) = 0` check fails for a reason that has nothing
+-- to do with RLS. Capture the privileged count first and only demand
+-- visibility when there is in fact something to see.
+select set_config(
+  'rls_regression.orders_lucas',
+  (select count(*)::text from public.orders
+    where seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887'),
+  true
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
@@ -90,7 +103,8 @@ begin
           )) <> 0 then
     raise exception 'lucas: must not see other sellers'' customers without an accessible conversation (cross-leak)';
   end if;
-  if (select count(*) from public.orders) = 0 then
+  if coalesce(current_setting('rls_regression.orders_lucas', true), '0')::int > 0
+     and (select count(*) from public.orders) = 0 then
     raise exception 'lucas: should see his own orders';
   end if;
   if (select count(*) from public.orders where seller_id <> lucas) <> 0 then
@@ -115,12 +129,18 @@ begin
   if (select count(*) from public.carteira_transfers) <> 0 then
     raise exception 'lucas: must see 0 carteira_transfers (#43 staff only)';
   end if;
+  -- Same 2-gate rule the customers assertion above already uses: media hanging
+  -- off a conversation the seller can ACCESS (own instance / pool / as a
+  -- participant) is legitimate — not only media of conversations assigned to
+  -- him. This predicate predates Turnstile (v0.110.0) and still matched on
+  -- assigned_seller_id alone, flagging 115 legitimately-accessible rows in
+  -- production; every one of them satisfied can_access_conversation.
   if (select count(*) from public.media_assets m
         where not (
           (m.customer_id is not null
              and m.customer_id in (select id from public.customers where seller_id = lucas))
           or (m.conversation_id is not null
-             and m.conversation_id in (select id from public.conversations where assigned_seller_id = lucas))
+             and public.can_access_conversation(m.conversation_id))
         )) <> 0 then
     raise exception 'lucas: must only see media tied to his own customers/conversations (#43)';
   end if;
@@ -1562,8 +1582,14 @@ begin
   begin
     perform public.claim_conversation_rescue(v_rescue_id);
     raise exception 'claim_conversation_rescue: claiming an already-claimed rescue should fail';
-  exception when others then
-    if sqlstate <> 'P0004' then raise; end if; -- expected: P0004
+  -- The rejection must be named explicitly: claim_conversation_rescue raises
+  -- 'already claimed' with errcode P0004, which Postgres maps to
+  -- ASSERT_FAILURE — and `when others` deliberately does NOT catch that (nor
+  -- QUERY_CANCELED). Caught by `when others`, the expected rejection escaped
+  -- and failed the whole run. A P0001 from the line above still propagates,
+  -- so a claim that wrongly SUCCEEDS is still reported.
+  exception
+    when sqlstate 'P0004' then null; -- expected: already claimed
   end;
 end $$;
 reset role;
@@ -1709,6 +1735,15 @@ declare
   v_customer uuid := gen_random_uuid();
   v_conv     uuid := gen_random_uuid();
 begin
+  -- `reset role` does NOT clear request.jwt.claims — set_config(..., true) is
+  -- transaction-local and survives it. Inserting a conversation while the
+  -- previous block's forged claims are still in place makes
+  -- conversation_activity_capture stamp actor_id = that seller, and the
+  -- fixtures above use ids that do not exist in `sellers`, so the
+  -- conversation_activity_actor_id_fkey blows up. Clear them: with no seller
+  -- the trigger records the row as actor_kind 'system' (actor_id null).
+  perform set_config('request.jwt.claims', '', true);
+
   -- Destination customer + a lead owned by OWNER (not lucas)
   insert into public.customers (id, store_id, seller_id, type, phone, status, razao_social, nome_fantasia, cnpj)
   values (v_customer, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
@@ -1795,6 +1830,10 @@ reset role;
 do $$
 declare v_customer uuid := gen_random_uuid();
 begin
+  -- Same reason as the block above: drop the previous principal's forged
+  -- claims before writing fixtures.
+  perform set_config('request.jwt.claims', '', true);
+
   -- owned by OWNER, so lucas cannot see it through customers_select
   insert into public.customers (id, store_id, seller_id, type, phone, status, razao_social, nome_fantasia, cnpj)
   values (v_customer, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
