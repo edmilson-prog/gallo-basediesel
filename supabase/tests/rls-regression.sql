@@ -129,12 +129,18 @@ begin
   if (select count(*) from public.carteira_transfers) <> 0 then
     raise exception 'lucas: must see 0 carteira_transfers (#43 staff only)';
   end if;
+  -- Same 2-gate rule the customers assertion above already uses: media hanging
+  -- off a conversation the seller can ACCESS (own instance / pool / as a
+  -- participant) is legitimate — not only media of conversations assigned to
+  -- him. This predicate predates Turnstile (v0.110.0) and still matched on
+  -- assigned_seller_id alone, flagging 115 legitimately-accessible rows in
+  -- production; every one of them satisfied can_access_conversation.
   if (select count(*) from public.media_assets m
         where not (
           (m.customer_id is not null
              and m.customer_id in (select id from public.customers where seller_id = lucas))
           or (m.conversation_id is not null
-             and m.conversation_id in (select id from public.conversations where assigned_seller_id = lucas))
+             and public.can_access_conversation(m.conversation_id))
         )) <> 0 then
     raise exception 'lucas: must only see media tied to his own customers/conversations (#43)';
   end if;
