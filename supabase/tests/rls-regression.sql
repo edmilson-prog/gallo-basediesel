@@ -58,6 +58,19 @@ reset role;
 -- ---------------------------------------------------------------------------
 -- Principal: LUCAS (seller_internal, non-staff) — own carteira + pool only.
 -- ---------------------------------------------------------------------------
+-- "Should see" assertions test that RLS does not HIDE what belongs to the
+-- principal — they are not a statement about the dataset having rows. Against a
+-- database where the table happens to be empty (`orders` is empty in
+-- production) a bare `count(*) = 0` check fails for a reason that has nothing
+-- to do with RLS. Capture the privileged count first and only demand
+-- visibility when there is in fact something to see.
+select set_config(
+  'rls_regression.orders_lucas',
+  (select count(*)::text from public.orders
+    where seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887'),
+  true
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
@@ -90,7 +103,8 @@ begin
           )) <> 0 then
     raise exception 'lucas: must not see other sellers'' customers without an accessible conversation (cross-leak)';
   end if;
-  if (select count(*) from public.orders) = 0 then
+  if coalesce(current_setting('rls_regression.orders_lucas', true), '0')::int > 0
+     and (select count(*) from public.orders) = 0 then
     raise exception 'lucas: should see his own orders';
   end if;
   if (select count(*) from public.orders where seller_id <> lucas) <> 0 then
