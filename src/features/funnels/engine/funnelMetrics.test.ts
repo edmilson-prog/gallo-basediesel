@@ -93,6 +93,52 @@ describe("summariseStage", () => {
     expect(summary.overdueCount).toBe(0);
   });
 
+  // Finding 10: overdue must compare CALENDAR DATES in São Paulo, not raw
+  // instants — nextActionAt's UTC date part is the due date (see
+  // leads/utils/leadDraft.ts), and must not be shifted before reading it.
+  describe("overdue timezone boundary (Finding 10)", () => {
+    // 23:00 in São Paulo (UTC-03:00) on 2026-07-23 is 2026-07-24T02:00:00Z.
+    const lateEveningSaoPaulo = new Date("2026-07-24T02:00:00.000Z");
+
+    it("does NOT count today's (São Paulo) due date as overdue at 23:00 local", () => {
+      const summary = summariseStage({
+        stageId: "s-1",
+        entries: [entry("lead-1", "catalisador")],
+        // Due date encoded as UTC midnight of 2026-07-23 (today in São Paulo
+        // at this instant) — see leadDraft.ts's date-only picker convention.
+        nextActionByLeadId: { "lead-1": "2026-07-23T00:00:00.000Z" },
+        now: lateEveningSaoPaulo,
+      });
+      expect(summary.overdueCount).toBe(0);
+    });
+
+    it("counts yesterday's due date as overdue", () => {
+      const summary = summariseStage({
+        stageId: "s-1",
+        entries: [entry("lead-1", "catalisador")],
+        nextActionByLeadId: { "lead-1": "2026-07-22T00:00:00.000Z" },
+        now: lateEveningSaoPaulo,
+      });
+      expect(summary.overdueCount).toBe(1);
+    });
+
+    it("does not misfire in the 21:00-to-midnight São Paulo window (old bug)", () => {
+      // 21:30 in São Paulo on 2026-07-22 is 2026-07-23T00:30:00Z — a raw
+      // instant compare against a due date encoded as 2026-07-23T00:00:00Z
+      // (UTC midnight = the due date itself) would wrongly fire, ~3h early,
+      // because the instant already lies in the past even though "today" in
+      // São Paulo is still 2026-07-22.
+      const nowInWindow = new Date("2026-07-23T00:30:00.000Z");
+      const summary = summariseStage({
+        stageId: "s-1",
+        entries: [entry("lead-1", "catalisador")],
+        nextActionByLeadId: { "lead-1": "2026-07-23T00:00:00.000Z" },
+        now: nowInWindow,
+      });
+      expect(summary.overdueCount).toBe(0);
+    });
+  });
+
   // A caller may pass a whole funnel's entries (every stage mixed together)
   // instead of pre-filtering to one column — summariseStage must still return
   // ONLY that stage's own figures, not the funnel's total mislabelled with

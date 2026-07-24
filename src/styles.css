@@ -70,11 +70,16 @@
   --gallo-info-medium: #3b82f6;
   --gallo-info-dark: #1d4ed8;
 
-  /* Severidade — escala dedicada (constante nos 4 temas; tratamento tonal) */
-  --gallo-sev-info: #2563eb;
-  --gallo-sev-success: #16a34a;
-  --gallo-sev-warning: #d97706;
-  --gallo-sev-critical: #dc2626;
+  /* Severidade — escala dedicada (constante nos 4 temas; tratamento tonal).
+     Light-mode values darkened vs. their surface-calibrated siblings so the
+     SAME primitive also clears WCAG 1.4.3 (4.5:1) when used as TEXT — both
+     as solid text on --card and as text over its own bg-severity tint wash
+     (the /15 opacity utility). Dark-mode values below (in .dark) already
+     clear 4.5:1 and are untouched. */
+  --gallo-sev-info: #1658ea;
+  --gallo-sev-success: #107636;
+  --gallo-sev-warning: #9b5504;
+  --gallo-sev-critical: #c31f1f;
 
   /* Identidade de funil — escala dedicada (constante nos 4 temas; tratamento
      tonal, mesmo padrão da severidade). Slot 0 é o neutro, reservado ao funil

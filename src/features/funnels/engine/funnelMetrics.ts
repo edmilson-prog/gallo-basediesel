@@ -1,6 +1,37 @@
 import type { ID, IFunnelBoardSummary, ILeadFunnelEntry, ISO8601 } from "@/shared/types";
 
 /**
+ * São Paulo is a fixed UTC-03:00 offset (Brazil has had no DST since 2019) —
+ * same precedent as src/features/access/engine/workSchedule.ts. Kept as a
+ * small local helper (not imported from workSchedule.ts) so this pure engine
+ * never depends on another feature.
+ */
+const SAO_PAULO_OFFSET_MINUTES = 180;
+
+/**
+ * CROSS-CHECK RULE (mirrored in the SQL function lead_funnel_board_summary):
+ * "overdue" compares CALENDAR DATES, not instants. `nextActionAt` is written
+ * as UTC midnight of a date-only picker value (see leads/utils/leadDraft.ts),
+ * so its UTC date part IS the intended due date — it must NOT be shifted into
+ * São Paulo before taking its date (that would move the due date back a day).
+ * Only `now` gets shifted, to derive "today" in São Paulo. A membership is
+ * overdue when its due date is strictly before today's São Paulo date.
+ */
+function utcDateOnly(iso: ISO8601): string {
+  const d = new Date(iso);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Today's calendar date in São Paulo, derived from a fixed -03:00 offset. */
+function saoPauloDateOnly(date: Date): string {
+  const shifted = new Date(date.getTime() - SAO_PAULO_OFFSET_MINUTES * 60_000);
+  return utcDateOnly(shifted.toISOString());
+}
+
+/**
  * Distinct leads across memberships.
  *
  * With N:N the per-funnel counts must never be summed: a lead in three funnels
@@ -21,7 +52,7 @@ export interface ISummariseStageInput {
 
 /** Column header aggregate: count, summed value and how many are overdue. */
 export function summariseStage(input: ISummariseStageInput): IFunnelBoardSummary {
-  const nowMs = input.now.getTime();
+  const todaySaoPaulo = saoPauloDateOnly(input.now);
   let count = 0;
   let sumValue = 0;
   let overdueCount = 0;
@@ -38,7 +69,7 @@ export function summariseStage(input: ISummariseStageInput): IFunnelBoardSummary
     sumValue += entry.estimatedValue ?? 0;
 
     const nextAction = input.nextActionByLeadId[entry.leadId];
-    if (nextAction && new Date(nextAction).getTime() < nowMs) {
+    if (nextAction && utcDateOnly(nextAction) < todaySaoPaulo) {
       overdueCount += 1;
     }
   }

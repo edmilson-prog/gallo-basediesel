@@ -1,12 +1,14 @@
 import type {
   ID,
   IFunnelBoardSummary,
+  ILead,
   ILeadFunnel,
   ILeadFunnelEntry,
   ILeadFunnelStage,
 } from "@/shared/types";
 import type { ILeadFunnelsProvider } from "../../contracts/leadFunnels";
 import { planAddToFunnel, planRemoveFromFunnel } from "@/features/funnels/engine/membershipRules";
+import { planStageTransition } from "@/features/funnels/engine/stageTransition";
 import { resolveAccessibleFunnels } from "@/features/funnels/engine/accessibleFunnels";
 import { summariseStage } from "@/features/funnels/engine/funnelMetrics";
 import { getMockState } from "../../../../mocks/store/mockStore";
@@ -30,8 +32,116 @@ let entries: ILeadFunnelEntry[] = [];
 let access: Array<{ funnelId: ID; sellerId: ID }> = [];
 let seeded = false;
 
+// Reference (not content) of the `leads` array `entries` was last derived
+// from. `useMockStore`'s mutators (`upsert`/`patchById`/`removeById` in
+// `mocks/store/mutations.ts`) never mutate the array in place — every create,
+// update, delete AND `resetMockStore` (`useResetMocks` on /design-system)
+// swaps in a brand-new array reference. That makes `===` a free, reliable
+// staleness signal — cheaper and more robust than diffing ids, since a reset
+// reseeds `lead-0001..NNNN` with the SAME sequence-derived ids but entirely
+// different records (VOLUMES.leads is a fixed count), so an id-set comparison
+// alone would miss it.
+let lastSyncedLeads: ILead[] | undefined;
+
+/**
+ * Builds the DEFAULT funnel's membership set from scratch, purely as a
+ * function of the leads passed in. The single source of truth both
+ * `seedOnce` (initial population) and `reconcileWithLeadStore` (post-reset
+ * re-derivation) delegate to, so the two call sites can never drift apart
+ * again — see the comment at each call site for why an id-set patch (the
+ * previous approach) doesn't work here.
+ *
+ * Per-lead stage precedence mirrors the SQL backfill: `convertedToCustomerId`
+ * -> the `ganho` stage; `lossReason` -> the `perda` stage; otherwise the
+ * `aberta` stage whose name matches the lead's legacy `stage.name` snapshot;
+ * falling back to the funnel's `entrada` stage when nothing matched (or a
+ * stage kind is missing entirely, defensively).
+ */
+function buildDefaultFunnelEntries(
+  leads: ILead[],
+  defaultFunnel: ILeadFunnel,
+  defaultStages: ILeadFunnelStage[],
+): ILeadFunnelEntry[] {
+  const entryStage = defaultStages.find((s) => s.kind === "entrada");
+  const wonStage = defaultStages.find((s) => s.kind === "ganho");
+  const lostStage = defaultStages.find((s) => s.kind === "perda");
+
+  // Explicit `: ILeadFunnelEntry | null` return type (instead of `satisfies`)
+  // so the mapped array element type is exactly `ILeadFunnelEntry | null` —
+  // `satisfies` alone keeps the wider literal-inferred type (every optional
+  // property becomes a required `T | undefined` key), which then fails the
+  // `e is ILeadFunnelEntry` predicate below (TS2677: the asserted type must be
+  // assignable to the narrower literal type, and it no longer is).
+  return leads
+    .map((lead, index): ILeadFunnelEntry | null => {
+      const matched = lead.convertedToCustomerId
+        ? wonStage
+        : lead.lossReason
+          ? lostStage
+          : defaultStages.find(
+              (s) => s.name.toLowerCase() === lead.stage.name.toLowerCase() && s.kind === "aberta",
+            );
+      const stage = matched ?? entryStage;
+      if (!stage) return null;
+      return {
+        id: makeId("entry", index),
+        leadId: lead.id,
+        funnelId: defaultFunnel.id,
+        stageId: stage.id,
+        storeId: lead.storeId,
+        sellerId: lead.sellerId,
+        estimatedValue: lead.estimatedValue,
+        convertedToCustomerId: lead.convertedToCustomerId,
+        lossReason: lead.lossReason,
+        lossNotes: lead.lossNotes,
+        enteredStageAt: lead.updatedAt,
+        createdAt: lead.createdAt,
+        updatedAt: lead.updatedAt,
+      };
+    })
+    .filter((e): e is ILeadFunnelEntry => e !== null);
+}
+
+/**
+ * Keeps `entries` honest against whatever `leads` currently holds. Runs on
+ * every `seedOnce()` call (i.e. every provider method), but is a no-op unless
+ * the `leads` reference actually changed since the last sync.
+ *
+ * Fixes finding 11b (remediation v2): the first attempt reconciled by id-set
+ * membership (drop entries whose `leadId` vanished, backfill leads with none)
+ * — that is INEFFECTIVE against a mock-store reset. `VOLUMES.leads` is a
+ * fixed count and mock lead ids are index-derived (`lead-0001..NNNN`), so a
+ * reset regenerates the exact same ids attached to entirely different
+ * records. An id-set diff finds nothing to drop or backfill, so every stale
+ * membership survives — now silently pointing at the WRONG lead's stage,
+ * which is worse than the original empty-board symptom.
+ *
+ * The fix: re-derive the entire default-funnel membership set from scratch
+ * via `buildDefaultFunnelEntries` — the exact same derivation `seedOnce`
+ * uses — instead of patching the old array. This is also why a membership a
+ * user created in a NON-default funnel during the session does not survive a
+ * reset: a reset replaces the whole dataset, and a manually created
+ * cross-funnel membership has no lead-derived source of truth to rebuild
+ * from — keeping it around would leave it pointing at a reused id under a
+ * now-unrelated lead, exactly the class of bug this function exists to fix.
+ */
+function reconcileWithLeadStore(): void {
+  const currentLeads = getMockState().leads;
+  if (currentLeads === lastSyncedLeads) return;
+  lastSyncedLeads = currentLeads;
+
+  const defaultFunnel = funnels.find((f) => f.isDefault);
+  if (!defaultFunnel) return; // seeding guarantees one; defensive no-op otherwise
+  const defaultStages = stages.filter((s) => s.funnelId === defaultFunnel.id);
+
+  entries = buildDefaultFunnelEntries(currentLeads, defaultFunnel, defaultStages);
+}
+
 function seedOnce(): void {
-  if (seeded) return;
+  if (seeded) {
+    reconcileWithLeadStore();
+    return;
+  }
   seeded = true;
 
   const specs: Array<{
@@ -89,7 +199,9 @@ function seedOnce(): void {
   );
 
   // Every existing mock lead joins the default funnel, on the stage whose name
-  // matches its legacy snapshot — mirroring the SQL backfill.
+  // matches its legacy snapshot — mirroring the SQL backfill. Delegated to
+  // `buildDefaultFunnelEntries`, the same derivation `reconcileWithLeadStore`
+  // re-runs after a mock-store reset, so the two can never drift apart.
   //
   // `funnels[0]` is a `noUncheckedIndexedAccess` read (T | undefined) — resolved
   // via `.find(isDefault)` instead, which both narrows explicitly and is more
@@ -97,44 +209,14 @@ function seedOnce(): void {
   const defaultFunnel = funnels.find((f) => f.isDefault);
   if (!defaultFunnel) throw new Error("[mock] seeding produced no default funnel");
   const defaultStages = stages.filter((s) => s.funnelId === defaultFunnel.id);
-  const entryStage = defaultStages.find((s) => s.kind === "entrada");
-  const wonStage = defaultStages.find((s) => s.kind === "ganho");
-  const lostStage = defaultStages.find((s) => s.kind === "perda");
 
-  // Explicit `: ILeadFunnelEntry | null` return type (instead of `satisfies`)
-  // so the mapped array element type is exactly `ILeadFunnelEntry | null` —
-  // `satisfies` alone keeps the wider literal-inferred type (every optional
-  // property becomes a required `T | undefined` key), which then fails the
-  // `e is ILeadFunnelEntry` predicate below (TS2677: the asserted type must be
-  // assignable to the narrower literal type, and it no longer is).
-  entries = getMockState()
-    .leads.map((lead, index): ILeadFunnelEntry | null => {
-      const matched = lead.convertedToCustomerId
-        ? wonStage
-        : lead.lossReason
-          ? lostStage
-          : defaultStages.find(
-              (s) => s.name.toLowerCase() === lead.stage.name.toLowerCase() && s.kind === "aberta",
-            );
-      const stage = matched ?? entryStage;
-      if (!stage) return null;
-      return {
-        id: makeId("entry", index),
-        leadId: lead.id,
-        funnelId: defaultFunnel.id,
-        stageId: stage.id,
-        storeId: lead.storeId,
-        sellerId: lead.sellerId,
-        estimatedValue: lead.estimatedValue,
-        convertedToCustomerId: lead.convertedToCustomerId,
-        lossReason: lead.lossReason,
-        lossNotes: lead.lossNotes,
-        enteredStageAt: lead.updatedAt,
-        createdAt: lead.createdAt,
-        updatedAt: lead.updatedAt,
-      };
-    })
-    .filter((e): e is ILeadFunnelEntry => e !== null);
+  const seedLeads = getMockState().leads;
+  entries = buildDefaultFunnelEntries(seedLeads, defaultFunnel, defaultStages);
+  // Marks `entries` as already in sync with `seedLeads` — the very next
+  // `seedOnce()` call (any provider method) would otherwise immediately
+  // re-run `reconcileWithLeadStore()` and find nothing changed, but only
+  // after paying for a full leads/entries scan.
+  lastSyncedLeads = seedLeads;
 }
 
 export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
@@ -172,7 +254,27 @@ export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
     // `index >= 0` guard, since TS cannot correlate the two.
     const target = funnels.find((f) => f.id === id);
     if (!target) throw new Error(`[mock] funnel ${id} not found`);
-    const updated: ILeadFunnel = { ...target, ...patch, id, updatedAt: nowIso() };
+    // Whitelist mirrors the Supabase implementation field-for-field —
+    // `isDefault`/`storeId` are immutable in v1 (spec §2) and `archivedAt` is
+    // written only by `archiveFunnel` (which enforces the "never archive the
+    // default funnel" guard this method doesn't have). Spreading the raw
+    // `patch` here previously let `updateFunnel(id, { isDefault: true })`
+    // silently produce two default funnels — corrupting
+    // `planRemoveFromFunnel`'s `funnels.find(f => f.isDefault)` fallback — and
+    // let `updateFunnel(id, { archivedAt })` archive the default funnel by
+    // bypassing `archiveFunnel`'s guard entirely (finding 13).
+    const updated: ILeadFunnel = {
+      ...target,
+      name: patch.name ?? target.name,
+      description: patch.description ?? target.description,
+      accent: patch.accent ?? target.accent,
+      icon: patch.icon ?? target.icon,
+      position: patch.position ?? target.position,
+      openToStore: patch.openToStore ?? target.openToStore,
+      entryAlertThreshold: patch.entryAlertThreshold ?? target.entryAlertThreshold,
+      id,
+      updatedAt: nowIso(),
+    };
     funnels = funnels.map((f) => (f.id === id ? updated : f));
     return updated;
   },
@@ -351,10 +453,35 @@ export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
   async moveEntry(entryId, stageId) {
     seedOnce();
     // `.find()` instead of `findIndex()` + `entries[index]` — see updateFunnel.
-    const target = entries.find((e) => e.id === entryId);
-    if (!target) throw new Error(`[mock] entry ${entryId} not found`);
+    const entry = entries.find((e) => e.id === entryId);
+    if (!entry) throw new Error(`[mock] entry ${entryId} not found`);
+    const targetStage = stages.find((s) => s.id === stageId);
+    if (!targetStage) throw new Error(`[mock] stage ${stageId} not found`);
+
+    // Routed through the engine instead of re-implementing the guard: the FK
+    // `(funnel_id, stage_id)` composite in Supabase rejects a stage from
+    // another funnel with 23503; without this, the mock silently rewrote the
+    // entry's `stageId` alone, leaving `funnelId` pointing at the OLD funnel —
+    // the card then belongs to none of that funnel's stages (disappears from
+    // its board) and never appears on the target stage's real funnel either
+    // (finding 12).
+    const plan = planStageTransition({
+      entry,
+      target: targetStage,
+      siblingEntries: entries.filter((e) => e.leadId === entry.leadId && e.id !== entryId),
+    });
+    if (plan.action === "error") {
+      throw new Error(`[mock] cannot move entry: ${plan.reason}`);
+    }
+    // `noop` / `require_conversion` / `require_loss_reason` are UI-orchestrated
+    // outcomes this contract doesn't carry the extra fields for yet (linked
+    // customer id, loss reason text) — same gap the Supabase implementation
+    // has today (neither calls the engine at all). This fix's scope is
+    // narrowly the cross-funnel guard above; every plan that clears it still
+    // applies the raw stage move exactly as before.
+
     const updated: ILeadFunnelEntry = {
-      ...target,
+      ...entry,
       stageId,
       enteredStageAt: nowIso(),
       updatedAt: nowIso(),
@@ -399,6 +526,16 @@ export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
       // so a length-derived id here is exactly the routine remove→recreate
       // sequence that produces the collision. `crypto.randomUUID()` sidesteps
       // it entirely.
+      //
+      // CONTRACT (mirrors the Supabase implementation — keep both in sync):
+      //   - estimatedValue CARRIES OVER from the removed membership (kept via
+      //     `...target`, explicitly NOT re-derived from the lead — see finding
+      //     7). Re-deriving it here would silently substitute the lead's
+      //     (different) figure and corrupt the forecast.
+      //   - convertedToCustomerId / lossReason / lossNotes are explicitly
+      //     CLEARED, not carried over. Moving back to the default/triage
+      //     funnel means the lead is once again an OPEN opportunity, not a
+      //     closed or converted one dragged back into an active pipeline.
       entries = [
         ...entries,
         {
@@ -406,6 +543,9 @@ export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
           id: `entry-${crypto.randomUUID()}`,
           funnelId: plan.recreateInFunnelId,
           stageId: plan.recreateInStageId,
+          convertedToCustomerId: undefined,
+          lossReason: undefined,
+          lossNotes: undefined,
           enteredStageAt: nowIso(),
           updatedAt: nowIso(),
         },

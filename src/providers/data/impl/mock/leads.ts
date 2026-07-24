@@ -77,7 +77,25 @@ export const mockLeadsProvider: ILeadsProvider = {
   },
   listNotes: (leadId) => leadsApi.listNotes(leadId),
   addNote: (leadId, content, authorId) => leadsApi.addNote(leadId, content, authorId),
-  create: (input) => leadsApi.create(withCreateStoreId(input)),
+  create: async (input) => {
+    const lead = await leadsApi.create(withCreateStoreId(input));
+    // Mirror the production trigger `leads_assign_default_funnel_membership`:
+    // every newly inserted lead gets a membership in the store's default
+    // funnel, on its entry stage. Nothing else in the mock layer does this —
+    // without it, a lead created here (NewLeadModal, the WhatsApp webhook
+    // simulator, ...) has zero memberships and is silently omitted from every
+    // funnel-scoped board while still showing up in the unfiltered list
+    // (finding 11a).
+    const funnels = await mockLeadFunnelsProvider.listFunnels(lead.storeId);
+    const defaultFunnel = funnels.find((f) => f.isDefault);
+    if (!defaultFunnel) throw new Error("[mock] store has no default funnel");
+    // `addEntry` no-ops (returns the existing membership) if seeding — which
+    // reads the lead store fresh on first touch — already picked this lead up
+    // before this call runs, so this is safe to call unconditionally
+    // regardless of seeding order.
+    await mockLeadFunnelsProvider.addEntry(lead.id, defaultFunnel.id);
+    return lead;
+  },
   update: async (id, patch) => {
     const before = await leadsApi.get(id).catch(() => null);
     assertImmutableStoreId(before, patch);

@@ -38,6 +38,7 @@ describe("planStageTransition", () => {
     expect(plan.action).toBe("require_conversion");
     if (plan.action !== "require_conversion") throw new Error("unreachable");
     expect(plan.linkToCustomerId).toBeUndefined();
+    expect(plan.clearLossOutcome).toBe(false);
   });
 
   // Without this the second conversion opens the modal in "new" mode and
@@ -57,6 +58,38 @@ describe("planStageTransition", () => {
       entry: entry(), target: stage("perdido", "perda"), siblingEntries: [],
     });
     expect(plan.action).toBe("require_loss_reason");
+    if (plan.action !== "require_loss_reason") throw new Error("unreachable");
+    expect(plan.clearWonOutcome).toBe(false);
+  });
+
+  // Finding 14: dragging an already-lost entry onto a won stage must instruct
+  // the caller to clear the OLD outcome, or the membership ends up with both
+  // convertedToCustomerId AND lossReason set — every "is lost" predicate in
+  // the codebase keys off lossReason !== undefined, so a WON opportunity
+  // would be reported as lost.
+  it("instructs the caller to clear the loss outcome when a lost entry converts (perda -> ganho)", () => {
+    const plan = planStageTransition({
+      entry: entry({ stageId: "perdido", lossReason: "Preço", lossNotes: "Concorrente mais barato" }),
+      target: stage("convertido", "ganho"),
+      siblingEntries: [],
+    });
+    expect(plan.action).toBe("require_conversion");
+    if (plan.action !== "require_conversion") throw new Error("unreachable");
+    expect(plan.clearLossOutcome).toBe(true);
+  });
+
+  // Mirror case: a converted entry dragged onto Perdido must clear
+  // convertedToCustomerId, or the membership stays linked to a customer while
+  // also carrying a loss reason.
+  it("instructs the caller to clear the won outcome when a converted entry is lost (ganho -> perda)", () => {
+    const plan = planStageTransition({
+      entry: entry({ stageId: "convertido", convertedToCustomerId: "cust-1" }),
+      target: stage("perdido", "perda"),
+      siblingEntries: [],
+    });
+    expect(plan.action).toBe("require_loss_reason");
+    if (plan.action !== "require_loss_reason") throw new Error("unreachable");
+    expect(plan.clearWonOutcome).toBe(true);
   });
 
   it("allows reopening a closed membership back into an open stage", () => {

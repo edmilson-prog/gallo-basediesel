@@ -9,7 +9,7 @@ import type {
 } from "@/shared/types";
 import type { ILeadFunnelsProvider } from "../../contracts/leadFunnels";
 import { getSupabaseClient } from "@/shared/lib/supabase";
-import { planRemoveFromFunnel } from "@/features/funnels/engine/membershipRules";
+import { planAddToFunnel, planRemoveFromFunnel } from "@/features/funnels/engine/membershipRules";
 
 /**
  * Supabase implementation of {@link ILeadFunnelsProvider}.
@@ -263,23 +263,45 @@ export const supabaseLeadFunnelsProvider: ILeadFunnelsProvider = {
 
   async replaceAccess(funnelId, sellerIds) {
     const client = getSupabaseClient();
-    const { error: deleteError } = await client
-      .from("lead_funnel_access")
-      .delete()
-      .eq("funnel_id", funnelId);
-    if (deleteError) {
-      throw new Error(
-        `[supabase] replaceAccess(${funnelId}) delete failed: ${deleteError.message}`,
-      );
-    }
-    if (sellerIds.length === 0) return;
 
-    const { error: insertError } = await client
-      .from("lead_funnel_access")
-      .insert(sellerIds.map((sellerId) => ({ funnel_id: funnelId, seller_id: sellerId })));
-    if (insertError) {
+    // Upsert the new grants BEFORE deleting the stale ones — same non-destructive
+    // ordering as replaceStages, and for the same reason: two non-transactional
+    // PostgREST calls means a mid-failure must never leave FEWER grants than
+    // before. Delete-then-insert (the previous order) made every grant durable-
+    // gone the instant the delete committed, so an insert failure (dropped
+    // connection, stale seller_id FK 23503, RLS with-check rejection) silently
+    // locked every previously-granted seller out of a restricted funnel with no
+    // way for a retry to say the grants were destroyed.
+    if (sellerIds.length > 0) {
+      const { error: upsertError } = await client
+        .from("lead_funnel_access")
+        .upsert(
+          sellerIds.map((sellerId) => ({ funnel_id: funnelId, seller_id: sellerId })),
+          { onConflict: "funnel_id,seller_id" },
+        );
+      if (upsertError) {
+        throw new Error(
+          `[supabase] replaceAccess(${funnelId}) upsert failed: ${upsertError.message}`,
+        );
+      }
+    }
+
+    const keptIds = sellerIds;
+    // Same empty-`in ()` hazard as replaceStages: a `.not("seller_id", "in", "()")`
+    // with an empty list is malformed SQL. When nothing is kept, every existing
+    // grant for this funnel is an orphan, so delete unconditionally for this
+    // funnel instead of building the `in (...)` filter.
+    const deleteResult =
+      keptIds.length > 0
+        ? await client
+            .from("lead_funnel_access")
+            .delete()
+            .eq("funnel_id", funnelId)
+            .not("seller_id", "in", `(${keptIds.join(",")})`)
+        : await client.from("lead_funnel_access").delete().eq("funnel_id", funnelId);
+    if (deleteResult.error) {
       throw new Error(
-        `[supabase] replaceAccess(${funnelId}) insert failed: ${insertError.message}`,
+        `[supabase] replaceAccess(${funnelId}) delete failed: ${deleteResult.error.message}`,
       );
     }
   },
@@ -376,27 +398,64 @@ export const supabaseLeadFunnelsProvider: ILeadFunnelsProvider = {
   async addEntry(leadId, funnelId, stageId) {
     const client = getSupabaseClient();
 
-    let targetStageId = stageId;
-    if (!targetStageId) {
-      const { data, error } = await client
-        .from("lead_funnel_stages")
-        .select("id")
-        .eq("funnel_id", funnelId)
-        .eq("kind", "entrada")
-        .single();
-      if (error) throw new Error(`[supabase] addEntry: no entry stage: ${error.message}`);
-      targetStageId = (data as { id: string }).id;
+    // Route through the same guard the mock's addEntry uses (planAddToFunnel)
+    // instead of inserting directly. Without it, a double-click on "Adicionar
+    // ao funil" hit the unique constraint on (lead_id, funnel_id) and surfaced
+    // 'duplicate key value violates unique constraint "lead_funnel_entries_
+    // unique"' — a raw, untranslated Postgres string — in a pt-BR UI where the
+    // contract says a re-add is a silent noop. An explicit stageId belonging
+    // to a different funnel now also surfaces the engine's typed
+    // 'invalid_stage' reason instead of an FK/CHECK violation.
+    const [funnelResult, stagesResult, existing, leadResult] = await Promise.all([
+      client.from("lead_funnels").select(FUNNEL_COLUMNS).eq("id", funnelId).single(),
+      client.from("lead_funnel_stages").select(STAGE_COLUMNS).eq("funnel_id", funnelId),
+      this.listEntriesByLead(leadId),
+      client.from("leads").select("estimated_value").eq("id", leadId).single(),
+    ]);
+
+    if (funnelResult.error) {
+      throw new Error(
+        `[supabase] addEntry: funnel ${funnelId} not found: ${funnelResult.error.message}`,
+      );
+    }
+    if (stagesResult.error) {
+      throw new Error(
+        `[supabase] addEntry: stages for funnel ${funnelId} failed: ${stagesResult.error.message}`,
+      );
+    }
+    if (leadResult.error) {
+      throw new Error(`[supabase] addEntry: lead ${leadId} not found: ${leadResult.error.message}`);
+    }
+
+    const funnel = rowToFunnel(funnelResult.data as FunnelRow);
+    const stages = (stagesResult.data as StageRow[]).map(rowToStage);
+    const leadEstimatedValue =
+      (leadResult.data as { estimated_value: number | null }).estimated_value ?? undefined;
+
+    const plan = planAddToFunnel({ existing, funnel, stages, leadEstimatedValue, stageId });
+
+    if (plan.action === "error") {
+      throw new Error(`[supabase] cannot add to funnel: ${plan.reason}`);
+    }
+    if (plan.action === "noop") {
+      const already = existing.find((e) => e.funnelId === funnelId);
+      if (!already) throw new Error("[supabase] inconsistent membership state");
+      return already;
     }
 
     // store_id and seller_id are omitted on purpose: the before-insert trigger
     // derives them from the lead. store_id is NOT NULL, so a placeholder is
-    // required to satisfy the parser; the trigger overwrites it.
+    // required to satisfy the parser; the trigger overwrites it. estimated_value
+    // is likewise omitted here — the trigger fills it from the lead when it is
+    // NULL, which is exactly `plan.estimatedValue`'s source (the lead's current
+    // value), read fresh at insert time rather than from our slightly-earlier
+    // fetch.
     const { data, error } = await client
       .from("lead_funnel_entries")
       .insert({
         lead_id: leadId,
-        funnel_id: funnelId,
-        stage_id: targetStageId,
+        funnel_id: plan.funnelId,
+        stage_id: plan.stageId,
         store_id: "00000000-0000-0000-0000-000000000000",
       })
       .select(ENTRY_COLUMNS)
@@ -486,14 +545,54 @@ export const supabaseLeadFunnelsProvider: ILeadFunnelsProvider = {
     // are in different funnels, so the unique index on (lead_id, funnel_id)
     // tolerates it) rather than ZERO, which is exactly the invariant this
     // whole flow exists to protect.
+    //
+    // This recreate deliberately bypasses `this.addEntry` (and its
+    // planAddToFunnel guard): it is engine-computed by planRemoveFromFunnel
+    // above, not a user request that could be a stale duplicate, so the
+    // funnel/stage pairing is already known-good. It also needs write access
+    // `addEntry` doesn't expose — see the CONTRACT note below.
+    //
+    // CONTRACT (mirrored by the mock's removeEntry — keep both in sync):
+    //   - estimatedValue CARRIES OVER from the removed membership, explicitly.
+    //     `lead_funnel_entries_derive_owner` only fills estimated_value from
+    //     the LEAD when the inserted value is NULL, so leaving it out here
+    //     would silently substitute the lead's (different) number and corrupt
+    //     the forecast — the exact bug this fix closes.
+    //   - lossReason / lossNotes / convertedToCustomerId are explicitly
+    //     CLEARED, not carried over. Moving back to the default/triage funnel
+    //     means the lead is once again an OPEN opportunity, not a closed or
+    //     converted one dragged back into an active pipeline.
     if (plan.movedToDefault && plan.recreateInFunnelId && plan.recreateInStageId) {
-      await this.addEntry(target.leadId, plan.recreateInFunnelId, plan.recreateInStageId);
+      const { error: recreateError } = await client.from("lead_funnel_entries").insert({
+        lead_id: target.leadId,
+        funnel_id: plan.recreateInFunnelId,
+        stage_id: plan.recreateInStageId,
+        store_id: "00000000-0000-0000-0000-000000000000",
+        estimated_value: target.estimatedValue ?? null,
+        converted_to_customer_id: null,
+        loss_reason: null,
+        loss_notes: null,
+      });
+      if (recreateError) {
+        throw new Error(
+          `[supabase] removeEntry(${entryId}) recreate-in-default failed: ${recreateError.message}`,
+        );
+      }
     }
 
+    // `.select().single()` proves the delete actually affected a row. Without
+    // it, an RLS-blocked delete (e.g. a pool attendant who can SELECT this
+    // membership via seller_handles_lead but isn't covered by the DELETE
+    // policy, which deliberately omits that branch) matches zero rows,
+    // PostgREST returns no error, and the caller was told `movedToDefault`
+    // succeeded while the membership silently survives — the card would
+    // reappear on the next refetch with no error ever surfaced.
     const { error: deleteError } = await client
       .from("lead_funnel_entries")
       .delete()
-      .eq("id", entryId);
+      .eq("id", entryId)
+      .select("id")
+      .single();
     if (deleteError)
       throw new Error(`[supabase] removeEntry(${entryId}) failed: ${deleteError.message}`);
 

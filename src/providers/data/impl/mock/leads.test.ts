@@ -15,6 +15,14 @@ import { leadsApi } from "@/mocks";
 import { resetMockStorePerFile } from "@/mocks/test-setup";
 import { mockLeadsProvider } from "./leads";
 import { mockLeadFunnelsProvider } from "./leadFunnels";
+// Relative import to the mock store's internal reset — mirrors how
+// `leadFunnels.ts` itself reaches `getMockState` (see the mock-provider
+// ESLint carve-out in `eslint.config.js`: alias imports like `@/mocks/store/*`
+// stay forbidden even inside `impl/mock`, but this relative path is the same
+// escape hatch the provider under test already uses). This is the store-level
+// reset `useResetMocks` calls — the React hook itself isn't callable outside
+// a component, so the test drives the underlying primitive directly.
+import { getMockState, resetMockStore } from "../../../../mocks/store/mockStore";
 
 resetMockStorePerFile();
 
@@ -121,5 +129,113 @@ describe("mockLeadsProvider.list — funnel scope (listByFunnel)", () => {
     for (const lead of page2.data) {
       expect(page1Ids.has(lead.id)).toBe(false);
     }
+  });
+});
+
+/**
+ * Regression coverage for finding 11a: nothing in the mock layer used to
+ * mirror the production trigger `leads_assign_default_funnel_membership` —
+ * a lead created through `mockLeadsProvider.create` (NewLeadModal, the
+ * WhatsApp webhook simulator, ...) had zero funnel memberships and was
+ * silently omitted from every funnel-scoped board.
+ */
+describe("mockLeadsProvider.create — default funnel membership (finding 11a)", () => {
+  it("gives a newly created lead exactly one membership, in the store's default funnel", async () => {
+    const created = await mockLeadsProvider.create({
+      storeId: "00000000-0000-0000-0000-000000000001",
+      sellerId: null,
+      name: "Lead de teste — finding 11a",
+      phone: "5511999990000",
+      stage: { id: "stage-novo", name: "Novo", order: 0, color: "#000000" },
+      temperature: "morno",
+      origin: "outro",
+      tags: [],
+    });
+
+    const memberships = await mockLeadFunnelsProvider.listEntriesByLead(created.id);
+    expect(memberships).toHaveLength(1);
+    expect(memberships[0]?.funnelId).toBe(DEFAULT_FUNNEL_ID);
+  });
+
+  it("makes the new lead show up in a funnel-scoped list, not just the unfiltered one", async () => {
+    const created = await mockLeadsProvider.create({
+      storeId: "00000000-0000-0000-0000-000000000001",
+      sellerId: null,
+      name: "Lead de teste — finding 11a (board)",
+      phone: "5511999990001",
+      stage: { id: "stage-novo", name: "Novo", order: 0, color: "#000000" },
+      temperature: "frio",
+      origin: "whatsapp",
+      tags: [],
+    });
+
+    const scoped = await mockLeadsProvider.list({
+      funnelId: DEFAULT_FUNNEL_ID,
+      pageSize: 10_000,
+    });
+    expect(scoped.data.map((l) => l.id)).toContain(created.id);
+  });
+});
+
+/**
+ * Regression coverage for finding 11b (remediation v2): `reconcileWithLeadStore`
+ * originally reconciled by id-set membership (drop entries whose `leadId`
+ * vanished, backfill leads with none) — INEFFECTIVE against a mock-store
+ * reset. `VOLUMES.leads` is a fixed count and mock lead ids are index-derived
+ * (`lead-0001..NNNN`, see `mocks/generators/lead.ts`), so a reset regenerates
+ * the SAME ids attached to ENTIRELY different records. The id-set diff found
+ * nothing to drop/backfill, so every stale membership survived — pointing at
+ * the WRONG (reused) lead's stage, silently wrong instead of visibly missing.
+ *
+ * This pins the exact property that failed under the old reconcile: after a
+ * reset, the set of leads with a `ganho` membership must equal the set of
+ * leads that are ACTUALLY converted post-reset.
+ */
+describe("mockLeadFunnelsProvider — reconcile after a mock-store reset (finding 11b, remediation v2)", () => {
+  it("re-derives every membership from the current lead set — won memberships track actually-converted leads", async () => {
+    // Force seeding before the reset, so this test genuinely exercises the
+    // POST-reset reconcile branch (`reconcileWithLeadStore`) rather than a
+    // fresh `seedOnce()` that happens to run after the reset by coincidence.
+    await mockLeadFunnelsProvider.listEntriesByFunnel(DEFAULT_FUNNEL_ID);
+
+    // Drive the store-level reset directly — the same primitive
+    // `useResetMocks` calls (`resetMockStore`), with a DIFFERENT seed
+    // (mirroring its default `Date.now() % 100_000`, which is virtually never
+    // the seed already loaded) — swaps `leads` for a new array of
+    // `VOLUMES.leads` entries carrying the SAME `lead-0001..NNNN` ids but
+    // different converted/lost/stage data. `useResetMocks` itself is a React
+    // hook and isn't callable outside a component, so the test drives the
+    // underlying store primitive it wraps.
+    resetMockStore(90210);
+
+    const currentLeads = getMockState().leads;
+    const actuallyWonLeadIds = new Set(
+      currentLeads.filter((l) => l.convertedToCustomerId !== undefined).map((l) => l.id),
+    );
+    // Sanity: the reseeded dataset must contain at least one converted lead,
+    // or this test can't distinguish "reconciled correctly" from "nothing to
+    // reconcile".
+    expect(actuallyWonLeadIds.size).toBeGreaterThan(0);
+
+    const stages = await mockLeadFunnelsProvider.listStages(DEFAULT_FUNNEL_ID);
+    const wonStage = stages.find((s) => s.kind === "ganho");
+    if (!wonStage) throw new Error("default funnel seed produced no 'ganho' stage");
+
+    const entries = await mockLeadFunnelsProvider.listEntriesByFunnel(DEFAULT_FUNNEL_ID);
+    const wonMembershipLeadIds = new Set(
+      entries.filter((e) => e.stageId === wonStage.id).map((e) => e.leadId),
+    );
+
+    // The exact assertion that failed before the fix (`sets match? false`):
+    // every lead with a `ganho` membership post-reconcile is exactly the set
+    // of leads actually converted post-reset — no stale winners, none missing.
+    expect([...wonMembershipLeadIds].sort()).toEqual([...actuallyWonLeadIds].sort());
+
+    // Full re-derivation, not a partial id-set patch: every current lead has
+    // exactly one membership in the default funnel — none orphaned from
+    // before the reset, none missing.
+    expect(entries).toHaveLength(currentLeads.length);
+    const membershipLeadIds = new Set(entries.map((e) => e.leadId));
+    expect(membershipLeadIds.size).toBe(currentLeads.length);
   });
 });
