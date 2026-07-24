@@ -83,7 +83,10 @@ begin
             else 0
           end,
           next_position,
-          case when entry_stage is null then 'entrada' else 'aberta' end
+          -- Explicit cast: a CASE resolves to text, and text->enum is not an
+          -- implicit cast in Postgres (a bare literal would be coerced, a CASE
+          -- result is not). Caught by the pre-apply rehearsal.
+          (case when entry_stage is null then 'entrada' else 'aberta' end)::public.lead_funnel_stage_kind
         )
         returning id into last_open_stage;
         if entry_stage is null then
