@@ -46,4 +46,10 @@ describe("deriveGoalPace", () => {
     expect(result.paceLabel).toBe("aguardando dados do mês");
     expect(result.projectedDate).toBeNull();
   });
+
+  it("returns a not-enough-pace label when progress is still zero partway through the period", () => {
+    const result = deriveGoalPace(goal({ currentValue: 0 }), new Date("2026-07-16T00:00:00.000Z"));
+    expect(result.paceLabel).toBe("sem ritmo suficiente para projetar");
+    expect(result.projectedDate).toBeNull();
+  });
 });

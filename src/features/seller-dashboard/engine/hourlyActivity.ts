@@ -6,14 +6,15 @@ export interface IHourlyActivityPoint {
 
 const HOUR_MS = 60 * 60 * 1000;
 const BRT_OFFSET_MS = 3 * HOUR_MS;
-const WINDOW_HOURS = 7;
 
 /**
  * Buckets conversations by hour-of-day for the same calendar day as
- * `referenceIso`, in America/Sao_Paulo time (fixed UTC-3 — Brazil has had
- * no DST since 2019, so a plain offset subtraction is deterministic and
- * doesn't depend on the runtime's local timezone). Returns a rolling
- * window of `WINDOW_HOURS + 1` points ending at the reference hour.
+ * `referenceIso`, in America/Sao_Paulo time (fixed UTC-3 — no DST since
+ * 2019). Returns one point per hour from 0 up to the reference hour
+ * (inclusive) — the FULL elapsed BRT day so far, not a rolling window —
+ * so the sum of `count` across all points always equals the number of
+ * conversations created today, matching the "Atendimentos" KPI total for
+ * the "hoje" period (see `engine/period.ts`).
  */
 export function bucketConversationsByHour(
   conversations: { createdAt: string }[],
@@ -24,7 +25,6 @@ export function bucketConversationsByHour(
   const refBrt = toBrt(referenceIso);
   const refDayKey = refBrt.toISOString().slice(0, 10);
   const currentHour = refBrt.getUTCHours();
-  const startHour = Math.max(0, currentHour - WINDOW_HOURS);
 
   const counts = new Map<number, number>();
   for (const conv of conversations) {
@@ -35,7 +35,7 @@ export function bucketConversationsByHour(
   }
 
   const points: IHourlyActivityPoint[] = [];
-  for (let hour = startHour; hour <= currentHour; hour++) {
+  for (let hour = 0; hour <= currentHour; hour++) {
     points.push({ hour, label: `${hour}h`, count: counts.get(hour) ?? 0 });
   }
   return points;

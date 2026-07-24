@@ -15,7 +15,7 @@ export interface IUseSellerRankingResult {
  */
 export function useSellerRanking(storeId: ID, sellerId: ID): IUseSellerRankingResult {
   const period = useMemo(() => resolvePeriod("mensal"), []);
-  const ranking = useRanking({ period, scope: { storeId } });
+  const ranking = useRanking({ period, scope: { storeId }, enabled: Boolean(storeId) });
 
   const entry = useMemo(
     () => ranking.ranking.find((e) => e.sellerId === sellerId) ?? null,

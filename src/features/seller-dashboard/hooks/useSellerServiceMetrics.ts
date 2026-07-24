@@ -70,6 +70,7 @@ export function useSellerServiceMetrics(
         pageSize: PAGE_SIZE,
       }),
     staleTime: STALE_MS,
+    enabled: Boolean(storeId) && Boolean(sellerId),
   });
 
   const ordersQuery = useQuery({
@@ -83,6 +84,7 @@ export function useSellerServiceMetrics(
         pageSize: PAGE_SIZE,
       }),
     staleTime: STALE_MS,
+    enabled: Boolean(storeId) && Boolean(sellerId),
   });
 
   const escalationsQuery = useQuery({
@@ -90,12 +92,14 @@ export function useSellerServiceMetrics(
     queryFn: () =>
       sdrEscalationsProvider.list({ storeId, fromDate: window.startIso, toDate: window.endIso }),
     staleTime: STALE_MS,
+    enabled: Boolean(storeId) && Boolean(sellerId),
   });
 
   const sellersQuery = useQuery({
     queryKey: ["seller-dashboard", "sellers", storeId],
     queryFn: () => sellersProvider.list({ storeId, active: true }),
     staleTime: STALE_MS,
+    enabled: Boolean(storeId) && Boolean(sellerId),
   });
 
   const conversationsAll = useMemo<IConversation[]>(

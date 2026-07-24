@@ -2,19 +2,21 @@ import { describe, expect, it } from "vitest";
 import { resolveSellerPeriod } from "./period";
 
 describe("resolveSellerPeriod", () => {
-  it("resolves 'hoje' as the BRT calendar day (00:00 BRT to now), with the full previous BRT day before it", () => {
-    const w = resolveSellerPeriod("hoje", "2026-07-23T17:00:00.000Z"); // 14h BRT
+  it("resolves 'hoje' as the BRT calendar day (00:00 BRT to now), with a same-elapsed-time previous-day window for fair deltas", () => {
+    const w = resolveSellerPeriod("hoje", "2026-07-23T17:00:00.000Z"); // 14h BRT = 14h elapsed since BRT midnight
     expect(w.label).toBe("Hoje");
     expect(w.startIso).toBe("2026-07-23T03:00:00.000Z"); // 00:00 BRT = 03:00 UTC
     expect(w.endIso).toBe("2026-07-23T17:00:00.000Z");
     expect(w.previousStartIso).toBe("2026-07-22T03:00:00.000Z"); // 00:00 BRT the day before
-    expect(w.previousEndIso).toBe(w.startIso);
+    expect(w.previousEndIso).toBe("2026-07-22T17:00:00.000Z"); // same 14h elapsed, previous day
   });
 
-  it("keeps 'hoje' anchored to the same BRT day just after midnight", () => {
-    const w2 = resolveSellerPeriod("hoje", "2026-07-23T03:30:00.000Z"); // 00:30 BRT
-    expect(w2.startIso).toBe("2026-07-23T03:00:00.000Z");
-    expect(w2.endIso).toBe("2026-07-23T03:30:00.000Z");
+  it("keeps 'hoje' anchored to the same BRT day just after midnight, with a near-zero previous window", () => {
+    const w = resolveSellerPeriod("hoje", "2026-07-23T03:30:00.000Z"); // 00:30 BRT
+    expect(w.startIso).toBe("2026-07-23T03:00:00.000Z");
+    expect(w.endIso).toBe("2026-07-23T03:30:00.000Z");
+    expect(w.previousStartIso).toBe("2026-07-22T03:00:00.000Z");
+    expect(w.previousEndIso).toBe("2026-07-22T03:30:00.000Z");
   });
 
   it("resolves '7d' and '30d' as rolling windows with matching-length previous windows", () => {

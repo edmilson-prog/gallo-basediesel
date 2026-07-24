@@ -32,26 +32,31 @@ function brtMidnightIso(iso: string): string {
 }
 
 /**
- * Resolves a window ending at `nowIso`, plus the matching-length window
- * right before it (for delta comparisons).
+ * Resolves a window ending at `nowIso`, plus a comparison window for
+ * deltas.
  *
- * "hoje" uses the BRT calendar day (00:00 BRT to now) rather than a rolling
- * 24h window — this must agree with `bucketConversationsByHour`
- * (`engine/hourlyActivity.ts`), which buckets by BRT calendar day too, so
- * the "Atendimentos" KPI total and the sum of the hourly chart bars match
- * for the same period. "7d"/"30d" use plain rolling N-day windows.
+ * "hoje" uses the BRT calendar day (00:00 BRT to now) for the current
+ * window, and the SAME elapsed duration at the same time yesterday for the
+ * previous window (not the full previous day) — so "vs período anterior"
+ * compares like-for-like instead of a partial day against a full one. The
+ * hourly chart (`engine/hourlyActivity.ts`) buckets by BRT calendar day
+ * from hour 0, so its bar-sum always matches the "Atendimentos" KPI total
+ * for "hoje". "7d"/"30d" use plain rolling N-day windows (already
+ * equal-length, no truncation needed).
  */
 export function resolveSellerPeriod(key: SellerPeriodKey, nowIso: string): ISellerPeriodWindow {
   if (key === "hoje") {
     const startIso = brtMidnightIso(nowIso);
+    const elapsedMs = new Date(nowIso).getTime() - new Date(startIso).getTime();
     const previousStartIso = new Date(new Date(startIso).getTime() - DAY_MS).toISOString();
+    const previousEndIso = new Date(new Date(previousStartIso).getTime() + elapsedMs).toISOString();
     return {
       key,
       label: PERIOD_LABELS.hoje,
       startIso,
       endIso: nowIso,
       previousStartIso,
-      previousEndIso: startIso,
+      previousEndIso,
     };
   }
 

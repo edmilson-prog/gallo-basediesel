@@ -41,6 +41,7 @@ export function SellerGreeting({
           <button
             key={opt.key}
             type="button"
+            aria-pressed={period === opt.key}
             onClick={() => onPeriodChange(opt.key)}
             className={cn(
               "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",

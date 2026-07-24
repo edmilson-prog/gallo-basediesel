@@ -2,6 +2,7 @@
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";
 import { DashboardLayout } from "@/features/shell/layouts";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useSellerPeriod } from "../hooks/useSellerPeriod";
 import { useSellerServiceMetrics } from "../hooks/useSellerServiceMetrics";
 import { useSellerGoalProgress } from "../hooks/useSellerGoalProgress";
@@ -23,7 +24,7 @@ import { SELLER_DASHBOARD_STRINGS } from "../i18n/pt-BR";
  */
 export function SellerDashboardPage() {
   const { currentUser } = useAuth();
-  const { currentStoreId } = useCurrentStore();
+  const { currentStoreId, isHydrating: isStoreHydrating } = useCurrentStore();
   const { period, window, setPeriod } = useSellerPeriod();
 
   const sellerId = currentUser?.sellerId;
@@ -37,6 +38,18 @@ export function SellerDashboardPage() {
   const goalProgress = useSellerGoalProgress(storeId ?? "", sellerId ?? "");
   const queue = useSellerQueue();
   const ranking = useSellerRanking(storeId ?? "", sellerId ?? "");
+
+  if (isStoreHydrating) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (!sellerId || !storeId) {
     return (
