@@ -50,6 +50,17 @@ reais em uso.
 | **Ranking** | `["Owner","Gestor","Vendedor","Financeiro"]` | `["Owner","Vendedor"]` | idem |
 | **Perfil** | só `requireAuth` (qualquer logado) | `["Owner","Vendedor"]` | o `SettingsLayout` libera para os 6 papéis — as duas listas divergiam |
 | **Aparência** | sem guard | `["Owner","Vendedor"]` | idem |
+| **Admin** | *nenhum* — `/app/configuracoes` só redireciona p/ `.../perfil` | `["Owner"]` | 🔴 o Gestor tem **18 telas** dentro de Configurações e nenhuma porta de entrada rotulada |
+
+> ⚠️ O item **Admin** foi classificado equivocadamente como "Owner-only coerente"
+> na primeira passagem desta auditoria — o rótulo sugeria restrição, mas o destino
+> não tem guard algum. Corrigido em seguida (PR #378). Lição: o nome do item não
+> é evidência; só o `beforeLoad` da rota é.
+>
+> Telas de Configurações que o Gestor já podia usar, todas inalcançáveis sem esse
+> item: Perfil, Aparência, Tours & Ajuda, Notificações, Copiloto, Papéis, Lojas,
+> Templates WhatsApp, Pipeline de leads, Motivos de perda, Tags, Frete, Biblioteca
+> de ativos, Respostas rápidas, Mídias, Simulador SDR, Auditoria e Sobre.
 
 ### Mobile: navegação zero
 
@@ -81,8 +92,8 @@ libera o acesso — só o item do menu está oculto:
 | Rentabilidade | `profitability` | sim | Owner-only |
 | Estoque | `inventory` | sim | Owner-only |
 
-E os genuinamente Owner-only por permissão (coerentes, sem ação):
-**Saúde do Sistema** (`monitor`) e **Admin** (`/app/configuracoes`).
+O único genuinamente Owner-only por permissão (coerente, sem ação) é
+**Saúde do Sistema** — gated em `monitor`, que só o Owner possui na matriz.
 
 ## Achados laterais (fora do escopo, não corrigidos)
 
