@@ -287,7 +287,10 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         label: "Admin",
         icon: "mdi:cog-outline",
         to: ROUTES.CONFIG_INICIO,
-        roles: ["Owner"],
+        // /app/configuracoes carries no guard — it redirects to .../perfil and
+        // SettingsLayout filters its own sidebar per role. Gating the entry
+        // point on Owner hid the 18 settings screens a Gestor already holds.
+        roles: ["Owner", "Gestor"],
       },
       {
         label: "Perfil",

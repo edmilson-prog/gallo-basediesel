@@ -60,6 +60,20 @@ describe("isNavItemVisible — hybrid nav gating", () => {
     expect(isNavItemVisible(navItem("Ranking"), { role: "Gestor" })).toBe(true);
   });
 
+  /**
+   * "Admin" points at /app/configuracoes, which carries no guard at all — it
+   * just redirects to /app/configuracoes/perfil (plain requireAuth). The
+   * SettingsLayout then filters its own sidebar per role, and a Gestor holds 18
+   * of those screens (Papéis, Lojas, Templates WhatsApp, Tags, Auditoria, …).
+   * Gating the entry point on Owner left the Gestor with no labelled door to any
+   * of them.
+   */
+  it("Gestor reaches the settings area entry point", () => {
+    hydrateRbac(seedRoles());
+    expect(isNavItemVisible(navItem("Admin"), { role: "Gestor" })).toBe(true);
+    expect(isNavItemVisible(navItem("Admin"), { role: "Owner" })).toBe(true);
+  });
+
   it("personal settings entries are visible to every staff role", () => {
     hydrateRbac(seedRoles());
     // Mirrors SettingsLayout's own allowlist — the two must not disagree.
