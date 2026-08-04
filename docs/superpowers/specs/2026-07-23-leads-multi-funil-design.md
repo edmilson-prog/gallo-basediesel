@@ -5,7 +5,9 @@
 > **Escopo:** feature `leads`, nova feature `funnels`, painel direito do Atendimento, tela de administração
 > **Consultoria UI/UX:** agente `design-funis` (skill `ui-ux-pro-max`) — recomendações incorporadas e
 > revisão da própria spec aplicada (34 achados, todos endereçados)
-> **Mocks:** artifact publicado em 2026-07-23
+> **Mocks:** [`docs/superpowers/mockups/leads-multi-funil-decisao-v1.html`](../mockups/leads-multi-funil-decisao-v1.html)
+> (artifact publicado em 2026-07-23, salvo no repositório em 2026-08-04 — abrir no navegador)
+> **Handoff:** [`docs/superpowers/handoff-leads-multi-funil.md`](../handoff-leads-multi-funil.md) — estado real da entrega, o que está em produção e pendências
 
 ---
 
