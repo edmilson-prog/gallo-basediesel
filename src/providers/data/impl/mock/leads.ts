@@ -101,5 +101,11 @@ export const mockLeadsProvider: ILeadsProvider = {
     assertImmutableStoreId(before, patch);
     return leadsApi.update(id, patch);
   },
+  markConverted: async (leadId, args) => {
+    await leadsApi.update(leadId, {
+      stage: args.stage,
+      convertedToCustomerId: args.customerId,
+    });
+  },
   delete: (id) => leadsApi.delete(id),
 };

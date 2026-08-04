@@ -4,6 +4,38 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.155.0] — Weld · 2026-07-24
+
+**Converter um lead em cliente virou um fluxo completo: o CNPJ é preenchido com os dados da Receita, o atendente responsável pela conversa também pode converter e, se aquele CNPJ/CPF já estiver na base, o sistema avisa e oferece vincular ao cliente existente em vez de criar uma ficha duplicada. Junto vem uma leva grande de correções de integridade — listas que paravam em 1.000 registros, conversas que se partiam em duas e transferências de carteira que não se concretizavam.**
+
+### Added
+
+- **Conversão de lead com dados da Receita Federal** — ao converter um lead em empresa (B2B), basta informar o CNPJ: razão social, nome fantasia e endereço vêm preenchidos automaticamente da Receita, com aviso quando a situação cadastral não está ativa. O formulário virou um assistente de dois passos (CNPJ → contato), mais curto e direto.
+- **Vincular o lead a um cliente que já existe** — em vez de sempre criar uma ficha nova, é possível apontar o lead para um cliente já cadastrado. O botão "Converter em cliente" ganhou um menu ao lado para ir direto a essa opção.
+- **Aviso de cliente já cadastrado** — ao digitar um CNPJ/CPF que já pertence a um cliente da loja, o sistema avisa na hora, mostra de quem é a carteira e oferece vincular, impedindo a criação de uma ficha duplicada. O aviso funciona mesmo quando o cliente pertence a outro vendedor.
+- **Atendente responsável pode converter o lead** — quem está atendendo a conversa passa a ver e usar o botão "Converter em cliente", mesmo que o lead esteja na carteira de outro vendedor. O cliente criado fica com quem converteu.
+- **Edição dos dados cadastrais na ficha do cliente** — os dados cadastrais passaram a ser editáveis no próprio cartão da ficha, sem abrir outra tela, com um botão "Buscar na Receita" que atualiza os dados da empresa a partir do CNPJ.
+- **Envio de vídeo no Atendimento** — vídeos enviados pelo composer chegam reproduzíveis na conversa, e o limite de anexos subiu para 64 MB.
+- **Conversa continua depois de encerrada** — quando o cliente volta a falar logo após um atendimento encerrado, a mensagem passa a ser anexada à mesma conversa em vez de abrir uma nova, mantendo o histórico junto.
+
+### Changed
+
+- **Contatos aparecem apenas na ficha de detalhe do cliente** — a lista de contatos saiu dos cartões resumidos e ficou concentrada na ficha, reduzindo repetição de informação.
+
+### Fixed
+
+- **Converter lead em cliente falhava com erro genérico** — a conversão vinha falhando para todos os perfis, inclusive o dono: o cliente era criado, mas o lead nunca era marcado como convertido, deixando fichas duplicadas para trás. Corrigido.
+- **Listas paravam em 1.000 registros** — catálogo, clientes, pedidos, orçamentos, metas, despesas e outras telas mostravam no máximo 1.000 itens, silenciosamente. Agora carregam a base completa (o catálogo voltou a exibir os 2.778 produtos).
+- **Conversas duplicadas e partidas ao meio** — o mesmo contato podia acabar com duas conversas abertas no mesmo número, dividindo o histórico. Foram adicionadas travas contra a duplicação e o histórico já partido foi reunificado.
+- **Avisos do sistema não apareciam** — as mensagens de confirmação e erro (salvou, falhou, enviado) simplesmente não eram exibidas em nenhuma tela. Voltaram a aparecer, agora no canto inferior direito.
+- **Mensagens em branco no Atendimento (WhatsApp)** — envelopes sem conteúdo deixaram de virar balões vazios na conversa.
+- **Transferência de carteira falhava** — transferir clientes entre vendedores dava erro e, mesmo quando registrava, não movia os clientes de fato. Agora conclui e move.
+- **Histórico e Auditoria da carteira não refletiam a realidade** — a aba Auditoria ficava sempre vazia e a data de encerramento mostrava a data de criação da transferência.
+- **Metas com status, gráficos e histórico parados** — a atualização automática de status e os gráficos de evolução das metas não funcionavam.
+- **Busca do Atendimento trazia conversas vazias** — resultados com conversas arquivadas sem conteúdo foram removidos da busca.
+- **Banner de aviso escondia o campo de mensagem** — com avisos ativos no topo, o campo de digitação do Atendimento podia ficar fora da tela.
+- **Limpar e-mail ou endereço do cliente não salvava** — apagar o conteúdo desses campos era silenciosamente ignorado.
+
 ## [0.154.0] — Dossier · 2026-07-21
 
 **O atendimento a leads ficou muito mais completo: a página e a ficha lateral do lead viraram um dossiê rico — dados, histórico, notas e tags — com edição no próprio lugar, e a conversa de um lead agora pode ser gerenciada (status, colaboradores, tags) direto da ficha. Some-se a isso uma Central de Sons para os alertas do sistema e correções no WhatsApp.**

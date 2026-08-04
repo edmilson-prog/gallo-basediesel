@@ -10,11 +10,25 @@ import type {
   IPortalContract,
   IPortalSettings,
 } from "@/shared/types";
-import type { IListCustomersParams, ICustomersProvider, IConvertPendingContactInput } from "../../contracts/customers";
+import type {
+  IListCustomersParams,
+  ICustomersProvider,
+  IConvertPendingContactInput,
+  ICustomerDocumentMatch,
+} from "../../contracts/customers";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { buildDigitSearchCandidates } from "@/shared/utils/digitSearch";
 import { fetchLargePage } from "./_pagination";
+
+/** Row shape returned by the `find_customers_by_document` RPC. */
+interface DocumentMatchRow {
+  id: string;
+  type: ICustomer["type"];
+  display_name: string;
+  seller_id: string | null;
+  seller_name: string | null;
+}
 
 /**
  * Supabase implementation of {@link ICustomersProvider} (PRD-110+).
@@ -167,14 +181,24 @@ function rowToCustomer(row: CustomerRow, notes: ICustomerNote[] = []): ICustomer
 }
 
 /** Maps a camelCase patch to snake_case columns. `id`/`storeId`/`createdAt` and
- *  the embedded `notes` array are never written here. */
-function customerPatchToRow(patch: Partial<ICustomer>): Record<string, unknown> {
+ *  the embedded `notes` array are never written here.
+ *
+ *  `email`/`address` are the inline-editable nullable fields (see
+ *  `buildCustomerPatch`, which emits `{ field: undefined }` to mean "clear this
+ *  field"). For those two, presence of the key in the patch — not just a defined
+ *  value — decides whether the column is written, and an `undefined` value
+ *  coalesces to `null` so a clear actually clears the row instead of silently
+ *  no-oping (same fix as `leadPatchToRow`). The other optional columns below are
+ *  never cleared via this flow, so they keep the plain `!== undefined` guard.
+ *
+ *  Exported for unit testing; the production call site is `update` below. */
+export function customerPatchToRow(patch: Partial<ICustomer>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
   if (patch.type !== undefined) row.type = patch.type;
-  if (patch.email !== undefined) row.email = patch.email;
+  if ("email" in patch) row.email = patch.email ?? null;
   if (patch.phone !== undefined) row.phone = patch.phone;
   if (patch.whatsappStatus !== undefined) row.whatsapp_status = patch.whatsappStatus;
-  if (patch.address !== undefined) row.address = patch.address;
+  if ("address" in patch) row.address = patch.address ?? null;
   if (patch.sellerId !== undefined) row.seller_id = patch.sellerId;
   if (patch.status !== undefined) row.status = patch.status;
   if (patch.tags !== undefined) row.tags = patch.tags;
@@ -439,6 +463,22 @@ export const supabaseCustomersProvider: ICustomersProvider = {
       );
     if (!data) return null;
     return rowToCustomer(data as unknown as CustomerRow, []);
+  },
+
+  async findByDocument(document: string): Promise<ICustomerDocumentMatch[]> {
+    const digits = document.replace(/\D/g, "");
+    if (!digits) return [];
+    const { data, error } = await getSupabaseClient().rpc("find_customers_by_document", {
+      p_document: digits,
+    });
+    if (error) throw new Error(`[supabase] customers.findByDocument failed: ${error.message}`);
+    return ((data ?? []) as DocumentMatchRow[]).map((row) => ({
+      id: row.id,
+      type: row.type,
+      displayName: row.display_name,
+      sellerId: row.seller_id ?? null,
+      sellerName: row.seller_name ?? null,
+    }));
   },
 
   async convertPendingContact(input: IConvertPendingContactInput): Promise<ICustomer> {

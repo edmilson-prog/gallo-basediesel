@@ -30,6 +30,8 @@ interface ISendBody {
   mediaUrl?: string;
   mediaType?: "image" | "audio" | "video" | "document";
   filename?: string;
+  /** Byte size of the file — lets the WAHA path route a video inline vs. as a document. */
+  sizeBytes?: number;
   /** Client-generated id — lets the optimistic bubble and the persisted row share one id. */
   messageId?: string;
 }
@@ -127,6 +129,7 @@ servePost(async (req, ctx) => {
             mediaType: body.mediaType ?? "document",
             fileName: body.filename,
             caption: body.text,
+            sizeBytes: body.sizeBytes,
             sellerId,
             messageId: body.messageId,
           });

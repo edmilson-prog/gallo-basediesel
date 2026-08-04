@@ -88,6 +88,101 @@ describe("sendWahaMedia", () => {
     });
   });
 
+  it("POSTs /api/sendVideo with convert:true + video/mp4 for a video within the inline limit", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_vid@c.us_A" }));
+    await sendWahaMedia("key", fetchFn, target, {
+      toPhone: "+5511988887777",
+      mediaType: "video",
+      mediaUrl: "https://storage.example.com/signed/clipe.mp4",
+      filename: "clipe.mp4",
+      caption: "olha a peça",
+      sizeBytes: 8 * 1024 * 1024,
+    });
+    expect(fetchFn.mock.calls[0][0]).toBe("https://waha.example.com/api/sendVideo");
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.file.mimetype).toBe("video/mp4");
+    expect(body.convert).toBe(true);
+    expect(body.caption).toBe("olha a peça");
+  });
+
+  it("keeps the caller's mimetype on /api/sendVideo when one is supplied", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_vid@c.us_B" }));
+    await sendWahaMedia("key", fetchFn, target, {
+      toPhone: "+5511988887777",
+      mediaType: "video",
+      mediaUrl: "https://storage.example.com/signed/clipe.mov",
+      mimetype: "video/quicktime",
+      sizeBytes: 2 * 1024 * 1024,
+    });
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.file.mimetype).toBe("video/quicktime");
+  });
+
+  it("falls back to /api/sendFile for a video ABOVE the 16 MB inline limit", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_vid@c.us_C" }));
+    await sendWahaMedia("key", fetchFn, target, {
+      toPhone: "+5511988887777",
+      mediaType: "video",
+      mediaUrl: "https://storage.example.com/signed/grande.mp4",
+      sizeBytes: 40 * 1024 * 1024,
+    });
+    expect(fetchFn.mock.calls[0][0]).toBe("https://waha.example.com/api/sendFile");
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.convert).toBeUndefined();
+  });
+
+  it("sends a video as /api/sendFile when the size is unknown (safe default)", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_vid@c.us_D" }));
+    await sendWahaMedia("key", fetchFn, target, {
+      toPhone: "+5511988887777",
+      mediaType: "video",
+      mediaUrl: "https://storage.example.com/signed/semtamanho.mp4",
+    });
+    expect(fetchFn.mock.calls[0][0]).toBe("https://waha.example.com/api/sendFile");
+  });
+
+  it("treats a video exactly at 16 MB as inline (boundary is inclusive)", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_vid@c.us_E" }));
+    await sendWahaMedia("key", fetchFn, target, {
+      toPhone: "+5511988887777",
+      mediaType: "video",
+      mediaUrl: "https://storage.example.com/signed/limite.mp4",
+      sizeBytes: 16 * 1024 * 1024,
+    });
+    expect(fetchFn.mock.calls[0][0]).toBe("https://waha.example.com/api/sendVideo");
+  });
+
+  it("falls back to /api/sendFile when /api/sendVideo is rejected (engine without the endpoint)", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(404, { error: "Not Found" })) // sendVideo → 404
+      .mockResolvedValueOnce(jsonResponse(200, { id: "true_vid@c.us_F" })); // sendFile → ok
+    const result = await sendWahaMedia("key", fetchFn, target, {
+      toPhone: "+5511988887777",
+      mediaType: "video",
+      mediaUrl: "https://storage.example.com/signed/clipe.mp4",
+      sizeBytes: 5 * 1024 * 1024,
+    });
+    expect(result.providerMessageId).toBe("true_vid@c.us_F");
+    expect(fetchFn.mock.calls[0][0]).toBe("https://waha.example.com/api/sendVideo");
+    expect(fetchFn.mock.calls[1][0]).toBe("https://waha.example.com/api/sendFile");
+  });
+
+  it("does NOT fall back on a timeout/abort — WAHA may have sent it, so a retry would duplicate", async () => {
+    const abort = Object.assign(new Error("aborted"), { name: "AbortError" });
+    const fetchFn = vi.fn().mockRejectedValue(abort);
+    await expect(
+      sendWahaMedia("key", fetchFn, target, {
+        toPhone: "+5511988887777",
+        mediaType: "video",
+        mediaUrl: "https://storage.example.com/signed/clipe.mp4",
+        sizeBytes: 5 * 1024 * 1024,
+      }),
+    ).rejects.toThrow();
+    // Only the sendVideo attempt — no second (sendFile) call.
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
   it("does not send a caption on /api/sendVoice (WAHA voice notes carry no text)", async () => {
     const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_999@c.us_JKL" }));
     await sendWahaMedia("key", fetchFn, target, {

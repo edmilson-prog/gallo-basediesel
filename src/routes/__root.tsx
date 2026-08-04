@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, Link, createRootRouteWithContext, useRouter } from "@tanstack/react-router";
 
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "@/components/ui/sonner";
 import { CopilotSettingsProvider } from "@/features/copilot";
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { MultistoreProvider } from "@/features/multistore";
@@ -88,6 +89,15 @@ function RootComponent() {
               <AuthProvider>
                 <MultistoreProvider>
                   <Outlet />
+                  {/*
+                    Render surface for every `toast()` call in the app (~190
+                    modules). Without it sonner queues toasts into the void:
+                    no element, no warning, no console trace — which is exactly
+                    how an oversized attachment could be rejected while the
+                    user saw nothing at all. Bottom-right is sonner's default
+                    and the position the owner asked for.
+                  */}
+                  <Toaster position="bottom-right" duration={5000} closeButton />
                 </MultistoreProvider>
               </AuthProvider>
             </NotificationProvidersProvider>

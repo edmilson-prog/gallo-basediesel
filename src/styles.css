@@ -13,6 +13,15 @@
  * Componentes consomem APENAS tokens semânticos.
  * ============================================================ */
 
+/* -------- Métricas de layout do shell (não são tokens de marca) -------- */
+:root {
+  /* Altura ao vivo da pilha de banners de alerta sob a TopBar (ver
+     AlertBannerStack), publicada via ResizeObserver. Layouts de altura fixa
+     (calc(100vh-4rem) e afins) a subtraem para não empurrar seu próprio
+     rodapé (ex.: o composer do Atendimento) para fora da viewport. */
+  --shell-banner-offset: 0px;
+}
+
 /* -------- Camada 1: tokens primitivos (paleta GALLO) -------- */
 :root {
   /* Institucional */
@@ -390,6 +399,65 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Toast skin (sonner) — deliberately OUTSIDE every @layer.
+ *
+ * sonner ships its own stylesheet and injects it into <head> at runtime with
+ * no @layer wrapper. In the CSS cascade an unlayered declaration beats any
+ * layered one regardless of specificity, so Tailwind utilities — which live in
+ * @layer utilities — can never restyle a toast: sonner's own
+ * `background/border/color` always win. Utility classes on the toast are
+ * therefore inert, however specific they look.
+ *
+ * So the skin lives here instead, unlayered, mapping sonner's variables onto
+ * our semantic tokens. `html` prefixes lift specificity above sonner's own
+ * (0,2,0) rules, which are injected after this file loads. Everything below
+ * resolves through the tokens, so it follows the active theme and light/dark
+ * mode automatically.
+ * ------------------------------------------------------------------------ */
+html [data-sonner-toaster][data-sonner-theme] {
+  --normal-bg: var(--popover);
+  --normal-text: var(--popover-foreground);
+  --normal-border: var(--border);
+}
+
+/* The inner parts are unlayered too — sonner even hard-codes the description
+ * colour (#3f3f3f), which is unreadable on a dark surface. Same treatment. */
+html [data-sonner-toast] [data-description] {
+  color: var(--muted-foreground);
+}
+html [data-sonner-toast] [data-button] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+html [data-sonner-toast] [data-cancel] {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+html [data-sonner-toast] [data-close-button] {
+  background: var(--popover);
+  border-color: var(--border);
+  color: var(--muted-foreground);
+}
+html [data-sonner-toast] [data-close-button]:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+/* Severity as a left rule, so an error never reads as a neutral notice. */
+html [data-sonner-toast][data-type="error"] {
+  border-left: 4px solid var(--color-severity-critical);
+}
+html [data-sonner-toast][data-type="success"] {
+  border-left: 4px solid var(--color-severity-success);
+}
+html [data-sonner-toast][data-type="warning"] {
+  border-left: 4px solid var(--color-severity-warning);
+}
+html [data-sonner-toast][data-type="info"] {
+  border-left: 4px solid var(--color-severity-info);
 }
 
 /* Hides the scrollbar visually while keeping scroll (wheel/touch) functional. */

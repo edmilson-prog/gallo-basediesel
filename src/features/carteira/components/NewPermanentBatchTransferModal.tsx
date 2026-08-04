@@ -30,7 +30,11 @@ export interface INewPermanentBatchTransferModalProps {
   customers: ICustomer[];
   sellers: ISeller[];
   storeId: ID;
-  currentUserId: ID;
+  /**
+   * ISeller.id of the acting user — NOT the auth user id. It is stored in
+   * `carteira_transfers.created_by`, which carries a FK to sellers(id).
+   */
+  currentSellerId: ID | undefined;
   onClose: () => void;
   onCreated?: () => void;
 }
@@ -40,7 +44,7 @@ export function NewPermanentBatchTransferModal({
   customers,
   sellers,
   storeId,
-  currentUserId,
+  currentSellerId,
   onClose,
   onCreated,
 }: INewPermanentBatchTransferModalProps) {
@@ -82,7 +86,12 @@ export function NewPermanentBatchTransferModal({
     return map;
   }, [transferableCustomers]);
 
-  const canSubmit = Boolean(toSellerId) && !missingReason && count > 0 && !mutation.isPending;
+  const canSubmit =
+    Boolean(toSellerId) &&
+    !missingReason &&
+    count > 0 &&
+    !mutation.isPending &&
+    Boolean(currentSellerId);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -97,7 +106,7 @@ export function NewPermanentBatchTransferModal({
           toSellerId: toSellerId as ID,
           customerIds,
           reason: reason.trim(),
-          createdBy: currentUserId,
+          createdBy: currentSellerId as ID,
         });
       }
       toast.success(CARTEIRA_STRINGS.modals.permanentBatch.successToast(count, toName));
@@ -176,7 +185,14 @@ export function NewPermanentBatchTransferModal({
             )}
           </div>
 
-          {toSellerId && (
+          {!currentSellerId && (
+            <Alert variant="destructive">
+              <Icon icon="mdi:alert-circle-outline" size={16} />
+              <AlertDescription>{CARTEIRA_STRINGS.modals.missingSellerError}</AlertDescription>
+            </Alert>
+          )}
+
+          {toSellerId && currentSellerId && (
             <Alert>
               <Icon icon="mdi:alert-octagon-outline" size={16} />
               <AlertTitle>{CARTEIRA_STRINGS.modals.permanentBatch.confirmTitle}</AlertTitle>

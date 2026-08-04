@@ -129,7 +129,7 @@ export function LeadDetailPage() {
 
   if (detail.isLoading) {
     return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] items-center justify-center text-sm text-muted-foreground">
         Carregando lead…
       </div>
     );
@@ -137,7 +137,7 @@ export function LeadDetailPage() {
 
   if (!lead) {
     return (
-      <div className="flex h-[calc(100vh-4rem)] flex-col items-center justify-center gap-3 text-center">
+      <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] flex-col items-center justify-center gap-3 text-center">
         <Icon icon="mdi:alert-circle-outline" size={28} className="text-muted-foreground" />
         <p className="text-sm font-semibold text-foreground">{LEADS_STRINGS.detail.notFound}</p>
         <p className="text-xs text-muted-foreground">{LEADS_STRINGS.detail.description}</p>
@@ -149,7 +149,7 @@ export function LeadDetailPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col bg-background">
+    <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] min-h-0 flex-col bg-background">
       <LeadHeader
         lead={lead}
         seller={sellerQuery.data ?? undefined}

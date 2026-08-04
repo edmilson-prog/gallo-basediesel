@@ -35,6 +35,12 @@ import { RenameContactDialog } from "./RenameContactDialog";
 export interface IProfileMenuProps {
   customer: ICustomer;
   onMutated?: () => void;
+  /**
+   * Called when the user picks "Editar dados". The detail page wires this to
+   * open the inline editor in the Overview tab. When omitted (e.g. the
+   * Atendimento fiche), the action navigates to the customer detail page.
+   */
+  onEditData?: () => void;
 }
 
 /**
@@ -45,9 +51,9 @@ export interface IProfileMenuProps {
  * The destructive "Bloquear cliente" action is gated by an `<AlertDialog>` so
  * an accidental click doesn't flip the customer's status.
  */
-export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
+export function ProfileMenu({ customer, onMutated, onEditData }: IProfileMenuProps) {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, hasRole } = useAuth();
   const provider = useCustomersProvider();
   const sellersProvider = useSellersProvider();
   const queryClient = useQueryClient();
@@ -70,6 +76,9 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
   });
 
   const canEdit = usePermission("customer", "edit");
+  // Mirror the RLS `customers_update` predicate: staff, or the wallet owner.
+  const isWalletOwner = currentUser?.sellerId != null && customer.sellerId === currentUser.sellerId;
+  const canEditData = canEdit && (hasRole(["Owner", "Gestor"]) || isWalletOwner);
   const canEditStore = usePermission("customer", "edit", "store");
   const canDelete = usePermission("customer", "delete");
   const canCreateVehicle = usePermission("vehicle", "create");
@@ -135,9 +144,15 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
               {CUSTOMER_STRINGS.menu.rename}
             </DropdownMenuItem>
           )}
-          {canEdit && (
+          {canEditData && (
             <DropdownMenuItem
-              onSelect={() => toast.info("Edição de dados será detalhada em PRD-019.")}
+              onSelect={() => {
+                if (onEditData) {
+                  onEditData();
+                } else {
+                  void navigate({ to: `/app/clientes/${customer.id}` as never });
+                }
+              }}
             >
               <Icon icon="mdi:pencil-outline" size={14} />
               {CUSTOMER_STRINGS.menu.edit}
@@ -149,7 +164,7 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
               {CUSTOMER_STRINGS.menu.markDormant}
             </DropdownMenuItem>
           )}
-          {canTransfer && (
+          {canTransfer && customer.sellerId !== null && (
             <DropdownMenuItem onSelect={() => setTransferOpen(true)}>
               <Icon icon="mdi:swap-horizontal" size={14} />
               {CUSTOMER_STRINGS.menu.transferWallet}
@@ -211,7 +226,7 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
         open={transferOpen}
         customer={transferOpen ? customer : null}
         sellers={sellersQuery.data ?? []}
-        currentUserId={currentUser?.id ?? "system"}
+        currentSellerId={currentUser?.sellerId}
         onClose={() => setTransferOpen(false)}
         onCreated={() => {
           setTransferOpen(false);

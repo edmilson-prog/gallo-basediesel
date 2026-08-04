@@ -283,6 +283,12 @@ export const conversationsApi = {
         if (params.search) {
           all = all
             .filter((c) => matchesSearch(c, params.search!))
+            // Mirrors search_conversations (migration 20260723193018): an
+            // archived conversation with no messages is a merge husk — never
+            // a useful search result.
+            .filter(
+              (c) => !(c.status === "arquivada" && selectMessagesByConversation(c.id).length === 0),
+            )
             .map((c) => ({ ...c, isAccessible: true }));
         }
         const sorted = sortConversations(stampIsCollaborator(all), params);

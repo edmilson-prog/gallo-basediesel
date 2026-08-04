@@ -261,7 +261,7 @@ export function QuotesListPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem)]">
+    <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem-var(--shell-banner-offset,0px))]">
       <QuotesHeader
         total={list.total}
         searchValue={filters.search}

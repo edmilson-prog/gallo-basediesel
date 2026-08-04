@@ -155,7 +155,7 @@ export function StatusWalletCard({ customer }: IStatusWalletCardProps) {
         open={transferOpen}
         customer={transferOpen ? customer : null}
         sellers={sellersListQuery.data ?? []}
-        currentUserId={currentUser?.id ?? "system"}
+        currentSellerId={currentUser?.sellerId}
         onClose={() => setTransferOpen(false)}
         onCreated={() => setTransferOpen(false)}
       />

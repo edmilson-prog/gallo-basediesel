@@ -18,6 +18,24 @@ const DOCUMENT_MIME_TYPES = new Set([
 const DOCUMENT_EXTENSIONS = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".txt", ".xml", ".zip"];
 
 /**
+ * Extension fallbacks for the media kinds, in priority order.
+ *
+ * The MIME check above handles the common case, but a browser can hand over an
+ * empty `type` (clipboard paste, some drag sources) or a generic
+ * `application/octet-stream` — in which case a perfectly valid .mp4 used to be
+ * refused as "unsupported". `.ogg` is claimed by audio: WhatsApp voice notes
+ * use it and video/ogg is vanishingly rare in this workflow.
+ */
+const MEDIA_EXTENSIONS: ReadonlyArray<readonly [AttachmentKind, readonly string[]]> = [
+  // Deliberately excludes .mkv/.avi: WhatsApp does not render them, and
+  // guessing "video" would trade a clear "unsupported file" notice for a
+  // wasted upload followed by a failed send.
+  ["video", [".mp4", ".mov", ".3gp", ".3gpp", ".webm", ".m4v"]],
+  ["image", [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".heic", ".heif"]],
+  ["audio", [".mp3", ".ogg", ".oga", ".opus", ".m4a", ".aac", ".wav", ".amr"]],
+];
+
+/**
  * Infers which attach picker `AttachmentKind` a raw `File` (dropped or pasted)
  * belongs to, without ever chancing on the wrong lane. `null` means "don't
  * attach it" — the caller toasts and stops.
@@ -34,6 +52,9 @@ export function inferAttachmentKind(file: Pick<File, "type" | "name">): Attachme
 
   const name = file.name.toLowerCase();
   if (DOCUMENT_EXTENSIONS.some((ext) => name.endsWith(ext))) return "document";
+  for (const [kind, extensions] of MEDIA_EXTENSIONS) {
+    if (extensions.some((ext) => name.endsWith(ext))) return kind;
+  }
 
   return null;
 }

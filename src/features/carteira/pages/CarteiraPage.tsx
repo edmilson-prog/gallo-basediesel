@@ -25,6 +25,7 @@ import { TransferAuditTab } from "../components/TransferAuditTab";
 import { RevertTransferModal } from "../components/RevertTransferModal";
 import { NewTemporaryTransferModal } from "../components/NewTemporaryTransferModal";
 import { useTransfersList, type ITransfersListFilters } from "../hooks/useTransfersList";
+import { useTransferClosureAudit } from "../hooks/useTransferClosureAudit";
 import { CARTEIRA_STRINGS } from "../i18n/pt-BR";
 
 type Tab = "active" | "history" | "audit";
@@ -90,6 +91,12 @@ export function CarteiraPage() {
 
   const historyTotal = historyQuery.data?.total ?? 0;
   const historyTotalPages = Math.max(1, Math.ceil(historyTotal / 20));
+
+  const historyIds = useMemo(
+    () => (historyQuery.data?.data ?? []).map((t) => t.id),
+    [historyQuery.data],
+  );
+  const { closureByTransferId } = useTransferClosureAudit(historyIds, currentStoreId ?? undefined);
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -235,6 +242,7 @@ export function CarteiraPage() {
               <TransferHistoryTable
                 transfers={historyQuery.data?.data ?? []}
                 sellersById={sellersById}
+                closureByTransferId={closureByTransferId}
                 page={historyPage}
                 totalPages={historyTotalPages}
                 total={historyTotal}
@@ -254,7 +262,7 @@ export function CarteiraPage() {
           open={newOpen === "temporary"}
           sellers={sellers}
           storeId={currentStoreId ?? "00000000-0000-0000-0000-000000000001"}
-          currentUserId={currentUser.id}
+          currentSellerId={currentUser.sellerId}
           activeTransfers={activeList}
           onClose={() => setNewOpen("none")}
         />
@@ -263,6 +271,7 @@ export function CarteiraPage() {
       <RevertTransferModal
         transfer={revertTarget}
         sellersById={sellersById}
+        currentSellerId={currentUser?.sellerId}
         onClose={() => setRevertTarget(null)}
       />
     </div>

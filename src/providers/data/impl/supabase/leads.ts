@@ -296,6 +296,19 @@ export const supabaseLeadsProvider: ILeadsProvider = {
     return rowToLead(data as unknown as LeadRow);
   },
 
+  async markConverted(
+    leadId: ID,
+    args: { stage: ILeadStage; customerId: ID },
+  ): Promise<void> {
+    const { error } = await getSupabaseClient().rpc("convert_lead_mark", {
+      p_lead_id: leadId,
+      p_customer_id: args.customerId,
+      p_stage: args.stage,
+    });
+    if (error)
+      throw new Error(`[supabase] leads.markConverted(${leadId}) failed: ${error.message}`);
+  },
+
   async delete(id: ID): Promise<void> {
     const { error } = await getSupabaseClient().from(TABLE).delete().eq("id", id);
     if (error) throw new Error(`[supabase] leads.delete(${id}) failed: ${error.message}`);

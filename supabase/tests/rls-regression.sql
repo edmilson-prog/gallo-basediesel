@@ -58,6 +58,19 @@ reset role;
 -- ---------------------------------------------------------------------------
 -- Principal: LUCAS (seller_internal, non-staff) — own carteira + pool only.
 -- ---------------------------------------------------------------------------
+-- "Should see" assertions test that RLS does not HIDE what belongs to the
+-- principal — they are not a statement about the dataset having rows. Against a
+-- database where the table happens to be empty (`orders` is empty in
+-- production) a bare `count(*) = 0` check fails for a reason that has nothing
+-- to do with RLS. Capture the privileged count first and only demand
+-- visibility when there is in fact something to see.
+select set_config(
+  'rls_regression.orders_lucas',
+  (select count(*)::text from public.orders
+    where seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887'),
+  true
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
@@ -90,7 +103,8 @@ begin
           )) <> 0 then
     raise exception 'lucas: must not see other sellers'' customers without an accessible conversation (cross-leak)';
   end if;
-  if (select count(*) from public.orders) = 0 then
+  if coalesce(current_setting('rls_regression.orders_lucas', true), '0')::int > 0
+     and (select count(*) from public.orders) = 0 then
     raise exception 'lucas: should see his own orders';
   end if;
   if (select count(*) from public.orders where seller_id <> lucas) <> 0 then
@@ -115,12 +129,18 @@ begin
   if (select count(*) from public.carteira_transfers) <> 0 then
     raise exception 'lucas: must see 0 carteira_transfers (#43 staff only)';
   end if;
+  -- Same 2-gate rule the customers assertion above already uses: media hanging
+  -- off a conversation the seller can ACCESS (own instance / pool / as a
+  -- participant) is legitimate — not only media of conversations assigned to
+  -- him. This predicate predates Turnstile (v0.110.0) and still matched on
+  -- assigned_seller_id alone, flagging 115 legitimately-accessible rows in
+  -- production; every one of them satisfied can_access_conversation.
   if (select count(*) from public.media_assets m
         where not (
           (m.customer_id is not null
              and m.customer_id in (select id from public.customers where seller_id = lucas))
           or (m.conversation_id is not null
-             and m.conversation_id in (select id from public.conversations where assigned_seller_id = lucas))
+             and public.can_access_conversation(m.conversation_id))
         )) <> 0 then
     raise exception 'lucas: must only see media tied to his own customers/conversations (#43)';
   end if;
@@ -1562,8 +1582,14 @@ begin
   begin
     perform public.claim_conversation_rescue(v_rescue_id);
     raise exception 'claim_conversation_rescue: claiming an already-claimed rescue should fail';
-  exception when others then
-    if sqlstate <> 'P0004' then raise; end if; -- expected: P0004
+  -- The rejection must be named explicitly: claim_conversation_rescue raises
+  -- 'already claimed' with errcode P0004, which Postgres maps to
+  -- ASSERT_FAILURE — and `when others` deliberately does NOT catch that (nor
+  -- QUERY_CANCELED). Caught by `when others`, the expected rejection escaped
+  -- and failed the whole run. A P0001 from the line above still propagates,
+  -- so a claim that wrongly SUCCEEDS is still reported.
+  exception
+    when sqlstate 'P0004' then null; -- expected: already claimed
   end;
 end $$;
 reset role;
@@ -2079,6 +2105,160 @@ begin
   -- Cleanup (belt-and-suspenders; the whole script rolls back anyway).
   delete from public.leads where id = v_lead; -- cascades the membership
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- convert_lead_mark (2026-07-24): the assigned attendant of a lead-anchored
+-- conversation converts a lead he does NOT own. Exercises both halves that
+-- broke in production: the RPC's authorization (seller_handles_lead) and the
+-- AFTER UPDATE re-anchor trigger, which compared conversations.lead_id (TEXT)
+-- against leads.id (UUID) and raised 42883 on EVERY conversion — surfacing to
+-- the client as a misleading HTTP 404.
+-- ---------------------------------------------------------------------------
+reset role;
+do $$
+declare
+  v_lead     uuid := gen_random_uuid();
+  v_customer uuid := gen_random_uuid();
+  v_conv     uuid := gen_random_uuid();
+begin
+  -- `reset role` does NOT clear request.jwt.claims — set_config(..., true) is
+  -- transaction-local and survives it. Inserting a conversation while the
+  -- previous block's forged claims are still in place makes
+  -- conversation_activity_capture stamp actor_id = that seller, and the
+  -- fixtures above use ids that do not exist in `sellers`, so the
+  -- conversation_activity_actor_id_fkey blows up. Clear them: with no seller
+  -- the trigger records the row as actor_kind 'system' (actor_id null).
+  perform set_config('request.jwt.claims', '', true);
+
+  -- Destination customer + a lead owned by OWNER (not lucas)
+  insert into public.customers (id, store_id, seller_id, type, phone, status, razao_social, nome_fantasia, cnpj)
+  values (v_customer, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
+          'B2B', '+5555999992222', 'ativo', 'RLS Fixture — convert target', 'RLS Fixture', '00000000000191');
+
+  insert into public.leads (id, store_id, seller_id, name, phone, stage, temperature, origin, conversations, tags)
+  values (v_lead, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
+          'RLS Fixture — convert lead', '+5555999992222',
+          '{"id":"stage-novo","name":"Novo","color":"#5b6b7a","order":1}'::jsonb, 'frio', 'whatsapp', '{}', '{}');
+
+  -- Lead-anchored conversation ASSIGNED to lucas → makes him the attendant
+  insert into public.conversations (id, store_id, lead_id, assigned_seller_id, channel, status, last_message_at)
+  values (v_conv, '00000000-0000-0000-0000-000000000001', v_lead::text,
+          '5a6400ed-5aec-4bf1-b641-31635f15c887', 'whatsapp', 'em_andamento', now());
+
+  perform set_config('rls_regression.convert_lead', v_lead::text, true);
+  perform set_config('rls_regression.convert_customer', v_customer::text, true);
+  perform set_config('rls_regression.convert_conv', v_conv::text, true);
+end $$;
+
+-- lucas (non-staff, NOT the lead owner, but the assigned attendant) converts
+select set_config('request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}', true);
+set local role authenticated;
+do $$
+begin
+  perform public.convert_lead_mark(
+    current_setting('rls_regression.convert_lead', true)::uuid,
+    current_setting('rls_regression.convert_customer', true)::uuid,
+    '{"id":"stage-ganho","name":"Ganho","color":"#22c55e","order":6}'::jsonb
+  );
+end $$;
+reset role;
+
+do $$
+begin
+  if (select converted_to_customer_id from public.leads
+       where id = current_setting('rls_regression.convert_lead', true)::uuid)
+     is distinct from current_setting('rls_regression.convert_customer', true)::uuid then
+    raise exception 'convert_lead_mark: assigned attendant should mark the lead as converted';
+  end if;
+  -- the re-anchor trigger must have moved the conversation onto the customer
+  if (select customer_id from public.conversations
+       where id = current_setting('rls_regression.convert_conv', true)::uuid)
+     is distinct from current_setting('rls_regression.convert_customer', true)::uuid then
+    raise exception 'convert_lead_mark: re-anchor trigger should repoint the conversation to the customer';
+  end if;
+  if (select lead_id from public.conversations
+       where id = current_setting('rls_regression.convert_conv', true)::uuid) is not null then
+    raise exception 'convert_lead_mark: re-anchored conversation should drop lead_id';
+  end if;
+end $$;
+
+-- negative: a seller who is neither staff, owner nor attendant must be refused
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000aa","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"00000000-0000-0000-0000-0000000000bb","store_id":"00000000-0000-0000-0000-000000000001"}}', true);
+set local role authenticated;
+do $$
+declare v_refused boolean := false;
+begin
+  begin
+    perform public.convert_lead_mark(
+      current_setting('rls_regression.convert_lead', true)::uuid,
+      current_setting('rls_regression.convert_customer', true)::uuid,
+      '{"id":"stage-ganho","name":"Ganho","color":"#22c55e","order":6}'::jsonb
+    );
+  exception when insufficient_privilege then
+    v_refused := true;
+  end;
+  if not v_refused then
+    raise exception 'convert_lead_mark: unrelated seller must NOT be able to convert';
+  end if;
+end $$;
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- find_customers_by_document (2026-07-24): the duplicate guard must see a
+-- customer owned by ANOTHER seller — that is its whole reason to exist, since
+-- customers_select hides those rows from a non-staff caller and the lead
+-- conversion would otherwise mint a second ficha for the same CNPJ. It must
+-- still respect the store boundary.
+-- ---------------------------------------------------------------------------
+reset role;
+do $$
+declare v_customer uuid := gen_random_uuid();
+begin
+  -- Same reason as the block above: drop the previous principal's forged
+  -- claims before writing fixtures.
+  perform set_config('request.jwt.claims', '', true);
+
+  -- owned by OWNER, so lucas cannot see it through customers_select
+  insert into public.customers (id, store_id, seller_id, type, phone, status, razao_social, nome_fantasia, cnpj)
+  values (v_customer, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
+          'B2B', '+5555999993333', 'ativo', 'RLS Fixture — dup guard', 'RLS Fixture Dup', '11444777000161');
+  perform set_config('rls_regression.dup_customer', v_customer::text, true);
+end $$;
+
+select set_config('request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}', true);
+set local role authenticated;
+do $$
+begin
+  -- baseline: the per-carteira policy really does hide it from lucas
+  if (select count(*) from public.customers
+       where id = current_setting('rls_regression.dup_customer', true)::uuid) <> 0 then
+    raise exception 'dup guard: fixture should be invisible to lucas via customers_select';
+  end if;
+  -- masked input must still match the digits-only stored value
+  if (select count(*) from public.find_customers_by_document('11.444.777/0001-61')) <> 1 then
+    raise exception 'dup guard: lucas should find another seller''s customer by document';
+  end if;
+  -- blank/garbage input must not return the whole store
+  if (select count(*) from public.find_customers_by_document('   ')) <> 0 then
+    raise exception 'dup guard: blank document must return nothing';
+  end if;
+end $$;
+reset role;
+
+-- negative: a seller scoped to another store must not see the match
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000aa","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"00000000-0000-0000-0000-0000000000bb","store_id":"00000000-0000-0000-0000-000000000002"}}', true);
+set local role authenticated;
+do $$
+begin
+  if (select count(*) from public.find_customers_by_document('11444777000161')) <> 0 then
+    raise exception 'dup guard: cross-store leak';
+  end if;
+end $$;
+reset role;
 
 select 'ALL RLS REGRESSION TESTS PASSED' as result;
 

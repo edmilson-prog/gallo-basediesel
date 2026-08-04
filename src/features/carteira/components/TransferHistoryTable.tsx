@@ -1,4 +1,5 @@
 import type { ICarteiraTransfer, ID, ISeller } from "@/shared/types";
+import type { ITransferClosure } from "../utils/closureIndex";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -24,6 +25,13 @@ import { CARTEIRA_STRINGS } from "../i18n/pt-BR";
 export interface ITransferHistoryTableProps {
   transfers: ICarteiraTransfer[];
   sellersById: Map<ID, ISeller>;
+  /**
+   * Who closed each transfer and when — from `audit_logs`, since the transfer
+   * row itself only tracks who CREATED it. A transfer with no entry here (no
+   * audit trail predating this lookup) shows "—" instead of falling back to
+   * creation info, which would misrepresent it as closure info.
+   */
+  closureByTransferId: Map<ID, ITransferClosure>;
   page: number;
   totalPages: number;
   total: number;
@@ -34,6 +42,7 @@ export interface ITransferHistoryTableProps {
 export function TransferHistoryTable({
   transfers,
   sellersById,
+  closureByTransferId,
   page,
   totalPages,
   total,
@@ -58,42 +67,47 @@ export function TransferHistoryTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transfers.map((t) => (
-              <TableRow
-                key={t.id}
-                className={onSelect ? "cursor-pointer" : undefined}
-                onClick={onSelect ? () => onSelect(t) : undefined}
-              >
-                <TableCell>
-                  <TransferTypeBadge type={t.type} />
-                </TableCell>
-                <TableCell>
-                  <SellerRoute
-                    fromSellerId={t.fromSellerId}
-                    toSellerId={t.toSellerId}
-                    sellersById={sellersById}
-                    compact
-                  />
-                </TableCell>
-                <TableCell className="text-right text-sm">{t.customerIds.length}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {t.type === "temporary"
-                    ? formatPeriod(t.startDate, t.endDate)
-                    : formatDate(t.startDate)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={transferStatusBadgeVariant(t.status)}>
-                    {transferStatusLabel(t.status)}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-xs">
-                  {sellersById.get(t.createdBy)?.fullName ?? t.createdBy}
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {formatDateTime(t.createdAt)}
-                </TableCell>
-              </TableRow>
-            ))}
+            {transfers.map((t) => {
+              const closure = closureByTransferId.get(t.id);
+              return (
+                <TableRow
+                  key={t.id}
+                  className={onSelect ? "cursor-pointer" : undefined}
+                  onClick={onSelect ? () => onSelect(t) : undefined}
+                >
+                  <TableCell>
+                    <TransferTypeBadge type={t.type} />
+                  </TableCell>
+                  <TableCell>
+                    <SellerRoute
+                      fromSellerId={t.fromSellerId}
+                      toSellerId={t.toSellerId}
+                      sellersById={sellersById}
+                      compact
+                    />
+                  </TableCell>
+                  <TableCell className="text-right text-sm">{t.customerIds.length}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {t.type === "temporary"
+                      ? formatPeriod(t.startDate, t.endDate)
+                      : formatDate(t.startDate)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={transferStatusBadgeVariant(t.status)}>
+                      {transferStatusLabel(t.status)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {closure
+                      ? (sellersById.get(closure.actorId)?.fullName ?? closure.actorId)
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {closure ? formatDateTime(closure.timestamp) : "—"}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

@@ -657,7 +657,12 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     const resolved = await resolveContact(db, account.storeId, parsed.toPhone, undefined);
     // OPEN-ONLY lookup (includeTerminal omitted): the echo is business-sent,
     // never reopens a closed conversation — spawns a fresh one instead
-    // (spec 2026-07-03 §1.5).
+    // (spec 2026-07-03 §1.5). NOTE: the WAHA pipeline additionally applies
+    // the echo-continuity window (appends to a recently-`resolvida` thread —
+    // docs/dev/conversation-split-echo-after-close.md §7 item 3). This legacy
+    // pipeline (Meta/Evolution/Go/OpenWA) keeps always-create ON PURPOSE
+    // while it carries no live traffic — port the window here if these
+    // providers return.
     let conversation: { id: string } | null =
       resolved.kind === "customer"
         ? await db.findOpenConversation(resolved.id, account.id)
@@ -778,14 +783,23 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     }
   }
 
-  // 6. Conversation resolution (RF-040.3) — includeTerminal:true reuses the
-  //    latest conversation regardless of status; a closed one (resolvida/
-  //    arquivada) is REOPENED on customer inbound instead of spawning a
-  //    duplicate (spec 2026-07-03 §1.5).
+  // 6. Conversation resolution (RF-040.3) — OPEN-FIRST (PR #357): prefer the
+  //    open conversation; only when none is open, look up regardless of status
+  //    and REOPEN a closed one (resolvida/arquivada) on customer inbound
+  //    instead of spawning a duplicate (spec 2026-07-03 §1.5). Open-first also
+  //    removes the reopen-collision class under the
+  //    one-open-per-contact-per-account unique index (migration
+  //    20260723165509): a reopen only ever runs when no open row exists.
   let conversation: { id: string; status: string } | null =
     resolved.kind === "customer"
-      ? await db.findOpenConversation(resolved.id, account.id, true)
-      : await db.findOpenConversationForLead(resolved.id, account.id, true);
+      ? await db.findOpenConversation(resolved.id, account.id)
+      : await db.findOpenConversationForLead(resolved.id, account.id);
+  if (!conversation) {
+    conversation =
+      resolved.kind === "customer"
+        ? await db.findOpenConversation(resolved.id, account.id, true)
+        : await db.findOpenConversationForLead(resolved.id, account.id, true);
+  }
   let didReopen = false;
   if (!conversation) {
     const created = await db.createConversation({

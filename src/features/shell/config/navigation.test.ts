@@ -36,11 +36,51 @@ describe("isNavItemVisible — hybrid nav gating", () => {
   it("role-gated structural items keep their allowlist", () => {
     hydrateRbac(seedRoles());
     expect(isNavItemVisible(navItem("Início"), { role: "Owner" })).toBe(true);
-    expect(isNavItemVisible(navItem("Início"), { role: "Gestor" })).toBe(false);
     // Comissões is kept on roles (Gestor has `approve`, not `view`).
     expect(isNavItemVisible(navItem("Comissões"), { role: "Gestor" })).toBe(true);
     // DRE stays Owner-only despite the matrix granting Gestor view.
     expect(isNavItemVisible(navItem("DRE Gerencial"), { role: "Gestor" })).toBe(false);
+  });
+
+  /**
+   * Regression guard: every structural (`roles`) item must list Gestor whenever
+   * the route's own `requireAuth` allowlist already admits Gestor. Drifting apart
+   * produces pages that are reachable but unreachable *through the UI* — the
+   * class of bug that left the Gestor without "Início" (the Manager Dashboard,
+   * which is also their post-login redirect target).
+   */
+  it("Gestor sees the structural items whose routes already admit Gestor", () => {
+    hydrateRbac(seedRoles());
+    // /app/inicio renders ManagerDashboardPage and is defaultRedirectForRole("Gestor").
+    expect(isNavItemVisible(navItem("Início"), { role: "Gestor" })).toBe(true);
+    // requireAuth(["Owner", "Gestor"]) on /app/carteira and /app/sdr.
+    expect(isNavItemVisible(navItem("Carteira"), { role: "Gestor" })).toBe(true);
+    expect(isNavItemVisible(navItem("Painel SDR"), { role: "Gestor" })).toBe(true);
+    // requireAuth(["Owner", "Gestor", "Vendedor", "Financeiro"]) on /app/gestao/ranking.
+    expect(isNavItemVisible(navItem("Ranking"), { role: "Gestor" })).toBe(true);
+  });
+
+  /**
+   * "Admin" points at /app/configuracoes, which carries no guard at all — it
+   * just redirects to /app/configuracoes/perfil (plain requireAuth). The
+   * SettingsLayout then filters its own sidebar per role, and a Gestor holds 18
+   * of those screens (Papéis, Lojas, Templates WhatsApp, Tags, Auditoria, …).
+   * Gating the entry point on Owner left the Gestor with no labelled door to any
+   * of them.
+   */
+  it("Gestor reaches the settings area entry point", () => {
+    hydrateRbac(seedRoles());
+    expect(isNavItemVisible(navItem("Admin"), { role: "Gestor" })).toBe(true);
+    expect(isNavItemVisible(navItem("Admin"), { role: "Owner" })).toBe(true);
+  });
+
+  it("personal settings entries are visible to every staff role", () => {
+    hydrateRbac(seedRoles());
+    // Mirrors SettingsLayout's own allowlist — the two must not disagree.
+    for (const role of ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"] as const) {
+      expect(isNavItemVisible(navItem("Perfil"), { role })).toBe(true);
+      expect(isNavItemVisible(navItem("Aparência"), { role })).toBe(true);
+    }
   });
 
   it("custom roles drive matrix-gated items via roleKey", () => {

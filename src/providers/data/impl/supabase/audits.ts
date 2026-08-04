@@ -70,7 +70,11 @@ export const supabaseAuditsProvider: IAuditsProvider = {
         query = query.eq("resource", params.resource);
       }
 
-      if (params.resourceId !== undefined) query = query.eq("resource_id", params.resourceId);
+      if (params.resourceIds && params.resourceIds.length > 0) {
+        query = query.in("resource_id", params.resourceIds);
+      } else if (params.resourceId !== undefined) {
+        query = query.eq("resource_id", params.resourceId);
+      }
 
       if (params.actions && params.actions.length > 0) {
         query = query.in("action", params.actions);

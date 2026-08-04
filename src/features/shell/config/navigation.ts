@@ -73,7 +73,9 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         label: "Início",
         icon: "mdi:home-variant",
         to: ROUTES.APP_INICIO,
-        roles: ["Owner", "Vendedor"],
+        // Renders the Manager Dashboard and is defaultRedirectForRole("Gestor") —
+        // omitting Gestor dropped them on a page missing from their own menu.
+        roles: ["Owner", "Gestor", "Vendedor"],
       },
       {
         label: "Atendimento",
@@ -103,7 +105,8 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         label: "Carteira",
         icon: "mdi:briefcase-account",
         to: ROUTES.APP_CARTEIRA,
-        roles: ["Owner"],
+        // Mirrors requireAuth(["Owner", "Gestor"]) on /app/carteira.
+        roles: ["Owner", "Gestor"],
       },
     ],
   },
@@ -149,7 +152,8 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         label: "Painel SDR",
         icon: "mdi:robot",
         to: ROUTES.APP_SDR,
-        roles: ["Owner"],
+        // Mirrors requireAuth(["Owner", "Gestor"]) on /app/sdr.
+        roles: ["Owner", "Gestor"],
       },
     ],
   },
@@ -196,7 +200,8 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         label: "Ranking",
         icon: "mdi:trophy",
         to: ROUTES.GESTAO_RANKING,
-        roles: ["Owner", "Vendedor"],
+        // Mirrors requireAuth on /app/gestao/ranking.
+        roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
       },
       {
         label: "Positivação",
@@ -282,19 +287,23 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         label: "Admin",
         icon: "mdi:cog-outline",
         to: ROUTES.CONFIG_INICIO,
-        roles: ["Owner"],
+        // /app/configuracoes carries no guard — it redirects to .../perfil and
+        // SettingsLayout filters its own sidebar per role. Gating the entry
+        // point on Owner hid the 18 settings screens a Gestor already holds.
+        roles: ["Owner", "Gestor"],
       },
       {
         label: "Perfil",
         icon: "mdi:account",
         to: ROUTES.CONFIG_PERFIL,
-        roles: ["Owner", "Vendedor"],
+        // Personal settings — every staff role owns one. Mirrors SettingsLayout.
+        roles: ["Owner", "Gestor", "Vendedor", "VendedorExterno", "SDR", "Financeiro"],
       },
       {
         label: "Aparência",
         icon: "mdi:palette",
         to: ROUTES.CONFIG_APARENCIA,
-        roles: ["Owner", "Vendedor"],
+        roles: ["Owner", "Gestor", "Vendedor", "VendedorExterno", "SDR", "Financeiro"],
       },
       {
         label: "Tours & Ajuda",
@@ -306,8 +315,14 @@ export const APP_NAV_GROUPS: INavGroup[] = [
   },
 ];
 
-/** Items shown on the mobile BottomNav, by role. */
-export const BOTTOM_NAV: Record<"Owner" | "Vendedor", INavItem[]> = {
+/**
+ * Items shown on the mobile BottomNav, by role.
+ *
+ * A role absent from this map gets no BottomNav at all — and since <Sidebar/> is
+ * `hidden md:flex`, that leaves them with zero navigation on a phone. Every role
+ * that can reach /app must therefore have an entry (see `pickItemsForRole`).
+ */
+export const BOTTOM_NAV: Record<"Owner" | "Gestor" | "Vendedor", INavItem[]> = {
   Owner: [
     {
       label: "Início",
@@ -332,6 +347,32 @@ export const BOTTOM_NAV: Record<"Owner" | "Vendedor", INavItem[]> = {
       icon: "mdi:view-dashboard",
       to: ROUTES.GESTAO_INICIO,
       roles: ["Owner"],
+    },
+  ],
+  Gestor: [
+    {
+      label: "Início",
+      icon: "mdi:home-variant",
+      to: ROUTES.APP_INICIO,
+      roles: ["Gestor"],
+    },
+    {
+      label: "Atend.",
+      icon: "mdi:message-text",
+      to: ROUTES.APP_ATENDIMENTO,
+      roles: ["Gestor"],
+    },
+    {
+      label: "Clientes",
+      icon: "mdi:account-multiple",
+      to: ROUTES.APP_CLIENTES,
+      roles: ["Gestor"],
+    },
+    {
+      label: "Gestão",
+      icon: "mdi:view-dashboard",
+      to: ROUTES.GESTAO_INICIO,
+      roles: ["Gestor"],
     },
   ],
   Vendedor: [

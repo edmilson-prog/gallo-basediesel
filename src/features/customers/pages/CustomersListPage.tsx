@@ -442,7 +442,7 @@ export function CustomersListPage() {
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem)]">
+    <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem-var(--shell-banner-offset,0px))]">
       {/* Fixed header block — the progress line rides its bottom edge. */}
       <div className="relative">
         <CustomersHeader
@@ -634,7 +634,7 @@ export function CustomersListPage() {
           customers={selectedCustomers}
           sellers={sellers}
           storeId={currentStoreId ?? "00000000-0000-0000-0000-000000000001"}
-          currentUserId={currentUser?.id ?? "system"}
+          currentSellerId={currentUser?.sellerId}
           onClose={() => setTransferOpen(false)}
           onCreated={async () => {
             await list.invalidate();

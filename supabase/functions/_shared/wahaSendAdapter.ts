@@ -284,6 +284,8 @@ export async function dispatchWahaMedia(
     mediaType: "image" | "audio" | "video" | "document";
     fileName?: string;
     caption?: string;
+    /** Byte size of the file — lets a WAHA video route inline vs. as a document. */
+    sizeBytes?: number;
     sellerId: string | null;
     messageId?: string;
   },
@@ -305,6 +307,7 @@ export async function dispatchWahaMedia(
         mediaUrl: input.mediaUrl,
         filename: input.fileName,
         caption: input.caption,
+        sizeBytes: input.sizeBytes,
       }),
   });
 }

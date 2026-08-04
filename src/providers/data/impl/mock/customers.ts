@@ -1,4 +1,4 @@
-import { conversationsApi, customersApi } from "@/mocks";
+import { conversationsApi, customersApi, sellersApi } from "@/mocks";
 import type { ICustomersProvider } from "../../contracts/customers";
 import { logMockMutation } from "./_audit";
 import { assertImmutableStoreId, scopedListParams, withCreateStoreId } from "./_storeScope";
@@ -51,6 +51,31 @@ export const mockCustomersProvider: ICustomersProvider = {
     const conv = await conversationsApi.get(conversationId).catch(() => null);
     if (!conv?.customerId) return null;
     return customersApi.get(conv.customerId).catch(() => null);
+  },
+  findByDocument: async (document) => {
+    const digits = document.replace(/\D/g, "");
+    if (!digits) return [];
+    // No RLS in the mock store, so a plain scoped scan mirrors what the
+    // supabase SECURITY DEFINER RPC returns for the same store.
+    const res = await customersApi.list(scopedListParams({ pageSize: 1000 }, "customer"));
+    const matches = res.data
+      .filter((c) => {
+        const doc = c.type === "B2B" ? c.cnpj : c.cpf;
+        return !!doc && doc.replace(/\D/g, "") === digits;
+      })
+      .slice(0, 5);
+    return Promise.all(
+      matches.map(async (c) => ({
+        id: c.id,
+        type: c.type,
+        displayName:
+          (c.type === "B2B" ? c.nomeFantasia || c.razaoSocial : c.fullName) || "—",
+        sellerId: c.sellerId ?? null,
+        sellerName: c.sellerId
+          ? ((await sellersApi.get(c.sellerId).catch(() => null))?.fullName ?? null)
+          : null,
+      })),
+    );
   },
   convertPendingContact: async (input) => {
     const updated = await customersApi.convertPendingContact(input);

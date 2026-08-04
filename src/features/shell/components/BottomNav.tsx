@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 
 function pickItemsForRole(role: string | null): INavItem[] {
   if (role === "Owner") return BOTTOM_NAV.Owner;
+  if (role === "Gestor") return BOTTOM_NAV.Gestor;
   if (role === "Vendedor") return BOTTOM_NAV.Vendedor;
   return [];
 }
