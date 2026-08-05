@@ -34,6 +34,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > ⚠️ **Worktrees — IGNORAR.** A pasta `.claude/worktrees/` (qualquer caminho contendo `worktrees`) contém git worktrees isoladas de outras branches e **não faz parte da branch `main`**. Ao explorar, buscar (grep/glob), editar ou raciocinar sobre o código, **ignore completamente** esse diretório. Trabalhe apenas no diretório principal do projeto (sobretudo `src/`). Não relate, edite nem referencie arquivos dentro de `worktrees`.
 
+> 🚫 **Nunca crie branches nem faça commits diretamente no diretório principal.** O diretório principal (`D:\claude\gallo-basediesel`, fora de `worktrees/`) deve **sempre** permanecer na `main`, sincronizado com `origin/main` — nunca com uma branch de feature/fix/docs checkada nele. Toda tarefa que exija modificar código, documentação, migrations ou qualquer arquivo do projeto **deve** começar criando uma **worktree isolada** (`git worktree add .claude/worktrees/<nome> -b <branch>`, ou a ferramenta `EnterWorktree` quando disponível) e trabalhar a partir dela. Essa regra é **imperativa em toda sessão nova**, independente de memória ou contexto prévio.
+
 ## Comandos
 
 Gerenciador de pacotes: **bun** (`bun.lock` presente). Scripts em `package.json` — `bun run dev | build | lint | format | test`.
