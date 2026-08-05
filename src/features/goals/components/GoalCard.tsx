@@ -59,7 +59,7 @@ export function GoalCard({ goal, progress }: IGoalCardProps) {
       </div>
 
       {goal.rewardDescription && (
-        <p className="rounded-md bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+        <p className="rounded-md bg-severity-warning/10 px-3 py-2 text-xs text-severity-warning">
           <Icon icon="mdi:gift-outline" size={13} className="mr-1 inline" />
           {goal.rewardDescription}
         </p>

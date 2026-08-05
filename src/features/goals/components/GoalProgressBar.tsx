@@ -2,17 +2,17 @@ import type { GoalProgressStatus } from "@/shared/types/goals";
 import { cn } from "@/lib/utils";
 
 const FILL_COLORS: Record<GoalProgressStatus, string> = {
-  no_caminho: "bg-emerald-500",
-  atencao: "bg-amber-500",
-  atrasada: "bg-red-500",
-  concluida: "bg-emerald-600",
+  no_caminho: "bg-severity-success",
+  atencao: "bg-severity-warning",
+  atrasada: "bg-severity-critical",
+  concluida: "bg-severity-success",
 };
 
 const TRACK_COLORS: Record<GoalProgressStatus, string> = {
-  no_caminho: "bg-emerald-500/10",
-  atencao: "bg-amber-500/10",
-  atrasada: "bg-red-500/10",
-  concluida: "bg-emerald-600/10",
+  no_caminho: "bg-severity-success/10",
+  atencao: "bg-severity-warning/10",
+  atrasada: "bg-severity-critical/10",
+  concluida: "bg-severity-success/10",
 };
 
 const HEIGHT_BY_SIZE = {
@@ -61,7 +61,7 @@ export function GoalProgressBar({
           <span
             className={cn(
               "font-mono font-semibold",
-              overshoot ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
+              overshoot ? "text-severity-success" : "text-foreground",
             )}
           >
             {percentage.toLocaleString("pt-BR", {

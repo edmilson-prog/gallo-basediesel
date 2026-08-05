@@ -62,7 +62,7 @@ export function GoalProgressSummary({ goal, progress }: IGoalProgressSummaryProp
         <div
           className={cn(
             "flex flex-col rounded-md border p-3",
-            urgent ? "border-red-500/40 bg-red-500/5" : "border-border bg-muted/30",
+            urgent ? "border-severity-critical/40 bg-severity-critical/5" : "border-border bg-muted/30",
           )}
         >
           <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -71,13 +71,13 @@ export function GoalProgressSummary({ goal, progress }: IGoalProgressSummaryProp
           <span
             className={cn(
               "text-lg font-semibold",
-              urgent ? "text-red-600 dark:text-red-400" : "text-foreground",
+              urgent ? "text-severity-critical" : "text-foreground",
             )}
           >
             {progress.daysRemaining} {daysLabel}
           </span>
           {urgent && (
-            <span className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
+            <span className="inline-flex items-center gap-1 text-xs text-severity-critical">
               <Icon icon="mdi:clock-alert-outline" size={13} />
               Faltam poucos dias
             </span>
