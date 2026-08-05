@@ -36,15 +36,27 @@ const LAST_SIGN_IN_FORMAT = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
 });
 
-/** Secondary line under the e-mail: last sign-in, or a placeholder in demo mode. */
+/**
+ * Secondary line under the e-mail: current activity, last access, or a
+ * placeholder in demo mode.
+ *
+ * Prefers `lastSeenAt` (last sign-in OR last session refresh) over
+ * `lastSignInAt`, which only moves when the user actually types their password
+ * — someone who stays logged in for a week would otherwise read as "last
+ * access: a week ago". `lastSeenAt` is null while the database still runs the
+ * older RPC, hence the fallback.
+ */
 function lastAccessLabel(
   info: ISellerAccessInfo | undefined,
   supabaseAuth: boolean,
+  isOnline: boolean,
 ): string | null {
   if (!supabaseAuth) return "Último acesso: —";
   if (!info) return null; // no access yet — nothing to show
-  if (!info.lastSignInAt) return "Nunca acessou";
-  return `Último acesso: ${LAST_SIGN_IN_FORMAT.format(new Date(info.lastSignInAt))}`;
+  if (isOnline) return "Online agora";
+  const lastAccess = info.lastSeenAt ?? info.lastSignInAt;
+  if (!lastAccess) return "Nunca acessou";
+  return `Último acesso: ${LAST_SIGN_IN_FORMAT.format(new Date(lastAccess))}`;
 }
 
 /**
@@ -135,7 +147,7 @@ export function UsersPage() {
               const isOwnerAccess = accessRole === "owner";
               const isSelf = currentUser?.sellerId === s.id;
               const isOnline = presence ? presence.has(s.id) : s.availability !== "offline";
-              const accessLabel = lastAccessLabel(accessInfo.get(s.id), SUPABASE_AUTH);
+              const accessLabel = lastAccessLabel(accessInfo.get(s.id), SUPABASE_AUTH, isOnline);
               const departmentName = s.departmentId
                 ? departmentNameById.get(s.departmentId)
                 : undefined;
