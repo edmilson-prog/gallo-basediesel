@@ -4,6 +4,28 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.156.0] — Aegis · 2026-08-05
+
+**A página "Meu perfil" foi refeita e ganhou tudo o que faltava para cada pessoa cuidar da própria conta: foto, troca de senha, encerrar o acesso em todos os dispositivos e uma verificação em duas etapas opcional. O Gestor também voltou a enxergar os menus e as configurações que estavam sumidos.**
+
+### Added
+
+- **Página "Meu perfil" redesenhada** — a tela deixou de ser um formulário simples e virou um painel: um cabeçalho com sua foto, seu papel, sua loja, desde quando você está na equipe e o último acesso, seguido dos blocos de contato, segurança, dispositivos e ações delicadas. Uma barra aparece no rodapé assim que você altera algo, avisando que há mudanças não salvas.
+- **Foto de perfil** — agora é possível enviar sua foto (JPG ou PNG, até 2 MB) clicando no avatar. Antes só existiam as iniciais.
+- **Trocar a senha pela própria plataforma** — sem precisar do link por e-mail: informe a senha atual, escolha a nova e pronto. Um medidor mostra na hora se a senha escolhida está fraca ou forte, e você continua conectado no aparelho em que está.
+- **Sair de todos os dispositivos** — encerra o acesso em todos os aparelhos de uma vez, inclusive o atual, útil quando você perde um celular ou esquece a conta aberta em outro computador.
+- **Verificação em duas etapas (2FA) opcional** — quem quiser pode exigir, além da senha, um código de 6 dígitos gerado por um aplicativo autenticador (Google Authenticator, Authy, 1Password). A ativação é feita no seu perfil, escaneando um QR Code. É opcional: quem não ativar continua entrando exatamente como antes.
+- **Remover a verificação em duas etapas de alguém (dono)** — se uma pessoa perder o celular e ficar sem conseguir entrar, o dono remove a verificação dela na tela de Usuários e a conta volta a pedir só a senha. Toda remoção fica registrada na auditoria.
+
+### Fixed
+
+- **Gestor não via vários menus** — itens do menu lateral que o papel de Gestor deveria enxergar estavam faltando. Voltaram.
+- **Gestor não conseguia abrir as Configurações** — a área de configurações estava inacessível para o papel de Gestor.
+
+### Security
+
+- **Fichas de clientes apareciam para quem não deveria vê-las** — a leitura de clientes não estava respeitando o filtro por número de atendimento, então uma ficha podia ficar visível para quem não tinha acesso àquele número. O filtro passou a valer também nessa leitura.
+
 ## [0.155.0] — Weld · 2026-07-24
 
 **Converter um lead em cliente virou um fluxo completo: o CNPJ é preenchido com os dados da Receita, o atendente responsável pela conversa também pode converter e, se aquele CNPJ/CPF já estiver na base, o sistema avisa e oferece vincular ao cliente existente em vez de criar uma ficha duplicada. Junto vem uma leva grande de correções de integridade — listas que paravam em 1.000 registros, conversas que se partiam em duas e transferências de carteira que não se concretizavam.**
