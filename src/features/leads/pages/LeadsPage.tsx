@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { FunnelNav } from "@/features/funnels/components/FunnelNav";
 import { FUNNELS_COPY, useFunnelNavigation } from "@/features/funnels";
 import { useLeadFunnelChips } from "@/features/funnels/hooks/useLeadFunnelChips";
+import { NewFunnelModal } from "@/features/funnels/components/NewFunnelModal";
 import { ALL_FUNNELS } from "@/features/funnels/engine/resolveInitialFunnel";
 import { LeadsHeader } from "../components/LeadsHeader";
 import { LeadsFiltersBar } from "../components/LeadsFiltersBar";
@@ -217,6 +218,17 @@ export function LeadsPage() {
         )}
         </div>
       </div>
+
+      <NewFunnelModal
+        open={newFunnelOpen}
+        onClose={() => setNewFunnelOpen(false)}
+        storeId={currentStoreId}
+        existing={reachableFunnels}
+        onCreated={(f) => {
+          setNewFunnelOpen(false);
+          url.setFunnel(f.id);
+        }}
+      />
 
       <NewLeadModal
         open={newOpen}
