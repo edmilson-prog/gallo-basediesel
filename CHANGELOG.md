@@ -4,6 +4,21 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.157.0] — Manifold · 2026-08-05
+
+**A base para trabalhar com vários funis de venda ao mesmo tempo — um funil por linha de produto, com acesso por vendedor. Nesta versão a mudança é toda por baixo: um lead já pode pertencer a mais de um funil no banco de dados, com etapa e valor próprios em cada um. A tela de Leads continua igual, e é a próxima entrega. O que dá para ver agora é o texto: cores de alerta e nomes de etapa que estavam ilegíveis passaram a ter contraste adequado.**
+
+### Added
+
+- **Modelo de múltiplos funis** — a base de dados passa a suportar um lead participando de vários funis simultaneamente, cada um com sua própria etapa, valor estimado e desfecho. Os leads existentes foram migrados para um funil `Geral` de triagem, e todo lead novo entra nele automaticamente.
+- **Controle de acesso por funil** — a estrutura para restringir quais vendedores enxergam cada linha de produto. Dono e Gestor continuam vendo tudo. O funil filtra o quadro, nunca esconde um lead do próprio dono.
+- **Identidade visual por funil** — nove identidades de cor que os funis poderão ocupar, calibradas para os quatro temas nos modos claro e escuro.
+
+### Fixed
+
+- **Textos ilegíveis nas cores de alerta** — os quatro níveis de aviso (informação, sucesso, atenção e crítico) não tinham contraste suficiente como texto no modo claro, e ficavam apagados sobre o fundo dos selos. Foram escurecidos até atingirem o mínimo exigido de acessibilidade, mantendo a mesma cor de origem.
+- **Nome da etapa quase invisível no modo escuro** — a cor da etapa vinha solta do banco e era aplicada diretamente ao texto na lista e na ficha do lead, rendendo cerca de 2,5:1 de contraste no cinza padrão. O nome da etapa passou a usar a cor normal de texto, e a cor da etapa ficou restrita a bordas e marcadores.
+
 ## [0.156.0] — Aegis · 2026-08-05
 
 **A página "Meu perfil" foi refeita e ganhou tudo o que faltava para cada pessoa cuidar da própria conta: foto, troca de senha, encerrar o acesso em todos os dispositivos e uma verificação em duas etapas opcional. O Gestor também voltou a enxergar os menus e as configurações que estavam sumidos.**
