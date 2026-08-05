@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import type { ID, ILead, IPipelineStage, ISeller } from "@/shared/types";
@@ -9,7 +9,10 @@ import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
+import { toast } from "sonner";
 import { FunnelNav } from "@/features/funnels/components/FunnelNav";
+import { FUNNELS_COPY, useFunnelNavigation } from "@/features/funnels";
+import { useLeadFunnelChips } from "@/features/funnels/hooks/useLeadFunnelChips";
 import { ALL_FUNNELS } from "@/features/funnels/engine/resolveInitialFunnel";
 import { LeadsHeader } from "../components/LeadsHeader";
 import { LeadsFiltersBar } from "../components/LeadsFiltersBar";
@@ -19,7 +22,7 @@ import { NewLeadModal } from "../components/NewLeadModal";
 import { CloseDecisionModal } from "../components/CloseDecisionModal";
 import { ConvertLeadModal } from "../components/ConvertLeadModal";
 import { MarkAsLostModal } from "../components/MarkAsLostModal";
-import { useLeadsUrlState } from "../hooks/useLeadsUrlState";
+import { useLeadsUrlState, type LeadsView } from "../hooks/useLeadsUrlState";
 import { useLeadsList } from "../hooks/useLeadsList";
 import { usePipelineSettings } from "../hooks/usePipelineSettings";
 import { hasAnyFilter } from "../utils/listFilters";
@@ -123,12 +126,31 @@ export function LeadsPage() {
   const canManageFunnels = isManagerOrOwner;
   const openNewFunnel = useCallback(() => setNewFunnelOpen(true), []);
 
+  // Every funnel owns its stages, so there is no shared X axis and a unified
+  // kanban cannot exist (spec 6.3). The consolidated view therefore forces the
+  // list rather than rendering a board that would silently mix id namespaces.
+  const effectiveView: LeadsView = isAllFunnels ? "list" : view;
+
+  // The column shows whenever the user reaches more than one funnel, and
+  // always in the consolidated view — where it is the only thing telling you
+  // which board a row belongs to.
+  const { funnels: reachableFunnels } = useFunnelNavigation();
+  const funnelChipsByLead = useLeadFunnelChips(reachableFunnels);
+  const showFunnelColumn = isAllFunnels || reachableFunnels.length > 1;
+
+  const noticeShownRef = useRef(false);
+  useEffect(() => {
+    if (!isAllFunnels || noticeShownRef.current) return;
+    noticeShownRef.current = true;
+    toast.info(FUNNELS_COPY.allFunnelsNotice);
+  }, [isAllFunnels]);
+
   return (
     <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem-var(--shell-banner-offset,0px))]">
       <LeadsHeader
         activeCount={activeCount}
         searchValue={filters.search}
-        view={view}
+        view={effectiveView}
         canCreate={canCreate}
         onSearchChange={url.setSearch}
         onViewChange={url.setView}
@@ -138,6 +160,8 @@ export function LeadsPage() {
         funnelSlot={
           <FunnelNav slot="header" canManage={canManageFunnels} onCreate={openNewFunnel} />
         }
+        viewLocked={isAllFunnels}
+        viewLockedReason={FUNNELS_COPY.allFunnelsNotice}
       />
 
       <FunnelNav slot="tabs" canManage={canManageFunnels} onCreate={openNewFunnel} />
@@ -151,7 +175,7 @@ export function LeadsPage() {
         stores={accessibleStores}
         canFilterStore={isOwner}
         canFilterSeller={isManagerOrOwner}
-        view={view}
+        view={effectiveView}
       />
 
 
@@ -172,7 +196,7 @@ export function LeadsPage() {
             onClear={url.clearAll}
             onCreate={handleEmptyCreate}
           />
-        ) : view === "kanban" ? (
+        ) : effectiveView === "kanban" ? (
           <LeadsKanban
             leads={list.leads}
             stages={stages}
@@ -188,6 +212,7 @@ export function LeadsPage() {
             sort={sort}
             onSortChange={url.setSort}
             scrollRef={setScrollEl}
+            funnelChipsByLead={showFunnelColumn ? funnelChipsByLead : undefined}
           />
         )}
         </div>

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/Icon";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { cn } from "@/lib/utils";
 import type { ILead } from "@/shared/types";
@@ -37,6 +38,13 @@ export interface ILeadsHeaderProps {
    * competing for the same role.
    */
   funnelSlot?: React.ReactNode;
+  /**
+   * True in the consolidated view: funnels have no common stage axis, so a
+   * unified kanban is impossible and the toggle is locked to the list with an
+   * explanation rather than silently ignoring the click.
+   */
+  viewLocked?: boolean;
+  viewLockedReason?: string;
 }
 
 export function LeadsHeader({
@@ -50,6 +58,8 @@ export function LeadsHeader({
   scrollEl = null,
   metricsLeads,
   funnelSlot,
+  viewLocked = false,
+  viewLockedReason,
 }: ILeadsHeaderProps) {
   const searchRef = useRef<HTMLInputElement>(null);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -79,6 +89,30 @@ export function LeadsHeader({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  const viewToggle = (
+    <ToggleGroup
+      type="single"
+      value={view}
+      onValueChange={(val) => {
+        if (val === "kanban" || val === "list") onViewChange(val);
+      }}
+      variant="outline"
+      size="sm"
+      disabled={viewLocked}
+      className="shrink-0"
+      aria-label="Modo de visualização"
+    >
+      <ToggleGroupItem value="kanban" aria-label={LEADS_STRINGS.views.kanban}>
+        <Icon icon="mdi:view-column-outline" size={16} />
+        <span className="ml-1 hidden sm:inline">{LEADS_STRINGS.views.kanban}</span>
+      </ToggleGroupItem>
+      <ToggleGroupItem value="list" aria-label={LEADS_STRINGS.views.list}>
+        <Icon icon="mdi:format-list-bulleted" size={16} />
+        <span className="ml-1 hidden sm:inline">{LEADS_STRINGS.views.list}</span>
+      </ToggleGroupItem>
+    </ToggleGroup>
+  );
 
   return (
     <div className="relative flex flex-wrap items-center gap-3 border-b border-border/40 bg-background/85 px-4 py-3 shadow-lg shadow-foreground/5 backdrop-blur-2xl backdrop-saturate-[1.8] supports-[backdrop-filter]:bg-background/50">
@@ -135,26 +169,18 @@ export function LeadsHeader({
 
         <LeadsMetricsPopover leads={metricsLeads} />
 
-        <ToggleGroup
-          type="single"
-          value={view}
-          onValueChange={(val) => {
-            if (val === "kanban" || val === "list") onViewChange(val);
-          }}
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          aria-label="Modo de visualização"
-        >
-          <ToggleGroupItem value="kanban" aria-label={LEADS_STRINGS.views.kanban}>
-            <Icon icon="mdi:view-column-outline" size={16} />
-            <span className="ml-1 hidden sm:inline">{LEADS_STRINGS.views.kanban}</span>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="list" aria-label={LEADS_STRINGS.views.list}>
-            <Icon icon="mdi:format-list-bulleted" size={16} />
-            <span className="ml-1 hidden sm:inline">{LEADS_STRINGS.views.list}</span>
-          </ToggleGroupItem>
-        </ToggleGroup>
+        {viewLocked ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="shrink-0" tabIndex={0}>
+                {viewToggle}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{viewLockedReason}</TooltipContent>
+          </Tooltip>
+        ) : (
+          viewToggle
+        )}
 
         {canCreate && (
           <Button size="sm" className="shrink-0 gap-1.5" onClick={onCreate}>
