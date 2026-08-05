@@ -574,8 +574,8 @@ export function NewIndicatorPage() {
         {/* Errors                                                            */}
         {/* ---------------------------------------------------------------- */}
         {errors.length > 0 && (
-          <Card className="border-red-500/40 bg-red-500/5 p-4">
-            <ul className="flex flex-col gap-1 text-sm text-red-700 dark:text-red-300">
+          <Card className="border-severity-critical/40 bg-severity-critical/5 p-4">
+            <ul className="flex flex-col gap-1 text-sm text-severity-critical">
               {errors.map((err) => (
                 <li key={err} className="flex items-start gap-1">
                   <Icon icon="mdi:alert-circle-outline" size={16} className="mt-0.5 shrink-0" />

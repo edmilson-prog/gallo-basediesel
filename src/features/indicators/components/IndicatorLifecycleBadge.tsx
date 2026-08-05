@@ -5,9 +5,9 @@ import { indicatorsPtBR as S } from "../i18n/pt-BR";
 
 export const LIFECYCLE_COLORS: Record<IProductIndicator["status"], string> = {
   ativo: "bg-primary/10 text-primary border-primary/40",
-  concluido: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/40",
+  concluido: "border-severity-success/40 bg-severity-success/10 text-severity-success",
   arquivado: "bg-muted text-muted-foreground border-border",
-  cancelado: "bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/40",
+  cancelado: "border-severity-critical/40 bg-severity-critical/10 text-severity-critical",
 };
 
 export const LIFECYCLE_ICONS: Record<IProductIndicator["status"], string> = {
