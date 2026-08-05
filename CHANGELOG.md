@@ -4,6 +4,24 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.158.0] — Heartbeat · 2026-08-05
+
+**Os sinais de conexão voltaram a dizer a verdade. O ícone de WhatsApp no topo da tela e o aviso vermelho de número desconectado ignoravam por completo os números ligados pelo servidor WAHA — um deles podia cair e nada aparecia. Agora todos contam, e esses números ainda passaram a ser conferidos sozinhos a cada 30 segundos. O indicador de quem está online também voltou a funcionar: até então cada pessoa só enxergava a si mesma. E a tela de entrada foi redesenhada.**
+
+### Added
+
+- **Conferência automática dos números ligados pelo servidor WAHA** — enquanto a tela de WhatsApp está aberta, esses números passam a ser verificados sozinhos a cada 30 segundos. Antes, o estado deles só mudava quando o próprio servidor avisava; se esse aviso se perdesse, o selo do cartão seguia mostrando informação velha até alguém recarregar a página. Os demais tipos de número já tinham essa conferência.
+
+### Changed
+
+- **Tela de entrada redesenhada** — o login ganhou um layout de pôster, com painel da marca animado, os selos das três submarcas e um botão para mostrar ou ocultar a senha. A tela fica sempre no tema escuro, independentemente da preferência do aparelho.
+- **"Online agora" no lugar de uma data** — na lista de Usuários, quem está conectado no momento aparece como "Online agora", em vez de uma data e hora que pareceria antiga.
+
+### Fixed
+
+- **Números do servidor WAHA ficavam de fora do aviso de conexão** — o ícone de WhatsApp no topo da tela e o aviso vermelho de "desconectado" não enxergavam esses números: um deles podia cair sem que o ícone mudasse de cor nem o aviso aparecesse. Agora todos os tipos de número entram nesse sinal.
+- **Cada pessoa só via a si mesma como online** — o indicador de quem está online colocava cada aba do navegador em um grupo isolado, então duas pessoas conectadas ao mesmo tempo não apareciam uma para a outra, nem na tela de Usuários nem na bolinha da conversa.
+
 ## [0.157.0] — Manifold · 2026-08-05
 
 **A base para trabalhar com vários funis de venda ao mesmo tempo — um funil por linha de produto, com acesso por vendedor. Nesta versão a mudança é toda por baixo: um lead já pode pertencer a mais de um funil no banco de dados, com etapa e valor próprios em cada um. A tela de Leads continua igual, e é a próxima entrega. O que dá para ver agora é o texto: cores de alerta e nomes de etapa que estavam ilegíveis passaram a ter contraste adequado.**
