@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { cn } from "@/lib/utils";
+import type { ILead } from "@/shared/types";
+import { LeadsMetricsPopover } from "./LeadsMetricsPopover";
 import { LEADS_STRINGS } from "../i18n/pt-BR";
 import type { LeadsView } from "../hooks/useLeadsUrlState";
 
@@ -27,6 +29,8 @@ export interface ILeadsHeaderProps {
    * seam. `null` until the child mounts and reports its element.
    */
   scrollEl?: HTMLElement | null;
+  /** Unfiltered set for the metrics popover — see ILeadsMetricsPopoverProps. */
+  metricsLeads: ILead[];
 }
 
 export function LeadsHeader({
@@ -38,6 +42,7 @@ export function LeadsHeader({
   onViewChange,
   onCreate,
   scrollEl = null,
+  metricsLeads,
 }: ILeadsHeaderProps) {
   const searchRef = useRef<HTMLInputElement>(null);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -110,6 +115,8 @@ export function LeadsHeader({
             /
           </kbd>
         </div>
+
+        <LeadsMetricsPopover leads={metricsLeads} />
 
         <ToggleGroup
           type="single"

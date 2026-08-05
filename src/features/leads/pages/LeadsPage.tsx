@@ -11,7 +11,6 @@ import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
 import { LeadsHeader } from "../components/LeadsHeader";
 import { LeadsFiltersBar } from "../components/LeadsFiltersBar";
-import { KanbanMetricsBar } from "../components/KanbanMetricsBar";
 import { LeadsKanban } from "../components/kanban/LeadsKanban";
 import { LeadsList } from "../components/LeadsList";
 import { NewLeadModal } from "../components/NewLeadModal";
@@ -124,6 +123,7 @@ export function LeadsPage() {
         onViewChange={url.setView}
         onCreate={() => setNewOpen(true)}
         scrollEl={scrollEl}
+        metricsLeads={list.allLeads}
       />
 
       <LeadsFiltersBar
@@ -138,7 +138,6 @@ export function LeadsPage() {
         view={view}
       />
 
-      {view === "kanban" && <KanbanMetricsBar leads={list.leads} />}
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {list.isLoading && list.leads.length === 0 ? (

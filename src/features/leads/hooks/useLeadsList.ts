@@ -7,6 +7,9 @@ import { CLOSING_STAGE_ID, daysInStage, isConverted, isLost } from "../utils/lea
 import { getNextActionInfo } from "../utils/leadDisplay";
 import type { ILeadsListFilters, ILeadsListSort } from "../utils/listFilters";
 
+/** Stable identity, so `allLeads` does not change reference on every render. */
+const EMPTY_LEADS: ILead[] = [];
+
 export interface IUseLeadsListParams {
   filters: ILeadsListFilters;
   sort: ILeadsListSort;
@@ -18,6 +21,16 @@ export interface IUseLeadsListParams {
 
 export interface IUseLeadsListResult {
   leads: ILead[];
+  /**
+   * The fetched set before the converted/lost exclusions, for consumers that
+   * must not be blinded by them. The metrics popover is the reason this
+   * exists: computing a conversion rate over a set the caller already stripped
+   * of converted leads is what made the old metrics bar report 0,0% forever.
+   *
+   * Still subject to `excludeLost` at the server when the toggle is off — that
+   * one narrows the fetch itself, not just the view.
+   */
+  allLeads: ILead[];
   isLoading: boolean;
   isFetching: boolean;
   isError: boolean;
@@ -172,6 +185,7 @@ export function useLeadsList({
 
   return {
     leads: filtered,
+    allLeads: query.data?.data ?? EMPTY_LEADS,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     isError: query.isError,
