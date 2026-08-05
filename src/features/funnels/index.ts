@@ -8,3 +8,5 @@ export { planStageTransition } from "./engine/stageTransition";
 export { countDistinctLeads, daysInStage, summariseStage } from "./engine/funnelMetrics";
 export { resolveLayout, FUNNEL_LAYOUTS, DEFAULT_FUNNEL_LAYOUT } from "./engine/resolveLayout";
 export type { FunnelLayout, IResolvedLayout } from "./engine/resolveLayout";
+export { resolveInitialFunnel, ALL_FUNNELS } from "./engine/resolveInitialFunnel";
+export type { IInitialFunnelResolution } from "./engine/resolveInitialFunnel";
