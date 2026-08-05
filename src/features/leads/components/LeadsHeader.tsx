@@ -31,6 +31,12 @@ export interface ILeadsHeaderProps {
   scrollEl?: HTMLElement | null;
   /** Unfiltered set for the metrics popover — see ILeadsMetricsPopoverProps. */
   metricsLeads: ILead[];
+  /**
+   * The funnel switcher, when the resolved layout is "header". It carries the
+   * page's <h1> (spec 6.7), so "Leads" demotes to a muted prefix rather than
+   * competing for the same role.
+   */
+  funnelSlot?: React.ReactNode;
 }
 
 export function LeadsHeader({
@@ -43,6 +49,7 @@ export function LeadsHeader({
   onCreate,
   scrollEl = null,
   metricsLeads,
+  funnelSlot,
 }: ILeadsHeaderProps) {
   const searchRef = useRef<HTMLInputElement>(null);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -75,8 +82,18 @@ export function LeadsHeader({
 
   return (
     <div className="relative flex flex-wrap items-center gap-3 border-b border-border/40 bg-background/85 px-4 py-3 shadow-lg shadow-foreground/5 backdrop-blur-2xl backdrop-saturate-[1.8] supports-[backdrop-filter]:bg-background/50">
-      <div className="flex min-w-0 shrink-0 items-baseline gap-2">
-        <h1 className="text-base font-semibold text-foreground">{COPY.title}</h1>
+      <div className="flex min-w-0 shrink-0 items-center gap-2">
+        {funnelSlot ? (
+          <>
+            <span className="text-sm font-medium text-muted-foreground">{COPY.title}</span>
+            <span aria-hidden className="text-sm text-muted-foreground">
+              /
+            </span>
+            {funnelSlot}
+          </>
+        ) : (
+          <h1 className="text-base font-semibold text-foreground">{COPY.title}</h1>
+        )}
         <Badge variant="outline" className="bg-muted/50 text-xs text-muted-foreground">
           {COPY.activeCount(activeCount)}
         </Badge>

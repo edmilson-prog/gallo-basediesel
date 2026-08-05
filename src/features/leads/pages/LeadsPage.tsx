@@ -9,6 +9,7 @@ import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
+import { FunnelNav } from "@/features/funnels/components/FunnelNav";
 import { LeadsHeader } from "../components/LeadsHeader";
 import { LeadsFiltersBar } from "../components/LeadsFiltersBar";
 import { LeadsKanban } from "../components/kanban/LeadsKanban";
@@ -112,6 +113,10 @@ export function LeadsPage() {
   // the progress line stays at zero there instead of tracking one column.
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
 
+  const [newFunnelOpen, setNewFunnelOpen] = useState(false);
+  const canManageFunnels = isManagerOrOwner;
+  const openNewFunnel = useCallback(() => setNewFunnelOpen(true), []);
+
   return (
     <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem-var(--shell-banner-offset,0px))]">
       <LeadsHeader
@@ -124,7 +129,12 @@ export function LeadsPage() {
         onCreate={() => setNewOpen(true)}
         scrollEl={scrollEl}
         metricsLeads={list.allLeads}
+        funnelSlot={
+          <FunnelNav slot="header" canManage={canManageFunnels} onCreate={openNewFunnel} />
+        }
       />
+
+      <FunnelNav slot="tabs" canManage={canManageFunnels} onCreate={openNewFunnel} />
 
       <LeadsFiltersBar
         filters={filters}
@@ -139,7 +149,10 @@ export function LeadsPage() {
       />
 
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <FunnelNav slot="rail" canManage={canManageFunnels} onCreate={openNewFunnel} />
+
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {list.isLoading && list.leads.length === 0 ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             Carregando leads…
@@ -171,6 +184,7 @@ export function LeadsPage() {
             scrollRef={setScrollEl}
           />
         )}
+        </div>
       </div>
 
       <NewLeadModal
