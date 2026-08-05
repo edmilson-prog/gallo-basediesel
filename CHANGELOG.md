@@ -4,6 +4,28 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.158.0] — Wayfinder · 2026-08-05
+
+**A página de Leads passou a trabalhar com vários funis: dá para trocar de funil, e cada pessoa escolhe como quer fazer isso — por uma barra lateral, por um seletor no topo ou por abas. O funil aberto fica no endereço da página, então dá para mandar o link do quadro para alguém e ele abre exatamente onde você estava. Também é possível criar um funil novo direto da tela, e ver todos os leads de uma vez com a indicação de em quais funis cada um está.**
+
+### Added
+
+- **Troca de funil na página de Leads** — o quadro e a lista passam a mostrar só os leads do funil escolhido, com a filtragem feita no servidor.
+- **Três formas de navegar entre funis, à sua escolha** — barra lateral, seletor no cabeçalho ou abas. A escolha fica salva no navegador e pode ser trocada no próprio seletor ou em Configurações → Aparência. Em telas estreitas a exibição se adapta sozinha, e volta ao que você escolheu quando a janela cresce.
+- **O funil aberto vai no endereço da página** — atualizar a página mantém o funil, e o link pode ser compartilhado. Se o link apontar para um funil que a pessoa não acessa, o sistema avisa e abre o funil padrão.
+- **"Todos os funis"** — visão consolidada em lista, com uma coluna mostrando em quais funis cada lead está. Leads em funis sem acesso aparecem com um cadeado, sem revelar o nome do funil.
+- **Criar funil pela própria tela** — nome, ícone e identidade de cor. O funil já nasce com as etapas de entrada, andamento, ganho e perda.
+- **Atalhos de teclado** — `[` e `]` trocam de funil; `/` foca a busca.
+
+### Changed
+
+- **Cabeçalho da página de Leads padronizado** — vidro fosco, busca que cresce ao focar com atalho `/` e `Esc`, e linha de progresso de rolagem, como nas demais telas de lista.
+- **Os botões "Mostrar perdidos" e "Mostrar convertidos"** deixaram de parecer filtros aplicados. Eles ampliam a lista em vez de restringi-la, e agora têm aparência própria.
+
+### Fixed
+
+- **A faixa de métricas mostrava sempre 0,0% · 0 dias · —** e ocupava espaço fixo no topo do quadro. Os números eram calculados sobre leads convertidos que o próprio filtro da tela já havia removido. As três métricas foram para um botão "Métricas" no cabeçalho, agora com valores reais e a indicação de sobre o que são calculadas.
+
 ## [0.157.0] — Manifold · 2026-08-05
 
 **A base para trabalhar com vários funis de venda ao mesmo tempo — um funil por linha de produto, com acesso por vendedor. Nesta versão a mudança é toda por baixo: um lead já pode pertencer a mais de um funil no banco de dados, com etapa e valor próprios em cada um. A tela de Leads continua igual, e é a próxima entrega. O que dá para ver agora é o texto: cores de alerta e nomes de etapa que estavam ilegíveis passaram a ter contraste adequado.**

@@ -4,6 +4,9 @@ import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { getAccentClasses } from "@/features/funnels/engine/accentClasses";
+import { LeadFunnelChips } from "@/features/funnels/components/LeadFunnelChips";
+import { FUNNELS_COPY } from "@/features/funnels";
+import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
 import { hexToAccentSlot } from "@/features/funnels/engine/legacyStageColor";
 import {
   Table,
@@ -40,9 +43,30 @@ export interface ILeadsListProps {
   isLoading: boolean;
   sort: ILeadsListSort;
   onSortChange: (sort: ILeadsListSort) => void;
+  /**
+   * Reports this view's scroll container so the header can draw the progress
+   * line on the seam. The kanban has no single vertical scroller — each column
+   * scrolls on its own — so it deliberately never reports one, and the bar
+   * stays at zero there rather than tracking something arbitrary.
+   */
+  scrollRef?: (el: HTMLDivElement | null) => void;
+  /**
+   * Funnel chips per lead. Present only when the user reaches more than one
+   * funnel, and always in the consolidated view (spec 7.5) — where it is the
+   * only thing telling you which board a row belongs to.
+   */
+  funnelChipsByLead?: Map<ID, ILeadFunnelChip[]>;
 }
 
-export function LeadsList({ leads, sellersById, isLoading, sort, onSortChange }: ILeadsListProps) {
+export function LeadsList({
+  leads,
+  sellersById,
+  isLoading,
+  sort,
+  onSortChange,
+  scrollRef,
+  funnelChipsByLead,
+}: ILeadsListProps) {
   const navigate = useNavigate();
   const now = new Date();
 
@@ -65,13 +89,14 @@ export function LeadsList({ leads, sellersById, isLoading, sort, onSortChange }:
   }
 
   return (
-    <div className="h-full overflow-auto">
+    <div ref={scrollRef} className="h-full overflow-auto">
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow>
             <SortableHeader column="name" label={COPY.name} sort={sort} onSort={handleSort} />
             <TableHead>{COPY.phone}</TableHead>
             <TableHead>{COPY.stage}</TableHead>
+            {funnelChipsByLead && <TableHead>{FUNNELS_COPY.sectionLabel}</TableHead>}
             <SortableHeader
               column="temperature"
               label={COPY.temperature}
@@ -132,6 +157,11 @@ export function LeadsList({ leads, sellersById, isLoading, sort, onSortChange }:
                     {lead.stage.name}
                   </span>
                 </TableCell>
+                {funnelChipsByLead && (
+                  <TableCell>
+                    <LeadFunnelChips chips={funnelChipsByLead.get(lead.id) ?? []} />
+                  </TableCell>
+                )}
                 <TableCell>
                   <span
                     className={cn(

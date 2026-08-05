@@ -92,6 +92,9 @@ export const LEADS_STRINGS = {
       conversion: "Taxa de conversão",
       avgCycle: "Tempo médio total",
       avgValue: "Valor médio convertido",
+      trigger: "Métricas",
+      scopeNote: "Calculado sobre todos os leads da loja, inclusive convertidos e perdidos.",
+      periodNote: "Conversão considera os últimos 30 dias.",
     },
   },
   list: {

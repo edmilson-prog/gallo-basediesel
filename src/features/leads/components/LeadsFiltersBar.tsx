@@ -469,16 +469,26 @@ interface IToggleChipProps {
   description: string;
 }
 
+/**
+ * These two chips WIDEN the set (they let lost/converted leads back in) rather
+ * than narrowing it like every other control on this bar. A solid `default`
+ * fill made them read as the strongest filter applied, which is the opposite
+ * of what they do — so inclusion gets its own treatment: dashed while off,
+ * muted-solid while on, and never the primary fill reserved for restriction.
+ */
 function ToggleChip({ active, onToggle, icon, label, description }: IToggleChipProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
-          variant={active ? "default" : "outline"}
+          variant="outline"
           size="sm"
           aria-pressed={active}
           onClick={onToggle}
-          className="h-8 gap-1.5 text-xs"
+          className={cn(
+            "h-8 gap-1.5 border-dashed text-xs",
+            active && "border-solid bg-muted text-foreground",
+          )}
         >
           <Icon icon={icon} size={14} />
           {label}

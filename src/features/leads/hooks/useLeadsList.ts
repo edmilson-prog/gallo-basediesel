@@ -7,6 +7,9 @@ import { CLOSING_STAGE_ID, daysInStage, isConverted, isLost } from "../utils/lea
 import { getNextActionInfo } from "../utils/leadDisplay";
 import type { ILeadsListFilters, ILeadsListSort } from "../utils/listFilters";
 
+/** Stable identity, so `allLeads` does not change reference on every render. */
+const EMPTY_LEADS: ILead[] = [];
+
 export interface IUseLeadsListParams {
   filters: ILeadsListFilters;
   sort: ILeadsListSort;
@@ -14,10 +17,27 @@ export interface IUseLeadsListParams {
   sellerScopeIds?: ID[];
   /** When provided overrides server-side store filter (Owner cross-store). */
   ownerCrossStore?: boolean;
+  /**
+   * Restricts the fetch to leads participating in this funnel, resolved
+   * server-side by joining lead_funnel_entries. Undefined means "every
+   * funnel" — which is what the consolidated view passes, since its sentinel
+   * is not a funnel id.
+   */
+  funnelId?: ID;
 }
 
 export interface IUseLeadsListResult {
   leads: ILead[];
+  /**
+   * The fetched set before the converted/lost exclusions, for consumers that
+   * must not be blinded by them. The metrics popover is the reason this
+   * exists: computing a conversion rate over a set the caller already stripped
+   * of converted leads is what made the old metrics bar report 0,0% forever.
+   *
+   * Still subject to `excludeLost` at the server when the toggle is off — that
+   * one narrows the fetch itself, not just the view.
+   */
+  allLeads: ILead[];
   isLoading: boolean;
   isFetching: boolean;
   isError: boolean;
@@ -30,6 +50,7 @@ export function useLeadsList({
   storeId,
   sellerScopeIds,
   ownerCrossStore = false,
+  funnelId,
 }: IUseLeadsListParams): IUseLeadsListResult {
   const provider = useLeadsProvider();
 
@@ -39,7 +60,9 @@ export function useLeadsList({
     // excludeLost is part of the key (not just the queryFn closure) so
     // toggling "Mostrar perdidos" triggers a real refetch instead of
     // reapplying the client-side filter over an already-narrowed cache.
-    queryKey: ["leads-list", ownerCrossStore ? "all" : storeId, excludeLost] as const,
+    // funnelId is part of the key, not just the queryFn closure: without it a
+    // funnel switch would serve the previous funnel's cached rows.
+    queryKey: ["leads-list", ownerCrossStore ? "all" : storeId, excludeLost, funnelId] as const,
     queryFn: () =>
       provider.list({
         storeId: ownerCrossStore ? undefined : storeId,
@@ -48,6 +71,7 @@ export function useLeadsList({
         // excluded server-side and don't inflate the fetched set with
         // inactive rows. When the toggle is on, the exclusion is lifted.
         excludeLost,
+        funnelId,
       }),
     staleTime: 30_000,
   });
@@ -172,6 +196,7 @@ export function useLeadsList({
 
   return {
     leads: filtered,
+    allLeads: query.data?.data ?? EMPTY_LEADS,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     isError: query.isError,
