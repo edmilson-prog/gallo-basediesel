@@ -262,7 +262,7 @@ export function IndicatorDetailPage() {
 
             {/* Reward description (if set) */}
             {indicator.rewardDescription && (
-              <p className="mt-1 flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+              <p className="mt-1 flex items-center gap-1.5 rounded-md border border-severity-warning/30 bg-severity-warning/5 px-3 py-2 text-xs text-severity-warning">
                 <Icon icon="mdi:gift-outline" size={14} className="shrink-0" />
                 {indicator.rewardDescription}
               </p>
@@ -298,7 +298,7 @@ export function IndicatorDetailPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setCancelOpen(true)}
-                className="gap-1 text-red-600 hover:text-red-700 dark:text-red-400"
+                className="gap-1 text-severity-critical hover:text-severity-critical/80"
               >
                 <Icon icon="mdi:close-circle-outline" size={14} />
                 {S.cancelCta}
