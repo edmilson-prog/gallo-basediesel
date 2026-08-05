@@ -35,8 +35,17 @@ export interface ISellerAccessInfo {
   role: string;
   /** Effective role override (custom role id). NULL = runs on the base role. */
   roleId: string | null;
-  /** Last Supabase sign-in (null = invited but never logged in). */
+  /** Last explicit Supabase sign-in (null = invited but never logged in). */
   lastSignInAt: string | null;
+  /**
+   * Last real activity: the sign-in above OR the most recent session refresh,
+   * whichever is later. `last_sign_in_at` alone reports the last time the user
+   * TYPED their password — a persistent session renewed by refresh token never
+   * moves it, so it lags by days for anyone who stays logged in. Null while the
+   * database still runs the pre-`last_seen_at` version of the RPC (the UI falls
+   * back to `lastSignInAt`).
+   */
+  lastSeenAt: string | null;
 }
 
 /**
@@ -55,11 +64,13 @@ export async function listSellerAccessInfo(): Promise<Map<string, ISellerAccessI
       role: string;
       role_id: string | null;
       last_sign_in_at: string | null;
+      last_seen_at?: string | null;
     };
     map.set(r.seller_id, {
       role: r.role,
       roleId: r.role_id ?? null,
       lastSignInAt: r.last_sign_in_at,
+      lastSeenAt: r.last_seen_at ?? null,
     });
   }
   return map;
