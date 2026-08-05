@@ -66,6 +66,8 @@ import { SyncAvatarsDialog } from "./SyncAvatarsDialog";
 import { resolveAccessRecipients } from "../utils/accessRecipients";
 import { INSTANCE_PALETTE } from "@/features/conversations/utils/instanceAccent";
 import { invokeWaha, WahaConnectError } from "../api/wahaConnect";
+import { applyWahaPolledStatuses, type IWahaPolledState } from "../engine/wahaPolledStatus";
+import { useWahaStatusSync } from "../hooks/useWahaStatusSync";
 
 /**
  * Dedicated WAHA tab (Configurações → WhatsApp). Fully isolated from the
@@ -440,26 +442,36 @@ export function WahaSection({ storeId }: { storeId: string }) {
     [provider],
   );
 
-  // Raw session state (SCAN_QR_CODE vs STARTING) — only meaningful against a
-  // real WAHA server, so skip in demo mode. Decorative: never blocks render.
+  // Live session state, polled from the WAHA server. One call, two jobs: it
+  // feeds the raw-state hint (SCAN_QR_CODE vs STARTING) AND syncs
+  // `whatsapp_accounts.status` server-side, whose mapped value comes back as
+  // `state` — folded onto the local rows so the badge follows reality without a
+  // second listWaha() round-trip. Only meaningful against a real WAHA server,
+  // so skip in demo mode. Decorative: never blocks render.
   const loadRawStates = useCallback(async (list: IWhatsAppAccount[]) => {
     if (getActiveDataSource() === "mock") return;
     const entries = await Promise.all(
       list.map(async (account) => {
         try {
-          const res = await invokeWaha<{ state: string; rawState: string }>({
+          const res = await invokeWaha<IWahaPolledState>({
             accountId: account.id,
             action: "state",
           });
-          return [account.id, res.rawState] as const;
+          return [account.id, res] as const;
         } catch {
           return null; // a stopped/unreachable session just has no raw state
         }
       }),
     );
+    const polled: Record<string, IWahaPolledState> = {};
     const loaded: Record<string, string> = {};
-    for (const entry of entries) if (entry) loaded[entry[0]] = entry[1];
+    for (const entry of entries) {
+      if (!entry) continue;
+      polled[entry[0]] = entry[1];
+      loaded[entry[0]] = entry[1].rawState;
+    }
     setRawStates(loaded);
+    setAccounts((prev) => (prev ? applyWahaPolledStatuses(prev, polled) : prev));
   }, []);
 
   const refresh = useCallback(async () => {
@@ -477,6 +489,11 @@ export function WahaSection({ storeId }: { storeId: string }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Keeps the badges truthful between webhook deliveries — WAHA is invisible to
+  // `useEvolutionStatusSync`, so without this a missed `session.status` left the
+  // status stale until a manual reload. See useWahaStatusSync.
+  useWahaStatusSync(accounts, loadRawStates, getActiveDataSource() !== "mock");
 
   useEffect(() => {
     let cancelled = false;
