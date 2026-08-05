@@ -128,6 +128,23 @@ export async function resetSellerPassword(sellerId: string, password: string): P
 }
 
 /**
+ * Clears every enrolled MFA factor from a seller's login, via the
+ * `reset-seller-mfa` function (Owner-only).
+ *
+ * Two-factor is TOTP-only and Supabase has no native recovery codes, so this is
+ * the escape hatch for someone who lost their authenticator app. Returns how
+ * many factors were removed (0 when the seller had none).
+ */
+export async function resetSellerMfa(sellerId: string): Promise<number> {
+  const { data, error } = await getSupabaseClient().functions.invoke<{ removed: number }>(
+    "reset-seller-mfa",
+    { body: { sellerId } },
+  );
+  if (error) throw new Error(await extractFunctionError(error));
+  return data?.removed ?? 0;
+}
+
+/**
  * Syncs a seller's platform login e-mail (`auth.users.email`) via the
  * `set-seller-email` function. `sellers.email` (contact data) is written
  * separately by the regular provider update — this only applies when the

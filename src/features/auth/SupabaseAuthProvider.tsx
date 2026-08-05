@@ -7,6 +7,7 @@ import type { IUserProfile } from "./mock-users";
 import { readAuthSyncMirror, writeAuthSyncMirror } from "./authSession";
 import { isInvalidSessionError } from "./sessionValidity";
 import { defaultRedirectForRole, mapDbRoleToRoleName, roleGroup } from "./roleMap";
+import { getVerifiedTotpFactor, readMfaGate, verifyTotpChallenge } from "./mfa";
 
 /** Row shape of `public.profiles` (PRD-107 slice). */
 interface ProfileRow {
@@ -104,6 +105,8 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   // session) — AuthSessionGuard watches this, NOT currentUser, so a transient
   // profile-read failure or an intentional signOut never bounces to login.
   const [sessionExpired, setSessionExpired] = useState(false);
+  // A session exists but still owes its second factor (see the gate in `apply`).
+  const [mfaPending, setMfaPending] = useState(false);
   // Mirror of currentUser readable inside async callbacks without re-subscribing
   // the effect — lets revalidate() recover a boot-blip (valid session, profile
   // failed to load) without staleness.
@@ -120,10 +123,25 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       if (!user) {
         if (active) {
           setCurrentUser(null);
+          setMfaPending(false);
           writeAuthSyncMirror(null);
         }
         return;
       }
+      // Two-factor gate. A session that COULD reach aal2 but has not is only
+      // half-authenticated: the credentials were accepted, the second factor was
+      // not. It must not become a logged-in app session — otherwise closing the
+      // tab mid-challenge and reopening it would walk straight past the code.
+      // Users without an enrolled factor never take this branch.
+      const gate = await readMfaGate();
+      if (!active) return;
+      if (gate === "challenge_required") {
+        setMfaPending(true);
+        setCurrentUser(null);
+        writeAuthSyncMirror(null);
+        return;
+      }
+      setMfaPending(false);
       const res = await resolveProfile(supabase, user);
       if (!active) return;
       // Transient profile-read failure on a VALID auth session: keep whatever we
@@ -222,17 +240,10 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   // Pick-a-profile sign-in is mock-only; no-op here so the contract is honoured.
   const signIn = useCallback((): IUserProfile | null => null, []);
 
-  const signInWithPassword = useCallback(
-    async (email: string, password: string): Promise<IAuthResult> => {
-      const supabase = getSupabaseClient();
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-      if (error || !data.user) {
-        return { ok: false, error: translateAuthError(error?.message ?? "") };
-      }
-      const res = await resolveProfile(supabase, data.user);
+  /** Shared tail of a completed sign-in (password-only, or password + TOTP). */
+  const finalizeSignIn = useCallback(
+    async (supabase: SupabaseClient, user: User): Promise<IAuthResult> => {
+      const res = await resolveProfile(supabase, user);
       if (res.status !== "ok") {
         return {
           ok: false,
@@ -248,6 +259,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       // by AuthSessionGuard reading a stale `true` before onAuthStateChange→apply
       // commits the reset.
       setSessionExpired(false);
+      setMfaPending(false);
       setCurrentUser(profile);
       writeAuthSyncMirror({
         id: profile.id,
@@ -260,12 +272,71 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     [],
   );
 
+  const signInWithPassword = useCallback(
+    async (email: string, password: string): Promise<IAuthResult> => {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error || !data.user) {
+        return { ok: false, error: translateAuthError(error?.message ?? "") };
+      }
+      // Optional two-factor: the password was accepted and a session now exists,
+      // but it is aal1. Hand the caller back to collect the code — the user is
+      // NOT signed in until completeMfaChallenge succeeds.
+      if ((await readMfaGate()) === "challenge_required") {
+        setMfaPending(true);
+        setCurrentUser(null);
+        writeAuthSyncMirror(null);
+        return { ok: false, mfaRequired: true };
+      }
+      return finalizeSignIn(supabase, data.user);
+    },
+    [finalizeSignIn],
+  );
+
+  const completeMfaChallenge = useCallback(
+    async (code: string): Promise<IAuthResult> => {
+      const supabase = getSupabaseClient();
+      const factor = await getVerifiedTotpFactor();
+      if (!factor) {
+        return { ok: false, error: "Nenhuma verificação em duas etapas ativa nesta conta." };
+      }
+      try {
+        await verifyTotpChallenge(factor.id, code);
+      } catch (err) {
+        // Keep mfaRequired so the caller stays on the code step and can retry.
+        return {
+          ok: false,
+          mfaRequired: true,
+          error: err instanceof Error ? err.message : "Código inválido.",
+        };
+      }
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        return { ok: false, error: "Sua sessão expirou. Entre novamente." };
+      }
+      return finalizeSignIn(supabase, data.user);
+    },
+    [finalizeSignIn],
+  );
+
+  const cancelMfaChallenge = useCallback(() => {
+    // Drop the half-authenticated (aal1) session rather than leaving it around.
+    void getSupabaseClient().auth.signOut({ scope: "local" });
+    writeAuthSyncMirror(null);
+    setMfaPending(false);
+    setCurrentUser(null);
+  }, []);
+
   const signOut = useCallback(() => {
     // scope: "local" revokes only THIS device's session. The default (global)
     // revoked every device, so the idle-timeout firing on one device/tab killed
     // the session everywhere and stranded the others with a ghost token.
     void getSupabaseClient().auth.signOut({ scope: "local" });
     writeAuthSyncMirror(null);
+    setMfaPending(false);
     setCurrentUser(null);
   }, []);
 
@@ -287,10 +358,24 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       sessionExpired,
       signIn,
       signInWithPassword,
+      mfaPending,
+      completeMfaChallenge,
+      cancelMfaChallenge,
       signOut,
       hasRole,
     }),
-    [currentUser, isHydrating, sessionExpired, signIn, signInWithPassword, signOut, hasRole],
+    [
+      currentUser,
+      isHydrating,
+      sessionExpired,
+      signIn,
+      signInWithPassword,
+      mfaPending,
+      completeMfaChallenge,
+      cancelMfaChallenge,
+      signOut,
+      hasRole,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
