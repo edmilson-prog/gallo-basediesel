@@ -10,3 +10,7 @@ export { resolveLayout, FUNNEL_LAYOUTS, DEFAULT_FUNNEL_LAYOUT } from "./engine/r
 export type { FunnelLayout, IResolvedLayout } from "./engine/resolveLayout";
 export { resolveInitialFunnel, ALL_FUNNELS } from "./engine/resolveInitialFunnel";
 export type { IInitialFunnelResolution } from "./engine/resolveInitialFunnel";
+export { useFunnelNavigation } from "./hooks/useFunnelNavigation";
+export type { IUseFunnelNavigationResult } from "./hooks/useFunnelNavigation";
+export { useFunnelLayoutPreference } from "./hooks/useFunnelLayoutPreference";
+export { COPY as FUNNELS_COPY } from "./i18n/pt-BR";
