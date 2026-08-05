@@ -12,6 +12,12 @@ export interface IAuthResult {
   /** Set by the login route's access gate when a successful auth is then
    *  blocked by the work-schedule rule (PRD-212). */
   blocked?: { reason: "outside_hours" | "suspended"; nextOpenAt?: string | null };
+  /**
+   * The credentials were right, but the account has two-factor enabled and the
+   * session is still `aal1`. The caller must collect a TOTP code and finish via
+   * `completeMfaChallenge`. `ok` stays false — the user is NOT signed in yet.
+   */
+  mfaRequired?: boolean;
 }
 
 /**
@@ -36,6 +42,17 @@ export interface IAuthContextValue {
   signIn: (profileId: string) => IUserProfile | null;
   /** Email/password sign-in. Implemented by both backends. */
   signInWithPassword: (email: string, password: string) => Promise<IAuthResult>;
+  /**
+   * True while a session exists but is waiting on the second factor (aal1 with
+   * a verified TOTP factor). Such a session is deliberately NOT authenticated:
+   * `currentUser` stays null so the route guards keep the user at the login
+   * screen until the code is confirmed. Always false in the mock backend.
+   */
+  mfaPending: boolean;
+  /** Answers the pending TOTP challenge and completes the sign-in. */
+  completeMfaChallenge: (code: string) => Promise<IAuthResult>;
+  /** Gives up on the pending challenge and drops the half-authenticated session. */
+  cancelMfaChallenge: () => void;
   signOut: () => void;
   hasRole: (role: RoleName | RoleName[]) => boolean;
 }
