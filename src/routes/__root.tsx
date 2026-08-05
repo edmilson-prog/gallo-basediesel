@@ -84,9 +84,15 @@ function RootComponent() {
       <ThemeProvider>
         <CopilotSettingsProvider>
           <DataProvidersProvider>
-            <RbacHydrator />
             <NotificationProvidersProvider>
               <AuthProvider>
+                {/*
+                  Must sit UNDER <AuthProvider>: the persisted RBAC matrix is
+                  readable by `authenticated` only, so hydrating it from here at
+                  boot (above the provider, on the login screen) loaded an empty
+                  matrix that hid every permission-gated menu item until reload.
+                */}
+                <RbacHydrator />
                 <MultistoreProvider>
                   <Outlet />
                   {/*

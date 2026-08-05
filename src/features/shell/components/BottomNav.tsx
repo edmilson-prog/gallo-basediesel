@@ -10,6 +10,7 @@ import {
   type INavItem,
 } from "@/features/shell/config/navigation";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useRbacVersion } from "@/features/rbac/hooks/useRbacVersion";
 
 function pickItemsForRole(role: string | null): INavItem[] {
   if (role === "Owner") return BOTTOM_NAV.Owner;
@@ -20,6 +21,8 @@ function pickItemsForRole(role: string | null): INavItem[] {
 
 export function BottomNav() {
   const { currentUser, userRole } = useAuth();
+  // Mirrors <Sidebar/>: the RBAC matrix hydrates after sign-in, not at boot.
+  useRbacVersion();
   const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   const items = pickItemsForRole(userRole);

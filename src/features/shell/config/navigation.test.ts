@@ -112,4 +112,27 @@ describe("isNavItemVisible — hybrid nav gating", () => {
     expect(isNavItemVisible(navItem("Atendimento"), null)).toBe(false);
     expect(isNavItemVisible(navItem("Início"), null)).toBe(false);
   });
+
+  // Regression: the RBAC cache used to be hydrated at app boot — above
+  // <AuthProvider>, so it also ran on the login screen. Unauthenticated,
+  // `roles.list()` resolves with `[]` (RLS grants SELECT to `anon` but has no
+  // policy for it), and hydrating that empty array flipped every
+  // matrix-driven nav item to hidden until the user reloaded the page.
+  it("keeps matrix-driven items visible after an unauthenticated empty load", () => {
+    hydrateRbac([]);
+    const owner = { role: "Owner" as const };
+    for (const label of [
+      "Atendimento",
+      "Clientes",
+      "Leads",
+      "Veículos",
+      "Catálogo",
+      "Orçamentos",
+      "Pedidos",
+      "Metas",
+      "Indicadores",
+    ]) {
+      expect(isNavItemVisible(navItem(label), owner), `${label} must stay visible`).toBe(true);
+    }
+  });
 });
