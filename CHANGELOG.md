@@ -6,7 +6,7 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [0.158.0] — Heartbeat · 2026-08-05
 
-**Os sinais de conexão voltaram a dizer a verdade. O ícone de WhatsApp no topo da tela e o aviso vermelho de número desconectado ignoravam por completo os números ligados pelo servidor WAHA — um deles podia cair e nada aparecia. Agora todos contam, e esses números ainda passaram a ser conferidos sozinhos a cada 30 segundos. O indicador de quem está online também voltou a funcionar: até então cada pessoa só enxergava a si mesma. E a tela de entrada foi redesenhada.**
+**Os sinais de conexão voltaram a dizer a verdade. O ícone de WhatsApp no topo da tela e o aviso vermelho de número desconectado ignoravam por completo os números ligados pelo servidor WAHA — um deles podia cair e nada aparecia. Agora todos contam, e esses números ainda passaram a ser conferidos sozinhos a cada 30 segundos. O indicador de quem está online também voltou a funcionar: até então cada pessoa só enxergava a si mesma. Metade do menu lateral, que sumia logo depois de entrar e só voltava recarregando a página, também foi corrigida. E a tela de entrada foi redesenhada.**
 
 ### Added
 
@@ -19,6 +19,8 @@ versioning follows [SemVer](https://semver.org/).
 
 ### Fixed
 
+- **Metade do menu sumia logo depois de entrar** — ao fazer login, boa parte do menu lateral não aparecia (Atendimento, Clientes, Leads, Veículos, todo o grupo Comercial, além de Metas e Indicadores), junto com a aba "Atendimento" do painel e o seletor de loja no topo. Só recarregando a página tudo voltava. As permissões da conta eram consultadas no momento em que a plataforma abria — ou seja, ainda na tela de entrada, quando não havia ninguém conectado para consultá-las —, e essa resposta vazia valia pelo resto da sessão. Agora elas são carregadas depois que a pessoa entra, e recarregadas quando o papel dela muda.
+- **Dados de quem usou a aba antes apareciam por um instante** — quando alguém saía e outra pessoa entrava na mesma aba do navegador, as telas mostravam por um momento as informações do usuário anterior, até os dados da nova conta chegarem. As informações guardadas em memória passam a ser descartadas quando a aba troca de dono.
 - **Números do servidor WAHA ficavam de fora do aviso de conexão** — o ícone de WhatsApp no topo da tela e o aviso vermelho de "desconectado" não enxergavam esses números: um deles podia cair sem que o ícone mudasse de cor nem o aviso aparecesse. Agora todos os tipos de número entram nesse sinal.
 - **Cada pessoa só via a si mesma como online** — o indicador de quem está online colocava cada aba do navegador em um grupo isolado, então duas pessoas conectadas ao mesmo tempo não apareciam uma para a outra, nem na tela de Usuários nem na bolinha da conversa.
 
