@@ -40,9 +40,23 @@ export interface ILeadsListProps {
   isLoading: boolean;
   sort: ILeadsListSort;
   onSortChange: (sort: ILeadsListSort) => void;
+  /**
+   * Reports this view's scroll container so the header can draw the progress
+   * line on the seam. The kanban has no single vertical scroller — each column
+   * scrolls on its own — so it deliberately never reports one, and the bar
+   * stays at zero there rather than tracking something arbitrary.
+   */
+  scrollRef?: (el: HTMLDivElement | null) => void;
 }
 
-export function LeadsList({ leads, sellersById, isLoading, sort, onSortChange }: ILeadsListProps) {
+export function LeadsList({
+  leads,
+  sellersById,
+  isLoading,
+  sort,
+  onSortChange,
+  scrollRef,
+}: ILeadsListProps) {
   const navigate = useNavigate();
   const now = new Date();
 
@@ -65,7 +79,7 @@ export function LeadsList({ leads, sellersById, isLoading, sort, onSortChange }:
   }
 
   return (
-    <div className="h-full overflow-auto">
+    <div ref={scrollRef} className="h-full overflow-auto">
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow>

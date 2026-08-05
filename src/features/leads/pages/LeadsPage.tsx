@@ -109,6 +109,10 @@ export function LeadsPage() {
 
   const handleEmptyCreate = canCreate ? () => setNewOpen(true) : undefined;
 
+  // Reported by the list view; the kanban has no single vertical scroller, so
+  // the progress line stays at zero there instead of tracking one column.
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
+
   return (
     <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem-var(--shell-banner-offset,0px))]">
       <LeadsHeader
@@ -119,6 +123,7 @@ export function LeadsPage() {
         onSearchChange={url.setSearch}
         onViewChange={url.setView}
         onCreate={() => setNewOpen(true)}
+        scrollEl={scrollEl}
       />
 
       <LeadsFiltersBar
@@ -164,6 +169,7 @@ export function LeadsPage() {
             isLoading={list.isLoading}
             sort={sort}
             onSortChange={url.setSort}
+            scrollRef={setScrollEl}
           />
         )}
       </div>
