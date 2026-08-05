@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { CopilotSettingsProvider } from "@/features/copilot";
 import { AuthProvider } from "@/features/auth/AuthProvider";
+import { SessionCacheReset } from "@/features/auth/SessionCacheReset";
 import { MultistoreProvider } from "@/features/multistore";
 import { RbacHydrator } from "@/features/rbac";
 import { isChunkLoadError, ChunkErrorScreen } from "@/features/version-update";
@@ -93,6 +94,7 @@ function RootComponent() {
                   matrix that hid every permission-gated menu item until reload.
                 */}
                 <RbacHydrator />
+                <SessionCacheReset />
                 <MultistoreProvider>
                   <Outlet />
                   {/*
