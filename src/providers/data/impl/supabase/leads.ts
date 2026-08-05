@@ -169,15 +169,33 @@ export function buildLeadSearchOr(search: string): string | null {
 export const supabaseLeadsProvider: ILeadsProvider = {
   async list(params: IListLeadsParams = {}): Promise<IPaginatedResult<ILead>> {
     const buildQuery = () => {
-      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      // Funnel scope is expressed as an INNER join on the membership table —
+      // only leads that HAVE an entry in that funnel survive. `lead_id, funnel_id`
+      // carries a unique index (see 20260723120000_lead_funnels_schema.sql), so
+      // this never fans a lead out into duplicate rows or corrupts `count: "exact"`.
+      const hasFunnelScope = params.funnelId !== undefined;
+      let query = getSupabaseClient()
+        .from(TABLE)
+        .select(
+          hasFunnelScope ? `${COLUMNS}, lead_funnel_entries!inner(funnel_id, stage_id)` : COLUMNS,
+          { count: "exact" },
+        );
       if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
       if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
+      // The legacy embedded pipeline stage (`stage->>id`) — independent of
+      // `funnelId`/`funnelStageId` below, which address a different id
+      // namespace (`lead_funnel_entries.stage_id`). Both can apply at once.
       if (params.stageId !== undefined) query = query.eq("stage->>id", params.stageId);
       if (params.temperature !== undefined) query = query.eq("temperature", params.temperature);
       if (params.excludeLost) query = query.is("loss_reason", null);
       if (params.search) {
         const orExpr = buildLeadSearchOr(params.search);
         if (orExpr) query = query.or(orExpr);
+      }
+      if (params.funnelId !== undefined) {
+        query = query.eq("lead_funnel_entries.funnel_id", params.funnelId);
+        if (params.funnelStageId !== undefined)
+          query = query.eq("lead_funnel_entries.stage_id", params.funnelStageId);
       }
       return query;
     };

@@ -7,7 +7,9 @@ import { Logo } from "@/components/Logo";
 import { Icon } from "@/components/Icon";
 import { Container, Grid, Inline, Stack } from "@/components/layout";
 import { contrastRatio, resolveCssVar, wcagLevel } from "@/lib/contrast";
+import { cn } from "@/lib/utils";
 import { useResetMocks } from "@/mocks";
+import { FUNNEL_ACCENT_SLOTS, getAccentClasses } from "@/features/funnels/engine/accentClasses";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -322,6 +324,35 @@ function DesignSystemPage() {
                   </Card>
                 ))}
               </Grid>
+            </Section>
+
+            {/* Funnel accent identity — Task 2: slots calibrated in styles.css (Task 1) */}
+            <Section
+              title="Identidade de funil"
+              description="Nove slots dedicados, constantes nos quatro temas, com variante para o modo escuro. Usados somente em superfície não-textual (ponto, borda, barra, fundo suave) — o nome do funil usa sempre o token de texto padrão, nunca a cor do accent. Alterne tema e modo no topo da página para conferir os dois modos."
+            >
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
+                {FUNNEL_ACCENT_SLOTS.map((slot) => {
+                  const c = getAccentClasses(slot);
+                  return (
+                    <div
+                      key={slot}
+                      className={cn(
+                        "flex flex-col items-center gap-2 rounded-md border p-3",
+                        c.border,
+                      )}
+                    >
+                      <span className={cn("h-8 w-8 rounded-full", c.dot)} aria-hidden />
+                      <span className={cn("rounded px-2 py-0.5 text-xs text-foreground", c.chip)}>
+                        Funil {slot}
+                      </span>
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        {slot === 0 ? "neutro" : `slot ${slot}`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </Section>
 
             {/* Tipografia */}

@@ -3,6 +3,8 @@ import { useState } from "react";
 import type { ID, ILead, IPipelineStage, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
+import { getAccentClasses } from "@/features/funnels/engine/accentClasses";
+import { hexToAccentSlot } from "@/features/funnels/engine/legacyStageColor";
 import { LeadCard } from "../LeadCard";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 
@@ -50,27 +52,32 @@ export function KanbanColumn({
       }}
       aria-label={`Coluna ${stage.name}, ${count} ${count === 1 ? "lead" : "leads"}`}
     >
-      <header
-        className="flex items-center justify-between gap-2 border-b border-border px-3 py-2"
-        style={{
-          borderTop: `3px solid ${stage.color}`,
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
-        }}
-      >
-        <div className="min-w-0">
-          <p className="truncate text-xs font-semibold uppercase tracking-wide text-foreground">
-            {stage.name}
-          </p>
-          <p className="text-[10px] text-muted-foreground">
-            {LEADS_STRINGS.kanban.columnCount(count)}
-            {averageDays > 0 && <> · {LEADS_STRINGS.kanban.averageDays(averageDays)}</>}
-          </p>
-        </div>
-        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-semibold text-muted-foreground">
-          {count}
-        </span>
-      </header>
+      {/*
+        The accent and the neutral separator are two DIFFERENT border-color
+        utilities that must not land on the same element — `border-border`
+        (bottom separator) and `border-funnel-N` (top edge) both set color on
+        every side by default, so stacking them on one `header` made the
+        result depend on Tailwind's CSS emission order. A dedicated top bar
+        (background, not border) keeps the two fully independent: a 3px
+        coloured top edge and a neutral 1px bottom separator.
+      */}
+      <div className="overflow-hidden rounded-t-lg">
+        <div className={cn("h-[3px]", getAccentClasses(hexToAccentSlot(stage.color)).bar)} />
+        <header className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
+          <div className="min-w-0">
+            <p className="truncate text-xs font-semibold uppercase tracking-wide text-foreground">
+              {stage.name}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {LEADS_STRINGS.kanban.columnCount(count)}
+              {averageDays > 0 && <> · {LEADS_STRINGS.kanban.averageDays(averageDays)}</>}
+            </p>
+          </div>
+          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-semibold text-muted-foreground">
+            {count}
+          </span>
+        </header>
+      </div>
 
       <div className="flex-1 space-y-2 overflow-y-auto p-2">
         {leads.length === 0 ? (

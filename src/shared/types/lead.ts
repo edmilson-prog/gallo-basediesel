@@ -38,10 +38,19 @@ export interface ILead {
    * app — no editor writes it.
    */
   avatarUrl?: string;
+  /**
+   * @deprecated Snapshot of the single-pipeline era. The truth now lives in
+   * `lead_funnel_entries.stage_id`, one per funnel. Still written by legacy
+   * call sites; removed once phase 4 migrates them.
+   */
   stage: ILeadStage;
   temperature: LeadTemperature;
   origin: LeadOrigin;
-  /** Estimated commercial value of this opportunity. */
+  /**
+   * @deprecated Aggregate/legacy value. The per-funnel value lives in
+   * `ILeadFunnelEntry.estimatedValue` — a lead in two funnels is two distinct
+   * revenues, and reading this one per membership double-counts the forecast.
+   */
   estimatedValue?: Money;
   /** Date for the next agreed follow-up action. */
   nextActionAt?: ISO8601;

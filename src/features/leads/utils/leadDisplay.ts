@@ -1,4 +1,5 @@
 import type { LeadOrigin, LeadTemperature, ILead, ILeadStage } from "@/shared/types";
+import { isClosingKind, resolveStageKind } from "@/features/funnels/engine/stageKind";
 import { LEADS_STRINGS } from "../i18n/pt-BR";
 
 export interface ITemperatureMeta {
@@ -12,20 +13,20 @@ export const TEMPERATURE_META: Record<LeadTemperature, ITemperatureMeta> = {
   frio: {
     label: LEADS_STRINGS.temperature.frio,
     icon: "mdi:snowflake",
-    tone: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
-    dot: "bg-sky-500",
+    tone: "bg-severity-info/15 text-severity-info",
+    dot: "bg-severity-info",
   },
   morno: {
     label: LEADS_STRINGS.temperature.morno,
     icon: "mdi:weather-partly-cloudy",
-    tone: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
-    dot: "bg-amber-500",
+    tone: "bg-severity-warning/15 text-severity-warning",
+    dot: "bg-severity-warning",
   },
   quente: {
     label: LEADS_STRINGS.temperature.quente,
     icon: "mdi:fire",
-    tone: "bg-red-500/15 text-red-700 dark:text-red-300",
-    dot: "bg-red-500",
+    tone: "bg-severity-critical/15 text-severity-critical",
+    dot: "bg-severity-critical",
   },
 };
 
@@ -39,22 +40,22 @@ export const ORIGIN_META: Record<LeadOrigin, IOriginMeta> = {
   whatsapp: {
     label: LEADS_STRINGS.origin.whatsapp,
     icon: "mdi:whatsapp",
-    tone: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+    tone: "bg-funnel-3/12 text-foreground",
   },
   ecommerce: {
     label: LEADS_STRINGS.origin.ecommerce,
     icon: "mdi:cart-outline",
-    tone: "bg-violet-500/15 text-violet-700 dark:text-violet-300",
+    tone: "bg-funnel-5/12 text-foreground",
   },
   indicacao: {
     label: LEADS_STRINGS.origin.indicacao,
     icon: "mdi:account-multiple-outline",
-    tone: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+    tone: "bg-funnel-2/12 text-foreground",
   },
   google: {
     label: LEADS_STRINGS.origin.google,
     icon: "mdi:google",
-    tone: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+    tone: "bg-funnel-6/12 text-foreground",
   },
   outro: {
     label: LEADS_STRINGS.origin.outro,
@@ -112,7 +113,7 @@ export function getNextActionInfo(
     return {
       urgency: "overdue",
       label: LEADS_STRINGS.card.nextAction.overdue(diffDays),
-      tone: "bg-red-500/15 text-red-700 dark:text-red-300",
+      tone: "bg-severity-critical/15 text-severity-critical",
       diffDays,
     };
   }
@@ -120,7 +121,7 @@ export function getNextActionInfo(
     return {
       urgency: "today",
       label: LEADS_STRINGS.card.nextAction.today,
-      tone: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
+      tone: "bg-severity-warning/15 text-severity-warning",
       diffDays,
     };
   }
@@ -128,14 +129,14 @@ export function getNextActionInfo(
     return {
       urgency: "tomorrow",
       label: LEADS_STRINGS.card.nextAction.tomorrow,
-      tone: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+      tone: "bg-severity-success/15 text-severity-success",
       diffDays,
     };
   }
   return {
     urgency: "future",
     label: LEADS_STRINGS.card.nextAction.future(-diffDays),
-    tone: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+    tone: "bg-severity-success/15 text-severity-success",
     diffDays,
   };
 }
@@ -158,7 +159,7 @@ export const CLOSING_STAGE_ID = "stage-fechado";
 
 export function isClosedLead(lead: ILead): boolean {
   return (
-    lead.stage.id === CLOSING_STAGE_ID ||
+    isClosingKind(resolveStageKind(lead.stage)) ||
     lead.convertedToCustomerId !== undefined ||
     lead.lossReason !== undefined
   );

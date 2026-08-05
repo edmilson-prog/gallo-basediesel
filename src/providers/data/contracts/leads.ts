@@ -10,6 +10,20 @@ export interface IListLeadsParams extends IPaginationParams {
   /** When true, excludes leads with a `lossReason` set (server-side). Used by
    *  the kanban/list view to keep lost leads out of the 1000-row window. */
   excludeLost?: boolean;
+  /**
+   * Restricts to leads participating in this funnel. Resolved SERVER-SIDE by
+   * joining `lead_funnel_entries` — filtering in the browser would require
+   * fetching the whole base, which the 1000-row ceiling already strains.
+   */
+  funnelId?: ID;
+  /**
+   * Stage *within* `funnelId` (`lead_funnel_entries.stage_id`) — a distinct
+   * id namespace from the legacy embedded pipeline stage filtered by
+   * `stageId` above (`ILead.stage.id`). Ignored unless `funnelId` is also
+   * given. Combines freely with `stageId`: the two filters address different
+   * columns and never collide.
+   */
+  funnelStageId?: ID;
 }
 
 /**

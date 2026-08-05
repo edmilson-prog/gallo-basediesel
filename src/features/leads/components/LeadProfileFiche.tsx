@@ -21,6 +21,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { formatBRL, formatDateBR, formatPhone } from "@/shared/utils/format";
+import { getAccentClasses } from "@/features/funnels/engine/accentClasses";
+import { hexToAccentSlot } from "@/features/funnels/engine/legacyStageColor";
 import { useSellersProvider } from "@/providers/data";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useAuth } from "@/features/auth/useAuth";
@@ -259,8 +261,10 @@ function LeadProfileBody({
             {/* State badges */}
             <div className="mb-3 flex flex-wrap gap-1.5">
               <span
-                className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium"
-                style={{ borderColor: lead.stage.color, color: lead.stage.color }}
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium text-foreground",
+                  getAccentClasses(hexToAccentSlot(lead.stage.color)).border,
+                )}
               >
                 {lead.stage.name}
               </span>

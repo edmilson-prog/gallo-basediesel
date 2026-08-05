@@ -1,4 +1,4 @@
-import type { CSSProperties, DragEvent } from "react";
+import type { DragEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type { ID, ILead, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
@@ -50,10 +50,6 @@ export function LeadCard({
     void navigate({ to: "/app/leads/$id", params: { id: lead.id } });
   };
 
-  const cardStyle: CSSProperties = {
-    borderLeftColor: lead.stage.color,
-  };
-
   return (
     <div
       role="button"
@@ -71,12 +67,11 @@ export function LeadCard({
       aria-label={`Lead ${lead.name}, estágio ${lead.stage.name}, temperatura ${temperatureMeta.label}`}
       data-lead-id={lead.id}
       className={cn(
-        "group relative flex flex-col gap-2 rounded-md border border-border border-l-[3px] bg-card p-3 text-left text-card-foreground shadow-sm transition",
+        "group relative flex flex-col gap-2 rounded-md border border-border bg-card p-3 text-left text-card-foreground shadow-sm transition",
         "hover:border-primary/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring",
         draggable && "cursor-grab active:cursor-grabbing",
         variant === "kanban" ? "w-full" : "w-full",
       )}
-      style={cardStyle}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2">

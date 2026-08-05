@@ -139,6 +139,7 @@ export { computeFailureRate, FETCH_ALL_PAGE_SIZE } from "./contracts";
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
 export { useVehiclesProvider } from "./hooks/useVehiclesProvider";
 export { useLeadsProvider } from "./hooks/useLeadsProvider";
+export { useLeadFunnelsProvider } from "./hooks/useLeadFunnelsProvider";
 export { useConversationsProvider } from "./hooks/useConversationsProvider";
 export { useMessagesProvider } from "./hooks/useMessagesProvider";
 export { usePartsProvider } from "./hooks/usePartsProvider";

@@ -3,6 +3,8 @@ import type { ID, ILead, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getAccentClasses } from "@/features/funnels/engine/accentClasses";
+import { hexToAccentSlot } from "@/features/funnels/engine/legacyStageColor";
 import {
   Table,
   TableBody,
@@ -122,11 +124,10 @@ export function LeadsList({ leads, sellersById, isLoading, sort, onSortChange }:
                 <TableCell className="text-muted-foreground">{formatPhone(lead.phone)}</TableCell>
                 <TableCell>
                   <span
-                    className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium"
-                    style={{
-                      borderColor: lead.stage.color,
-                      color: lead.stage.color,
-                    }}
+                    className={cn(
+                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium text-foreground",
+                      getAccentClasses(hexToAccentSlot(lead.stage.color)).border,
+                    )}
                   >
                     {lead.stage.name}
                   </span>

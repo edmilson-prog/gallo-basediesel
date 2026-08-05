@@ -8,6 +8,7 @@
 import type { ICustomersProvider } from "./customers";
 import type { IVehiclesProvider } from "./vehicles";
 import type { ILeadsProvider } from "./leads";
+import type { ILeadFunnelsProvider } from "./leadFunnels";
 import type { IConversationsProvider } from "./conversations";
 import type { IMessagesProvider } from "./messages";
 import type { IPartsProvider } from "./parts";
@@ -75,6 +76,7 @@ export type {
   VehiclesOrderDir,
 } from "./vehicles";
 export type { ILeadsProvider, IListLeadsParams } from "./leads";
+export type { ILeadFunnelsProvider } from "./leadFunnels";
 export type {
   IConversationsProvider,
   IListConversationsParams,
@@ -203,6 +205,7 @@ export interface IDataProviders {
   customers: ICustomersProvider;
   vehicles: IVehiclesProvider;
   leads: ILeadsProvider;
+  leadFunnels: ILeadFunnelsProvider;
   conversations: IConversationsProvider;
   messages: IMessagesProvider;
   parts: IPartsProvider;
