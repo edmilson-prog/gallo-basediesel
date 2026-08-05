@@ -11,6 +11,7 @@ import { useProfileAccount } from "../hooks/useProfileAccount";
 import { formatInitials, validateAvatarFile } from "../engine/avatarFile";
 import { formatLastAccess, formatMemberSince } from "../engine/profileFormat";
 import {
+  AvatarCropDialog,
   ProfileContactCard,
   ProfileDangerZone,
   ProfileIdentityHeader,
@@ -46,6 +47,7 @@ export function ProfileSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
   const [draft, setDraft] = useState<IProfileContactDraft | null>(null);
 
   const sellerId = currentUser?.sellerId ?? null;
@@ -130,20 +132,28 @@ export function ProfileSettingsPage() {
     if (seller) setDraft(toDraft(seller));
   };
 
-  // The photo is applied immediately — it is not part of the contact draft, so
-  // it never leaves the save bar in a half-pending state.
-  const handlePickPhoto = async (file: File) => {
+  // Picking only opens the framing dialog — the upload happens on confirm, with
+  // the cropped result.
+  const handlePickPhoto = (file: File) => {
     if (!seller) return;
     const validation = validateAvatarFile(file);
     if (!validation.ok) {
       toast.error(validation.error);
       return;
     }
+    setPendingPhoto(file);
+  };
+
+  // The photo is applied immediately — it is not part of the contact draft, so
+  // it never leaves the save bar in a half-pending state.
+  const handleConfirmPhoto = async (cropped: File) => {
+    if (!seller) return;
     setUploadingAvatar(true);
     try {
-      const url = await sellersProvider.uploadAvatar(seller.id, file);
+      const url = await sellersProvider.uploadAvatar(seller.id, cropped);
       const next = await sellersProvider.update(seller.id, { avatarUrl: url });
       setSeller(next);
+      setPendingPhoto(null);
       toast.success("Foto de perfil atualizada");
     } catch {
       toast.error("Não foi possível enviar a foto. Tente novamente.");
@@ -206,8 +216,15 @@ export function ProfileSettingsPage() {
         lastAccess={formatLastAccess(account.lastSignInAt)}
         avatarUrl={seller.avatarUrl ?? null}
         uploading={uploadingAvatar}
-        onPickFile={(file) => void handlePickPhoto(file)}
+        onPickFile={handlePickPhoto}
         onRemovePhoto={() => void handleRemovePhoto()}
+      />
+
+      <AvatarCropDialog
+        file={pendingPhoto}
+        busy={uploadingAvatar}
+        onCancel={() => setPendingPhoto(null)}
+        onConfirm={(cropped) => void handleConfirmPhoto(cropped)}
       />
 
       <ProfileContactCard
