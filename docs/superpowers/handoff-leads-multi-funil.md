@@ -3,9 +3,9 @@
 > **Propósito deste documento:** entregar a um agente executor (contexto zero) o estado real desta feature — o que já está em produção, o que está aberto, e o que precisa acontecer antes de continuar. Este documento existe porque o contexto desta feature foi perdido uma vez: as fases 1–2 rodaram numa sessão longa que terminou sem deixar registro, e a sessão seguinte não conseguiu reconstruir o que havia sido feito.
 
 - **Data da entrega das fases 1–2:** 2026-07-23/24
-- **Última auditoria deste documento:** 2026-08-04
-- **Status:** Fases 1–2 **implementadas e com migrations APLICADAS em produção** · PR **#371 aberto, não mergeado** · Fases 3–7 sem plano escrito
-- **Branch:** `feat/leads-multi-funil` · **Worktree:** `.claude/worktrees/leads-multi-funil`
+- **Última auditoria deste documento:** 2026-08-05
+- **Status:** Fases 1–2 entregues em **v0.157.0 `Manifold`** (PR #371, mergeado) · Fase 3 entregue em **v0.158.0 `Wayfinder`** · Fases 4–7 sem plano escrito
+- **Worktrees:** `leads-multi-funil` (fases 1–2, mergeada) · `leads-multi-funil-fase3` (fase 3)
 
 ---
 
@@ -50,7 +50,7 @@ Este é o contexto de negócio que **não pode se perder**. Toda ambiguidade de 
 |---|------|---------|--------------------|--------|
 | 1 | **Fundação** | 9 slots `funnel-*`; `kind` na etapa; erradicação de hex e paleta crua; grade de contraste no `/design-system` | só o contraste correto | ✅ entregue |
 | 2 | **Modelo N:N** | 4 tabelas, RLS, triggers, backfill, tipos, 38º provider, `funnelId` server-side | não | ✅ entregue |
-| 3 | **Navegação** | `useFunnelNavigation`, os 3 modos, `?funil=`, "Todos os funis", header em conformidade, remoção da barra de métricas + **formulário mínimo de criar funil** | sim | ⬜ pendente |
+| 3 | **Navegação** | `useFunnelNavigation`, os 3 modos, `?funil=`, "Todos os funis", header em conformidade, remoção da barra de métricas + **formulário mínimo de criar funil** | sim | ✅ entregue |
 | 4 | **Kanban** | card de 60px, indicador multi-funil, paginação por coluna, ordenação, colapso, `@dnd-kit` | sim | ⬜ pendente |
 | 5 | **Ficha da conversa** | bloco de participações no painel direito | sim | ⬜ pendente |
 | 6 | **Administração** | master-detail, etapas com arraste, acesso com prévia, matriz de auditoria, gate `funnel` | sim | ⬜ pendente |
@@ -194,9 +194,9 @@ Verificações que dão segurança ao merge:
 
 | Débito | Onde | Impacto se ignorado | Paga em |
 |--------|------|---------------------|---------|
-| **Sem sincronia de escrita `leads` → participação** (etapa, desfecho, valor) | — | Inócuo hoje (nenhuma tela lê participações). Assim que a fase 3 renderizar boards a partir de participações, os dados divergem do lead. **A fase 3 precisa de um passo de reconciliação, não só de interface.** | Fase 3 |
+| ~~Sem sincronia de escrita `leads` → participação~~ | `supabase/migrations/20260805120000_lead_stage_membership_sync.sql` | **PAGO na fase 3.** Trigger `AFTER UPDATE OF stage` espelha a etapa na participação do funil padrão. ⚠️ **Versionada e NÃO aplicada** — aplicar exige OK do dono. Doc: `docs/dev/lead-funnel-sync.md` | ✅ fase 3 |
 | `CLOSING_STAGE_ID` ainda lido | `ConvertLeadModal.tsx` (2×), `LeadsKanban.tsx:88`, `MarkAsLostModal.tsx:63`, `useLeadsList.ts:171`, `leadMetrics.ts:43` | Etapa terminal presa a um id literal, incompatível com funis donos das próprias etapas | Fase 4 |
-| Ponte `hexToAccentSlot` | `LeadDataCard.tsx:69`, `LeadHeader.tsx:73`, `KanbanColumn.tsx:65` (engine em `features/funnels/engine/legacyStageColor.ts`) | Traduz o hex legado de `IPipelineStage.color` para slot. Morre quando as etapas carregarem `accent` real | Fase 3–4 |
+| Ponte `hexToAccentSlot` | `LeadDataCard.tsx:69`, `LeadHeader.tsx:73`, `KanbanColumn.tsx:65`, `LeadsList.tsx` | Traduz o hex legado de `IPipelineStage.color` para slot. Morre quando o board passar a ler as etapas do funil | Fase 4 |
 | `ILead.stage` e `ILead.estimatedValue` marcados deprecated | vários componentes de leads | `estimatedValue` no lead **dobra a receita** no forecast quando o lead vive em 2 funis — é a razão da decisão 5 | Fase 3+ |
 | `markConverted` usa `ILeadStage` legado | `contracts/leads.ts` (veio de main) | Conversão ainda é por lead, não por participação — contraria a decisão 6 | Fase 3+ |
 
