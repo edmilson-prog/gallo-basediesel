@@ -3,6 +3,7 @@ import { SettingsLayout } from "@/features/shell/layouts";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useTheme } from "@/hooks/useTheme";
 import { THEMES } from "@/config/themes";
+import { FunnelLayoutPreferenceCard } from "@/features/funnels/components/FunnelLayoutPreferenceCard";
 
 export const Route = createFileRoute("/app/configuracoes/aparencia")({
   component: AppearancePage,
@@ -29,6 +30,8 @@ function AppearancePage() {
           </div>
           <ThemeSwitcher />
         </div>
+
+        <FunnelLayoutPreferenceCard />
       </div>
     </SettingsLayout>
   );
