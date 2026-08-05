@@ -22,7 +22,7 @@ export function useConversationPresenceTracker(conversationId: ID | null): void 
     const topic = channelTopic(conversationId);
     const entry = acquirePresenceChannel(topic);
 
-    const announce = () => void entry.channel.track({ sellerId });
+    const announce = () => entry.track({ sellerId });
     entry.joinListeners.add(announce);
     // Late attach: the shared channel may already be joined (e.g. a reader
     // acquired it first) — the join fanout already happened, announce now.
@@ -32,7 +32,7 @@ export function useConversationPresenceTracker(conversationId: ID | null): void 
       entry.joinListeners.delete(announce);
       // Stop broadcasting even if a reader keeps the channel alive —
       // prevents a ghost "viewing" after closing the conversation panel.
-      if (entry.joined) void entry.channel.untrack();
+      entry.untrack();
       releasePresenceChannel(topic);
     };
   }, [sellerId, conversationId]);
@@ -51,7 +51,7 @@ export function useConversationPresence(conversationId: ID | null): Set<ID> | nu
     const sync = () => {
       // Presence keys are server-assigned UUIDs (see presenceChannel.ts header
       // note 2) — read the seller ids from the tracked payload values instead.
-      const state = entry.channel.presenceState<{ sellerId?: string }>();
+      const state = entry.presenceState<{ sellerId?: string }>();
       const ids = Object.values(state)
         .flat()
         .map((presence) => presence.sellerId)
