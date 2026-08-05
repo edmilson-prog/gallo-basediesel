@@ -85,7 +85,7 @@ export function PositivationBySellerTable({
                   </td>
                   <td className="py-3 px-3 text-right">
                     {row.atRiskCount > 0 ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-severity-warning/10 px-2 py-0.5 text-xs font-medium text-severity-warning">
                         <Icon icon="mdi:alert-outline" size={12} />
                         {row.atRiskCount}
                       </span>

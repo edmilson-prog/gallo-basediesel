@@ -17,10 +17,10 @@ const QUALITATIVE_LABEL = {
 } as const;
 
 const QUALITATIVE_STYLE = {
-  excelente: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
-  bom: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
-  atencao: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
-  critico: "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300",
+  excelente: "bg-severity-success/10 text-severity-success",
+  bom: "bg-severity-info/10 text-severity-info",
+  atencao: "bg-severity-warning/10 text-severity-warning",
+  critico: "bg-severity-critical/10 text-severity-critical",
 } as const;
 
 const QUALITATIVE_ICON = {
