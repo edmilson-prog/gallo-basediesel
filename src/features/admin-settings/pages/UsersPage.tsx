@@ -17,6 +17,7 @@ import { listSellerAccessInfo, type ISellerAccessInfo } from "../api/sellerAcces
 import { CreateAccessDialog } from "../components/CreateAccessDialog";
 import { ChangeRoleDialog } from "../components/ChangeRoleDialog";
 import { ResetPasswordDialog } from "../components/ResetPasswordDialog";
+import { ResetMfaDialog } from "../components/ResetMfaDialog";
 import { ToggleSellerAccessButton } from "../components/ToggleSellerAccessButton";
 import { SellerFormDialog } from "../components/SellerFormDialog";
 import { DeleteSellerDialog } from "../components/DeleteSellerDialog";
@@ -59,6 +60,7 @@ export function UsersPage() {
   const departmentsProvider = useDepartmentsProvider();
   const [inviteFor, setInviteFor] = useState<ISeller | null>(null);
   const [resetFor, setResetFor] = useState<ISeller | null>(null);
+  const [mfaResetFor, setMfaResetFor] = useState<ISeller | null>(null);
   const [roleFor, setRoleFor] = useState<ISeller | null>(null);
   const [editFor, setEditFor] = useState<ISeller | null>(null);
   const [deleteFor, setDeleteFor] = useState<ISeller | null>(null);
@@ -240,6 +242,17 @@ export function UsersPage() {
                                 <Icon icon="mdi:key-variant" size={14} />
                                 Redefinir senha
                               </Button>
+                              {isOwner && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="gap-1.5"
+                                  onClick={() => setMfaResetFor(s)}
+                                >
+                                  <Icon icon="mdi:cellphone-remove" size={14} />
+                                  Remover 2FA
+                                </Button>
+                              )}
                               <ToggleSellerAccessButton seller={s} storeId={storeId} />
                             </>
                           )}
@@ -323,12 +336,23 @@ export function UsersPage() {
         />
       )}
 
+      {mfaResetFor && (
+        <ResetMfaDialog
+          seller={mfaResetFor}
+          open={mfaResetFor !== null}
+          onOpenChange={(open) => {
+            if (!open) setMfaResetFor(null);
+          }}
+        />
+      )}
+
       {roleFor &&
         (() => {
           const info = accessInfo.get(roleFor.id);
           // Effective role id: the custom override if pinned, else the system
           // role id (=== RoleName) derived from the base role.
-          const currentRoleId = info?.roleId ?? mapDbRoleToRoleName(info?.role ?? "seller_internal");
+          const currentRoleId =
+            info?.roleId ?? mapDbRoleToRoleName(info?.role ?? "seller_internal");
           return (
             <ChangeRoleDialog
               seller={roleFor}

@@ -1,9 +1,22 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { useTwoFactor } from "../../hooks/useTwoFactor";
+import { TwoFactorSetupDialog } from "./TwoFactorSetupDialog";
 import {
   MIN_PASSWORD_LENGTH,
   PASSWORD_STRENGTH_BARS,
@@ -55,6 +68,9 @@ export function ProfileSecurityCard({
 }: IProfileSecurityCardProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(EMPTY_DRAFT);
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [disableOpen, setDisableOpen] = useState(false);
+  const twoFactor = useTwoFactor();
 
   const strength = evaluatePassword(draft.next);
   const validation = validatePasswordChange(draft);
@@ -169,13 +185,40 @@ export function ProfileSecurityCard({
 
       <ProfileSettingRow
         icon="lucide:smartphone-nfc"
-        tone="muted"
+        tone={twoFactor.enabled ? "success" : "muted"}
         title="Verificação em duas etapas (2FA)"
-        description="Ainda não disponível nesta versão — será liberada em uma atualização."
+        description={
+          !twoFactor.available
+            ? "Disponível apenas com a autenticação real (modo Produção)."
+            : twoFactor.loading
+              ? "Verificando o estado da sua conta…"
+              : twoFactor.enabled
+                ? "Ativa — pedimos um código do app autenticador a cada login."
+                : "Opcional. Ative para exigir um código do app autenticador além da senha."
+        }
         right={
           <>
-            <Badge variant="outline">Em breve</Badge>
-            <Switch checked={false} disabled aria-label="Verificação em duas etapas" />
+            {!twoFactor.loading && twoFactor.available && (
+              <Badge
+                variant="outline"
+                className={
+                  twoFactor.enabled
+                    ? "gap-1 border-severity-success/40 text-severity-success"
+                    : undefined
+                }
+              >
+                {twoFactor.enabled ? "Ativa" : "Inativa"}
+              </Badge>
+            )}
+            <Switch
+              checked={twoFactor.enabled}
+              disabled={!twoFactor.available || twoFactor.loading || twoFactor.busy}
+              onCheckedChange={(next) => {
+                if (next) setSetupOpen(true);
+                else setDisableOpen(true);
+              }}
+              aria-label="Verificação em duas etapas"
+            />
           </>
         }
       />
@@ -198,6 +241,42 @@ export function ProfileSecurityCard({
         }
         last
       />
+
+      <TwoFactorSetupDialog
+        open={setupOpen}
+        onOpenChange={setSetupOpen}
+        onEnabled={() => {
+          void twoFactor.refresh();
+          toast.success("Verificação em duas etapas ativada", {
+            description: "A partir do próximo login pediremos o código do aplicativo.",
+          });
+        }}
+      />
+
+      <AlertDialog open={disableOpen} onOpenChange={setDisableOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar a verificação em duas etapas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sua conta voltará a exigir apenas a senha para entrar. Você pode ativar de novo quando
+              quiser.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                void twoFactor.disable().then((error) => {
+                  if (error) toast.error(error);
+                  else toast.success("Verificação em duas etapas desativada");
+                });
+              }}
+            >
+              Desativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ProfileSectionCard>
   );
 }
