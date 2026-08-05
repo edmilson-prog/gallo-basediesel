@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { getActiveDataSource } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
 import { hasPermission } from "@/features/rbac/utils/hasPermission";
+import { useRbacVersion } from "@/features/rbac/hooks/useRbacVersion";
 import type { ResourceName } from "@/features/rbac/permissions/resources";
 
 interface ISettingsItem {
@@ -346,6 +347,9 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
 
 function useVisibleGroups() {
   const { currentUser, userRole } = useAuth();
+  // The persisted matrix is fetched after sign-in (RLS), so it can land after
+  // this memo first runs — recompute when it does.
+  const rbacVersion = useRbacVersion();
   return useMemo(() => {
     const isDemo = getActiveDataSource() === "mock";
     return SETTINGS_GROUPS.map((group) => ({
@@ -359,7 +363,10 @@ function useVisibleGroups() {
         return false;
       }),
     })).filter((group) => group.items.length > 0);
-  }, [currentUser, userRole]);
+    // `rbacVersion` looks unused to the linter — it is the invalidation token
+    // for the module-level cache `hasPermission()` reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, userRole, rbacVersion]);
 }
 
 interface ISidebarContentProps {
