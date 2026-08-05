@@ -47,8 +47,8 @@ export function PortfolioRiskList({
   const accent = useMemo(
     () =>
       tone === "warn"
-        ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
-        : "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400",
+        ? "bg-severity-warning/10 text-severity-warning"
+        : "bg-severity-critical/10 text-severity-critical",
     [tone],
   );
 
@@ -113,8 +113,8 @@ export function PortfolioRiskList({
                     <TableCell
                       className={`text-right text-sm font-semibold tabular-nums ${
                         daysRemaining <= 5
-                          ? "text-red-600 dark:text-red-400"
-                          : "text-amber-600 dark:text-amber-400"
+                          ? "text-severity-critical"
+                          : "text-severity-warning"
                       }`}
                     >
                       {S.riskDaysLabel(daysRemaining)}

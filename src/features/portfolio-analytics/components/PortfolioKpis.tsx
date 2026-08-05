@@ -24,11 +24,11 @@ interface IKpiProps {
 function accentClasses(accent: IKpiProps["accent"]) {
   switch (accent) {
     case "good":
-      return "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400";
+      return "bg-severity-success/10 text-severity-success";
     case "warn":
-      return "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400";
+      return "bg-severity-warning/10 text-severity-warning";
     case "bad":
-      return "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400";
+      return "bg-severity-critical/10 text-severity-critical";
     case "neutral":
     default:
       return "bg-primary/10 text-primary";

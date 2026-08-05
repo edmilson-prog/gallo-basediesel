@@ -114,8 +114,8 @@ export function CustomerListCard({
                       {row.atRisk && (
                         <span
                           className={cn(
-                            "inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700",
-                            "dark:bg-amber-500/10 dark:text-amber-300",
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                            "bg-severity-warning/10 text-severity-warning",
                           )}
                         >
                           <Icon icon="mdi:alert-outline" size={11} />
