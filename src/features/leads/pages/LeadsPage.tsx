@@ -10,6 +10,7 @@ import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
 import { FunnelNav } from "@/features/funnels/components/FunnelNav";
+import { ALL_FUNNELS } from "@/features/funnels/engine/resolveInitialFunnel";
 import { LeadsHeader } from "../components/LeadsHeader";
 import { LeadsFiltersBar } from "../components/LeadsFiltersBar";
 import { LeadsKanban } from "../components/kanban/LeadsKanban";
@@ -73,12 +74,17 @@ export function LeadsPage() {
     }
   }, [isManagerOrOwner, currentUser?.sellerId, filters.sellerIds, url]);
 
+  // The consolidated sentinel is not a funnel id — it means "do not scope".
+  const isAllFunnels = url.funnelId === ALL_FUNNELS;
+  const scopedFunnelId = isAllFunnels ? undefined : url.funnelId;
+
   const list = useLeadsList({
     filters,
     sort,
     storeId: currentStoreId ?? undefined,
     sellerScopeIds,
     ownerCrossStore: isOwner && filters.storeIds.length === 0,
+    funnelId: scopedFunnelId,
   });
 
   const activeCount = useMemo(

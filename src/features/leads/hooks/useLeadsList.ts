@@ -17,6 +17,13 @@ export interface IUseLeadsListParams {
   sellerScopeIds?: ID[];
   /** When provided overrides server-side store filter (Owner cross-store). */
   ownerCrossStore?: boolean;
+  /**
+   * Restricts the fetch to leads participating in this funnel, resolved
+   * server-side by joining lead_funnel_entries. Undefined means "every
+   * funnel" — which is what the consolidated view passes, since its sentinel
+   * is not a funnel id.
+   */
+  funnelId?: ID;
 }
 
 export interface IUseLeadsListResult {
@@ -43,6 +50,7 @@ export function useLeadsList({
   storeId,
   sellerScopeIds,
   ownerCrossStore = false,
+  funnelId,
 }: IUseLeadsListParams): IUseLeadsListResult {
   const provider = useLeadsProvider();
 
@@ -52,7 +60,9 @@ export function useLeadsList({
     // excludeLost is part of the key (not just the queryFn closure) so
     // toggling "Mostrar perdidos" triggers a real refetch instead of
     // reapplying the client-side filter over an already-narrowed cache.
-    queryKey: ["leads-list", ownerCrossStore ? "all" : storeId, excludeLost] as const,
+    // funnelId is part of the key, not just the queryFn closure: without it a
+    // funnel switch would serve the previous funnel's cached rows.
+    queryKey: ["leads-list", ownerCrossStore ? "all" : storeId, excludeLost, funnelId] as const,
     queryFn: () =>
       provider.list({
         storeId: ownerCrossStore ? undefined : storeId,
@@ -61,6 +71,7 @@ export function useLeadsList({
         // excluded server-side and don't inflate the fetched set with
         // inactive rows. When the toggle is on, the exclusion is lifted.
         excludeLost,
+        funnelId,
       }),
     staleTime: 30_000,
   });
