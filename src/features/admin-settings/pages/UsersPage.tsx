@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@/components/Icon";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -145,9 +146,14 @@ export function UsersPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                        {s.fullName.slice(0, 2).toUpperCase()}
-                      </div>
+                      <Avatar className="h-8 w-8">
+                        {s.avatarUrl && (
+                          <AvatarImage src={s.avatarUrl} alt="" className="object-cover" />
+                        )}
+                        <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                          {s.fullName.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                       <span
                         aria-hidden
                         className={cn(
