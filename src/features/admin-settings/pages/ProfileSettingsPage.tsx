@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/useAuth";
+import { CURRENT_USER_AVATAR_KEY } from "@/features/auth/useCurrentUserAvatar";
 import { useSellersProvider, useStoresProvider } from "@/providers/data";
 import type { ISeller } from "@/shared/types";
 import { SectionHeader } from "../components/SectionHeader";
@@ -41,6 +43,7 @@ export function ProfileSettingsPage() {
   const sellersProvider = useSellersProvider();
   const storesProvider = useStoresProvider();
   const account = useProfileAccount();
+  const queryClient = useQueryClient();
 
   const [seller, setSeller] = useState<ISeller | null>(null);
   const [storeName, setStoreName] = useState<string | null>(null);
@@ -154,6 +157,8 @@ export function ProfileSettingsPage() {
       const next = await sellersProvider.update(seller.id, { avatarUrl: url });
       setSeller(next);
       setPendingPhoto(null);
+      // Refreshes the avatar shown in the top bar without a reload.
+      void queryClient.invalidateQueries({ queryKey: [CURRENT_USER_AVATAR_KEY] });
       toast.success("Foto de perfil atualizada");
     } catch {
       toast.error("Não foi possível enviar a foto. Tente novamente.");
@@ -168,6 +173,7 @@ export function ProfileSettingsPage() {
     try {
       const next = await sellersProvider.update(seller.id, { avatarUrl: null });
       setSeller(next);
+      void queryClient.invalidateQueries({ queryKey: [CURRENT_USER_AVATAR_KEY] });
       toast.success("Foto removida");
     } catch {
       toast.error("Não foi possível remover a foto.");
