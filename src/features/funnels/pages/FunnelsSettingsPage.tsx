@@ -82,11 +82,22 @@ export function FunnelsSettingsPage() {
     setSelectedId(funnels[0]?.id ?? null);
   }, [funnels, selectedId]);
 
-  // Fresh draft whenever the selection changes or its data lands.
   const stages = selected ? stagesByFunnel.get(selected.id) : undefined;
   const access = selected ? accessByFunnel.get(selected.id) : undefined;
+
+  // Which funnel the current draft belongs to. WITHOUT this the effect below
+  // reseeds on every change of the data REFERENCE, and a background refetch —
+  // React Query refetches on window focus by default — silently threw away
+  // whatever the user had typed. The save then wrote the old values back and
+  // reported success, which is the worst possible shape for that bug.
+  const draftForRef = useRef<ID | null>(null);
+
+  // A fresh draft when the SELECTION changes — never when the data merely
+  // arrives again.
   useEffect(() => {
     if (!selected || !stages || !access) return;
+    if (draftForRef.current === selected.id) return;
+    draftForRef.current = selected.id;
     setDraft({
       general: {
         name: selected.name,
@@ -300,8 +311,16 @@ export function FunnelsSettingsPage() {
                 </Tabs>
               </div>
 
-              {/* Persistent action bar, not a button lost in the form. */}
-              <div className="flex items-center justify-end gap-2 border-t border-border p-3">
+              {/*
+                Persistent, and `sticky` rather than merely last: this screen
+                lives inside the settings layout, which scrolls the whole page
+                instead of giving the panel its own scroller. A bar that was
+                simply the last element would sit past the fold, and with ten
+                stages nobody would see the save button while editing the top
+                ones — which is how a screen quietly teaches people it does not
+                save.
+              */}
+              <div className="sticky bottom-0 z-10 flex items-center justify-end gap-2 border-t border-border bg-background/95 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
                 <Button
                   size="sm"
                   disabled={!canEdit || saving || issues.length > 0}
