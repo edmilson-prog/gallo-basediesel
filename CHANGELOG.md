@@ -4,6 +4,12 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.159.1] — Heartbeat · 2026-08-06
+
+### Fixed
+
+- **Trocar a forma de exibir os funis deixava a página de Leads sem navegação** — ao escolher outra opção em "Exibição dos funis" (barra lateral, seletor no cabeçalho ou abas), a opção antiga sumia e a nova não aparecia. Só voltava ao recarregar a página. Agora a troca acontece na hora, e também acompanha entre abas do navegador abertas na mesma tela.
+
 ## [0.159.0] — Heartbeat · 2026-08-05
 
 **Uma leva de correções no que a tela mostra logo depois que você entra. Vários menus sumiam até a página ser recarregada — acabou. Quando outra pessoa entrava no mesmo navegador, as telas mostravam por um instante o que a anterior tinha carregado — também acabou. E os sinais de conexão do WhatsApp voltaram a dizer a verdade: o ícone no topo e o aviso de número desconectado ignoravam por completo os números ligados pelo servidor WAHA, que agora ainda são conferidos sozinhos a cada 30 segundos. Junto vêm a nova tela de entrada e uma rodada de ajustes de contraste nas cores de aviso.**
