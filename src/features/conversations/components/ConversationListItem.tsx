@@ -340,7 +340,11 @@ function ConversationListItemInner({
           </div>
         )}
 
-        <div className="mt-1.5 flex items-center gap-1.5">
+        {/* The badge strip has no wrap and its chips never shrink: without
+            `overflow-hidden` a busy row (channel + temperature + tags + queue +
+            assignee) overflows the 320px column and gives the whole list a
+            horizontal scrollbar. */}
+        <div className="mt-1.5 flex items-center gap-1.5 overflow-hidden">
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",

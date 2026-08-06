@@ -237,8 +237,14 @@ export function ConversationPage() {
         <ConversationProvider
           value={{ messages, openContactConversation: setContactDialogTarget }}
         >
-          <div className="flex h-full min-h-0 bg-background">
-            <div className="flex h-full min-h-0 flex-1 flex-col">
+          <div className="flex h-full min-h-0 w-full overflow-hidden bg-background">
+            {/* `min-w-0` is load-bearing: without it this column keeps its
+                min-content width (the header's rigid action row alone asks for
+                ~700px) and pushes the 360px fiche past the right edge, where
+                the layout's `overflow-hidden` clips it. `@container` lets the
+                header collapse its button labels against THIS column's width
+                instead of the viewport's. */}
+            <div className="@container flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
               <ConversationHeader
                 conversation={conversation}
                 customer={customer}
