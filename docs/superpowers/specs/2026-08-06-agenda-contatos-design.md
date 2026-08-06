@@ -124,7 +124,22 @@ Verificações que mudam o desenho do backfill:
 | `last_contact_at` | `timestamptz` NULL | |
 | `has_whatsapp` | `boolean` NOT NULL DEFAULT `false` | |
 | `division` | `text` NOT NULL DEFAULT `'parts'` | padrão transversal do projeto |
+| `ignored_at` | `timestamptz` NULL | triagem: fora da listagem, ainda pesquisável |
+| `ignore_reason` | `text` NULL | `fornecedor \| concorrente \| engano \| pessoal \| spam` |
+| `ignored_by` | `uuid` NULL → `sellers` | quem triou |
 | `created_at` / `updated_at` | `timestamptz` NOT NULL DEFAULT `now()` | |
+
+As três colunas de triagem nascem na **primeira** migration de propósito, embora
+só a Triagem escreva nelas. A alternativa — uma segunda migration depois — custa
+outra janela de aplicação manual em produção com o dono acompanhando, e essa é a
+parte cara. Enquanto a tabela não foi aplicada, acrescentar coluna é grátis.
+
+Duas invariantes ficam no banco, não na aplicação: `ignore_reason` só aceita os
+cinco motivos da tela, e `ignored_at`/`ignore_reason` são nulos juntos ou
+preenchidos juntos — meia decisão de triagem gravada não significa nada.
+
+Ignorar **não** apaga: o contato sai da listagem padrão e continua pesquisável,
+com o motivo e o autor no registro.
 
 `phone_digits` é mantido por trigger na escrita, espelhando o que `customers` já faz —
 não por coluna gerada, para permitir correção manual em backfill.

@@ -791,12 +791,27 @@ create table if not exists public.contacts (
   last_contact_at   timestamptz,
   has_whatsapp      boolean not null default false,
   division          text not null default 'parts',
+  -- Triage outcome (phase 2). A triaged-away contact disappears from the
+  -- Agenda's default listing but stays searchable, with the reason on record —
+  -- so this is a nullable timestamp + reason, never a delete.
+  ignored_at        timestamptz,
+  ignore_reason     text,
+  ignored_by        uuid references public.sellers(id) on delete set null,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now(),
   constraint contacts_source_check check (
     source in ('whatsapp','dintec','manual','csv','balcao','portal_b2b','storefront')
   ),
-  constraint contacts_division_check check (division in ('parts','service','industrial'))
+  constraint contacts_division_check check (division in ('parts','service','industrial')),
+  constraint contacts_ignore_reason_check check (
+    ignore_reason is null
+    or ignore_reason in ('fornecedor','concorrente','engano','pessoal','spam')
+  ),
+  -- A reason without a timestamp (or vice-versa) is a half-written triage
+  -- decision; the pair is meaningless apart.
+  constraint contacts_ignored_pair_check check (
+    (ignored_at is null) = (ignore_reason is null)
+  )
 );
 
 comment on table public.contacts is
@@ -808,6 +823,10 @@ create index if not exists contacts_customer_idx        on public.contacts (cust
 create index if not exists contacts_owner_idx           on public.contacts (owner_seller_id);
 create index if not exists contacts_store_opt_out_idx   on public.contacts (store_id, opt_out);
 create index if not exists contacts_lead_idx            on public.contacts (lead_id);
+-- Partial index: the default listing filters `ignored_at is null` on every
+-- query, and only a small slice of the base is ever ignored.
+create index if not exists contacts_store_active_idx    on public.contacts (store_id)
+  where ignored_at is null;
 
 -- phone_digits mirrors what `customers` already does: kept by trigger rather
 -- than a generated column so the backfill can correct a value by hand.
@@ -1102,6 +1121,12 @@ async list(params: IListContactsParams = {}): Promise<IPaginatedResult<IContact>
   let query = getSupabaseClient()
     .from("contacts")
     .select(COLUMNS, { count: "exact" });
+
+  // Triaged-away contacts never show in the Agenda. The columns exist from the
+  // first migration but phase 1 has no writer for them, so this filter is inert
+  // today — it is here so the triage screen cannot later leak ignored contacts
+  // through a listing path someone forgot to update.
+  query = query.is("ignored_at", null);
 
   if (params.storeId) query = query.eq("store_id", params.storeId);
   if (params.scope === "vinculados") query = query.not("customer_id", "is", null);
