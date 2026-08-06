@@ -150,6 +150,7 @@ export const LEADS_STRINGS = {
   },
   list: {
     columns: {
+      selectVisible: "Selecionar os leads visíveis",
       name: "Nome",
       phone: "Telefone",
       stage: "Estágio",
@@ -160,6 +161,35 @@ export const LEADS_STRINGS = {
       nextAction: "Próxima ação",
       daysInStage: "Dias no estágio",
       createdAt: "Criado em",
+    },
+    bulk: {
+      selected: (n: number) => (n === 1 ? "1 lead selecionado" : `${n} leads selecionados`),
+      clear: "Limpar seleção",
+      addToFunnel: "Adicionar ao funil…",
+      assignSeller: "Atribuir vendedor",
+      markLost: "Marcar perdido",
+      running: (done: number, total: number) => `${done} de ${total}…`,
+      // No Geral a ação canônica é adicionar, não mover: o lead entra noutro
+      // funil e CONTINUA na triagem até alguém tirá-lo de lá.
+      defaultFunnelNote:
+        "Adicionar põe o lead noutro funil; ele continua na triagem até ser tirado de lá.",
+      addTitle: "Adicionar ao funil",
+      addConfirm: "Adicionar",
+      addedAll: (n: number, funil: string) =>
+        `${n} ${n === 1 ? "lead adicionado" : "leads adicionados"} ao funil ${funil}.`,
+      assignTitle: "Atribuir vendedor",
+      assignConfirm: "Atribuir",
+      assignedAll: (n: number, vendedor: string) =>
+        `${n} ${n === 1 ? "lead atribuído" : "leads atribuídos"} a ${vendedor}.`,
+      lostTitle: "Marcar como perdido",
+      lostConfirm: "Marcar perdido",
+      lostBody: "Escolha o motivo. Vale para todos os leads selecionados.",
+      lostAll: (n: number) => `${n} ${n === 1 ? "lead marcado" : "leads marcados"} como perdido.`,
+      reason: "Motivo",
+      partial: (ok: number, fail: number) =>
+        `${ok} ${ok === 1 ? "concluído" : "concluídos"}, ${fail} ${fail === 1 ? "falhou" : "falharam"}.`,
+      allFailed: "Nenhum lead pôde ser alterado.",
+      cancel: "Cancelar",
     },
     emptyTitle: "Nenhum lead encontrado",
     emptyDescription: "Ajuste os filtros ou crie um novo lead.",
