@@ -42,6 +42,8 @@ export const COPY = {
     seeAll: (n: number) => `Ver todas (+${n})`,
     seeLess: "Ver menos",
     noStagePermission: "Você não pode mover este lead de etapa.",
+    wonBadge: "Ganho",
+    lostBadge: "Perdido",
     stageLabel: (funil: string) => `Etapa no funil ${funil}`,
     rowMenu: (funil: string) => `Ações da participação em ${funil}`,
     moved: (funil: string, etapa: string) => `${funil}: movido para ${etapa}.`,
