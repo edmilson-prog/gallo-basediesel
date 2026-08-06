@@ -31,6 +31,12 @@ export interface ILeadsListSearch {
    * funnel, the scroll and the filters exactly where they were.
    */
   funil?: string;
+  /**
+   * A lead to scroll to and ring once on arrival. Written when jumping from one
+   * board to another via the multi-funnel indicator, and cleared as soon as it
+   * lands — otherwise the ring would come back on every render.
+   */
+  highlight?: string;
   stages?: string;
   temperatures?: string;
   origins?: string;
@@ -70,6 +76,8 @@ export function validateLeadsSearch(raw: Record<string, unknown>): ILeadsListSea
   const out: ILeadsListSearch = {};
   if (typeof raw.view === "string" && raw.view.length > 0) out.view = raw.view;
   if (typeof raw.funil === "string" && raw.funil.length > 0) out.funil = raw.funil;
+  if (typeof raw.highlight === "string" && raw.highlight.length > 0)
+    out.highlight = raw.highlight;
   if (typeof raw.stages === "string" && raw.stages.length > 0) out.stages = raw.stages;
   if (typeof raw.temperatures === "string" && raw.temperatures.length > 0)
     out.temperatures = raw.temperatures;
@@ -165,6 +173,11 @@ export interface ILeadsUrlState {
   /** Active funnel id, or the "todos" sentinel. Undefined before resolution. */
   funnelId: string | undefined;
   setFunnel: (id: string | undefined) => void;
+  /** Lead to scroll to and ring once, then clear. */
+  highlight: string | undefined;
+  /** Jump to another board and point at the lead once it is there. */
+  goToFunnelAndHighlight: (funnelId: string, leadId: string) => void;
+  clearHighlight: () => void;
   filters: ILeadsListFilters;
   sort: ILeadsListSort;
   page: number;
@@ -230,6 +243,12 @@ export function useLeadsUrlState(): ILeadsUrlState {
     // Switching funnel resets pagination but keeps filters, sort and search:
     // the user is narrowing the same question, not asking a new one.
     setFunnel: (id) => apply({ funil: id, page: undefined }),
+    highlight: search.highlight,
+    // One navigation, not two: writing the funnel and the target in the same
+    // patch means the board never renders once without knowing where to point.
+    goToFunnelAndHighlight: (funnelId, leadId) =>
+      apply({ funil: funnelId, highlight: leadId, page: undefined }),
+    clearHighlight: () => apply({ highlight: undefined }),
     filters,
     sort,
     page,

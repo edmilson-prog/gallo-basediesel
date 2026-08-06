@@ -30,6 +30,11 @@ export const COPY = {
 
   defaultFunnelHint: "Todo lead novo entra aqui até ser direcionado.",
   invalidLink: (nome: string) => `Você não tem acesso ao funil desse link. Abrimos o ${nome}.`,
+  otherFunnels: {
+    ariaLabel: (n: number) =>
+      n === 1 ? "Também está em outro funil" : `Também está em ${n} outros funis`,
+    goTo: (nome: string) => `Abrir este lead no funil ${nome}`,
+  },
   noPermissionToCreate: "Apenas donos e gestores criam funis.",
   nnHint: "Um lead pode estar em vários funis, com etapa própria em cada um.",
 

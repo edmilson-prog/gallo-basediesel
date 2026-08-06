@@ -9,10 +9,12 @@ import type { IBoardCard } from "@/features/funnels/engine/boardBuckets";
 import { resolveColumnStats } from "@/features/funnels/engine/columnStats";
 import { defaultSortForKind, sortBoardCards } from "@/features/funnels/engine/boardSort";
 import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
+import { otherFunnelsFor } from "@/features/funnels/engine/otherFunnels";
 import { useColumnPreferences } from "../../hooks/useColumnPreferences";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 import { BoardCard } from "./BoardCard";
 import { CollapsedColumn } from "./CollapsedColumn";
+import { OtherFunnelsBadge } from "./OtherFunnelsBadge";
 import { ColumnHeader } from "./ColumnHeader";
 import { ColumnMenu } from "./ColumnMenu";
 
@@ -31,6 +33,10 @@ export interface IKanbanColumnProps {
   /** False when the board is already scoped to a single seller. */
   showSeller: boolean;
   chipsByLead: Map<ID, ILeadFunnelChip[]>;
+  funnelId: ID;
+  /** Lead this board was asked to point at, if any. */
+  highlightLeadId: ID | undefined;
+  onGoToFunnel: (funnelId: ID, leadId: ID) => void;
   isDropTarget: boolean;
   onFilterOverdue: () => void;
   onDragOver: (e: DragEvent<HTMLDivElement>) => void;
@@ -46,6 +52,9 @@ export function KanbanColumn({
   sellersById,
   showSeller,
   chipsByLead,
+  funnelId,
+  highlightLeadId,
+  onGoToFunnel,
   isDropTarget,
   onFilterOverdue,
   onDragOver,
@@ -77,6 +86,15 @@ export function KanbanColumn({
   // to the top, otherwise the column would open already scrolled into a set the
   // person never asked for.
   useEffect(() => setVisible(PAGE), [mode, sorted.length, stage.id]);
+
+  // A lead pointed at from another board may sit past the loaded window —
+  // jumping to it and landing on nothing would read as a broken link.
+  const highlightIndex = highlightLeadId
+    ? sorted.findIndex((c) => c.lead.id === highlightLeadId)
+    : -1;
+  useEffect(() => {
+    if (highlightIndex >= visible) setVisible(Math.ceil((highlightIndex + 1) / PAGE) * PAGE);
+  }, [highlightIndex, visible]);
 
   const shown = useMemo(() => sorted.slice(0, visible), [sorted, visible]);
 
@@ -141,6 +159,13 @@ export function KanbanColumn({
                 }
                 showSeller={showSeller}
                 chips={chipsByLead.get(boardCard.lead.id) ?? NO_CHIPS}
+                highlighted={boardCard.lead.id === highlightLeadId}
+                indicator={
+                  <OtherFunnelsBadge
+                    others={otherFunnelsFor(chipsByLead.get(boardCard.lead.id), funnelId)}
+                    onGo={(target) => onGoToFunnel(target, boardCard.lead.id)}
+                  />
+                }
                 onOpen={(id) => void navigate({ to: "/app/leads/$id", params: { id } })}
                 onDragStart={onCardDragStart}
                 onDragEnd={onCardDragEnd}

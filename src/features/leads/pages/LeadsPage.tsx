@@ -215,6 +215,8 @@ export function LeadsPage() {
             // — the case of a plain seller, forced above.
             showSeller={sellerScopeIds === undefined && filters.sellerIds.length !== 1}
             chipsByLead={funnelChipsByLead}
+            highlightLeadId={url.highlight}
+            onGoToFunnel={url.goToFunnelAndHighlight}
             onLeadMoved={handleLeadMoved}
             onRequestClose={handleRequestClose}
             onFilterOverdue={() => url.patchFilters({ nextAction: "overdue" })}

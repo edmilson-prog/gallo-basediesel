@@ -27,6 +27,9 @@ export interface ILeadsKanbanProps {
   /** False when the board is already scoped to a single seller. */
   showSeller: boolean;
   chipsByLead: Map<ID, ILeadFunnelChip[]>;
+  /** Lead this board was asked to point at, if any. */
+  highlightLeadId: ID | undefined;
+  onGoToFunnel: (funnelId: ID, leadId: ID) => void;
   onLeadMoved: (lead: ILead, toStage: ILeadFunnelStage) => void;
   /** Dropped on a won/lost stage — the host opens the decision modal. */
   onRequestClose: (lead: ILead) => void;
@@ -43,6 +46,8 @@ export function LeadsKanban({
   sellersById,
   showSeller,
   chipsByLead,
+  highlightLeadId,
+  onGoToFunnel,
   onLeadMoved,
   onRequestClose,
   onFilterOverdue,
@@ -134,6 +139,9 @@ export function LeadsKanban({
           sellersById={sellersById}
           showSeller={showSeller}
           chipsByLead={chipsByLead}
+          funnelId={funnelId}
+          highlightLeadId={highlightLeadId}
+          onGoToFunnel={onGoToFunnel}
           isDropTarget={dropTargetId === stage.id}
           onFilterOverdue={onFilterOverdue}
           onDragOver={(e) => handleDragOver(e, stage.id)}

@@ -1,4 +1,4 @@
-import type { DragEvent, ReactNode } from "react";
+import { useEffect, useRef, type DragEvent, type ReactNode } from "react";
 import type { ID, ILeadFunnelStage, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -25,6 +25,8 @@ export interface IBoardCardProps {
   indicator?: ReactNode;
   /** Funnels holding this lead, for the hover card. */
   chips: ILeadFunnelChip[];
+  /** Arrived here from another board pointing at this lead. */
+  highlighted?: boolean;
 }
 
 /** Text-only urgency colour. `tone` carries a chip background this card drops. */
@@ -52,8 +54,15 @@ export function BoardCard({
   onDragEnd,
   indicator,
   chips,
+  highlighted = false,
 }: IBoardCardProps) {
+  const ref = useRef<HTMLDivElement>(null);
   const { lead, entry } = card;
+
+  useEffect(() => {
+    if (!highlighted) return;
+    ref.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [highlighted]);
   const temperature = TEMPERATURE_META[lead.temperature];
   const nextAction = getNextActionInfo(lead.nextActionAt);
   const urgentClass =
@@ -72,6 +81,7 @@ export function BoardCard({
 
   const cardElement = (
     <div
+      ref={ref}
       role="button"
       tabIndex={0}
       draggable={draggable}
@@ -94,6 +104,7 @@ export function BoardCard({
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         draggable && "cursor-grab active:cursor-grabbing",
         outcome && "opacity-60",
+        highlighted && "ring-2 ring-primary",
       )}
     >
       {outcome && (
