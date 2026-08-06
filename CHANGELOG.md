@@ -4,6 +4,28 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.159.0] — Heartbeat · 2026-08-05
+
+**Uma leva de correções no que a tela mostra logo depois que você entra. Vários menus sumiam até a página ser recarregada — acabou. Quando outra pessoa entrava no mesmo navegador, as telas mostravam por um instante o que a anterior tinha carregado — também acabou. E os sinais de conexão do WhatsApp voltaram a dizer a verdade: o ícone no topo e o aviso de número desconectado ignoravam por completo os números ligados pelo servidor WAHA, que agora ainda são conferidos sozinhos a cada 30 segundos. Junto vêm a nova tela de entrada e uma rodada de ajustes de contraste nas cores de aviso.**
+
+### Added
+
+- **Conferência automática dos números ligados pelo servidor WAHA** — enquanto a tela de WhatsApp está aberta, esses números passam a ser verificados sozinhos a cada 30 segundos. Antes, o estado deles só mudava quando o próprio servidor avisava; se esse aviso se perdesse, o selo do cartão seguia mostrando informação velha até alguém recarregar a página. Os demais tipos de número já tinham essa conferência.
+- **Aviso de conversas paradas pode ser dispensado** — o alerta de conversas críticas sem resposta ganhou um "X" para fechar, como o aviso de WhatsApp desconectado já tinha. Ele reaparece ao recarregar a página, de modo que um acúmulo crítico nunca fica silenciado de vez.
+
+### Changed
+
+- **Tela de entrada redesenhada** — o login ganhou um layout de pôster, com painel da marca animado, os selos das três submarcas e um botão para mostrar ou ocultar a senha. A tela fica sempre no tema escuro, independentemente da preferência do aparelho.
+- **"Online agora" no lugar de uma data** — na lista de Usuários, quem está conectado no momento aparece como "Online agora", em vez de uma data e hora que pareceria antiga.
+- **Cores de aviso padronizadas em mais telas** — Metas, Orçamentos, Pedidos, Indicadores, Carteira, Positivação e Curva ABC passaram a usar as cores oficiais de aviso do sistema, que se ajustam sozinhas a cada tema e aos modos claro e escuro. Antes cada tela trazia sua própria cor fixa, que em alguns temas ficava ilegível.
+
+### Fixed
+
+- **Vários menus sumiam logo depois de entrar** — Atendimento, Clientes, Leads, Veículos, todo o grupo Comercial, Metas e Indicadores desapareciam do menu assim que você fazia login, e só voltavam se a página fosse recarregada. O seletor de loja ficava escondido pelo mesmo motivo. As permissões passaram a ser carregadas para a pessoa que entrou, e não uma única vez na abertura do aplicativo.
+- **Telas mostravam por um instante os dados de quem usou o navegador antes** — ao trocar de usuário na mesma aba, o que a pessoa anterior tinha carregado continuava em memória e aparecia enquanto os dados novos não chegavam. Essa memória passa a ser descartada quando a sessão troca de dono. Nenhum dado ficava acessível além do permitido: o que aparecia já tinha sido carregado pela pessoa anterior, na sessão dela.
+- **Números do servidor WAHA ficavam de fora do aviso de conexão** — o ícone de WhatsApp no topo da tela e o aviso vermelho de "desconectado" não enxergavam esses números: um deles podia cair sem que o ícone mudasse de cor nem o aviso aparecesse. Agora todos os tipos de número entram nesse sinal.
+- **Cada pessoa só via a si mesma como online** — o indicador de quem está online colocava cada aba do navegador em um grupo isolado, então duas pessoas conectadas ao mesmo tempo não apareciam uma para a outra, nem na tela de Usuários nem na bolinha da conversa.
+
 ## [0.158.0] — Wayfinder · 2026-08-05
 
 **A página de Leads passou a trabalhar com vários funis: dá para trocar de funil, e cada pessoa escolhe como quer fazer isso — por uma barra lateral, por um seletor no topo ou por abas. O funil aberto fica no endereço da página, então dá para mandar o link do quadro para alguém e ele abre exatamente onde você estava. Também é possível criar um funil novo direto da tela, e ver todos os leads de uma vez com a indicação de em quais funis cada um está.**
