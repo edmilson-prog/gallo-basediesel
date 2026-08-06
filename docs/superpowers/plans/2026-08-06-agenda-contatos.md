@@ -955,7 +955,12 @@ select
   c.id,
   c.seller_id,
   case when c.dintec_codcli is not null then 'dintec' else 'manual' end,
-  coalesce(c.whatsapp_status, '') in ('valid', 'active', 'ok'),
+  -- whatsapp_status holds exactly three values in production (counted
+  -- 2026-08-06): valid 1.678 · unknown 1.205 · invalid 289. The earlier
+  -- 'active'/'ok' in this test matched nothing — dead literals.
+  -- 'unknown' means never verified, so it maps to false: asserting a contact
+  -- has WhatsApp when nobody checked would put a green icon on a guess.
+  coalesce(c.whatsapp_status, '') = 'valid',
   c.last_purchase_at,
   'parts'
 from public.customers c
@@ -976,12 +981,21 @@ select
   nullif(trim(l.email), ''),
   l.id,
   l.seller_id,
+  -- Mapped from the values production ACTUALLY holds, counted 2026-08-06:
+  --   import 2.452 · whatsapp 913 · google 17 · ecommerce 12 · outro 12 · indicacao 5
+  -- 'import' is the WhatsApp history import: all 2.452 were created on a single
+  -- day (2026-07-18), none has an e-mail, and their names ARE phone numbers
+  -- (+555499251565). Mapping them to 'manual' would erase the real origin of
+  -- 72% of the loose contacts.
   case lower(coalesce(l.origin, ''))
     when 'whatsapp'   then 'whatsapp'
+    when 'import'     then 'whatsapp'
+    when 'ecommerce'  then 'storefront'
     when 'storefront' then 'storefront'
     when 'portal_b2b' then 'portal_b2b'
     when 'balcao'     then 'balcao'
     when 'csv'        then 'csv'
+    -- google / indicacao / outro genuinely have no better bucket
     else 'manual'
   end,
   true,
