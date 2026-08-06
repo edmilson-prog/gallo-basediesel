@@ -337,8 +337,10 @@ export function contactInitials(name: string): string {
   if (clean === "") return "#";
   if (PHONE_LIKE.test(clean)) return "#";
 
-  // Words of 3+ chars carry the identity; "de", "da", "do" do not.
-  const parts = clean.split(/\s+/).filter((part) => part.length > 2);
+  // Drop connectors only. Filtering by word LENGTH looks equivalent but is
+  // not: it also eats real two-letter names (Zé, Jô, Sá, Tó), turning
+  // "Zé Antonello" into "A".
+  const parts = clean.split(/\s+/).filter((part) => !CONNECTORS.has(normalize(part)));
   const initials = `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
   return initials !== "" ? initials : clean[0]!.toUpperCase();
 }
