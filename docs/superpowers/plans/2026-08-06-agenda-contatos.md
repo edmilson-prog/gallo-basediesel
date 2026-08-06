@@ -984,9 +984,11 @@ select
   -- Mapped from the values production ACTUALLY holds, counted 2026-08-06:
   --   import 2.452 · whatsapp 913 · google 17 · ecommerce 12 · outro 12 · indicacao 5
   -- 'import' is the WhatsApp history import: all 2.452 were created on a single
-  -- day (2026-07-18), none has an e-mail, and their names ARE phone numbers
-  -- (+555499251565). Mapping them to 'manual' would erase the real origin of
-  -- 72% of the loose contacts.
+  -- day (2026-07-18) and none has an e-mail. Mapping them to 'manual' would
+  -- erase the real origin of 72% of the loose contacts.
+  -- (Measured, not assumed: 1.356 of the 2.452 carry a phone number as their
+  -- name — 55%, not all of them. The batch-date and zero-email evidence is what
+  -- justifies the reclassification; the name shape does not.)
   case lower(coalesce(l.origin, ''))
     when 'whatsapp'   then 'whatsapp'
     when 'import'     then 'whatsapp'
