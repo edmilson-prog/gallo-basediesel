@@ -995,16 +995,30 @@ where l.converted_to_customer_id is null
 
 ```sql
 select
-  count(*)                                as total,
+  count(*)                                        as total,
   count(*) filter (where customer_id is not null) as vinculados,
   count(*) filter (where customer_id is null)     as soltos,
-  count(*) filter (where phone_digits is null)    as sem_digitos
+  count(*) filter (where coalesce(phone_digits, '') = '') as sem_digitos,
+  count(*) filter (where ignored_at is not null)  as ja_ignorados
 from public.contacts;
 ```
 
-Expected: `total ≈ 5363`, `vinculados ≈ 1978`, `soltos ≈ 3385`, `sem_digitos = 0`.
+Expected: `total ≈ 5.400`, `vinculados ≈ 1.978`, `soltos ≈ 3.400+`, `sem_digitos = 0`,
+`ja_ignorados = 0`.
 
-Se `sem_digitos > 0`, o trigger não disparou no INSERT — verificar a Task 5 antes de seguir.
+Três armadilhas neste check:
+
+1. **Não testar `phone_digits is null`.** A coluna é gerada sobre
+   `coalesce(phone, '')`, então nunca é nula — seria string vazia. Um teste de
+   nulidade passaria sempre, inclusive com o backfill inteiro quebrado. Testar
+   contra `''`.
+2. **Os totais são aproximados de propósito.** A base é viva: durante a
+   escrita deste plano os leads subiram de 3.386 para 3.412 pelo webhook de
+   produção. Confira a ordem de grandeza, não a igualdade — e rode a contagem
+   de origem no mesmo instante se quiser bater exato.
+3. **`ja_ignorados` deve ser 0** nesta fase: nada escreve `ignored_at` até a
+   Triagem existir. Qualquer valor acima de zero significa que a coluna foi
+   escrita por algum caminho inesperado.
 
 - [ ] **Step 3: Commit**
 
