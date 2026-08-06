@@ -4,6 +4,24 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.163.0] — Sieve · 2026-08-06
+
+**O funil de triagem ganhou saída. Quando a etapa de entrada passa do limite, ela para de ser uma pilha de cards e diz quantos leads estão parados ali, há quanto tempo o mais antigo espera, e leva direto para a lista. Na lista, agora dá para marcar vários leads de uma vez e mandar todos para outro funil, atribuir a um vendedor ou marcar como perdidos.**
+
+### Added
+
+- **Aviso de depósito na entrada** — acima do limite configurado em Funis (padrão 50), a coluna de entrada troca de modo: mostra a contagem real, há quantos dias o lead mais antigo está lá, e um botão que abre a lista já filtrada por aquela etapa. Arrastar um lead de volta para ela continua funcionando.
+- **Selecionar vários leads na lista** — uma caixa por linha, e `Shift` + clique marca uma faixa inteira. A caixa do cabeçalho marca os leads que estão à vista, nunca todos de uma vez.
+- **Ações em lote** — com leads selecionados aparece uma barra com **Adicionar ao funil**, **Atribuir vendedor** e **Marcar perdido**.
+- **Aviso de resultado parcial** — se parte do lote falhar, a mensagem diz quantos foram e quantos não, em vez de um "pronto" que esconderia o problema.
+
+### Notes
+
+- **No funil de triagem, adicionar não move.** O lead entra no outro funil e **continua** na triagem até alguém tirá-lo de lá — a barra avisa isso, para ninguém estranhar que a linha não sumiu.
+- **Trocar de funil, de filtro ou de busca limpa a seleção**, para que uma ação em lote nunca alcance um lead que saiu da tela.
+- **Distribuir em lote ainda não está pronto** — o botão aparece desabilitado, com explicação. Ele depende da fila de rodízio, que tem regras próprias de horário e departamento.
+- Nenhuma migration nesta versão.
+
 ## [0.162.1] — Blueprint · 2026-08-06
 
 ### Fixed

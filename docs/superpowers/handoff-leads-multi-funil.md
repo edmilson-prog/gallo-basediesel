@@ -1,11 +1,11 @@
-# Handoff — Leads Multi-Funil (Fases 1–2 entregues, 3–7 pendentes)
+# Handoff — Leads Multi-Funil (as 7 fases entregues)
 
 > **Propósito deste documento:** entregar a um agente executor (contexto zero) o estado real desta feature — o que já está em produção, o que está aberto, e o que precisa acontecer antes de continuar. Este documento existe porque o contexto desta feature foi perdido uma vez: as fases 1–2 rodaram numa sessão longa que terminou sem deixar registro, e a sessão seguinte não conseguiu reconstruir o que havia sido feito.
 
 - **Data da entrega das fases 1–2:** 2026-07-23/24
 - **Última auditoria deste documento:** 2026-08-06 (fase 5)
-- **Status:** Fases 1–2 em **v0.157.0 `Manifold`** (PR #371) · Fase 3 em **v0.158.0 `Wayfinder`** (mais correções em v0.159.1 e v0.159.2) · Fase 4 em **v0.160.0 `Trellis`** · Fase 5 em **v0.161.0 `Lanyard`** · Fase 6 em **v0.162.0 `Blueprint`** · Fase 7 sem plano escrito
-- **Worktrees:** `leads-multi-funil` (fases 1–2) · `leads-multi-funil-fase3` (fase 3) · `leads-multi-funil-fase4` (fase 4) · `leads-multi-funil-fase5` (fase 5) · `leads-multi-funil-fase6` (fase 6) — todas mergeadas
+- **Status:** Fases 1–2 em **v0.157.0 `Manifold`** (PR #371) · Fase 3 em **v0.158.0 `Wayfinder`** (mais correções em v0.159.1 e v0.159.2) · Fase 4 em **v0.160.0 `Trellis`** · Fase 5 em **v0.161.0 `Lanyard`** · Fase 6 em **v0.162.0 `Blueprint`** (mais a correção de RBAC em v0.162.1) · Fase 7 em **v0.163.0 `Sieve`** — **feature completa**
+- **Worktrees:** `leads-multi-funil` (fases 1–2) · `leads-multi-funil-fase3` (fase 3) · `leads-multi-funil-fase4` (fase 4) · `leads-multi-funil-fase5` (fase 5) · `leads-multi-funil-fase6` (fase 6) · `leads-multi-funil-fase7` (fase 7) — todas mergeadas
 
 ---
 
@@ -54,7 +54,7 @@ Este é o contexto de negócio que **não pode se perder**. Toda ambiguidade de 
 | 4 | **Kanban** | card de 60px, indicador multi-funil, paginação por coluna, ordenação, colapso, `@dnd-kit` | sim | ✅ entregue (v0.160.0) |
 | 5 | **Ficha da conversa** | bloco de participações no painel direito, com atalho para adicionar a um funil | sim | ✅ entregue (v0.161.0) |
 | 6 | **Administração** | master-detail, etapas com arraste, acesso com prévia, matriz de auditoria, gate `funnel` | sim | ✅ entregue (v0.162.0) |
-| 7 | **Triagem** | modo triagem na etapa de entrada, ações em lote na Lista | sim | ⬜ pendente |
+| 7 | **Triagem** | modo triagem na etapa de entrada, ações em lote na Lista | sim | ✅ entregue (v0.163.0) |
 
 > **A criação de funil foi puxada para a fase 3** de propósito: com `funnelCount === 1` os três padrões de navegação degradam para rótulo estático, e entregaríamos três componentes que ninguém consegue exercitar. O mock semeia 3 funis por isso.
 >
@@ -74,6 +74,29 @@ São **duas** tabelas, e mexer numa não mexe na outra:
 ⚠️ **`src/features/rbac/permissions/matrix.ts` é semente para o mock, não fonte de verdade em runtime.** Em produção `usePermission()` lê o que veio de `role_permissions`. Um recurso novo registrado só em `rbac_resources` devolve `false` para todo mundo — inclusive para o Dono.
 
 Todo recurso RBAC novo precisa, portanto, de **duas** migrations (ou uma que faça as duas coisas): registrar em `rbac_resources` e conceder em `role_permissions` aos papéis que devem tê-lo.
+
+### 3.0.1. O que ficou de fora, e por quê
+
+A feature está completa no sentido das 7 fases. Três coisas foram deliberadamente deixadas:
+
+| Item | Onde ficou | Por quê |
+|---|---|---|
+| **`Distribuir` em lote** na triagem | botão desabilitado com tooltip, em `TriagePanel.tsx` | Usa a fila de rodízio (`rotation_queues`, `assign_next_from_rotation`), com regras próprias de horário e departamento. É subsistema, não linha de código |
+| **Os quatro consumidores de `lead.stage`** | `ConvertLeadModal`, `MarkAsLostModal`, `ConversationMenu`, filtro da visão consolidada | Spec §11.4. Migrá-los para falar participação é frente própria; enquanto isso o pipeline legado continua vivo e a rota `…/pipeline` de pé |
+| **Endpoint em lote** | não existe | As ações em lote são N chamadas sequenciais. É por isso que a seleção do cabeçalho marca **o que está visível**, não os 903. Se virar dor, o caminho é uma RPC, não paralelismo no cliente |
+
+### 3.0.2. Dívida transversal que a feature revelou
+
+Quatro entregas seguidas passaram por `bun run build`, `bunx tsc --noEmit` e a suíte inteira **verdes**, e quebraram na tela:
+
+| Versão | Defeito |
+|---|---|
+| v0.159.1 | trocar o formato de exibição deixava Leads sem navegação — três `useState` para um valor que precisa ser único |
+| v0.159.2 | criar funil nunca funcionou — id de etapa `${funnelId}-${kind}` numa coluna `uuid`; o mock aceita string opaca |
+| v0.160.0 | arraste por teclado não existia — `onKeyDown` depois de `{...listeners}` substitui o do dnd-kit, e o `tsc` não vê |
+| v0.162.0 | o rascunho era descartado por refetch em segundo plano, e o salvar dizia "Funil salvo" gravando o valor antigo |
+
+**Recomendação:** um teste de contrato que rode as duas implementações do provider (`mock` e `supabase`) contra as mesmas asserções fecharia a classe do segundo caso. O resto é o que só clicar revela — a conferência manual no navegador precisa continuar sendo parte da task, não epílogo.
 
 ### 3.1. O que os mocks de decisão já resolveram (e a fase 3 não deve reabrir)
 
