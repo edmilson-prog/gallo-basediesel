@@ -119,6 +119,19 @@ export const LEADS_STRINGS = {
       daysValue: (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`,
       noTags: "Sem tags",
     },
+    triage: {
+      title: "Virou depósito",
+      body: (n: number) =>
+        `${n.toLocaleString("pt-BR")} leads parados na entrada. Triar em lista é mais rápido que arrastar um a um.`,
+      oldest: (days: number) =>
+        days === 0
+          ? "O mais antigo chegou hoje."
+          : `O mais antigo está aqui há ${days} ${days === 1 ? "dia" : "dias"}.`,
+      toList: "Triar em lista",
+      distribute: "Distribuir",
+      distributeSoon: "A distribuição em lote usa a fila de rodízio e ainda não está pronta.",
+      dropHint: "Solte para devolver à triagem",
+    },
     dnd: {
       grabbed: (lead: string) => `Pegou o lead ${lead}. Use as setas para mover e espaço para soltar.`,
       over: (stage: string) => `Sobre a etapa ${stage}.`,

@@ -9,6 +9,7 @@ import type { IBoardCard } from "@/features/funnels/engine/boardBuckets";
 import { resolveColumnStats } from "@/features/funnels/engine/columnStats";
 import { defaultSortForKind, sortBoardCards } from "@/features/funnels/engine/boardSort";
 import { otherFunnelsFor } from "@/features/funnels/engine/otherFunnels";
+import { resolveTriageMode } from "@/features/funnels/engine/triageMode";
 import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
 import { useColumnPreferences } from "../../hooks/useColumnPreferences";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
@@ -16,6 +17,7 @@ import { BoardCard } from "./BoardCard";
 import { CollapsedColumn } from "./CollapsedColumn";
 import { ColumnHeader } from "./ColumnHeader";
 import { ColumnMenu } from "./ColumnMenu";
+import { TriagePanel } from "./TriagePanel";
 import { OtherFunnelsBadge } from "./OtherFunnelsBadge";
 
 /** 40 cards, then "carregar mais" — see the note on the `visible` state. */
@@ -41,6 +43,10 @@ export interface IKanbanColumnProps {
   onGoToFunnel: (funnelId: ID, leadId: ID) => void;
   onFilterOverdue: () => void;
   onMove: (leadId: ID, stageId: ID) => void;
+  /** `lead_funnels.entry_alert_threshold` of the open funnel. */
+  entryThreshold: number;
+  /** Opens the List filtered by this stage — the way out of the warehouse. */
+  onTriageInList: (stageId: ID) => void;
 }
 
 export function KanbanColumn({
@@ -56,6 +62,8 @@ export function KanbanColumn({
   onGoToFunnel,
   onFilterOverdue,
   onMove,
+  entryThreshold,
+  onTriageInList,
 }: IKanbanColumnProps) {
   const navigate = useNavigate();
   const { sortByStage, collapsedByStage, setSort, toggleCollapsed } = useColumnPreferences();
@@ -95,6 +103,28 @@ export function KanbanColumn({
 
   const shown = useMemo(() => sorted.slice(0, visible), [sorted, visible]);
 
+  // The oldest among the LOADED cards. On the entry stage the default sort is
+  // oldest-first, so the loaded window starts at the true oldest — and this is
+  // the only stage where the panel shows the age at all. `getBoardSummary`
+  // does not carry it, and one extra query for one line of text is a bad trade.
+  const oldestEnteredAt = useMemo(() => {
+    let oldest: string | undefined;
+    for (const c of cards) {
+      if (!oldest || c.entry.enteredStageAt < oldest) oldest = c.entry.enteredStageAt;
+    }
+    return oldest;
+  }, [cards]);
+
+  const triage = resolveTriageMode({
+    kind: stage.kind,
+    // The REAL total of the stage, not the loaded page: the panel exists to say
+    // "903" precisely when the column itself is showing forty.
+    count: stats.count,
+    threshold: entryThreshold,
+    oldestEnteredAt,
+    now: new Date(),
+  });
+
   if (collapsedByStage[stage.id]) {
     return (
       <CollapsedColumn
@@ -129,6 +159,15 @@ export function KanbanColumn({
           />
         }
       />
+      {triage.active ? (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <TriagePanel
+            view={triage}
+            isOver={isOver}
+            onTriageInList={() => onTriageInList(stage.id)}
+          />
+        </div>
+      ) : (
       <div className="flex-1 space-y-2 overflow-y-auto p-2">
         {sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 px-3 py-6 text-center text-[11px] text-muted-foreground">
@@ -175,6 +214,7 @@ export function KanbanColumn({
           </>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -50,6 +50,9 @@ export interface ILeadsKanbanProps {
   onRequestClose: (lead: ILead) => void;
   /** The column header's overdue count is a filter, not a label. */
   onFilterOverdue: () => void;
+  /** `entry_alert_threshold` of the open funnel — when the entry stage flips. */
+  entryThreshold: number;
+  onTriageInList: (stageId: ID) => void;
 }
 
 export function LeadsKanban({
@@ -66,6 +69,8 @@ export function LeadsKanban({
   onLeadMoved,
   onRequestClose,
   onFilterOverdue,
+  entryThreshold,
+  onTriageInList,
 }: ILeadsKanbanProps) {
   const provider = useLeadFunnelsProvider();
   const queryClient = useQueryClient();
@@ -211,6 +216,8 @@ export function LeadsKanban({
             onGoToFunnel={onGoToFunnel}
             onFilterOverdue={onFilterOverdue}
             onMove={handleMoveById}
+            entryThreshold={entryThreshold}
+            onTriageInList={onTriageInList}
           />
         ))}
       </div>

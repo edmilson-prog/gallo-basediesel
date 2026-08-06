@@ -156,6 +156,7 @@ export function LeadsPage() {
   // participation, not from the store's pipeline. `usePipelineSettings` stays
   // on for the filters bar and the new-lead modal, which still speak legacy.
   const board = useFunnelBoard(scopedFunnelId ?? null);
+  const activeFunnel = reachableFunnels.find((f) => f.id === scopedFunnelId);
   const showFunnelColumn = isAllFunnels || reachableFunnels.length > 1;
 
   const visibleLeads = useMemo(() => {
@@ -249,6 +250,14 @@ export function LeadsPage() {
             onLeadMoved={handleLeadMoved}
             onRequestClose={handleRequestClose}
             onFilterOverdue={() => url.patchFilters({ nextAction: "overdue" })}
+            entryThreshold={activeFunnel?.entryAlertThreshold ?? 50}
+            onTriageInList={(stageId) => {
+              // One navigation, not two: the List has to open already narrowed
+              // to that stage, or the user lands on nine hundred rows and the
+              // "triar em lista" promise is broken on arrival.
+              url.setView("list");
+              url.patchFilters({ stageIds: [stageId] });
+            }}
           />
         ) : visibleLeads.length === 0 ? (
           <EmptyState
