@@ -247,6 +247,14 @@ export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
     return created;
   },
 
+  async createFunnelWithStages(input, newStages) {
+    // In memory both arrays are written under the same synchronous turn, so
+    // there is no half-created funnel to undo.
+    const created = await this.createFunnel(input);
+    stages = [...stages, ...newStages.map((s) => ({ ...s, funnelId: created.id }))];
+    return created;
+  },
+
   async updateFunnel(id, patch) {
     seedOnce();
     // `.find()` instead of `findIndex()` + `funnels[index]` — the latter is a

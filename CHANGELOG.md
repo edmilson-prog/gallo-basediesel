@@ -4,6 +4,14 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.159.2] — Heartbeat · 2026-08-06
+
+### Fixed
+
+- **Não era possível criar um funil novo** — o botão "Novo funil" falhava sempre, com a mensagem "Não foi possível criar o funil". Pior: o funil chegava a ser gravado sem nenhuma etapa e ficava lá, invisível e inutilizável, segurando o nome — de modo que tentar de novo com o mesmo nome falhava por nome repetido. Agora o funil e suas quatro etapas iniciais são criados como uma coisa só: ou entram os dois, ou não entra nada.
+- **A mensagem de erro ao criar um funil dizia sempre a mesma coisa** — qualquer falha virava "Não foi possível criar o funil", e o motivo real só aparecia no console do navegador. Nome já usado agora é informado como tal, e a causa real passa a ser registrada.
+- **Janela "Novo funil" sem descrição para leitores de tela** — quem usa leitor de tela ouvia só o título. A janela ganhou uma linha explicando com quais etapas o funil nasce.
+
 ## [0.159.1] — Heartbeat · 2026-08-06
 
 ### Fixed
