@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import type { ID, ILead, IPipelineStage, ISeller } from "@/shared/types";
+import type { ID, ILead, ILeadFunnelStage, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { FunnelNav } from "@/features/funnels/components/FunnelNav";
 import { FUNNELS_COPY, useFunnelNavigation } from "@/features/funnels";
 import { useLeadFunnelChips } from "@/features/funnels/hooks/useLeadFunnelChips";
+import { useFunnelBoard } from "@/features/funnels/hooks/useFunnelBoard";
 import { NewFunnelModal } from "@/features/funnels/components/NewFunnelModal";
 import { ALL_FUNNELS } from "@/features/funnels/engine/resolveInitialFunnel";
 import { LeadsHeader } from "../components/LeadsHeader";
@@ -107,7 +108,7 @@ export function LeadsPage() {
   }, [queryClient]);
 
   const handleLeadMoved = useCallback(
-    (_lead: ILead, _stage: IPipelineStage) => {
+    (_lead: ILead, _stage: ILeadFunnelStage) => {
       invalidateLeads();
     },
     [invalidateLeads],
@@ -137,6 +138,11 @@ export function LeadsPage() {
   // which board a row belongs to.
   const { funnels: reachableFunnels } = useFunnelNavigation();
   const funnelChipsByLead = useLeadFunnelChips(reachableFunnels);
+
+  // The board is the FUNNEL's board: columns and card positions come from the
+  // participation, not from the store's pipeline. `usePipelineSettings` stays
+  // on for the filters bar and the new-lead modal, which still speak legacy.
+  const board = useFunnelBoard(scopedFunnelId ?? null);
   const showFunnelColumn = isAllFunnels || reachableFunnels.length > 1;
 
   const noticeShownRef = useRef(false);
@@ -197,10 +203,13 @@ export function LeadsPage() {
             onClear={url.clearAll}
             onCreate={handleEmptyCreate}
           />
-        ) : effectiveView === "kanban" ? (
+        ) : effectiveView === "kanban" && scopedFunnelId ? (
           <LeadsKanban
             leads={list.leads}
-            stages={stages}
+            stages={board.stages}
+            entriesByLead={board.entriesByLead}
+            summaryByStage={board.summaryByStage}
+            funnelId={scopedFunnelId}
             sellersById={sellersById}
             onLeadMoved={handleLeadMoved}
             onRequestClose={handleRequestClose}
