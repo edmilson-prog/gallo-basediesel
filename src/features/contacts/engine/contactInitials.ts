@@ -1,5 +1,8 @@
 /** A name made only of digits and phone punctuation is a number, not a name. */
-const PHONE_LIKE = /^\+?[0-9()\s.\-+]+$/;
+const PHONE_LIKE = /^\+?[0-9\s.\-+]+$/;
+
+/** Portuguese connectors and articles that don't carry identity. */
+const CONNECTORS = new Set(["de", "da", "do", "dos", "das", "e"]);
 
 /**
  * Avatar initials for a contact.
@@ -12,8 +15,8 @@ export function contactInitials(name: string): string {
   if (clean === "") return "#";
   if (PHONE_LIKE.test(clean)) return "#";
 
-  // Words of 3+ chars carry the identity; "de", "da", "do" do not.
-  const parts = clean.split(/\s+/).filter((part) => part.length > 2);
+  // Skip Portuguese connectors and articles; keep all other words including short names.
+  const parts = clean.split(/\s+/).filter((part) => !CONNECTORS.has(part.toLowerCase()));
   const initials = `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
   return initials !== "" ? initials : clean[0]!.toUpperCase();
 }

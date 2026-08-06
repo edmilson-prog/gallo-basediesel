@@ -28,4 +28,12 @@ describe("contactInitials", () => {
     expect(contactInitials("")).toBe("#");
     expect(contactInitials("   ")).toBe("#");
   });
+
+  it("keeps a two-letter first name", () => {
+    expect(contactInitials("Zé Antonello")).toBe("ZA");
+  });
+
+  it("keeps a two-letter surname", () => {
+    expect(contactInitials("Ana Sá")).toBe("AS");
+  });
 });
