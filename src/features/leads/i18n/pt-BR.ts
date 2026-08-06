@@ -81,6 +81,8 @@ export const LEADS_STRINGS = {
     daysInStage: (n: number) => `${n} ${n === 1 ? "dia" : "dias"} no estágio`,
     converted: "Convertido",
     lost: "Perdido",
+    ariaLabel: (name: string, stage: string, temperature: string) =>
+      `Lead ${name}, etapa ${stage}, temperatura ${temperature}`,
   },
   kanban: {
     columnCount: (n: number) => `${n} ${n === 1 ? "lead" : "leads"}`,

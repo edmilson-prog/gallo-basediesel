@@ -1,5 +1,6 @@
 import type { DragEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import type { ID, IFunnelBoardSummary, ILeadFunnelStage, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
@@ -8,8 +9,8 @@ import type { IBoardCard } from "@/features/funnels/engine/boardBuckets";
 import { resolveColumnStats } from "@/features/funnels/engine/columnStats";
 import { defaultSortForKind, sortBoardCards } from "@/features/funnels/engine/boardSort";
 import { useColumnPreferences } from "../../hooks/useColumnPreferences";
-import { LeadCard } from "../LeadCard";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
+import { BoardCard } from "./BoardCard";
 import { CollapsedColumn } from "./CollapsedColumn";
 import { ColumnHeader } from "./ColumnHeader";
 import { ColumnMenu } from "./ColumnMenu";
@@ -23,6 +24,8 @@ export interface IKanbanColumnProps {
   /** Server-side aggregate; absent while the query is in flight. */
   summary: IFunnelBoardSummary | undefined;
   sellersById: Map<ID, ISeller>;
+  /** False when the board is already scoped to a single seller. */
+  showSeller: boolean;
   isDropTarget: boolean;
   onFilterOverdue: () => void;
   onDragOver: (e: DragEvent<HTMLDivElement>) => void;
@@ -36,6 +39,7 @@ export function KanbanColumn({
   cards,
   summary,
   sellersById,
+  showSeller,
   isDropTarget,
   onFilterOverdue,
   onDragOver,
@@ -43,6 +47,7 @@ export function KanbanColumn({
   onCardDragStart,
   onCardDragEnd,
 }: IKanbanColumnProps) {
+  const navigate = useNavigate();
   const [hover, setHover] = useState(false);
   const { sortByStage, collapsedByStage, setSort, toggleCollapsed } = useColumnPreferences();
 
@@ -120,11 +125,16 @@ export function KanbanColumn({
           </div>
         ) : (
           <>
-            {shown.map(({ lead }) => (
-              <LeadCard
-                key={lead.id}
-                lead={lead}
-                seller={lead.sellerId ? sellersById.get(lead.sellerId) : undefined}
+            {shown.map((boardCard) => (
+              <BoardCard
+                key={boardCard.lead.id}
+                card={boardCard}
+                stage={stage}
+                seller={
+                  boardCard.lead.sellerId ? sellersById.get(boardCard.lead.sellerId) : undefined
+                }
+                showSeller={showSeller}
+                onOpen={(id) => void navigate({ to: "/app/leads/$id", params: { id } })}
                 onDragStart={onCardDragStart}
                 onDragEnd={onCardDragEnd}
               />

@@ -211,6 +211,9 @@ export function LeadsPage() {
             summaryByStage={board.summaryByStage}
             funnelId={scopedFunnelId}
             sellersById={sellersById}
+            // The seller avatar is noise when the board is already one seller's
+            // — the case of a plain seller, forced above.
+            showSeller={sellerScopeIds === undefined && filters.sellerIds.length !== 1}
             onLeadMoved={handleLeadMoved}
             onRequestClose={handleRequestClose}
             onFilterOverdue={() => url.patchFilters({ nextAction: "overdue" })}
