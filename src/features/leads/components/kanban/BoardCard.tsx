@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import type { ID, ILeadFunnelStage, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
@@ -68,6 +68,11 @@ export function BoardCard({
     disabled: !draggable,
   });
 
+  /** dnd-kit's own key handler, so ours can defer to it instead of replacing it. */
+  const dragKeyDown = listeners?.onKeyDown as
+    | ((e: KeyboardEvent<HTMLDivElement>) => void)
+    | undefined;
+
   useEffect(() => {
     if (!highlighted) return;
     ref.current?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -102,12 +107,20 @@ export function BoardCard({
       {...listeners}
       onClick={open}
       onKeyDown={(e) => {
-        // Enter and Space reach dnd-kit's listeners first for the keyboard
-        // drag; only Enter opens the lead, so grabbing with Space still works.
+        // Enter opens the lead. Everything else — Space to grab, arrows to
+        // move, Escape to cancel — belongs to dnd-kit and is forwarded.
+        //
+        // The forwarding is the whole point: declaring `onKeyDown` after
+        // `{...listeners}` REPLACES dnd-kit's, and the keyboard drag silently
+        // stops existing. TypeScript cannot catch it the way it caught the
+        // duplicated `role`/`tabIndex`, because `listeners` is an
+        // index-signature map rather than a known set of props.
         if (e.key === "Enter") {
           e.preventDefault();
           open();
+          return;
         }
+        dragKeyDown?.(e);
       }}
       data-lead-id={lead.id}
       aria-label={LEADS_STRINGS.card.ariaLabel(lead.name, stage.name, temperature.label)}

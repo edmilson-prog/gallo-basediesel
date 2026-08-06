@@ -12,7 +12,6 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type {
   ID,
   IFunnelBoardSummary,
@@ -27,6 +26,7 @@ import { bucketLeadsByStage, type IBoardCard } from "@/features/funnels/engine/b
 import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 import { BoardCard } from "./BoardCard";
+import { boardKeyboardCoordinates } from "./boardKeyboardCoordinates";
 import { KanbanColumn } from "./KanbanColumn";
 
 const NO_CHIPS: ILeadFunnelChip[] = [];
@@ -94,7 +94,10 @@ export function LeadsKanban({
     // a drag.
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     // Before this there was no way at all to move a lead without a pointer.
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    // The coordinate getter is ours: `sortableKeyboardCoordinates` needs a
+    // SortableContext, which a board of independent columns has not got, and
+    // with it the card is grabbed and then cannot be moved at all.
+    useSensor(KeyboardSensor, { coordinateGetter: boardKeyboardCoordinates }),
   );
 
   /** One move, whether it came from the pointer, the keyboard or the menu. */

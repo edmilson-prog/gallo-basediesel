@@ -228,14 +228,11 @@ export function LeadsPage() {
           </div>
         ) : list.isError ? (
           <ErrorState onRetry={list.refetch} />
-        ) : list.leads.length === 0 ? (
-          <EmptyState
-            hasFilters={hasAnyFilter(filters)}
-            searchTerm={filters.search}
-            onClear={url.clearAll}
-            onCreate={handleEmptyCreate}
-          />
-        ) : effectiveView === "kanban" && scopedFunnelId ? (
+        ) : effectiveView === "kanban" && scopedFunnelId && visibleStages.length > 0 ? (
+          // The board renders even with no leads. A funnel is its stages before
+          // it is its cards: a freshly created one would otherwise show
+          // "nenhum lead encontrado" and hide the very columns the user needs
+          // to see — and to drop the first lead into.
           <LeadsKanban
             leads={visibleLeads}
             stages={visibleStages}
@@ -252,6 +249,13 @@ export function LeadsPage() {
             onLeadMoved={handleLeadMoved}
             onRequestClose={handleRequestClose}
             onFilterOverdue={() => url.patchFilters({ nextAction: "overdue" })}
+          />
+        ) : visibleLeads.length === 0 ? (
+          <EmptyState
+            hasFilters={hasAnyFilter(filters)}
+            searchTerm={filters.search}
+            onClear={url.clearAll}
+            onCreate={handleEmptyCreate}
           />
         ) : (
           <LeadsList
