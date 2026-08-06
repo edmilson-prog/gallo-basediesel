@@ -4,6 +4,28 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.162.0] — Blueprint · 2026-08-06
+
+**Existe uma tela para administrar os funis. Em Configurações → Atendimento → Funis, dá para renomear um funil, trocar ícone e cor, reordenar e editar as etapas, escolher quem enxerga cada um e arquivar o que não se usa mais. Até agora só era possível criar funil por um atalho na página de Leads — editar não era possível em lugar nenhum.**
+
+### Added
+
+- **Tela de Funis** — lista à esquerda, três abas à direita: Etapas, Acesso e Geral. Trocar de funil com alterações não salvas pergunta antes de descartar.
+- **Etapas** — arraste pela alça à esquerda para reordenar, nome, cor entre as nove identidades do sistema e tipo (Entrada, Aberta, Ganho, Perda). Cada linha mostra quantos leads estão naquela etapa.
+- **Excluir etapa pede para onde vão os leads** — se a etapa tem leads, a tela pergunta o destino antes de excluir, e move todos. Etapas de entrada, ganho e perda são obrigatórias e não podem ser excluídas; o funil também precisa de ao menos uma etapa aberta.
+- **Acesso com prévia** — o topo mostra quantos vendedores enxergam o funil e recalcula a cada clique. Há um atalho "Todos da loja" que libera para todo vendedor, e ele soma com as marcações individuais. Se ninguém sobrar, a tela avisa e o botão passa a dizer "Salvar sem acesso" — pode ser proposital, mas não por acidente.
+- **Visão geral de acesso** — uma tabela de quem enxerga qual funil, só para conferir. Clicar num funil leva à aba Acesso dele.
+- **Arquivar funil** — ele sai do seletor da página de Leads mas continua em relatórios e auditoria, e os leads ficam onde estão. A lista avisa quantos leads ativos estão em funis arquivados.
+
+### Changed
+
+- **A tela "Pipeline de leads" passou a dizer o que ela é.** O aviso "a edição visual estará disponível na Fase 2" era uma promessa parada de outro projeto e foi lida por muita gente como se fosse sobre os funis. Agora o texto explica que aquele é o pipeline legado da loja, que ele ainda alimenta os modais de conversão e de perda, o menu da conversa e o filtro de estágio na visão de todos os funis — e leva para a tela de Funis.
+
+### Notes
+
+- **O funil de triagem não tem aba Acesso e não pode ser arquivado.** Ele recebe todo lead novo e é para onde um lead volta ao sair de outro funil: restringi-lo trancaria a operação.
+- **Esta versão traz uma migration** que precisa ser aplicada em produção para a permissão "Funis" aparecer no editor de papéis. Sem ela a tela funciona para donos e gestores, mas a permissão não é editável.
+
 ## [0.161.0] — Lanyard · 2026-08-06
 
 **Durante o atendimento, o painel da direita agora mostra em quais funis aquele lead está e em que etapa em cada um — e deixa você mudar a etapa ou colocar o lead em outro funil sem sair da conversa. Mudou de etapa por engano? O aviso que aparece traz um "Desfazer".**
