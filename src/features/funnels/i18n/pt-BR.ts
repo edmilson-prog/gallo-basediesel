@@ -39,6 +39,7 @@ export const COPY = {
   newFunnel: {
     trigger: "Novo funil",
     title: "Novo funil",
+    subtitle: "Começa com as etapas Novo, Em andamento, Ganho e Perdido — dá para ajustar depois.",
     name: "Nome",
     namePlaceholder: "Catalisador",
     icon: "Ícone",

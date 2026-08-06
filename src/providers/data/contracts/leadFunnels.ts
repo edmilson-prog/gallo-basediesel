@@ -14,6 +14,20 @@ import type {
 export interface ILeadFunnelsProvider {
   listFunnels(storeId: ID, opts?: { includeArchived?: boolean }): Promise<ILeadFunnel[]>;
   createFunnel(input: Omit<ILeadFunnel, "id" | "createdAt" | "updatedAt">): Promise<ILeadFunnel>;
+  /**
+   * A funnel and its opening stages as one operation.
+   *
+   * `assert_funnel_has_terminal_stages` is a DEFERRED constraint trigger, so a
+   * funnel with no won/lost stage is invalid the moment it is committed. Two
+   * separate calls cannot express that: the funnel commits on its own, and a
+   * failure on the stages leaves it behind — unusable, and holding its name
+   * against the unique index so the retry fails too. Implementations must
+   * either write both in one transaction or undo the funnel on failure.
+   */
+  createFunnelWithStages(
+    input: Omit<ILeadFunnel, "id" | "createdAt" | "updatedAt">,
+    stages: Omit<ILeadFunnelStage, "funnelId">[],
+  ): Promise<ILeadFunnel>;
   updateFunnel(id: ID, patch: Partial<ILeadFunnel>): Promise<ILeadFunnel>;
   archiveFunnel(id: ID): Promise<void>;
 

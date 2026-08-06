@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { FunnelAccent, ID, ILeadFunnel, ILeadFunnelStage } from "@/shared/types";
+import type { FunnelAccent, ID, ILeadFunnel } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -17,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLeadFunnelsProvider } from "@/providers/data/hooks/useLeadFunnelsProvider";
 import { cn } from "@/lib/utils";
 import { getAccentClasses } from "../engine/accentClasses";
+import { buildStarterStages } from "../engine/starterStages";
 import { COPY } from "../i18n/pt-BR";
 
 /** Curated from the heavy-truck parts world — the icon carries the meaning. */
@@ -108,45 +110,23 @@ export function NewFunnelModal({
     setSaving(true);
     setError(null);
     try {
-      const created = await provider.createFunnel({
-        storeId,
-        name: trimmed,
-        description: description.trim() || undefined,
-        accent,
-        icon,
-        position: existing.reduce((max, f) => Math.max(max, f.position), -1) + 1,
-        isDefault: false,
-        openToStore: true,
-        entryAlertThreshold: 50,
-      });
-
-      // The three mandatory stages go in the same flow.
-      // assert_funnel_has_terminal_stages is a DEFERRED constraint trigger: it
-      // fires at commit, so a funnel left without an entry/won/lost stage is
-      // rejected outright. A two-step "create, then add stages" UI would fail
-      // on step one.
-      const now = new Date().toISOString();
-      const stage = (
-        nameKey: keyof typeof COPY.starterStages,
-        kind: ILeadFunnelStage["kind"],
-        position: number,
-      ): ILeadFunnelStage => ({
-        id: `${created.id}-${kind}`,
-        funnelId: created.id,
-        name: COPY.starterStages[nameKey],
-        accent,
-        position,
-        kind,
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      await provider.replaceStages(created.id, [
-        stage("entrada", "entrada", 0),
-        stage("aberta", "aberta", 1),
-        stage("ganho", "ganho", 2),
-        stage("perda", "perda", 3),
-      ]);
+      // Funnel and stages as one operation: the funnel is invalid until it has
+      // a won and a lost stage (deferred constraint trigger), and a funnel that
+      // fails halfway would keep holding its name against the unique index.
+      const created = await provider.createFunnelWithStages(
+        {
+          storeId,
+          name: trimmed,
+          description: description.trim() || undefined,
+          accent,
+          icon,
+          position: existing.reduce((max, f) => Math.max(max, f.position), -1) + 1,
+          isDefault: false,
+          openToStore: true,
+          entryAlertThreshold: 50,
+        },
+        buildStarterStages({ accent, names: COPY.starterStages, now: new Date().toISOString() }),
+      );
 
       await queryClient.invalidateQueries({ queryKey: ["lead-funnels"] });
       await queryClient.invalidateQueries({ queryKey: ["lead-funnel-counts"] });
@@ -154,8 +134,18 @@ export function NewFunnelModal({
       toast.success(COPY.newFunnel.created(created.name));
       reset();
       onCreated(created);
-    } catch {
-      setError(COPY.newFunnel.failed);
+    } catch (cause) {
+      // The console was the only place the real reason showed up while the
+      // dialog said "não foi possível" — keep it, and name the one case the
+      // user can act on.
+      console.error("[funnels] createFunnelWithStages failed", cause);
+      const message = cause instanceof Error ? cause.message : "";
+      setError(
+        /duplicate key|23505/i.test(message) ? COPY.newFunnel.nameTaken : COPY.newFunnel.failed,
+      );
+      // A funnel the server rejected may still have landed before the failure;
+      // refetch so `existing` reflects the server, not this component's memory.
+      void queryClient.invalidateQueries({ queryKey: ["lead-funnels"] });
     } finally {
       setSaving(false);
     }
@@ -166,6 +156,9 @@ export function NewFunnelModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{COPY.newFunnel.title}</DialogTitle>
+          {/* Radix warns when a dialog has no description, and a screen reader
+              opening this one heard the title and nothing else. */}
+          <DialogDescription>{COPY.newFunnel.subtitle}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4">

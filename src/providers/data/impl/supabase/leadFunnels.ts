@@ -105,6 +105,18 @@ function rowToStage(row: StageRow): ILeadFunnelStage {
   };
 }
 
+/** The writable half of a stage. `created_at` keeps its column default. */
+function toStageRow(stage: Omit<ILeadFunnelStage, "funnelId">) {
+  return {
+    id: stage.id,
+    name: stage.name,
+    accent: stage.accent,
+    position: stage.position,
+    kind: stage.kind,
+    updated_at: new Date().toISOString(),
+  };
+}
+
 function rowToEntry(row: EntryRow): ILeadFunnelEntry {
   return {
     id: row.id,
@@ -157,6 +169,38 @@ export const supabaseLeadFunnelsProvider: ILeadFunnelsProvider = {
 
     if (error) throw new Error(`[supabase] createFunnel failed: ${error.message}`);
     return rowToFunnel(data as FunnelRow);
+  },
+
+  async createFunnelWithStages(input, newStages) {
+    const created = await this.createFunnel(input);
+
+    // PostgREST gives each request its own transaction, so the funnel above is
+    // already committed. Until this pair moves behind a single RPC, the second
+    // write is followed by a compensating delete: a funnel with no stages is
+    // unusable AND holds its name against `lead_funnels_unique_name`, so
+    // leaving it behind breaks the retry as well as the attempt.
+    try {
+      const { error } = await getSupabaseClient()
+        .from("lead_funnel_stages")
+        .insert(newStages.map((s) => ({ ...toStageRow(s), funnel_id: created.id })));
+      if (error) throw new Error(`[supabase] createFunnelWithStages stages: ${error.message}`);
+    } catch (cause) {
+      // A brand-new funnel has no memberships, so the delete cannot hit the FK
+      // from lead_funnel_entries; the stages themselves cascade.
+      const { error: undoError } = await getSupabaseClient()
+        .from("lead_funnels")
+        .delete()
+        .eq("id", created.id);
+      if (undoError) {
+        throw new Error(
+          `[supabase] createFunnelWithStages failed and the funnel ${created.id} could not be ` +
+            `removed (${undoError.message}) — original cause: ${(cause as Error).message}`,
+        );
+      }
+      throw cause;
+    }
+
+    return created;
   },
 
   async updateFunnel(id, patch) {
@@ -213,15 +257,7 @@ export const supabaseLeadFunnelsProvider: ILeadFunnelsProvider = {
     // Upsert by id; delete only the orphans. A delete-all would hit the FK from
     // lead_funnel_entries.stage_id (no cascade) with 23503.
     const { error: upsertError } = await client.from("lead_funnel_stages").upsert(
-      next.map((s) => ({
-        id: s.id,
-        funnel_id: funnelId,
-        name: s.name,
-        accent: s.accent,
-        position: s.position,
-        kind: s.kind,
-        updated_at: new Date().toISOString(),
-      })),
+      next.map((s) => ({ ...toStageRow(s), funnel_id: funnelId })),
       { onConflict: "id" },
     );
     if (upsertError) {
