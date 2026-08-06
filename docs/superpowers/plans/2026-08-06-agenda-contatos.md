@@ -238,7 +238,7 @@ export interface IContactsProvider {
 
 - [ ] **Step 4: Registrar no barrel de contratos**
 
-Em `src/providers/data/contracts/index.ts`: reexportar o módulo e acrescentar a chave a `IDataProviders`.
+Em `src/providers/data/contracts/index.ts`, reexportar **apenas os tipos**:
 
 ```ts
 export type {
@@ -249,15 +249,14 @@ export type {
 } from "./contacts";
 ```
 
-E dentro da interface `IDataProviders`, junto de `customers` e `leads`:
+> **Não** acrescentar `contacts` à interface `IDataProviders` nesta tarefa. Essa chave entra na **Task 8**, no mesmo commit que registra as duas implementações no factory — assim toda tarefa fecha com o build verde e o gate de build da revisão continua valendo alguma coisa.
 
-```ts
-  contacts: IContactsProvider;
-```
+- [ ] **Step 5: Verificar que o build continua verde**
 
-> Isso quebra o build até a Task 8 registrar as implementações no factory — é esperado e proposital: garante que nenhuma das duas metades seja esquecida.
+Run: `bun run build`
+Expected: PASS. Esta tarefa só acrescenta tipos e reexportações; nada deve quebrar.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add src/shared/types/contacts.ts src/shared/types/index.ts \
@@ -1185,9 +1184,19 @@ export function useContactsProvider(): IContactsProvider {
 }
 ```
 
-- [ ] **Step 3: Registrar no factory**
+- [ ] **Step 3: Declarar a chave no contrato e registrar no factory**
 
-Em `src/providers/data/factory.ts`: importar `mockContactsProvider` e `supabaseContactsProvider` e acrescentar `contacts:` aos dois objetos `mockProviders` e `supabaseProviders`. **As duas metades** — esquecer uma quebra só em runtime, no modo oposto ao que você testou.
+Estas três edições andam juntas, no mesmo commit — é o que mantém o build verde a cada passo.
+
+1. Em `src/providers/data/contracts/index.ts`, dentro da interface `IDataProviders`, junto de `customers` e `leads`:
+
+```ts
+  contacts: IContactsProvider;
+```
+
+2. Em `src/providers/data/factory.ts`, importar `mockContactsProvider` e `supabaseContactsProvider`.
+
+3. Acrescentar `contacts:` aos **dois** objetos, `mockProviders` **e** `supabaseProviders`. As duas metades: esquecer uma compila, mas quebra em runtime — no modo oposto ao que você testou.
 
 - [ ] **Step 4: Exportar no barrel público**
 
@@ -1204,10 +1213,10 @@ export type {
 export { useContactsProvider } from "./hooks/useContactsProvider";
 ```
 
-- [ ] **Step 5: Verificar que o build volta a passar**
+- [ ] **Step 5: Verificar o build**
 
 Run: `bun run build`
-Expected: PASS. (A Task 1 deixou o build quebrado de propósito; ele fecha aqui.)
+Expected: PASS.
 
 Run: `bunx tsc --noEmit`
 Expected: nenhum erro **novo** em arquivos criados nesta branch. Cruzar com `git diff --name-status main...HEAD --diff-filter=A`.
@@ -1347,8 +1356,10 @@ export { ContactsPage } from "./pages/ContactsPage";
 
 - [ ] **Step 5: Verificar que a rota aparece**
 
-Run: `bun run dev` e navegar para `/app/agenda` como Owner.
-Expected: a tela abre vazia, o item **Agenda** aparece na sidebar entre Clientes e Leads, e `routeTree.gen.ts` foi regenerado pelo plugin do Vite (não editar à mão).
+Run: `bun run build`
+Expected: PASS, e `routeTree.gen.ts` regenerado pelo plugin do Vite com a entrada `/app/agenda` (nunca editar à mão — conferir que a entrada apareceu).
+
+Conferir por leitura: o item **Agenda** está no grupo `"Atendimento"` de `navigation.ts`, posicionado **entre** Clientes e Leads, com `permission: { resource: "contact" }`.
 
 - [ ] **Step 6: Commit**
 
@@ -1404,8 +1415,15 @@ Todo o texto visível em português. Ícones via `@/components/Icon`.
 
 - [ ] **Step 3: Conferir visualmente**
 
-Run: `bun run dev`, com a `ContactsPage` renderizando `ContactsGrid` sobre dados mock.
-Expected: cards idênticos ao kit em densidade e hierarquia; um contato solto mostra a caixa tracejada azul; um em opt-out mostra a barra vermelha e a ação de conversa apagada.
+Run: `bun run build` e `bun run lint`
+Expected: PASS.
+
+Conferir por leitura do componente (não renderizar — o smoke visual é do dono):
+- a grade usa `grid-cols-[repeat(auto-fill,minmax(330px,1fr))]` com `gap-[14px]`
+- `contact.customerId === null` renderiza a caixa **tracejada** com o botão Vincular
+- `contact.optOut` renderiza a barra de 3px em `severity-danger` **e** desabilita a ação de conversa
+- as etiquetas cortam em 3, ou em 1 quando `optOut`
+- nenhum hex literal e nenhuma constante `AGD`
 
 - [ ] **Step 4: Commit**
 
@@ -1447,8 +1465,14 @@ Na `ContactsPage`, envolver o bloco fixo em um container `relative` e colocar `<
 
 - [ ] **Step 3: Verificar o comportamento do teclado**
 
-Run: `bun run dev`.
-Expected: `/` foca a busca de qualquer lugar da página; digitar `/` dentro da busca insere a barra em vez de re-focar; `Escape` desfoca; a barra de progresso cresce ao rolar a lista.
+Run: `bun run build` e `bun run lint`
+Expected: PASS.
+
+Conferir por leitura do componente:
+- o listener de `keydown` retorna cedo quando `target` é `INPUT`, `TEXTAREA` ou `isContentEditable` — sem isso, digitar `/` na própria busca re-foca em vez de inserir o caractere
+- o listener chama `preventDefault()` e é removido no cleanup do `useEffect`
+- `Escape` chama `blur()` no campo
+- `<ScrollProgressBar container={scrollEl} />` recebe o elemento de scroll, não `undefined`
 
 - [ ] **Step 4: Commit**
 
@@ -1486,8 +1510,14 @@ Mudar qualquer filtro **reseta a página para 1** — caso contrário o usuário
 
 - [ ] **Step 3: Verificar**
 
-Run: `bun run dev`.
-Expected: as contagens dos chips batem com o retorno de `counts()`; trocar um select destaca o controle e refiltra; "Limpar filtros" some quando não há filtro.
+Run: `bun run build` e `bun run lint`
+Expected: PASS.
+
+Conferir por leitura:
+- as contagens dos chips vêm de `counts()` do provider, nunca de `contacts.length`
+- todo handler de filtro reseta `page` para 1
+- as opções de Responsável, Etiqueta e Cidade/UF são derivadas dos dados, não listas fixas copiadas do mockup
+- "Limpar filtros" só renderiza quando há filtro ativo ou escopo diferente de `todos`
 
 - [ ] **Step 4: Commit**
 
@@ -1545,8 +1575,14 @@ Larguras persistidas com `useResizableColumns(CONTACT_COLUMNS, "gallo-contacts-c
 
 - [ ] **Step 4: Verificar**
 
-Run: `bun run dev`, alternar para tabela.
-Expected: clique-direito no cabeçalho abre "Colunas visíveis"; ocultar uma coluna a remove; recarregar a página preserva as larguras arrastadas; as bordas verticais aparecem só no cabeçalho.
+Run: `bun run build` e `bun run lint`
+Expected: PASS.
+
+Conferir por leitura:
+- `onContextMenu` no `<tr>` do cabeçalho chama `preventDefault()` antes de abrir o menu
+- `useResizableColumns` recebe a chave `"gallo-contacts-column-widths"`
+- a borda vertical aparece **apenas** nas células `<th>`; nenhuma `<td>` do corpo tem borda lateral
+- a coluna `nome` é `required` e não pode ser desmarcada no menu
 
 - [ ] **Step 5: Commit**
 
@@ -1754,9 +1790,22 @@ bun run lint
 
 Expected: testes e build passam; `tsc` não acrescenta erro **novo** nos arquivos criados nesta branch (cruzar com `git diff --name-status main...HEAD --diff-filter=A`); o lint não acusa violação das fronteiras de import.
 
-- [ ] **Step 6: Conferir os critérios de aceite do spec**
+- [ ] **Step 6: Conferir os critérios de aceite e escrever o roteiro de smoke**
 
-Percorrer os 10 itens da §12 do spec um a um. O item 9 (isolamento por vendedor) exige entrar como um vendedor não-staff e confirmar que a lista some para contatos de outra carteira.
+Percorrer os 10 itens da §12 do spec, marcando cada um como **verificável por código** (feito aqui) ou **exige execução** (vai para o dono).
+
+Escrever `docs/superpowers/plans/2026-08-06-agenda-contatos-smoke.md` com o roteiro que o dono vai rodar, cobrindo pelo menos:
+
+1. `/app/agenda` abre e pagina; trocar de página troca as linhas
+2. `/` foca a busca; buscar por telefone com e sem formatação encontra o mesmo contato
+3. os quatro chips de escopo mostram contagens coerentes
+4. um cliente com duas pessoas aparece como duas entradas
+5. vincular um contato solto move-o de "Sem cliente" para "Vinculados"
+6. opt-out aplica a barra vermelha e desabilita "Abrir conversa"
+7. ações em massa sobre seleção e sobre "todos os N filtrados"
+8. clique-direito no cabeçalho abre "Colunas visíveis"; larguras sobrevivem ao reload
+9. **como vendedor não-staff:** só aparecem contatos próprios ou de clientes da carteira
+10. as duas migrations **ainda não foram aplicadas** — a Agenda só mostra dados depois que o dono autorizar a aplicação
 
 - [ ] **Step 7: Commit e PR**
 
@@ -1774,8 +1823,10 @@ Abrir o PR em draft descrevendo: o que entrou, os desvios da §7.1, e o lembrete
 
 **Ordem de dependências.** As tarefas 1→8 são sequenciais (tipo → contrato → engines → banco → providers). As tarefas 11 a 17 dependem só da 10 e podem ser feitas em qualquer ordem entre si. A 18 fecha.
 
-**O build fica quebrado entre a Task 1 e a Task 8.** É proposital: a chave `contacts` em `IDataProviders` obriga o registro das duas implementações. Não "consertar" removendo a chave.
+**Toda tarefa fecha com o build verde.** A chave `contacts` em `IDataProviders` entra na Task 8, no mesmo commit das duas implementações — nenhuma tarefa deixa o repositório quebrado para a seguinte consertar.
 
-**Ambiente de desenvolvimento.** A worktree pode não ter `.env.local`; sem ele o Vite sobe em modo **mock**, não Supabase. Para testar contra dados reais, copiar o `.env.local` do diretório principal — lembrando que ele aponta para o Supabase de **produção**.
+**Validação é por código, não por navegador.** Nenhuma tarefa sobe o dev server nem abre preview: o dono faz o smoke visual. Os portões de cada tarefa são `bun run test`, `bun run build`, `bun run lint`, `bunx tsc --noEmit` (por delta) e a varredura de tokens. Onde este plano descreve resultado visual, ele é **critério de revisão de código** — confira lendo o componente, não renderizando. A Task 18 fecha entregando o roteiro de smoke visual para o dono.
+
+**Ambiente de desenvolvimento.** A worktree pode não ter `.env.local`; sem ele o Vite sobe em modo **mock**, não Supabase.
 
 **Não aplicar migration em produção sem OK explícito do dono.** Vale para as tarefas 5 e 6.
