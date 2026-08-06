@@ -3,9 +3,9 @@
 > **Propósito deste documento:** entregar a um agente executor (contexto zero) o estado real desta feature — o que já está em produção, o que está aberto, e o que precisa acontecer antes de continuar. Este documento existe porque o contexto desta feature foi perdido uma vez: as fases 1–2 rodaram numa sessão longa que terminou sem deixar registro, e a sessão seguinte não conseguiu reconstruir o que havia sido feito.
 
 - **Data da entrega das fases 1–2:** 2026-07-23/24
-- **Última auditoria deste documento:** 2026-08-05
-- **Status:** Fases 1–2 entregues em **v0.157.0 `Manifold`** (PR #371, mergeado) · Fase 3 entregue em **v0.158.0 `Wayfinder`** · Fases 4–7 sem plano escrito
-- **Worktrees:** `leads-multi-funil` (fases 1–2, mergeada) · `leads-multi-funil-fase3` (fase 3)
+- **Última auditoria deste documento:** 2026-08-06
+- **Status:** Fases 1–2 em **v0.157.0 `Manifold`** (PR #371) · Fase 3 em **v0.158.0 `Wayfinder`** (mais correções em v0.159.1 e v0.159.2) · Fase 4 em **v0.160.0 `Trellis`** · Fases 5–7 sem plano escrito
+- **Worktrees:** `leads-multi-funil` (fases 1–2) · `leads-multi-funil-fase3` (fase 3) · `leads-multi-funil-fase4` (fase 4) — todas mergeadas
 
 ---
 
@@ -51,7 +51,7 @@ Este é o contexto de negócio que **não pode se perder**. Toda ambiguidade de 
 | 1 | **Fundação** | 9 slots `funnel-*`; `kind` na etapa; erradicação de hex e paleta crua; grade de contraste no `/design-system` | só o contraste correto | ✅ entregue |
 | 2 | **Modelo N:N** | 4 tabelas, RLS, triggers, backfill, tipos, 38º provider, `funnelId` server-side | não | ✅ entregue |
 | 3 | **Navegação** | `useFunnelNavigation`, os 3 modos, `?funil=`, "Todos os funis", header em conformidade, remoção da barra de métricas + **formulário mínimo de criar funil** | sim | ✅ entregue |
-| 4 | **Kanban** | card de 60px, indicador multi-funil, paginação por coluna, ordenação, colapso, `@dnd-kit` | sim | ⬜ pendente |
+| 4 | **Kanban** | card de 60px, indicador multi-funil, paginação por coluna, ordenação, colapso, `@dnd-kit` | sim | ✅ entregue (v0.160.0) |
 | 5 | **Ficha da conversa** | bloco de participações no painel direito | sim | ⬜ pendente |
 | 6 | **Administração** | master-detail, etapas com arraste, acesso com prévia, matriz de auditoria, gate `funnel` | sim | ⬜ pendente |
 | 7 | **Triagem** | modo triagem na etapa de entrada, ações em lote na Lista | sim | ⬜ pendente |
@@ -98,10 +98,10 @@ Dívida da tela de Leads que **existe independentemente** dos funis. Se ficar de
 | # | Diagnóstico | Onde | Status |
 |---|-------------|------|--------|
 | 1 | **A tela roda em memória do navegador** — busca 1000 leads e filtra tudo no cliente (temperatura, origem, vendedor, período, valor, busca textual). Com 957 leads a janela já estava quase cheia | `useLeadsList.ts:38–50` | ⚠️ **parcial** — a fase 2 levou o filtro **de funil** para o servidor; os demais filtros seguem no cliente |
-| 2 | **903 cards montados no DOM ao mesmo tempo** — sem virtualização nem paginação; a coluna "Novo" sozinha é 94% da base | `kanban/KanbanColumn.tsx:82` | ⬜ fase 4 (40/coluna + "carregar mais") |
+| 2 | **903 cards montados no DOM ao mesmo tempo** — sem virtualização nem paginação; a coluna "Novo" sozinha é 94% da base | `kanban/KanbanColumn.tsx:82` | ✅ resolvido na fase 4 — 40/coluna + "Carregar mais 40" |
 | 3 | **A barra de métricas mostra zero por construção** — taxa de conversão, tempo médio e valor médio são calculados sobre leads convertidos, que o filtro padrão **já removeu da lista** antes do cálculo. Resultado sempre `0,0% · 0 dias · —`. São 52px permanentes exibindo informação falsa | `leadMetrics.ts:39–63` ← `useLeadsList.ts:71` | ⬜ fase 3 (remoção da barra) |
-| 4 | **Nenhum caminho por teclado para mover um lead** — o arraste usa a API nativa do navegador, só mouse. A plataforma **já tem a solução instalada e validada** na tela de Rodízio | `LeadsKanban.tsx:53–110` · solução em `RotationQueueManager.tsx:141–144` | ⬜ fase 4 (`@dnd-kit`) |
-| 5 | **A etapa de fechamento é constante no código** — soltar na última coluna dispara o modal de conversão porque o id está fixo | `LeadsKanban.tsx:88` (`CLOSING_STAGE_ID`) | ⬜ fase 4 — ver §7 |
+| 4 | **Nenhum caminho por teclado para mover um lead** — o arraste usa a API nativa do navegador, só mouse. A plataforma **já tem a solução instalada e validada** na tela de Rodízio | `LeadsKanban.tsx:53–110` · solução em `RotationQueueManager.tsx:141–144` | ✅ resolvido na fase 4 — `@dnd-kit` com `KeyboardSensor` e menu "Mover para…". ⚠️ `sortableKeyboardCoordinates` **não** serve: exige `SortableContext`. Ver `boardKeyboardCoordinates.ts` |
+| 5 | **A etapa de fechamento é constante no código** — soltar na última coluna dispara o modal de conversão porque o id está fixo | `LeadsKanban.tsx:88` (`CLOSING_STAGE_ID`) | ✅ resolvido na fase 4 — passa a olhar `stage.kind === 'ganho' \| 'perda'` |
 
 ### 3.3. O caso de borda que precisa de resposta antes de virar código
 
