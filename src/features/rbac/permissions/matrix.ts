@@ -36,6 +36,7 @@ const OWNER_ENTRIES: ScopedActions[] = [
   p("customer", CRUD, "all"),
   p("vehicle", CRUD, "all"),
   p("lead", CRUD, "all"),
+  p("funnel", CRUD, "all"),
   p("conversation", CRUD, "all"),
   p("message", CRUD, "all"),
   p("part", CRUD, "all"),
@@ -82,6 +83,9 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("customer", CRUD, "store"),
   p("vehicle", CRUD, "store"),
   p("lead", CRUD, "store"),
+  // Administrar funil e decisao de estrutura comercial. O vendedor nao recebe:
+  // o que ele alcanca e governado por lead_funnel_access, que e outra coisa.
+  p("funnel", CRUD, "store"),
   p("conversation", CRUD, "store"),
   p("message", ["create"], "store"),
   p("part", ["view", "create", "edit"], "store"),
