@@ -136,7 +136,11 @@ export function ConversationHeader({
           <ContactAvatar display={display} />
         </AvatarLightbox>
 
-        <div className="min-w-0 flex-1">
+        {/* `overflow-hidden` keeps this block from contributing its chips'
+            intrinsic width to the header's min-content: `min-w-0` alone lets it
+            shrink, but the header would still *ask* for ~160px extra and push
+            the fiche off-screen. */}
+        <div className="min-w-0 flex-1 overflow-hidden">
           <div className="flex items-center gap-2">
             <h2 className="truncate text-sm font-semibold uppercase text-foreground">{display.name}</h2>
             {conversation.isSdrActive && (
@@ -206,7 +210,7 @@ export function ConversationHeader({
             <AssigneeChip
               seller={assignedSeller}
               variant="full"
-              className="mr-1 hidden lg:inline-flex"
+              className="mr-1 hidden @min-[46rem]:inline-flex"
             />
           )}
           <StatusControl
@@ -226,7 +230,9 @@ export function ConversationHeader({
                   aria-pressed={ficheOpen}
                 >
                   <Icon icon="mdi:account-details" size={14} />
-                  <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleFiche}</span>
+                  <span className="hidden @min-[52rem]:inline">
+                    {CONVERSATION_STRINGS.toggleFiche}
+                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{CONVERSATION_STRINGS.toggleFiche}</TooltipContent>
@@ -244,7 +250,9 @@ export function ConversationHeader({
                   aria-label={CONVERSATION_STRINGS.ficheUnavailableTooltip}
                 >
                   <Icon icon="mdi:account-details" size={14} />
-                  <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleFiche}</span>
+                  <span className="hidden @min-[52rem]:inline">
+                    {CONVERSATION_STRINGS.toggleFiche}
+                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{CONVERSATION_STRINGS.ficheUnavailableTooltip}</TooltipContent>
@@ -261,7 +269,9 @@ export function ConversationHeader({
                   aria-pressed={mediaOpen}
                 >
                   <Icon icon="mdi:image-multiple-outline" size={14} />
-                  <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleMedia}</span>
+                  <span className="hidden @min-[52rem]:inline">
+                    {CONVERSATION_STRINGS.toggleMedia}
+                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{CONVERSATION_STRINGS.toggleMedia}</TooltipContent>
@@ -278,7 +288,7 @@ export function ConversationHeader({
                   aria-pressed={consultorOpen}
                 >
                   <Icon icon="mdi:magnify-scan" size={14} />
-                  <span className="hidden md:inline">{PART_LOOKUP_STRINGS.toggle}</span>
+                  <span className="hidden @min-[52rem]:inline">{PART_LOOKUP_STRINGS.toggle}</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{PART_LOOKUP_STRINGS.panelTitle}</TooltipContent>
@@ -295,7 +305,9 @@ export function ConversationHeader({
                   aria-pressed={historyOpen}
                 >
                   <Icon icon="mdi:history" size={14} />
-                  <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleHistory}</span>
+                  <span className="hidden @min-[52rem]:inline">
+                    {CONVERSATION_STRINGS.toggleHistory}
+                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{CONVERSATION_STRINGS.toggleHistory}</TooltipContent>
@@ -314,7 +326,9 @@ export function ConversationHeader({
                   aria-label={CONVERSATION_STRINGS.historyUnavailableTooltip}
                 >
                   <Icon icon="mdi:history" size={14} />
-                  <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleHistory}</span>
+                  <span className="hidden @min-[52rem]:inline">
+                    {CONVERSATION_STRINGS.toggleHistory}
+                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{CONVERSATION_STRINGS.historyUnavailableTooltip}</TooltipContent>

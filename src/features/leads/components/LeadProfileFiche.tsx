@@ -123,7 +123,7 @@ export function LeadProfileFiche({
   return (
     <aside
       className={cn(
-        "hidden h-full shrink-0 transition-[width] duration-200 ease-in-out xl:block",
+        "hidden h-full shrink-0 transition-[width] duration-200 ease-in-out min-[1440px]:block",
         open ? "w-[360px]" : "w-0 overflow-hidden",
       )}
       aria-hidden={!open}
