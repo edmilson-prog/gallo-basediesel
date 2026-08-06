@@ -4,6 +4,27 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.161.0] — Lanyard · 2026-08-06
+
+**Durante o atendimento, o painel da direita agora mostra em quais funis aquele lead está e em que etapa em cada um — e deixa você mudar a etapa ou colocar o lead em outro funil sem sair da conversa. Mudou de etapa por engano? O aviso que aparece traz um "Desfazer".**
+
+### Added
+
+- **Bloco "Funis" na ficha da conversa** — logo abaixo do nome do contato, antes dos dados. Uma linha por funil, com a etapa de cada um num seletor. É a primeira coisa acionável de quem está respondendo uma mensagem.
+- **Atalho para colocar o lead em outro funil** — o botão `+` ao lado de "Funis" lista só os funis em que ele ainda não está. O lead entra na etapa inicial daquele funil e já aparece no quadro de Leads.
+- **Desfazer ao mudar a etapa** — o aviso de confirmação fica 6 segundos com um botão que volta atrás. Mudar de etapa é comum e reversível, e um pedido de confirmação a cada vez faria você parar de mudar.
+- **Tirar o lead de um funil** — no menu de três pontos da linha, com confirmação. Se for a única participação dele, o aviso explica que o lead volta para a triagem e não fica sem funil nenhum.
+- **Aviso de funil sem acesso** — se o lead estiver em algum funil que você não acessa, aparece "+N funis que você não acessa". Sem essa linha a lista pareceria incompleta sem explicação; com os nomes, mostraria a estrutura comercial que o controle de acesso existe para separar.
+
+### Changed
+
+- **A etiqueta de etapa saiu do topo da ficha** — ela nomeava uma etapa do pipeline único da loja, que com vários funis responde por um só. O bloco novo diz a etapa em cada funil onde o lead realmente está.
+- **"Dados do lead" agora abre e fecha** — vem fechado. Quem atende precisa de funil, etapa e status na hora; dono e data de criação são consulta ocasional, e o espaço foi para o bloco de funis.
+
+### Fixed
+
+- **Cores fixas nos selos de convertido e perdido da ficha** — usavam verde e vermelho travados no código, que em alguns temas ficavam ilegíveis. Passaram a usar as cores oficiais de aviso do sistema, que se ajustam a cada tema.
+
 ## [0.160.0] — Trellis · 2026-08-06
 
 **O quadro de Leads virou o quadro do funil. As colunas agora são as etapas do funil que você abriu — não mais as etapas fixas da loja — e o valor de cada card é o daquela oportunidade, não o do lead. O cabeçalho de cada coluna troca a média de dias pela soma dos valores e por quantos estão atrasados, com um clique que filtra só eles. O card encolheu de sete informações para quatro e cabem mais que o dobro na tela; o que saiu está a um instante de mouse parado em cima. E dá para mover um lead sem tocar no mouse.**

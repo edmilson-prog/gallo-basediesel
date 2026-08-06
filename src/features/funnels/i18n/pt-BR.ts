@@ -30,6 +30,41 @@ export const COPY = {
 
   defaultFunnelHint: "Todo lead novo entra aqui até ser direcionado.",
   invalidLink: (nome: string) => `Você não tem acesso ao funil desse link. Abrimos o ${nome}.`,
+  fiche: {
+    title: "Funis",
+    add: "Adicionar a um funil",
+    addEmpty: "Este lead já está em todos os funis que você acessa.",
+    empty: "Este lead não está em nenhum funil.",
+    emptyAction: "Adicionar a um funil",
+    locked: (n: number) =>
+      n === 1 ? "+1 funil que você não acessa" : `+${n} funis que você não acessa`,
+    lockedHint: "Você não tem acesso a esse funil, então ele não aparece pelo nome.",
+    seeAll: (n: number) => `Ver todas (+${n})`,
+    seeLess: "Ver menos",
+    noStagePermission: "Você não pode mover este lead de etapa.",
+    wonBadge: "Ganho",
+    lostBadge: "Perdido",
+    stageLabel: (funil: string) => `Etapa no funil ${funil}`,
+    rowMenu: (funil: string) => `Ações da participação em ${funil}`,
+    moved: (funil: string, etapa: string) => `${funil}: movido para ${etapa}.`,
+    moveError: "Não foi possível mudar a etapa.",
+    undo: "Desfazer",
+    undone: "Etapa restaurada.",
+    added: (funil: string) => `Lead adicionado ao funil ${funil}.`,
+    addError: "Não foi possível adicionar o lead ao funil.",
+    remove: "Tirar deste funil",
+    removeTitle: (funil: string) => `Tirar o lead do funil ${funil}?`,
+    removeBody:
+      "A etapa, o valor estimado e o histórico dessa participação são perdidos. As outras não mudam.",
+    removeBodyLast:
+      "Esta é a única participação do lead. Ele volta para o funil de triagem, e não fica sem nenhum.",
+    removeCancel: "Cancelar",
+    removeConfirm: "Tirar do funil",
+    removed: (funil: string) => `Lead tirado do funil ${funil}.`,
+    removedToDefault: (funil: string) =>
+      `Lead tirado do funil ${funil} e devolvido para a triagem.`,
+    removeError: "Não foi possível tirar o lead do funil.",
+  },
   otherFunnels: {
     ariaLabel: (n: number) =>
       n === 1 ? "Também está em outro funil" : `Também está em ${n} outros funis`,
