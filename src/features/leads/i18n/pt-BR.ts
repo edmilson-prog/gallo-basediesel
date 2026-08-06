@@ -105,6 +105,8 @@ export const LEADS_STRINGS = {
     collapse: "Recolher coluna",
     expand: "Expandir coluna",
     columnMenu: (stage: string) => `Ações da etapa ${stage}`,
+    loadMore: (n: number) => `Carregar mais ${n}`,
+    showingOf: (shown: number, total: number) => `${shown} de ${total}`,
     metrics: {
       conversion: "Taxa de conversão",
       avgCycle: "Tempo médio total",

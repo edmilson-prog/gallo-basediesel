@@ -1,5 +1,6 @@
 import type { DragEvent } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { ID, IFunnelBoardSummary, ILeadFunnelStage, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,9 @@ import { LEADS_STRINGS } from "../../i18n/pt-BR";
 import { CollapsedColumn } from "./CollapsedColumn";
 import { ColumnHeader } from "./ColumnHeader";
 import { ColumnMenu } from "./ColumnMenu";
+
+/** 40 cards, then "carregar mais" — see the note on the `visible` state. */
+const PAGE = 40;
 
 export interface IKanbanColumnProps {
   stage: ILeadFunnelStage;
@@ -50,6 +54,20 @@ export function KanbanColumn({
 
   const mode = sortByStage[stage.id] ?? defaultSortForKind(stage.kind);
   const sorted = useMemo(() => sortBoardCards(cards, mode, new Date()), [cards, mode]);
+
+  // Legitimately per-instance: each column owns its own window, and no sibling
+  // needs to see it. Virtualisation was weighed and dropped — it fights the
+  // drag (targets outside the rendered window need auto-scroll and remeasuring),
+  // breaks the browser's Ctrl+F, and does not touch the human problem: nine
+  // hundred virtualised cards are still nine hundred cards nobody will read.
+  const [visible, setVisible] = useState(PAGE);
+
+  // Sorting, filtering or a funnel switch change the set. The window goes back
+  // to the top, otherwise the column would open already scrolled into a set the
+  // person never asked for.
+  useEffect(() => setVisible(PAGE), [mode, sorted.length, stage.id]);
+
+  const shown = useMemo(() => sorted.slice(0, visible), [sorted, visible]);
 
   if (collapsedByStage[stage.id]) {
     return (
@@ -101,15 +119,30 @@ export function KanbanColumn({
             <span>{LEADS_STRINGS.kanban.emptyColumn}</span>
           </div>
         ) : (
-          sorted.map(({ lead }) => (
-            <LeadCard
-              key={lead.id}
-              lead={lead}
-              seller={lead.sellerId ? sellersById.get(lead.sellerId) : undefined}
-              onDragStart={onCardDragStart}
-              onDragEnd={onCardDragEnd}
-            />
-          ))
+          <>
+            {shown.map(({ lead }) => (
+              <LeadCard
+                key={lead.id}
+                lead={lead}
+                seller={lead.sellerId ? sellersById.get(lead.sellerId) : undefined}
+                onDragStart={onCardDragStart}
+                onDragEnd={onCardDragEnd}
+              />
+            ))}
+            {sorted.length > visible && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-xs"
+                onClick={() => setVisible((v) => v + PAGE)}
+              >
+                {LEADS_STRINGS.kanban.loadMore(Math.min(PAGE, sorted.length - visible))}
+                <span className="ml-1 text-muted-foreground">
+                  ({LEADS_STRINGS.kanban.showingOf(visible, sorted.length)})
+                </span>
+              </Button>
+            )}
+          </>
         )}
       </div>
     </div>
