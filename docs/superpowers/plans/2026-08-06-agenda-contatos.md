@@ -947,7 +947,11 @@ select
   c.phone,
   nullif(trim(c.email), ''),
   nullif(trim(c.address ->> 'city'), ''),
-  nullif(trim(c.address ->> 'uf'), ''),
+  -- 'state', NOT 'uf'. Verified against production: the `uf` key exists on
+  -- 0 of 3.166 addresses; `state` on 3.166 of 3.166. A real row looks like
+  -- {"city": "FREDERICO WESTPHALEN", "state": "RS", ...}. Reading 'uf' would
+  -- silently write NULL into all 1.978 linked contacts.
+  nullif(trim(c.address ->> 'state'), ''),
   c.id,
   c.seller_id,
   case when c.dintec_codcli is not null then 'dintec' else 'manual' end,
