@@ -1,4 +1,10 @@
-import type { IContact, IContactScopeCounts, ContactScope, ContactSource, ID } from "@/shared/types";
+import type {
+  IContact,
+  IContactScopeCounts,
+  ContactScope,
+  ContactSource,
+  ID,
+} from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 /** Bucket for the "Último contato" filter. */
@@ -47,7 +53,9 @@ export interface IListContactsParams extends IPaginationParams {
 export interface IContactsProvider {
   list(params?: IListContactsParams): Promise<IPaginatedResult<IContact>>;
   get(id: ID): Promise<IContact>;
-  create(input: Omit<IContact, "id" | "createdAt" | "updatedAt" | "customerName" | "ownerName">): Promise<IContact>;
+  create(
+    input: Omit<IContact, "id" | "createdAt" | "updatedAt" | "customerName" | "ownerName">,
+  ): Promise<IContact>;
   update(id: ID, patch: Partial<IContact>): Promise<IContact>;
   delete(id: ID): Promise<void>;
 

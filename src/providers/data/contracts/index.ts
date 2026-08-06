@@ -6,7 +6,6 @@
  */
 
 import type { ICustomersProvider } from "./customers";
-import type { IContactsProvider } from "./contacts";
 import type { IVehiclesProvider } from "./vehicles";
 import type { ILeadsProvider } from "./leads";
 import type { ILeadFunnelsProvider } from "./leadFunnels";
@@ -190,11 +189,7 @@ export type {
   ICreateGoServerInput,
   IGoServerPatch,
 } from "./whatsappGoServers";
-export type {
-  IWahaServersProvider,
-  ICreateWahaServerInput,
-  IWahaServerPatch,
-} from "./wahaServers";
+export type { IWahaServersProvider, ICreateWahaServerInput, IWahaServerPatch } from "./wahaServers";
 export type {
   IWhatsAppOpenWaServersProvider,
   ICreateOpenWaServerInput,

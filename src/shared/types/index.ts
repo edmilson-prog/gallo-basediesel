@@ -50,12 +50,7 @@ export type {
 export { DEFAULT_SESSION_TIMEOUT } from "./platform";
 
 // Sound center (Configurações → Sons de notificação)
-export type {
-  SoundTemplateId,
-  SoundEventId,
-  ISoundEventConfig,
-  ISoundSettings,
-} from "./sound";
+export type { SoundTemplateId, SoundEventId, ISoundEventConfig, ISoundSettings } from "./sound";
 export { DEFAULT_SOUND_SETTINGS } from "./sound";
 
 // System health & observability (PRD-110)
@@ -134,13 +129,8 @@ export type {
   SegmentScope,
 } from "./customer";
 
-// Contacts (Agenda — PRD-TBD)
-export type {
-  IContact,
-  IContactScopeCounts,
-  ContactSource,
-  ContactScope,
-} from "./contacts";
+// Contacts (Agenda catalog)
+export type { IContact, IContactScopeCounts, ContactSource, ContactScope } from "./contacts";
 
 // Funnel identity (multi-funnel leads foundation)
 export type {
