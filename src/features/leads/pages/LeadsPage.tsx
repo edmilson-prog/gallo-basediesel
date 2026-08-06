@@ -30,6 +30,9 @@ import { usePipelineSettings } from "../hooks/usePipelineSettings";
 import { hasAnyFilter } from "../utils/listFilters";
 import { LEADS_STRINGS } from "../i18n/pt-BR";
 
+/** Stable identity so the stage-filter memo does not fire on every render. */
+const EMPTY_IDS: string[] = [];
+
 export function LeadsPage() {
   const { currentUser } = useAuth();
   const { accessibleStores, currentStoreId } = useCurrentStore();
@@ -83,8 +86,18 @@ export function LeadsPage() {
   const isAllFunnels = url.funnelId === ALL_FUNNELS;
   const scopedFunnelId = isAllFunnels ? undefined : url.funnelId;
 
+  // The stage filter has to speak the board's language. With a funnel open its
+  // options are that funnel's stages, so it is applied over the PARTICIPATION —
+  // `useLeadsList` filters `lead.stage.id`, the legacy snapshot, which would
+  // match none of those ids and quietly empty the page.
+  const funnelStageFilter = scopedFunnelId ? filters.stageIds : EMPTY_IDS;
+  const listFilters = useMemo(
+    () => (scopedFunnelId ? { ...filters, stageIds: [] } : filters),
+    [scopedFunnelId, filters],
+  );
+
   const list = useLeadsList({
-    filters,
+    filters: listFilters,
     sort,
     storeId: currentStoreId ?? undefined,
     sellerScopeIds,
@@ -145,6 +158,23 @@ export function LeadsPage() {
   const board = useFunnelBoard(scopedFunnelId ?? null);
   const showFunnelColumn = isAllFunnels || reachableFunnels.length > 1;
 
+  const visibleLeads = useMemo(() => {
+    if (funnelStageFilter.length === 0) return list.leads;
+    const keep = new Set(funnelStageFilter);
+    return list.leads.filter((l) => {
+      const entry = board.entriesByLead.get(l.id);
+      return entry ? keep.has(entry.stageId) : false;
+    });
+  }, [list.leads, funnelStageFilter, board.entriesByLead]);
+
+  // A stage left out of the filter disappears from the board rather than
+  // becoming an empty column: filtering by stage is asking to see those only.
+  const visibleStages = useMemo(() => {
+    if (funnelStageFilter.length === 0) return board.stages;
+    const keep = new Set(funnelStageFilter);
+    return board.stages.filter((s) => keep.has(s.id));
+  }, [board.stages, funnelStageFilter]);
+
   const noticeShownRef = useRef(false);
   useEffect(() => {
     if (!isAllFunnels || noticeShownRef.current) return;
@@ -177,7 +207,9 @@ export function LeadsPage() {
         filters={filters}
         patch={(p) => url.patchFilters(p)}
         onClear={url.clearAll}
-        stages={stages}
+        // With a funnel open the filter offers that funnel's stages; the
+        // consolidated view has no shared X axis, so it keeps the legacy list.
+        stages={scopedFunnelId && board.stages.length > 0 ? board.stages : stages}
         sellers={sellers}
         stores={accessibleStores}
         canFilterStore={isOwner}
@@ -205,8 +237,8 @@ export function LeadsPage() {
           />
         ) : effectiveView === "kanban" && scopedFunnelId ? (
           <LeadsKanban
-            leads={list.leads}
-            stages={board.stages}
+            leads={visibleLeads}
+            stages={visibleStages}
             entriesByLead={board.entriesByLead}
             summaryByStage={board.summaryByStage}
             funnelId={scopedFunnelId}
@@ -223,7 +255,7 @@ export function LeadsPage() {
           />
         ) : (
           <LeadsList
-            leads={list.leads}
+            leads={visibleLeads}
             sellersById={sellersById}
             isLoading={list.isLoading}
             sort={sort}
