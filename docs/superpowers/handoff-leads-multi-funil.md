@@ -60,6 +60,21 @@ Este é o contexto de negócio que **não pode se perder**. Toda ambiguidade de 
 >
 > Corte natural sugerido pela spec, se precisar dividir: **1–4 num PR, 5–7 noutro.**
 
+### 3.0. Armadilha do RBAC — registrar recurso NÃO concede permissão
+
+Descoberto na fase 6, depois de aplicar a migration e a tela não aparecer.
+
+São **duas** tabelas, e mexer numa não mexe na outra:
+
+| Tabela | O que faz |
+|---|---|
+| `rbac_resources` (`key`, `label`, `group`, `sort_order`) | Faz a linha **aparecer** no editor de papéis |
+| `role_permissions` (`role_id`, `resource`, `actions[]`, `scope`) | **Decide** se alguém pode. É daqui que a matriz RBAC hidrata em produção |
+
+⚠️ **`src/features/rbac/permissions/matrix.ts` é semente para o mock, não fonte de verdade em runtime.** Em produção `usePermission()` lê o que veio de `role_permissions`. Um recurso novo registrado só em `rbac_resources` devolve `false` para todo mundo — inclusive para o Dono.
+
+Todo recurso RBAC novo precisa, portanto, de **duas** migrations (ou uma que faça as duas coisas): registrar em `rbac_resources` e conceder em `role_permissions` aos papéis que devem tê-lo.
+
 ### 3.1. O que os mocks de decisão já resolveram (e a fase 3 não deve reabrir)
 
 O arquivo `mockups/leads-multi-funil-decisao-v1.html` é a consultoria de UI/UX que precedeu a spec — **34 achados, todos endereçados**. Ele carrega decisões visuais que o texto da spec resume mas não desenha. Antes de planejar a fase 3, abra-o.
