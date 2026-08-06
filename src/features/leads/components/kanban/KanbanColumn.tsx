@@ -9,6 +9,7 @@ import { defaultSortForKind, sortBoardCards } from "@/features/funnels/engine/bo
 import { useColumnPreferences } from "../../hooks/useColumnPreferences";
 import { LeadCard } from "../LeadCard";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
+import { CollapsedColumn } from "./CollapsedColumn";
 import { ColumnHeader } from "./ColumnHeader";
 import { ColumnMenu } from "./ColumnMenu";
 
@@ -39,7 +40,7 @@ export function KanbanColumn({
   onCardDragEnd,
 }: IKanbanColumnProps) {
   const [hover, setHover] = useState(false);
-  const { sortByStage, setSort, toggleCollapsed } = useColumnPreferences();
+  const { sortByStage, collapsedByStage, setSort, toggleCollapsed } = useColumnPreferences();
 
   const stats = useMemo(
     () => resolveColumnStats({ cards, summary, now: new Date() }),
@@ -49,6 +50,19 @@ export function KanbanColumn({
 
   const mode = sortByStage[stage.id] ?? defaultSortForKind(stage.kind);
   const sorted = useMemo(() => sortBoardCards(cards, mode, new Date()), [cards, mode]);
+
+  if (collapsedByStage[stage.id]) {
+    return (
+      <CollapsedColumn
+        stage={stage}
+        count={count}
+        isDropTarget={isDropTarget}
+        onExpand={() => toggleCollapsed(stage.id)}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+      />
+    );
+  }
 
   return (
     <div
