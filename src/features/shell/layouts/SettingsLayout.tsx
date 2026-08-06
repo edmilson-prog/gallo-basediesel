@@ -110,6 +110,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner", "Gestor"],
       },
       {
+        label: "Funis",
+        icon: "mdi:filter-variant",
+        to: "/app/configuracoes/atendimento/funis",
+        permission: { resource: "funnel", action: "view" },
+      },
+      {
         label: "Pipeline de leads",
         icon: "mdi:view-column-outline",
         to: "/app/configuracoes/atendimento/pipeline",
