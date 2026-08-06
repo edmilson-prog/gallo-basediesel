@@ -4,6 +4,31 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.160.0] — Trellis · 2026-08-06
+
+**O quadro de Leads virou o quadro do funil. As colunas agora são as etapas do funil que você abriu — não mais as etapas fixas da loja — e o valor de cada card é o daquela oportunidade, não o do lead. O cabeçalho de cada coluna troca a média de dias pela soma dos valores e por quantos estão atrasados, com um clique que filtra só eles. O card encolheu de sete informações para quatro e cabem mais que o dobro na tela; o que saiu está a um instante de mouse parado em cima. E dá para mover um lead sem tocar no mouse.**
+
+### Added
+
+- **Cada funil tem o seu quadro** — as colunas passam a ser as etapas do funil aberto. Mover um card altera **só a participação daquele funil**: o mesmo lead pode estar em negociação num funil e recém-chegado noutro, e um não mexe no outro.
+- **Soma dos valores e atrasados no topo da coluna** — no lugar de "N leads · Média X dias" aparecem quanto vale a etapa inteira e quantos leads estão com a próxima ação vencida. O número de atrasados é clicável e filtra o quadro só neles. A média de dias continua lá, ao passar o mouse sobre a contagem.
+- **Mover um lead pelo teclado** — antes só existia arrastando com o mouse. Agora: `Tab` até o card, `Espaço` para pegar, setas para escolher a etapa, `Espaço` para soltar, `Esc` para desistir. Cada passo é anunciado para quem usa leitor de tela. Há também um menu "Mover para…" no próprio card, no botão de três pontos.
+- **Ordenar cada coluna do seu jeito** — Mais antigos, Mais recentes, Próxima ação, Maior valor ou Parados há mais tempo. A escolha é gravada por etapa e volta do jeito que você deixou. Na etapa de entrada o padrão passa a ser **mais antigos primeiro** — o lead esquecido era o último de novecentos, justamente o que ninguém rolava até o fim para ver.
+- **Recolher uma coluna** — vira uma faixa fina com o nome de lado, e continua aceitando cards soltos nela.
+- **Ver em quais outros funis o lead está** — um marcador discreto no card, com a contagem. Passando o mouse aparecem os nomes, e clicando num deles você vai para aquele quadro com o lead destacado. Conta apenas os funis que você acessa.
+
+### Changed
+
+- **Card menor** — saíram a foto do lead, o telefone, a origem, o nome do vendedor e a etiqueta de próxima ação quando ela não é urgente. Ficaram o nome, a temperatura, o valor da oportunidade e o atraso quando existe. Cabem cerca de nove por coluna, contra quatro antes. Tudo que saiu aparece ao parar o mouse sobre o card, junto com há quantos dias ele está naquela etapa.
+- **A coluna carrega 40 cards por vez** — com um botão para carregar os próximos. A coluna "Novo" chegava a montar novecentos cards de uma vez.
+- **O filtro "Estágio" fala a língua do funil aberto** — as opções passam a ser as etapas dele, e escolher uma deixa no quadro só as colunas escolhidas.
+- **Um funil sem nenhum lead mostra as colunas dele** — antes a tela dizia apenas "nenhum lead encontrado" e escondia o quadro, o que deixava um funil recém-criado sem lugar nenhum para receber o primeiro lead.
+
+### Fixed
+
+- **O selo Convertido/Perdido dizia a mesma coisa em todos os funis** — ele lia a situação do lead, e não a da participação. Um lead ganho num funil aparecia como convertido em todos. Agora cada quadro mostra a situação daquele funil.
+- **Soltar na última coluna dependia de um identificador fixo no código** — passa a olhar o tipo da etapa, que todo funil tem.
+
 ## [0.159.2] — Heartbeat · 2026-08-06
 
 ### Fixed
