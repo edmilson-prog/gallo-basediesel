@@ -1,6 +1,18 @@
-import { useCallback, useMemo, useRef, useState, type DragEvent } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type Announcements,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type {
   ID,
   IFunnelBoardSummary,
@@ -11,10 +23,13 @@ import type {
 } from "@/shared/types";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { useLeadFunnelsProvider } from "@/providers/data/hooks/useLeadFunnelsProvider";
-import { bucketLeadsByStage } from "@/features/funnels/engine/boardBuckets";
+import { bucketLeadsByStage, type IBoardCard } from "@/features/funnels/engine/boardBuckets";
 import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
+import { BoardCard } from "./BoardCard";
 import { KanbanColumn } from "./KanbanColumn";
+
+const NO_CHIPS: ILeadFunnelChip[] = [];
 
 export interface ILeadsKanbanProps {
   leads: ILead[];
@@ -54,8 +69,7 @@ export function LeadsKanban({
 }: ILeadsKanbanProps) {
   const provider = useLeadFunnelsProvider();
   const queryClient = useQueryClient();
-  const [dropTargetId, setDropTargetId] = useState<ID | null>(null);
-  const draggedRef = useRef<ID | null>(null);
+  const [dragging, setDragging] = useState<IBoardCard | null>(null);
 
   const buckets = useMemo(
     () => bucketLeadsByStage({ leads, entriesByLead, stages }),
@@ -63,43 +77,34 @@ export function LeadsKanban({
   );
 
   const cardByLead = useMemo(() => {
-    const map = new Map<ID, { lead: ILead; entry: ILeadFunnelEntry }>();
+    const map = new Map<ID, IBoardCard>();
     for (const bucket of buckets.values()) for (const card of bucket) map.set(card.lead.id, card);
     return map;
   }, [buckets]);
 
-  const handleCardDragStart = useCallback((e: DragEvent<HTMLDivElement>, leadId: ID) => {
-    draggedRef.current = leadId;
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/lead-id", leadId);
-  }, []);
+  const stageById = useMemo(() => {
+    const map = new Map<ID, ILeadFunnelStage>();
+    for (const s of stages) map.set(s.id, s);
+    return map;
+  }, [stages]);
 
-  const handleCardDragEnd = useCallback(() => {
-    draggedRef.current = null;
-    setDropTargetId(null);
-  }, []);
-
-  const handleDragOver = useCallback(
-    (e: DragEvent<HTMLDivElement>, stageId: ID) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      if (dropTargetId !== stageId) setDropTargetId(stageId);
-    },
-    [dropTargetId],
+  const sensors = useSensors(
+    // distance 6: `cursor-grab` is always on and a click competes with a drag.
+    // Opening the lead's page on click requires a micro-movement not to become
+    // a drag.
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    // Before this there was no way at all to move a lead without a pointer.
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const handleDrop = useCallback(
-    async (e: DragEvent<HTMLDivElement>, stage: ILeadFunnelStage) => {
-      e.preventDefault();
-      setDropTargetId(null);
-      const leadId = e.dataTransfer.getData("text/lead-id") || draggedRef.current;
-      if (!leadId) return;
-      const card = cardByLead.get(leadId);
-      if (!card || card.entry.stageId === stage.id) return;
+  /** One move, whether it came from the pointer, the keyboard or the menu. */
+  const move = useCallback(
+    async (card: IBoardCard, target: ILeadFunnelStage) => {
+      if (card.entry.stageId === target.id) return;
 
       // No longer compares against CLOSING_STAGE_ID, a constant in the code:
       // the stage's own `kind` carries the meaning, and every funnel has one.
-      if (stage.kind === "ganho" || stage.kind === "perda") {
+      if (target.kind === "ganho" || target.kind === "perda") {
         onRequestClose(card.lead);
         return;
       }
@@ -107,16 +112,16 @@ export function LeadsKanban({
       try {
         // moveEntry, not leads.update: with N:N the board alters ONLY this
         // funnel's participation. The lead's other funnels are untouched.
-        await provider.moveEntry(card.entry.id, stage.id);
+        await provider.moveEntry(card.entry.id, target.id);
         auditLog({
           action: "lead_funnel_entry.stage_changed",
           resource: "lead",
           resourceId: card.lead.id,
           before: { stageId: card.entry.stageId },
-          after: { stageId: stage.id },
+          after: { stageId: target.id },
         });
-        toast.success(LEADS_STRINGS.toasts.moved(stage.name));
-        onLeadMoved(card.lead, stage);
+        toast.success(LEADS_STRINGS.toasts.moved(target.name));
+        onLeadMoved(card.lead, target);
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ["lead-funnel-entries", funnelId] }),
           queryClient.invalidateQueries({ queryKey: ["lead-funnel-board-summary", funnelId] }),
@@ -125,31 +130,105 @@ export function LeadsKanban({
         toast.error(LEADS_STRINGS.toasts.moveError);
       }
     },
-    [cardByLead, provider, queryClient, funnelId, onLeadMoved, onRequestClose],
+    [provider, queryClient, funnelId, onLeadMoved, onRequestClose],
   );
 
+  const announcements: Announcements = useMemo(
+    () => ({
+      onDragStart: ({ active }) => {
+        const card = cardByLead.get(String(active.id));
+        return LEADS_STRINGS.kanban.dnd.grabbed(card?.lead.name ?? String(active.id));
+      },
+      onDragOver: ({ over }) => {
+        const stage = over ? stageById.get(String(over.id)) : undefined;
+        return stage ? LEADS_STRINGS.kanban.dnd.over(stage.name) : LEADS_STRINGS.kanban.dnd.outside;
+      },
+      onDragEnd: ({ active, over }) => {
+        const card = cardByLead.get(String(active.id));
+        const stage = over ? stageById.get(String(over.id)) : undefined;
+        return stage
+          ? LEADS_STRINGS.kanban.dnd.dropped(card?.lead.name ?? String(active.id), stage.name)
+          : LEADS_STRINGS.kanban.dnd.outside;
+      },
+      onDragCancel: () => LEADS_STRINGS.kanban.dnd.cancelled,
+    }),
+    [cardByLead, stageById],
+  );
+
+  const handleDragStart = useCallback(
+    (e: DragStartEvent) => setDragging(cardByLead.get(String(e.active.id)) ?? null),
+    [cardByLead],
+  );
+
+  const handleDragEnd = useCallback(
+    (e: DragEndEvent) => {
+      setDragging(null);
+      if (!e.over) return;
+      const card = cardByLead.get(String(e.active.id));
+      const target = stageById.get(String(e.over.id));
+      if (!card || !target) return;
+      void move(card, target);
+    },
+    [cardByLead, stageById, move],
+  );
+
+  const handleMoveById = useCallback(
+    (leadId: ID, stageId: ID) => {
+      const card = cardByLead.get(leadId);
+      const target = stageById.get(stageId);
+      if (!card || !target) return;
+      void move(card, target);
+    },
+    [cardByLead, stageById, move],
+  );
+
+  const draggingStage = dragging ? stageById.get(dragging.entry.stageId) : undefined;
+
   return (
-    <div className="flex h-full min-h-0 gap-3 overflow-x-auto p-3">
-      {stages.map((stage) => (
-        <KanbanColumn
-          key={stage.id}
-          stage={stage}
-          cards={buckets.get(stage.id) ?? []}
-          summary={summaryByStage.get(stage.id)}
-          sellersById={sellersById}
-          showSeller={showSeller}
-          chipsByLead={chipsByLead}
-          funnelId={funnelId}
-          highlightLeadId={highlightLeadId}
-          onGoToFunnel={onGoToFunnel}
-          isDropTarget={dropTargetId === stage.id}
-          onFilterOverdue={onFilterOverdue}
-          onDragOver={(e) => handleDragOver(e, stage.id)}
-          onDrop={(e, st) => void handleDrop(e, st)}
-          onCardDragStart={handleCardDragStart}
-          onCardDragEnd={handleCardDragEnd}
-        />
-      ))}
-    </div>
+    <DndContext
+      sensors={sensors}
+      accessibility={{ announcements }}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setDragging(null)}
+    >
+      <div className="flex h-full min-h-0 gap-3 overflow-x-auto p-3">
+        {stages.map((stage) => (
+          <KanbanColumn
+            key={stage.id}
+            stage={stage}
+            stages={stages}
+            cards={buckets.get(stage.id) ?? []}
+            summary={summaryByStage.get(stage.id)}
+            sellersById={sellersById}
+            showSeller={showSeller}
+            chipsByLead={chipsByLead}
+            funnelId={funnelId}
+            highlightLeadId={highlightLeadId}
+            onGoToFunnel={onGoToFunnel}
+            onFilterOverdue={onFilterOverdue}
+            onMove={handleMoveById}
+          />
+        ))}
+      </div>
+
+      {/* A floating copy at 1.02 with a shadow. The original stays where it is,
+          so nothing in the column shifts while the card is in the air. */}
+      <DragOverlay>
+        {dragging && draggingStage && (
+          <div className="w-72 scale-[1.02] shadow-lg">
+            <BoardCard
+              card={dragging}
+              stage={draggingStage}
+              stages={stages}
+              showSeller={false}
+              chips={chipsByLead.get(dragging.lead.id) ?? NO_CHIPS}
+              onOpen={() => {}}
+              onMove={() => {}}
+            />
+          </div>
+        )}
+      </DragOverlay>
+    </DndContext>
   );
 }

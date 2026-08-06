@@ -1,4 +1,5 @@
-import { useEffect, useRef, type DragEvent, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { useDraggable } from "@dnd-kit/core";
 import type { ID, ILeadFunnelStage, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -10,23 +11,26 @@ import { formatBRLCompact } from "@/shared/utils/format";
 import { getInitials, getNextActionInfo, TEMPERATURE_META } from "../../utils/leadDisplay";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 import { BoardCardHover } from "./BoardCardHover";
+import { MoveToMenu } from "./MoveToMenu";
 
 export interface IBoardCardProps {
   card: IBoardCard;
   stage: ILeadFunnelStage;
+  /** Every stage of this funnel, for the "mover para…" menu. */
+  stages: ILeadFunnelStage[];
   seller?: ISeller;
   /** False when the board is already scoped to one seller — pure noise then. */
   showSeller: boolean;
   onOpen: (leadId: ID) => void;
-  draggable?: boolean;
-  onDragStart?: (e: DragEvent<HTMLDivElement>, leadId: ID) => void;
-  onDragEnd?: (e: DragEvent<HTMLDivElement>) => void;
-  /** The multi-funnel indicator, supplied by the column. */
-  indicator?: ReactNode;
+  onMove: (leadId: ID, stageId: ID) => void;
   /** Funnels holding this lead, for the hover card. */
   chips: ILeadFunnelChip[];
+  /** The multi-funnel indicator, supplied by the column. */
+  indicator?: ReactNode;
   /** Arrived here from another board pointing at this lead. */
   highlighted?: boolean;
+  /** The drag overlay renders a copy that must not be draggable itself. */
+  draggable?: boolean;
 }
 
 /** Text-only urgency colour. `tone` carries a chip background this card drops. */
@@ -46,23 +50,29 @@ const URGENT_TEXT = {
 export function BoardCard({
   card,
   stage,
+  stages,
   seller,
   showSeller,
   onOpen,
-  draggable = true,
-  onDragStart,
-  onDragEnd,
-  indicator,
+  onMove,
   chips,
+  indicator,
   highlighted = false,
+  draggable = true,
 }: IBoardCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { lead, entry } = card;
+
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: lead.id,
+    disabled: !draggable,
+  });
 
   useEffect(() => {
     if (!highlighted) return;
     ref.current?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [highlighted]);
+
   const temperature = TEMPERATURE_META[lead.temperature];
   const nextAction = getNextActionInfo(lead.nextActionAt);
   const urgentClass =
@@ -81,15 +91,20 @@ export function BoardCard({
 
   const cardElement = (
     <div
-      ref={ref}
-      role="button"
-      tabIndex={0}
-      draggable={draggable}
-      onDragStart={(e) => onDragStart?.(e, lead.id)}
-      onDragEnd={onDragEnd}
+      ref={(node) => {
+        ref.current = node;
+        setNodeRef(node);
+      }}
+      // `attributes` already supplies role="button", tabIndex and the
+      // aria-roledescription the screen reader needs for the drag — declaring
+      // our own would be silently overwritten by the spread.
+      {...attributes}
+      {...listeners}
       onClick={open}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
+        // Enter and Space reach dnd-kit's listeners first for the keyboard
+        // drag; only Enter opens the lead, so grabbing with Space still works.
+        if (e.key === "Enter") {
           e.preventDefault();
           open();
         }
@@ -105,6 +120,7 @@ export function BoardCard({
         draggable && "cursor-grab active:cursor-grabbing",
         outcome && "opacity-60",
         highlighted && "ring-2 ring-primary",
+        isDragging && "opacity-40",
       )}
     >
       {outcome && (
@@ -135,6 +151,13 @@ export function BoardCard({
               {getInitials(seller.fullName)}
             </AvatarFallback>
           </Avatar>
+        )}
+        {draggable && (
+          <MoveToMenu
+            stages={stages}
+            currentStageId={entry.stageId}
+            onMove={(stageId) => onMove(lead.id, stageId)}
+          />
         )}
       </div>
 

@@ -1,6 +1,6 @@
-import type { DragEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useDroppable } from "@dnd-kit/core";
 import { Button } from "@/components/ui/button";
 import type { ID, IFunnelBoardSummary, ILeadFunnelStage, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
@@ -8,15 +8,15 @@ import { cn } from "@/lib/utils";
 import type { IBoardCard } from "@/features/funnels/engine/boardBuckets";
 import { resolveColumnStats } from "@/features/funnels/engine/columnStats";
 import { defaultSortForKind, sortBoardCards } from "@/features/funnels/engine/boardSort";
-import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
 import { otherFunnelsFor } from "@/features/funnels/engine/otherFunnels";
+import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
 import { useColumnPreferences } from "../../hooks/useColumnPreferences";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 import { BoardCard } from "./BoardCard";
 import { CollapsedColumn } from "./CollapsedColumn";
-import { OtherFunnelsBadge } from "./OtherFunnelsBadge";
 import { ColumnHeader } from "./ColumnHeader";
 import { ColumnMenu } from "./ColumnMenu";
+import { OtherFunnelsBadge } from "./OtherFunnelsBadge";
 
 /** 40 cards, then "carregar mais" — see the note on the `visible` state. */
 const PAGE = 40;
@@ -26,6 +26,8 @@ const NO_CHIPS: ILeadFunnelChip[] = [];
 
 export interface IKanbanColumnProps {
   stage: ILeadFunnelStage;
+  /** Every stage of this funnel, for the card's "mover para…" menu. */
+  stages: ILeadFunnelStage[];
   cards: IBoardCard[];
   /** Server-side aggregate; absent while the query is in flight. */
   summary: IFunnelBoardSummary | undefined;
@@ -37,16 +39,13 @@ export interface IKanbanColumnProps {
   /** Lead this board was asked to point at, if any. */
   highlightLeadId: ID | undefined;
   onGoToFunnel: (funnelId: ID, leadId: ID) => void;
-  isDropTarget: boolean;
   onFilterOverdue: () => void;
-  onDragOver: (e: DragEvent<HTMLDivElement>) => void;
-  onDrop: (e: DragEvent<HTMLDivElement>, stage: ILeadFunnelStage) => void;
-  onCardDragStart: (e: DragEvent<HTMLDivElement>, leadId: ID) => void;
-  onCardDragEnd: (e: DragEvent<HTMLDivElement>) => void;
+  onMove: (leadId: ID, stageId: ID) => void;
 }
 
 export function KanbanColumn({
   stage,
+  stages,
   cards,
   summary,
   sellersById,
@@ -55,16 +54,14 @@ export function KanbanColumn({
   funnelId,
   highlightLeadId,
   onGoToFunnel,
-  isDropTarget,
   onFilterOverdue,
-  onDragOver,
-  onDrop,
-  onCardDragStart,
-  onCardDragEnd,
+  onMove,
 }: IKanbanColumnProps) {
   const navigate = useNavigate();
-  const [hover, setHover] = useState(false);
   const { sortByStage, collapsedByStage, setSort, toggleCollapsed } = useColumnPreferences();
+
+  // Called before any early return — a folded column is still a drop target.
+  const { setNodeRef, isOver } = useDroppable({ id: stage.id });
 
   const stats = useMemo(
     () => resolveColumnStats({ cards, summary, now: new Date() }),
@@ -101,31 +98,22 @@ export function KanbanColumn({
   if (collapsedByStage[stage.id]) {
     return (
       <CollapsedColumn
+        ref={setNodeRef}
         stage={stage}
         count={count}
-        isDropTarget={isDropTarget}
+        isDropTarget={isOver}
         onExpand={() => toggleCollapsed(stage.id)}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
       />
     );
   }
 
   return (
     <div
+      ref={setNodeRef}
       className={cn(
         "flex h-full min-h-0 w-72 shrink-0 flex-col rounded-lg border border-border bg-card",
-        (isDropTarget || hover) && "border-primary bg-accent/40",
+        isOver && "border-primary bg-accent/40",
       )}
-      onDragOver={(e) => {
-        onDragOver(e);
-        setHover(true);
-      }}
-      onDragLeave={() => setHover(false)}
-      onDrop={(e) => {
-        onDrop(e, stage);
-        setHover(false);
-      }}
       aria-label={`Coluna ${stage.name}, ${count} ${count === 1 ? "lead" : "leads"}`}
     >
       <ColumnHeader
@@ -154,6 +142,7 @@ export function KanbanColumn({
                 key={boardCard.lead.id}
                 card={boardCard}
                 stage={stage}
+                stages={stages}
                 seller={
                   boardCard.lead.sellerId ? sellersById.get(boardCard.lead.sellerId) : undefined
                 }
@@ -167,8 +156,7 @@ export function KanbanColumn({
                   />
                 }
                 onOpen={(id) => void navigate({ to: "/app/leads/$id", params: { id } })}
-                onDragStart={onCardDragStart}
-                onDragEnd={onCardDragEnd}
+                onMove={onMove}
               />
             ))}
             {sorted.length > visible && (

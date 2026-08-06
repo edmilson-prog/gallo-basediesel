@@ -119,6 +119,13 @@ export const LEADS_STRINGS = {
       daysValue: (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`,
       noTags: "Sem tags",
     },
+    dnd: {
+      grabbed: (lead: string) => `Pegou o lead ${lead}. Use as setas para mover e espaço para soltar.`,
+      over: (stage: string) => `Sobre a etapa ${stage}.`,
+      dropped: (lead: string, stage: string) => `${lead} movido para ${stage}.`,
+      outside: "Solto fora de qualquer etapa — nada mudou.",
+      cancelled: "Movimento cancelado.",
+    },
     metrics: {
       conversion: "Taxa de conversão",
       avgCycle: "Tempo médio total",
