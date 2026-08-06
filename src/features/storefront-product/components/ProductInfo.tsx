@@ -90,10 +90,10 @@ export function ProductInfo({ part }: IProductInfoProps) {
   };
 
   const stockColor = outOfStock
-    ? "text-red-600 dark:text-red-400"
+    ? "text-severity-critical"
     : lowStock
-      ? "text-amber-600 dark:text-amber-400"
-      : "text-emerald-600 dark:text-emerald-400";
+      ? "text-severity-warning"
+      : "text-severity-success";
   const stockIcon = outOfStock
     ? "mdi:close-circle"
     : lowStock
@@ -177,8 +177,8 @@ export function ProductInfo({ part }: IProductInfoProps) {
       </div>
 
       {outOfStock ? (
-        <div className="space-y-3 rounded-md border border-red-500/30 bg-red-500/5 p-4">
-          <p className="text-xs text-red-700 dark:text-red-300">{S.stockOutHint}</p>
+        <div className="space-y-3 rounded-md border border-severity-critical/30 bg-severity-critical/5 p-4">
+          <p className="text-xs text-severity-critical">{S.stockOutHint}</p>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" disabled title={S.notifyMeDisabledHint}>
               <Icon icon="mdi:bell-outline" size={14} className="mr-1" aria-hidden />
