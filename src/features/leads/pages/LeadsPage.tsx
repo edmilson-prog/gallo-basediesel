@@ -213,6 +213,7 @@ export function LeadsPage() {
             sellersById={sellersById}
             onLeadMoved={handleLeadMoved}
             onRequestClose={handleRequestClose}
+            onFilterOverdue={() => url.patchFilters({ nextAction: "overdue" })}
           />
         ) : (
           <LeadsList

@@ -88,6 +88,12 @@ export const LEADS_STRINGS = {
       `Média ${days.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${days === 1 ? "dia" : "dias"}`,
     emptyColumn: "Sem leads",
     quickMove: "Mover para…",
+    columnSum: "Soma dos valores desta etapa",
+    overdue: (n: number) => `${n} ${n === 1 ? "atrasado" : "atrasados"}`,
+    overdueHint: "Filtrar só os atrasados",
+    averageDaysTooltip: (days: number) =>
+      `Média de ${days.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${days === 1 ? "dia" : "dias"} nesta etapa`,
+    partialHint: "Contagem parcial — o total do servidor ainda está carregando.",
     metrics: {
       conversion: "Taxa de conversão",
       avgCycle: "Tempo médio total",

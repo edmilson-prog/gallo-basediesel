@@ -26,6 +26,8 @@ export interface ILeadsKanbanProps {
   onLeadMoved: (lead: ILead, toStage: ILeadFunnelStage) => void;
   /** Dropped on a won/lost stage — the host opens the decision modal. */
   onRequestClose: (lead: ILead) => void;
+  /** The column header's overdue count is a filter, not a label. */
+  onFilterOverdue: () => void;
 }
 
 export function LeadsKanban({
@@ -37,6 +39,7 @@ export function LeadsKanban({
   sellersById,
   onLeadMoved,
   onRequestClose,
+  onFilterOverdue,
 }: ILeadsKanbanProps) {
   const provider = useLeadFunnelsProvider();
   const queryClient = useQueryClient();
@@ -124,6 +127,7 @@ export function LeadsKanban({
           summary={summaryByStage.get(stage.id)}
           sellersById={sellersById}
           isDropTarget={dropTargetId === stage.id}
+          onFilterOverdue={onFilterOverdue}
           onDragOver={(e) => handleDragOver(e, stage.id)}
           onDrop={(e, st) => void handleDrop(e, st)}
           onCardDragStart={handleCardDragStart}
