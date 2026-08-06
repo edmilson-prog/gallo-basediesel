@@ -5,9 +5,12 @@ import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import type { IBoardCard } from "@/features/funnels/engine/boardBuckets";
 import { resolveColumnStats } from "@/features/funnels/engine/columnStats";
+import { defaultSortForKind, sortBoardCards } from "@/features/funnels/engine/boardSort";
+import { useColumnPreferences } from "../../hooks/useColumnPreferences";
 import { LeadCard } from "../LeadCard";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 import { ColumnHeader } from "./ColumnHeader";
+import { ColumnMenu } from "./ColumnMenu";
 
 export interface IKanbanColumnProps {
   stage: ILeadFunnelStage;
@@ -36,11 +39,16 @@ export function KanbanColumn({
   onCardDragEnd,
 }: IKanbanColumnProps) {
   const [hover, setHover] = useState(false);
+  const { sortByStage, setSort, toggleCollapsed } = useColumnPreferences();
+
   const stats = useMemo(
     () => resolveColumnStats({ cards, summary, now: new Date() }),
     [cards, summary],
   );
   const count = stats.count;
+
+  const mode = sortByStage[stage.id] ?? defaultSortForKind(stage.kind);
+  const sorted = useMemo(() => sortBoardCards(cards, mode, new Date()), [cards, mode]);
 
   return (
     <div
@@ -59,15 +67,27 @@ export function KanbanColumn({
       }}
       aria-label={`Coluna ${stage.name}, ${count} ${count === 1 ? "lead" : "leads"}`}
     >
-      <ColumnHeader stage={stage} stats={stats} onFilterOverdue={onFilterOverdue} />
+      <ColumnHeader
+        stage={stage}
+        stats={stats}
+        onFilterOverdue={onFilterOverdue}
+        menu={
+          <ColumnMenu
+            stage={stage}
+            mode={mode}
+            onSortChange={(m) => setSort(stage.id, m)}
+            onToggleCollapsed={() => toggleCollapsed(stage.id)}
+          />
+        }
+      />
       <div className="flex-1 space-y-2 overflow-y-auto p-2">
-        {cards.length === 0 ? (
+        {sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 px-3 py-6 text-center text-[11px] text-muted-foreground">
             <Icon icon="mdi:tray-arrow-down" size={20} />
             <span>{LEADS_STRINGS.kanban.emptyColumn}</span>
           </div>
         ) : (
-          cards.map(({ lead }) => (
+          sorted.map(({ lead }) => (
             <LeadCard
               key={lead.id}
               lead={lead}

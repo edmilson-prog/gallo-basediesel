@@ -94,6 +94,17 @@ export const LEADS_STRINGS = {
     averageDaysTooltip: (days: number) =>
       `Média de ${days.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${days === 1 ? "dia" : "dias"} nesta etapa`,
     partialHint: "Contagem parcial — o total do servidor ainda está carregando.",
+    sortLabel: "Ordenar por",
+    sortModes: {
+      oldest: "Mais antigos",
+      newest: "Mais recentes",
+      nextAction: "Próxima ação",
+      highestValue: "Maior valor",
+      stalest: "Parados há mais tempo",
+    },
+    collapse: "Recolher coluna",
+    expand: "Expandir coluna",
+    columnMenu: (stage: string) => `Ações da etapa ${stage}`,
     metrics: {
       conversion: "Taxa de conversão",
       avgCycle: "Tempo médio total",
