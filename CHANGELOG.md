@@ -4,6 +4,12 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.162.1] — Blueprint · 2026-08-06
+
+### Fixed
+
+- **A tela de Funis não aparecia para ninguém** — a versão anterior registrou a permissão "Funis" na lista do editor de papéis, mas não a concedeu a nenhum papel. Como é a concessão que decide quem pode abrir a tela, nem o dono conseguia chegar nela. Dono e gestor passam a tê-la.
+
 ## [0.162.0] — Blueprint · 2026-08-06
 
 **Existe uma tela para administrar os funis. Em Configurações → Atendimento → Funis, dá para renomear um funil, trocar ícone e cor, reordenar e editar as etapas, escolher quem enxerga cada um e arquivar o que não se usa mais. Até agora só era possível criar funil por um atalho na página de Leads — editar não era possível em lugar nenhum.**
