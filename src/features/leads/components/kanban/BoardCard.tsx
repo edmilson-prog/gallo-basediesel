@@ -2,11 +2,14 @@ import type { DragEvent, ReactNode } from "react";
 import type { ID, ILeadFunnelStage, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import type { IBoardCard } from "@/features/funnels/engine/boardBuckets";
+import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
 import { formatBRLCompact } from "@/shared/utils/format";
 import { getInitials, getNextActionInfo, TEMPERATURE_META } from "../../utils/leadDisplay";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
+import { BoardCardHover } from "./BoardCardHover";
 
 export interface IBoardCardProps {
   card: IBoardCard;
@@ -20,6 +23,8 @@ export interface IBoardCardProps {
   onDragEnd?: (e: DragEvent<HTMLDivElement>) => void;
   /** The multi-funnel indicator, supplied by the column. */
   indicator?: ReactNode;
+  /** Funnels holding this lead, for the hover card. */
+  chips: ILeadFunnelChip[];
 }
 
 /** Text-only urgency colour. `tone` carries a chip background this card drops. */
@@ -46,6 +51,7 @@ export function BoardCard({
   onDragStart,
   onDragEnd,
   indicator,
+  chips,
 }: IBoardCardProps) {
   const { lead, entry } = card;
   const temperature = TEMPERATURE_META[lead.temperature];
@@ -64,7 +70,7 @@ export function BoardCard({
 
   const open = () => onOpen(lead.id);
 
-  return (
+  const cardElement = (
     <div
       role="button"
       tabIndex={0}
@@ -136,5 +142,16 @@ export function BoardCard({
         {indicator && <span className="ml-auto">{indicator}</span>}
       </div>
     </div>
+  );
+
+  // 400ms is not decoration: without the delay, dragging a card down a column
+  // opens a popover over every card the pointer crosses on the way.
+  return (
+    <HoverCard openDelay={400}>
+      <HoverCardTrigger asChild>{cardElement}</HoverCardTrigger>
+      <HoverCardContent align="start" side="right" className="w-72">
+        <BoardCardHover card={card} chips={chips} />
+      </HoverCardContent>
+    </HoverCard>
   );
 }

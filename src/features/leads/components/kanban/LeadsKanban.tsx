@@ -12,6 +12,7 @@ import type {
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { useLeadFunnelsProvider } from "@/providers/data/hooks/useLeadFunnelsProvider";
 import { bucketLeadsByStage } from "@/features/funnels/engine/boardBuckets";
+import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 import { KanbanColumn } from "./KanbanColumn";
 
@@ -25,6 +26,7 @@ export interface ILeadsKanbanProps {
   sellersById: Map<ID, ISeller>;
   /** False when the board is already scoped to a single seller. */
   showSeller: boolean;
+  chipsByLead: Map<ID, ILeadFunnelChip[]>;
   onLeadMoved: (lead: ILead, toStage: ILeadFunnelStage) => void;
   /** Dropped on a won/lost stage — the host opens the decision modal. */
   onRequestClose: (lead: ILead) => void;
@@ -40,6 +42,7 @@ export function LeadsKanban({
   funnelId,
   sellersById,
   showSeller,
+  chipsByLead,
   onLeadMoved,
   onRequestClose,
   onFilterOverdue,
@@ -130,6 +133,7 @@ export function LeadsKanban({
           summary={summaryByStage.get(stage.id)}
           sellersById={sellersById}
           showSeller={showSeller}
+          chipsByLead={chipsByLead}
           isDropTarget={dropTargetId === stage.id}
           onFilterOverdue={onFilterOverdue}
           onDragOver={(e) => handleDragOver(e, stage.id)}

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import type { IBoardCard } from "@/features/funnels/engine/boardBuckets";
 import { resolveColumnStats } from "@/features/funnels/engine/columnStats";
 import { defaultSortForKind, sortBoardCards } from "@/features/funnels/engine/boardSort";
+import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
 import { useColumnPreferences } from "../../hooks/useColumnPreferences";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 import { BoardCard } from "./BoardCard";
@@ -18,6 +19,9 @@ import { ColumnMenu } from "./ColumnMenu";
 /** 40 cards, then "carregar mais" — see the note on the `visible` state. */
 const PAGE = 40;
 
+/** Stable identity so a lead with no chips does not re-render on every pass. */
+const NO_CHIPS: ILeadFunnelChip[] = [];
+
 export interface IKanbanColumnProps {
   stage: ILeadFunnelStage;
   cards: IBoardCard[];
@@ -26,6 +30,7 @@ export interface IKanbanColumnProps {
   sellersById: Map<ID, ISeller>;
   /** False when the board is already scoped to a single seller. */
   showSeller: boolean;
+  chipsByLead: Map<ID, ILeadFunnelChip[]>;
   isDropTarget: boolean;
   onFilterOverdue: () => void;
   onDragOver: (e: DragEvent<HTMLDivElement>) => void;
@@ -40,6 +45,7 @@ export function KanbanColumn({
   summary,
   sellersById,
   showSeller,
+  chipsByLead,
   isDropTarget,
   onFilterOverdue,
   onDragOver,
@@ -134,6 +140,7 @@ export function KanbanColumn({
                   boardCard.lead.sellerId ? sellersById.get(boardCard.lead.sellerId) : undefined
                 }
                 showSeller={showSeller}
+                chips={chipsByLead.get(boardCard.lead.id) ?? NO_CHIPS}
                 onOpen={(id) => void navigate({ to: "/app/leads/$id", params: { id } })}
                 onDragStart={onCardDragStart}
                 onDragEnd={onCardDragEnd}

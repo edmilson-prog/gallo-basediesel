@@ -109,6 +109,16 @@ export const LEADS_STRINGS = {
     columnMenu: (stage: string) => `Ações da etapa ${stage}`,
     loadMore: (n: number) => `Carregar mais ${n}`,
     showingOf: (shown: number, total: number) => `${shown} de ${total}`,
+    hover: {
+      phone: "Telefone",
+      origin: "Origem",
+      tags: "Tags",
+      daysInStage: "Nesta etapa",
+      createdAt: "Criado em",
+      funnels: "Funis",
+      daysValue: (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`,
+      noTags: "Sem tags",
+    },
     metrics: {
       conversion: "Taxa de conversão",
       avgCycle: "Tempo médio total",

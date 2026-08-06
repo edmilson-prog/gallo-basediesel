@@ -214,6 +214,7 @@ export function LeadsPage() {
             // The seller avatar is noise when the board is already one seller's
             // — the case of a plain seller, forced above.
             showSeller={sellerScopeIds === undefined && filters.sellerIds.length !== 1}
+            chipsByLead={funnelChipsByLead}
             onLeadMoved={handleLeadMoved}
             onRequestClose={handleRequestClose}
             onFilterOverdue={() => url.patchFilters({ nextAction: "overdue" })}
