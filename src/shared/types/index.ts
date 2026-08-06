@@ -134,6 +134,14 @@ export type {
   SegmentScope,
 } from "./customer";
 
+// Contacts (Agenda — PRD-TBD)
+export type {
+  IContact,
+  IContactScopeCounts,
+  ContactSource,
+  ContactScope,
+} from "./contacts";
+
 // Funnel identity (multi-funnel leads foundation)
 export type {
   FunnelAccent,

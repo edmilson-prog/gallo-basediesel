@@ -6,6 +6,7 @@
  */
 
 import type { ICustomersProvider } from "./customers";
+import type { IContactsProvider } from "./contacts";
 import type { IVehiclesProvider } from "./vehicles";
 import type { ILeadsProvider } from "./leads";
 import type { ILeadFunnelsProvider } from "./leadFunnels";
@@ -68,6 +69,12 @@ export type {
   IConvertPendingContactInput,
   ICustomerDocumentMatch,
 } from "./customers";
+export type {
+  IContactsProvider,
+  IListContactsParams,
+  ContactsOrderBy,
+  ContactRecencyBucket,
+} from "./contacts";
 export type {
   IVehiclesProvider,
   IListVehiclesParams,
