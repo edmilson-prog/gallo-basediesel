@@ -196,7 +196,9 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         label: "Ranking",
         icon: "mdi:trophy",
         to: ROUTES.GESTAO_RANKING,
-        roles: ["Owner", "Vendedor"],
+        // "Vendedor" removed (issue #421) — the ranking is distorted for
+        // non-staff by per-seller RLS. Keep in sync with the route guard.
+        roles: ["Owner"],
       },
       {
         label: "Positivação",
@@ -353,11 +355,8 @@ export const BOTTOM_NAV: Record<"Owner" | "Vendedor", INavItem[]> = {
       to: ROUTES.APP_CLIENTES,
       roles: ["Vendedor"],
     },
-    {
-      label: "Ranking",
-      icon: "mdi:trophy",
-      to: ROUTES.GESTAO_RANKING,
-      roles: ["Vendedor"],
-    },
+    // "Ranking" removed from the Vendedor bottom nav (issue #421) — the route
+    // no longer admits this role, so the entry would only lead to
+    // /sem-permissao.
   ],
 };
