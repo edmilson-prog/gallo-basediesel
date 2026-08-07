@@ -107,9 +107,9 @@ const STATE_BADGE_TONE: Record<ISdrSession["state"], string> = {
 };
 
 function confidenceTone(conf: number): string {
-  if (conf >= 0.85) return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
-  if (conf >= 0.6) return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
-  if (conf > 0) return "bg-rose-500/10 text-rose-700 dark:text-rose-300";
+  if (conf >= 0.85) return "bg-severity-success/10 text-severity-success";
+  if (conf >= 0.6) return "bg-severity-warning/10 text-severity-warning";
+  if (conf > 0) return "bg-severity-critical/10 text-severity-critical";
   return "bg-muted text-muted-foreground";
 }
 
@@ -569,9 +569,9 @@ function InspectorColumn({ session, response, settings }: IInspectorColumnProps)
                         variant="outline"
                         className={`text-[10px] ${
                           entry.status === "confirmed"
-                            ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-300"
+                            ? "border-severity-success/40 text-severity-success"
                             : entry.status === "failed"
-                              ? "border-rose-500/40 text-rose-700 dark:text-rose-300"
+                              ? "border-severity-critical/40 text-severity-critical"
                               : "border-muted-foreground/40"
                         }`}
                       >
