@@ -129,6 +129,7 @@ import { Route as AppConfiguracoesSessaoRouteImport } from './routes/app.configu
 import { Route as AppConfiguracoesRodizioRouteImport } from './routes/app.configuracoes.rodizio'
 import { Route as AppConfiguracoesRespostasRapidasRouteImport } from './routes/app.configuracoes.respostas-rapidas'
 import { Route as AppConfiguracoesPortalClienteRouteImport } from './routes/app.configuracoes.portal-cliente'
+import { Route as AppConfiguracoesPixRouteImport } from './routes/app.configuracoes.pix'
 import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
 import { Route as AppConfiguracoesPapeisRouteImport } from './routes/app.configuracoes.papeis'
 import { Route as AppConfiguracoesNotificacoesRouteImport } from './routes/app.configuracoes.notificacoes'
@@ -808,6 +809,11 @@ const AppConfiguracoesPortalClienteRoute =
     path: '/configuracoes/portal-cliente',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesPixRoute = AppConfiguracoesPixRouteImport.update({
+  id: '/configuracoes/pix',
+  path: '/configuracoes/pix',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConfiguracoesPerfilRoute = AppConfiguracoesPerfilRouteImport.update({
   id: '/configuracoes/perfil',
   path: '/configuracoes/perfil',
@@ -1282,6 +1288,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
+  '/app/configuracoes/pix': typeof AppConfiguracoesPixRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/respostas-rapidas': typeof AppConfiguracoesRespostasRapidasRoute
   '/app/configuracoes/rodizio': typeof AppConfiguracoesRodizioRoute
@@ -1456,6 +1463,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
+  '/app/configuracoes/pix': typeof AppConfiguracoesPixRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/respostas-rapidas': typeof AppConfiguracoesRespostasRapidasRoute
   '/app/configuracoes/rodizio': typeof AppConfiguracoesRodizioRoute
@@ -1641,6 +1649,7 @@ export interface FileRoutesById {
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
+  '/app/configuracoes/pix': typeof AppConfiguracoesPixRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/respostas-rapidas': typeof AppConfiguracoesRespostasRapidasRoute
   '/app/configuracoes/rodizio': typeof AppConfiguracoesRodizioRoute
@@ -1834,6 +1843,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
+    | '/app/configuracoes/pix'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/respostas-rapidas'
     | '/app/configuracoes/rodizio'
@@ -2008,6 +2018,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
+    | '/app/configuracoes/pix'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/respostas-rapidas'
     | '/app/configuracoes/rodizio'
@@ -2192,6 +2203,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
+    | '/app/configuracoes/pix'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/respostas-rapidas'
     | '/app/configuracoes/rodizio'
@@ -3154,6 +3166,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesPortalClienteRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/pix': {
+      id: '/app/configuracoes/pix'
+      path: '/configuracoes/pix'
+      fullPath: '/app/configuracoes/pix'
+      preLoaderRoute: typeof AppConfiguracoesPixRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/perfil': {
       id: '/app/configuracoes/perfil'
       path: '/configuracoes/perfil'
@@ -3944,6 +3963,7 @@ interface AppRouteChildren {
   AppConfiguracoesNotificacoesRoute: typeof AppConfiguracoesNotificacoesRoute
   AppConfiguracoesPapeisRoute: typeof AppConfiguracoesPapeisRoute
   AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
+  AppConfiguracoesPixRoute: typeof AppConfiguracoesPixRoute
   AppConfiguracoesPortalClienteRoute: typeof AppConfiguracoesPortalClienteRoute
   AppConfiguracoesRespostasRapidasRoute: typeof AppConfiguracoesRespostasRapidasRoute
   AppConfiguracoesRodizioRoute: typeof AppConfiguracoesRodizioRoute
@@ -4034,6 +4054,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesNotificacoesRoute: AppConfiguracoesNotificacoesRoute,
   AppConfiguracoesPapeisRoute: AppConfiguracoesPapeisRoute,
   AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,
+  AppConfiguracoesPixRoute: AppConfiguracoesPixRoute,
   AppConfiguracoesPortalClienteRoute: AppConfiguracoesPortalClienteRoute,
   AppConfiguracoesRespostasRapidasRoute: AppConfiguracoesRespostasRapidasRoute,
   AppConfiguracoesRodizioRoute: AppConfiguracoesRodizioRoute,

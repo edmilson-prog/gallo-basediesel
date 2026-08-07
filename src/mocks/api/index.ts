@@ -45,6 +45,7 @@ export { assetLibraryApi, type IListAssetLibraryApiParams } from "./assetLibrary
 export { quickReplyApi } from "./quickReply";
 export { trackableLinkApi } from "./trackableLink";
 export { scheduledSendApi } from "./scheduledSend";
+export { pixKeyApi } from "./pixKey";
 
 export {
   modelKitsApi,

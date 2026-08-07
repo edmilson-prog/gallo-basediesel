@@ -88,6 +88,12 @@ export interface ISendOptions {
   overrideInvalid?: boolean;
   /** Failed message this send retries — NEW message, original preserved (PRD-118). */
   retryOfMessageId?: string;
+  /**
+   * Skips the attendant signature. For payload messages that must stay
+   * byte-exact — a signed PIX key pastes into the bank app as
+   * `*Nome:* 11222333000181` and fails.
+   */
+  unsigned?: boolean;
 }
 
 export interface IUseMessageSendResult {
@@ -126,6 +132,7 @@ export function useMessageSend(
       templateMeta,
       overrideInvalid,
       retryOfMessageId,
+      unsigned,
     }: ISendOptions) => {
       const now = new Date().toISOString();
       // Client-generated id: the optimistic bubble and the Realtime INSERT
@@ -137,7 +144,9 @@ export function useMessageSend(
       // persisted text is already signed). The helper also leaves structured
       // markers (product/link) and empty captions (media w/o caption) untouched.
       const signedText =
-        template || retryOfMessageId ? text : applyAttendantSignature(text, attendantName);
+        template || retryOfMessageId || unsigned
+          ? text
+          : applyAttendantSignature(text, attendantName);
       const optimistic: IMessage = {
         id: messageId,
         conversationId: conversation.id,

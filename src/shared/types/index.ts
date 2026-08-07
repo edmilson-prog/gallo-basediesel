@@ -575,3 +575,6 @@ export type {
   IAiTestConnectionResult,
 } from "./ai";
 export { AI_FEATURE_LABELS, AI_PROVIDER_LABELS, AI_SUPPORTED_PROVIDERS } from "./ai";
+
+// PIX shortcut — store-owned PIX keys (design 2026-08-07)
+export type { PixKeyType, IPixKey, IPixKeyProvider } from "./pix";

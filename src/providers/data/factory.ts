@@ -54,6 +54,7 @@ import { mockConversationTagsProvider } from "./impl/mock/conversationTags";
 import { mockConversationParticipantsProvider } from "./impl/mock/conversationParticipants";
 import { mockSdrPilotSettingsProvider } from "./impl/mock/sdrPilotSettings";
 import { mockConversationRescuesProvider } from "./impl/mock/conversationRescues";
+import { mockPixKeyProvider } from "./impl/mock/pixKey";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
 import { supabaseContactsProvider } from "./impl/supabase/contacts";
@@ -109,6 +110,7 @@ import { supabaseConversationTagsProvider } from "./impl/supabase/conversationTa
 import { supabaseConversationParticipantsProvider } from "./impl/supabase/conversationParticipants";
 import { supabaseSdrPilotSettingsProvider } from "./impl/supabase/sdrPilotSettings";
 import { supabaseConversationRescuesProvider } from "./impl/supabase/conversationRescues";
+import { supabasePixKeyProvider } from "./impl/supabase/pixKey";
 
 import {
   DATA_SOURCE_OVERRIDE_KEY,
@@ -197,6 +199,7 @@ const mockProviders: IDataProviders = {
   conversationParticipants: mockConversationParticipantsProvider,
   sdrPilotSettings: mockSdrPilotSettingsProvider,
   conversationRescues: mockConversationRescuesProvider,
+  pixKey: mockPixKeyProvider,
 };
 
 const supabaseProviders: IDataProviders = {
@@ -254,6 +257,7 @@ const supabaseProviders: IDataProviders = {
   conversationParticipants: supabaseConversationParticipantsProvider,
   sdrPilotSettings: supabaseSdrPilotSettingsProvider,
   conversationRescues: supabaseConversationRescuesProvider,
+  pixKey: supabasePixKeyProvider,
 };
 
 /**

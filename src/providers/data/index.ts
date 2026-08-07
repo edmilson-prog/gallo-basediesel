@@ -140,6 +140,7 @@ export type {
   IConversationParticipantsProvider,
   ISdrPilotSettingsProvider,
   IConversationRescuesProvider,
+  IPixKeyProvider,
 } from "./contracts";
 export { computeFailureRate, FETCH_ALL_PAGE_SIZE, WALLET_STALE_DAYS } from "./contracts";
 
@@ -197,6 +198,7 @@ export { useConversationTagsProvider } from "./hooks/useConversationTagsProvider
 export { useConversationParticipantsProvider } from "./hooks/useConversationParticipantsProvider";
 export { useSdrPilotSettingsProvider } from "./hooks/useSdrPilotSettingsProvider";
 export { useConversationRescuesProvider } from "./hooks/useConversationRescuesProvider";
+export { usePixKeyProvider } from "./hooks/usePixKeyProvider";
 
 export {
   statusOnAssign,

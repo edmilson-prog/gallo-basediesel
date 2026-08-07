@@ -199,6 +199,12 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner", "Gestor", "Vendedor", "SDR"],
       },
       {
+        label: "Chaves PIX",
+        icon: "mdi:qrcode",
+        to: "/app/configuracoes/pix",
+        roles: ["Owner", "Gestor"],
+      },
+      {
         label: "Mídias (retenção)",
         icon: "mdi:database-clock-outline",
         to: "/app/configuracoes/midias",

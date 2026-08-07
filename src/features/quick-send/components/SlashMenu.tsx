@@ -1,18 +1,22 @@
 // src/features/quick-send/components/SlashMenu.tsx
-import type { IAssetLibraryItem, IQuickReply } from "@/shared/types";
+import type { IAssetLibraryItem, IPixKey, IQuickReply } from "@/shared/types";
 import type { ISlashState } from "../engine/slashParser";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
+import { PIX_STRINGS, PIX_TYPE_ICON, PIX_TYPE_LABEL, toDisplayPixKey } from "@/features/pix";
 import { QUICK_SEND_STRINGS } from "../i18n/pt-BR";
 
 export interface ISlashMenuProps {
   state: ISlashState;
   items: IAssetLibraryItem[];
   replies: IQuickReply[];
-  /** Index of the currently highlighted entry (assets first, then replies). */
+  /** Active PIX keys matching the typed command (empty when none apply). */
+  pixKeys: IPixKey[];
+  /** Index of the highlighted entry (assets, then replies, then PIX keys). */
   activeIndex: number;
   onPickAsset: (item: IAssetLibraryItem) => void;
   onPickReply: (reply: IQuickReply) => void;
+  onPickPixKey: (key: IPixKey) => void;
   onClose: () => void;
 }
 
@@ -25,14 +29,16 @@ export function SlashMenu({
   state,
   items,
   replies,
+  pixKeys,
   activeIndex,
   onPickAsset,
   onPickReply,
+  onPickPixKey,
   onClose,
 }: ISlashMenuProps) {
   if (!state.active) return null;
 
-  const total = items.length + replies.length;
+  const total = items.length + replies.length + pixKeys.length;
 
   return (
     <div
@@ -91,6 +97,42 @@ export function SlashMenu({
                 <span className="truncate">{reply.title}</span>
                 <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
                   {reply.shortcut}
+                </span>
+              </button>
+            );
+          })}
+          {pixKeys.map((key, k) => {
+            const idx = items.length + replies.length + k;
+            return (
+              <button
+                key={key.id}
+                id={`slash-opt-${idx}`}
+                type="button"
+                role="option"
+                aria-selected={activeIndex === idx}
+                // The alias alone does not let someone decide blind — and "blind"
+                // here includes the attendant working fast. Type and key go in.
+                aria-label={`${PIX_STRINGS.composer.menuItem} ${key.alias}, ${
+                  PIX_TYPE_LABEL[key.keyType]
+                }, ${toDisplayPixKey(key.keyType, key.keyValue)}`}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
+                  activeIndex === idx ? "bg-accent text-accent-foreground" : "hover:bg-muted/60",
+                )}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onPickPixKey(key);
+                }}
+              >
+                <Icon
+                  icon={PIX_TYPE_ICON[key.keyType]}
+                  size={15}
+                  className="shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <span className="truncate">{key.alias}</span>
+                <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+                  {key.shortcut ?? PIX_STRINGS.composer.menuHint}
                 </span>
               </button>
             );

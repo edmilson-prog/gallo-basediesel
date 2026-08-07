@@ -16,6 +16,7 @@ import type {
   IMediaAsset,
   IMessage,
   INotification,
+  IPixKey,
   IQuickReply,
   IScheduledSend,
   ITrackableLink,
@@ -61,7 +62,8 @@ type CollectionKey =
   | "trackableLinks"
   | "assetCombos"
   | "scheduledSends"
-  | "whatsappAccounts";
+  | "whatsappAccounts"
+  | "pixKeys";
 
 type CollectionMap = {
   customers: ICustomer;
@@ -92,6 +94,7 @@ type CollectionMap = {
   assetCombos: IAssetCombo;
   scheduledSends: IScheduledSend;
   whatsappAccounts: IWhatsAppAccount;
+  pixKeys: IPixKey;
 };
 
 /**
