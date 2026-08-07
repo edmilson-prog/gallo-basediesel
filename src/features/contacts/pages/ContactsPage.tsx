@@ -18,6 +18,8 @@ import {
   type ContactBulkAction,
 } from "../components/modals/ContactBulkActionDialog";
 import { useContactsBulkActions } from "../hooks/useContactsBulkActions";
+import { useContactActions } from "../hooks/useContactActions";
+import { ContactDrawer, type ContactDrawerFocus } from "../components/detail/ContactDrawer";
 
 const DEFAULT_COLUMNS: OptionalContactColumn[] = [
   "phone",
@@ -57,6 +59,9 @@ export function ContactsPage() {
   const [visibleColumns, setVisibleColumns] = useState<OptionalContactColumn[]>(DEFAULT_COLUMNS);
   const [sort, setSort] = useState<IContactsSort>({ orderBy: "name", orderDir: "asc" });
   const [bulkAction, setBulkAction] = useState<ContactBulkAction | null>(null);
+  const [drawer, setDrawer] = useState<{ contact: IContact; focus?: ContactDrawerFocus } | null>(
+    null,
+  );
 
   const params = useMemo<IListContactsParams>(() => {
     const [city, uf] = cityUf === ANY_VALUE ? [undefined, undefined] : cityUf.split(" / ");
@@ -80,6 +85,14 @@ export function ContactsPage() {
   const provider = useContactsProvider();
   const { data: contacts, total, counts, isError } = useContactsList(params);
   const bulk = useContactsBulkActions(() => setSelectedIds(new Set()));
+  const actions = useContactActions();
+
+  // The drawer holds its own copy of the contact, so a refetch after a
+  // mutation would leave it showing stale values. Re-read it from the fresh
+  // page whenever the list changes.
+  const drawerContact = drawer
+    ? (contacts.find((c) => c.id === drawer.contact.id) ?? drawer.contact)
+    : null;
 
   // Filter options come from the loaded page rather than a hardcoded list, so
   // they always reflect what this store actually has.
@@ -169,9 +182,8 @@ export function ContactsPage() {
     );
   }
 
-  function handleOpen(contact: IContact) {
-    // Task 17 replaces this with the detail drawer.
-    toast.info(`Ficha de ${contact.name} — em breve`);
+  function handleOpen(contact: IContact, focus?: ContactDrawerFocus) {
+    setDrawer({ contact, focus });
   }
 
   return (
@@ -231,7 +243,10 @@ export function ContactsPage() {
             selectedIds={selectedIds}
             onSelect={toggleSelected}
             onOpen={handleOpen}
-            onQuickAction={(contact, action) => toast.info(`${action} — ${contact.name}`)}
+            onQuickAction={(contact, action) => {
+              if (action === "schedule") handleOpen(contact, "retorno");
+              else toast.info(`${action} — ${contact.name}`);
+            }}
             onLink={(contact) => toast.info(`Vincular ${contact.name} — em breve`)}
           />
         ) : (
@@ -252,6 +267,22 @@ export function ContactsPage() {
           />
         )}
       </div>
+
+      <ContactDrawer
+        contact={drawerContact}
+        focus={drawer?.focus}
+        onClose={() => setDrawer(null)}
+        onLink={(contact) => toast.info(`Vincular ${contact.name} — em breve`)}
+        onUnlink={(contact) => void actions.linkToCustomer(contact, null)}
+        onOpenCustomer={(contact) => toast.info(`Ficha de ${contact.customerName}`)}
+        onAddTag={() => setBulkAction("addTag")}
+        onRemoveTag={(contact, tag) => void actions.removeTag(contact, tag)}
+        onTransferOwner={() => setBulkAction("transferOwner")}
+        onToggleOptOut={(contact, optOut) => void actions.setOptOut(contact, optOut)}
+        onScheduleFollowUp={(contact, at, note) => void actions.scheduleFollowUp(contact, at, note)}
+        onOpenConversation={(contact) => toast.info(`Conversa de ${contact.name} — em breve`)}
+        onCall={(contact) => toast.info(`Ligar para ${contact.name} — em breve`)}
+      />
 
       <ContactBulkActionDialog
         action={bulkAction}
