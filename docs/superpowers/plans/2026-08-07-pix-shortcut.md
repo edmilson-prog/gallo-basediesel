@@ -1484,7 +1484,7 @@ import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { IPixKey } from "@/shared/types";
 import { usePixKeyProvider } from "@/providers/data";
-import { useMultistore } from "@/features/multistore";
+import { useCurrentStore } from "@/features/multistore";
 
 export function usePixKeys(): {
   keys: IPixKey[];
@@ -1493,10 +1493,10 @@ export function usePixKeys(): {
   findByShortcut: (shortcut: string) => IPixKey | null;
 } {
   const provider = usePixKeyProvider();
-  const { activeStoreId } = useMultistore();
+  const { currentStoreId } = useCurrentStore();
 
   const query = useQuery({
-    queryKey: ["pix", "keys", activeStoreId],
+    queryKey: ["pix", "keys", currentStoreId],
     queryFn: () => provider.list({}),
   });
 
@@ -1521,9 +1521,9 @@ export function usePixKeys(): {
 }
 ```
 
-> ⚠️ Confirme o nome real do hook de multi-loja antes de escrever
-> (`grep -rn "useMultistore\|MultistoreProvider" src/features/multistore/`). Se a API
-> diferir, use a que existe — **não** crie um wrapper novo.
+> ✅ **API confirmada:** o hook é `useCurrentStore()`, exportado pelo barrel
+> `@/features/multistore`, e expõe `currentStore` e `currentStoreId`. Não existe
+> `useMultistore`. `hasRole` vem de `useAuth()` (`@/features/auth/useAuth`).
 
 - [ ] **Step 2: Write the admin hook**
 
