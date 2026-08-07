@@ -108,13 +108,24 @@ export const PIX_STRINGS = {
     optionQr: "QR",
     swapKey: "Trocar de chave",
     send: "Enviar PIX",
+    sending: "Enviando…",
     cancel: "Cancelar",
     nothingSelected: "Selecione ao menos a chave ou o QR Code.",
     receiverTooltip: (name: string) => `Favorecido: ${name}`,
+    /** Region label for the staged bar — announces what is about to be sent. */
+    stagedLabel: "Chave PIX pronta para enviar",
+    /**
+     * Composer voice, not the editor's: the attendant cannot fix the receiver
+     * fields from here, so the message points at who can.
+     */
+    qrUnavailable: "Esta chave não gera QR Code. Peça a um gestor para completar o cadastro.",
     sent: "Chave PIX enviada.",
   },
   errors: {
+    /** Only accurate when the key message follows — see qrFailedAlone otherwise. */
     qrRenderFailed: "Não foi possível gerar o QR Code. A chave foi enviada como texto.",
+    /** QR-only send: there is no text fallback, so nothing left the composer. */
+    qrFailedAlone: "Não foi possível gerar o QR Code. Nada foi enviado — tente novamente.",
     sendFailed: "Não foi possível enviar a chave PIX.",
     saveFailed: "Não foi possível salvar a chave.",
     loadFailed: "Não foi possível carregar as chaves PIX.",
