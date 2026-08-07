@@ -42,7 +42,7 @@ const STATUS_LABEL: Record<IMockCoupon["status"], string> = {
 
 const STATUS_VARIANT: Record<IMockCoupon["status"], string> = {
   ativo: "border-primary/40 bg-primary/10 text-primary",
-  agendado: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  agendado: "border-severity-info/40 bg-severity-info/10 text-severity-info",
   expirado: "border-muted-foreground/30 bg-muted text-muted-foreground",
 };
 

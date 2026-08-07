@@ -56,7 +56,7 @@ export function PortalHomePage() {
       label: S.kpiRequestsPending,
       value: String(pendingRequests),
       icon: "mdi:clipboard-alert-outline",
-      tone: "text-amber-600 dark:text-amber-400",
+      tone: "text-severity-warning",
     },
     {
       label: S.kpiCredit,

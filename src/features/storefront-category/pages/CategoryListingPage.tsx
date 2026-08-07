@@ -97,14 +97,14 @@ function CategoryListingInner({ slug, mapping }: { slug: string; mapping: ICateg
       />
 
       {showPromotionsBanner && (
-        <Card className="flex items-start gap-3 border-amber-500/40 bg-amber-500/10 p-4">
+        <Card className="flex items-start gap-3 border-severity-info/40 bg-severity-info/10 p-4">
           <Icon
             icon="mdi:tag-multiple-outline"
             size={20}
-            className="mt-0.5 text-amber-700 dark:text-amber-300"
+            className="mt-0.5 text-severity-info"
             aria-hidden
           />
-          <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-200">
+          <p className="text-xs leading-relaxed text-severity-info">
             {S.promotionsEmptyBanner}
           </p>
         </Card>

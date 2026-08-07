@@ -72,12 +72,12 @@ function EquivalentRow({ source, equiv }: { source: IPart; equiv: IPart }) {
   let pricePill: { tone: string; label: string } | null = null;
   if (pct > 0) {
     pricePill = {
-      tone: "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+      tone: "border-severity-success/40 bg-severity-success/15 text-severity-success",
       label: S.equivSavingsLabel(pct),
     };
   } else if (pct < 0) {
     pricePill = {
-      tone: "border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300",
+      tone: "border-severity-warning/40 bg-severity-warning/15 text-severity-warning",
       label: S.equivMoreExpensive(Math.abs(pct)),
     };
   } else if (diff === 0) {

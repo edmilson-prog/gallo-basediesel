@@ -168,11 +168,9 @@ export function CheckoutHandoff() {
       </div>
 
       {!hasWhatsapp && (
-        <Card className="space-y-2 border-amber-500/40 bg-amber-500/10 p-4">
-          <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-200">
-            {S.handoffNoWhatsapp}
-          </p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-800 dark:text-amber-200">
+        <Card className="space-y-2 border-severity-warning/40 bg-severity-warning/10 p-4">
+          <p className="text-xs leading-relaxed text-severity-warning">{S.handoffNoWhatsapp}</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-severity-warning">
             {config.footer.phone && (
               <span className="inline-flex items-center gap-1">
                 <Icon icon="mdi:phone" size={13} aria-hidden />
