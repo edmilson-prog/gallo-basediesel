@@ -1,10 +1,5 @@
 import qrcode from "qrcode-generator";
-import {
-  computeQrGeometry,
-  PIX_QR_BOX_RATIO,
-  PIX_QR_EXPORT,
-  QUIET_MODULES,
-} from "./qrGeometry";
+import { computeQrGeometry, PIX_QR_BOX_RATIO, PIX_QR_EXPORT, QUIET_MODULES } from "./qrGeometry";
 
 // ⚠️ Os valores abaixo são hex literal DE PROPÓSITO e NÃO violam a regra de
 // tokens semânticos do projeto: não são superfície de UI, são os BYTES de uma
@@ -71,12 +66,14 @@ export function drawPixQr(
 
 /** Slugifies an alias for the download filename. */
 function slug(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "") || "chave";
+  return (
+    value
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "chave"
+  );
 }
 
 /**

@@ -52,7 +52,12 @@ export type PixPayloadResult =
   | { ok: true; value: string }
   | {
       ok: false;
-      reason: "missing-key" | "name-too-long" | "city-too-long" | "missing-receiver" | "key-not-ascii";
+      reason:
+        | "missing-key"
+        | "name-too-long"
+        | "city-too-long"
+        | "missing-receiver"
+        | "key-not-ascii";
     };
 
 // Printable ASCII only — mirrors the gate in pixKeyFormat.isValidPixKey. Kept

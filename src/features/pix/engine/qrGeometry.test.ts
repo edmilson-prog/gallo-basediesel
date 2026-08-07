@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  computeQrGeometry,
-  PIX_QR_BOX_RATIO,
-  PIX_QR_EXPORT,
-  QUIET_MODULES,
-} from "./qrGeometry";
+import { computeQrGeometry, PIX_QR_BOX_RATIO, PIX_QR_EXPORT, QUIET_MODULES } from "./qrGeometry";
 
 /** The export geometry, as the renderer computes it. */
 const exportGeometry = (count: number) =>

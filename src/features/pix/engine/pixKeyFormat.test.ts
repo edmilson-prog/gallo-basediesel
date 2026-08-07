@@ -12,12 +12,15 @@ describe("toCanonicalPixKey", () => {
   });
 
   it("lowercases and trims e-mail", () => {
-    expect(toCanonicalPixKey("email", "  Financeiro@Gallo.COM.br ")).toBe("financeiro@gallo.com.br");
+    expect(toCanonicalPixKey("email", "  Financeiro@Gallo.COM.br ")).toBe(
+      "financeiro@gallo.com.br",
+    );
   });
 
   it("lowercases a random key and keeps its hyphens", () => {
-    expect(toCanonicalPixKey("random", "  E7B4F2A1-3C5D-4E6F-8A9B-0C1D2E3F4A5B "))
-      .toBe("e7b4f2a1-3c5d-4e6f-8a9b-0c1d2e3f4a5b");
+    expect(toCanonicalPixKey("random", "  E7B4F2A1-3C5D-4E6F-8A9B-0C1D2E3F4A5B ")).toBe(
+      "e7b4f2a1-3c5d-4e6f-8a9b-0c1d2e3f4a5b",
+    );
   });
 });
 

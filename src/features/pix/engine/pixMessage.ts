@@ -13,7 +13,10 @@ const KEY_TYPE_LABEL: Record<PixKeyType, string> = {
  * receiver name turns the bold of the entire message inside out.
  */
 export function sanitizeWhatsAppMarkers(value: string): string {
-  return value.replace(/[*_~`]/g, "").replace(/\s{2,}/g, " ").trim();
+  return value
+    .replace(/[*_~`]/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 export interface IPixCaptionInput {
