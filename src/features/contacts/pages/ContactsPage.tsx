@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { ContactScope, ContactSource, IContact, ID } from "@/shared/types";
 import type { ContactRecencyBucket, IListContactsParams } from "@/providers/data";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
+import { FETCH_ALL_PAGE_SIZE, useContactsProvider } from "@/providers/data";
 import { UNASSIGNED_OWNER } from "../engine/contactFilters";
 import { useContactsList } from "../hooks/useContactsList";
 import { OPTIONAL_CONTACT_COLUMNS, type OptionalContactColumn } from "../utils/columns";
@@ -11,6 +12,12 @@ import { ContactsGrid } from "../components/list/ContactsGrid";
 import { ContactsHeader, type ContactsView } from "../components/list/ContactsHeader";
 import { ContactsPagination } from "../components/list/ContactsPagination";
 import { ContactsTable, type IContactsSort } from "../components/list/ContactsTable";
+import { ContactsBulkBar } from "../components/list/ContactsBulkBar";
+import {
+  ContactBulkActionDialog,
+  type ContactBulkAction,
+} from "../components/modals/ContactBulkActionDialog";
+import { useContactsBulkActions } from "../hooks/useContactsBulkActions";
 
 const DEFAULT_COLUMNS: OptionalContactColumn[] = [
   "phone",
@@ -49,6 +56,7 @@ export function ContactsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<ID>>(() => new Set());
   const [visibleColumns, setVisibleColumns] = useState<OptionalContactColumn[]>(DEFAULT_COLUMNS);
   const [sort, setSort] = useState<IContactsSort>({ orderBy: "name", orderDir: "asc" });
+  const [bulkAction, setBulkAction] = useState<ContactBulkAction | null>(null);
 
   const params = useMemo<IListContactsParams>(() => {
     const [city, uf] = cityUf === ANY_VALUE ? [undefined, undefined] : cityUf.split(" / ");
@@ -69,7 +77,9 @@ export function ContactsPage() {
     };
   }, [scope, search, owner, tag, cityUf, source, lastContact, sort, page, pageSize]);
 
+  const provider = useContactsProvider();
   const { data: contacts, total, counts, isError } = useContactsList(params);
+  const bulk = useContactsBulkActions(() => setSelectedIds(new Set()));
 
   // Filter options come from the loaded page rather than a hardcoded list, so
   // they always reflect what this store actually has.
@@ -137,6 +147,22 @@ export function ContactsPage() {
     });
   }
 
+  /**
+   * Extends the selection to the whole filtered set, not just the loaded page.
+   * Fetches the ids with the same filters at the full page size — the provider
+   * chunks that read internally, so the 1000-row PostgREST cap does not
+   * silently truncate it.
+   */
+  async function selectAllFiltered() {
+    try {
+      const all = await provider.list({ ...params, page: 1, pageSize: FETCH_ALL_PAGE_SIZE });
+      setSelectedIds(new Set(all.data.map((c) => c.id)));
+      toast.info(`Seleção estendida aos ${all.total.toLocaleString("pt-BR")} contatos filtrados`);
+    } catch {
+      toast.error("Não foi possível estender a seleção");
+    }
+  }
+
   function toggleColumn(id: OptionalContactColumn) {
     setVisibleColumns((current) =>
       current.includes(id) ? current.filter((x) => x !== id) : [...current, id],
@@ -159,7 +185,7 @@ export function ContactsPage() {
           onViewChange={setView}
           canCreate={false}
           onCreate={() => {}}
-          onExport={() => toast.info("Exportação — em breve")}
+          onExport={() => setBulkAction("export")}
         />
         <ContactsFiltersBar
           scope={scope}
@@ -179,6 +205,17 @@ export function ContactsPage() {
           lastContact={lastContact}
           onLastContactChange={resetPage(setLastContact)}
           onClear={clearFilters}
+        />
+        <ContactsBulkBar
+          selectedCount={selectedIds.size}
+          totalFiltered={total}
+          onClearSelection={() => setSelectedIds(new Set())}
+          onSelectAllFiltered={selectAllFiltered}
+          onAddTag={() => setBulkAction("addTag")}
+          onRemoveTag={() => setBulkAction("removeTag")}
+          onTransferOwner={() => setBulkAction("transferOwner")}
+          onExport={() => setBulkAction("export")}
+          onOptOut={() => setBulkAction("optOut")}
         />
         <ScrollProgressBar container={scrollEl} />
       </div>
@@ -215,6 +252,18 @@ export function ContactsPage() {
           />
         )}
       </div>
+
+      <ContactBulkActionDialog
+        action={bulkAction}
+        selectedCount={selectedIds.size}
+        tagOptions={tagOptions}
+        ownerOptions={ownerOptions}
+        onClose={() => setBulkAction(null)}
+        onConfirm={(action, value) => {
+          setBulkAction(null);
+          void bulk.run(action, [...selectedIds], value);
+        }}
+      />
 
       <ContactsPagination
         page={page}
