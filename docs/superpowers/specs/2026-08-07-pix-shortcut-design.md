@@ -81,7 +81,7 @@ export interface IPixKey {
 ```
 
 **`keyValue` canônico vs. display são coisas distintas, de propósito.** A UI mostra
-`12.345.678/0001-90`; o clipboard e a mensagem recebem `12345678000190`. O `CopyKeyButton`
+`12.345.678/0001-95`; o clipboard e a mensagem recebem `12345678000195`. O `CopyKeyButton`
 recebe sempre o canônico, **nunca** o formatado. Um `display` copiado por engano é um bug de
 dinheiro.
 
@@ -166,7 +166,7 @@ Validação e formatação por tipo. Um par de funções por tipo: `toCanonical`
 
 | Tipo | Canônico | Display | Validação |
 |---|---|---|---|
-| CNPJ | `12345678000190` | `12.345.678/0001-90` | 14 dígitos + dígito verificador |
+| CNPJ | `12345678000195` | `12.345.678/0001-95` | 14 dígitos + dígito verificador |
 | CPF | `12345678900` | `123.456.789-00` | 11 dígitos + dígito verificador |
 | Telefone | `+5555999999999` | `+55 55 99999-9999` | E.164, DDI obrigatório |
 | E-mail | minúsculas | idêntico | regex + comprimento |
@@ -263,7 +263,7 @@ msg 1 → *Pagamento via PIX*
         Favorecido: GALLO BASE DIESEL
         Chave (CNPJ) na próxima mensagem — é só tocar e segurar para copiar.
 
-msg 2 → 12345678000190
+msg 2 → 12345678000195
 ```
 
 **Com QR ligado:** o contexto vira **legenda da imagem** do QR (os motores WAHA/Evolution
@@ -299,7 +299,7 @@ Duas portas, nenhum botão novo no toolbar (ele já tem cinco):
 > por YAGNI**: uma loja não tem 9 chaves PIX, e o Radix já dá scroll no submenu. Se um dia
 > passar disso, a busca entra numa iteração própria.
 
-`aria-label` completo em cada item: `"Chave PIX Matriz, CNPJ, 12.345.678/0001-90"`. Só o
+`aria-label` completo em cada item: `"Chave PIX Matriz, CNPJ, 12.345.678/0001-95"`. Só o
 apelido não permite decidir às cegas — e "às cegas" aqui inclui o atendente apressado.
 
 ### 7.3 Barra staged — a trava de segurança
