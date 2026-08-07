@@ -58,6 +58,7 @@ import type { IConversationTagsProvider } from "./conversationTags";
 import type { IConversationParticipantsProvider } from "./conversationParticipants";
 import type { ISdrPilotSettingsProvider } from "./sdrPilotSettings";
 import type { IConversationRescuesProvider } from "./conversationRescues";
+import type { IPixKeyProvider } from "./pixKey";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 export { FETCH_ALL_PAGE_SIZE } from "./_shared";
@@ -199,6 +200,7 @@ export type {
 } from "./whatsappOpenWaServers";
 export type { ISdrPilotSettingsProvider } from "./sdrPilotSettings";
 export type { IConversationRescuesProvider } from "./conversationRescues";
+export type { IPixKeyProvider } from "./pixKey";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -259,4 +261,5 @@ export interface IDataProviders {
   conversationParticipants: IConversationParticipantsProvider;
   sdrPilotSettings: ISdrPilotSettingsProvider;
   conversationRescues: IConversationRescuesProvider;
+  pixKey: IPixKeyProvider;
 }

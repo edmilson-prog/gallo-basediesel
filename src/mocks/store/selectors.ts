@@ -4,6 +4,7 @@ import type {
   IAssetLibraryItem,
   IMediaAsset,
   INotification,
+  IPixKey,
   IQuickReply,
   IScheduledSend,
   ITrackableLink,
@@ -305,4 +306,14 @@ export function selectAllScheduledSends(): IScheduledSend[] {
 
 export function selectScheduledSendsByConversation(conversationId: ID): IScheduledSend[] {
   return getMockState().scheduledSends.filter((s) => s.conversationId === conversationId);
+}
+
+// --- PIX shortcut (design 2026-08-07) ---
+
+export function selectAllPixKeys(): IPixKey[] {
+  return getMockState().pixKeys;
+}
+
+export function selectPixKeyById(id: ID): IPixKey | null {
+  return getMockState().pixKeys.find((k) => k.id === id) ?? null;
 }

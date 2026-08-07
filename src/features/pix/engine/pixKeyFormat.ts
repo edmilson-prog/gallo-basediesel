@@ -4,7 +4,10 @@
 // Code payload; the display form exists only to be read on screen. Copying a
 // display value by accident is a money bug — see the spec, §4.1.
 
-export type PixKeyType = "cnpj" | "cpf" | "phone" | "email" | "random";
+// `PixKeyType` is defined in `@/shared/types` (the domain model barrel) so the
+// data layer (`IPixKey`) and this pure engine share one canonical definition.
+export type { PixKeyType } from "@/shared/types";
+import type { PixKeyType } from "@/shared/types";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;

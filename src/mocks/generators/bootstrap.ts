@@ -22,6 +22,7 @@ import type {
   INotification,
   IOrder,
   IPart,
+  IPixKey,
   IPositivation,
   IProductIndicator,
   IQuickReply,
@@ -126,6 +127,7 @@ export interface IBootstrappedDataset {
   trackableLinks: ITrackableLink[];
   assetCombos: IAssetCombo[];
   scheduledSends: IScheduledSend[];
+  pixKeys: IPixKey[];
   whatsappAccounts: IWhatsAppAccount[];
   parts: IPart[];
   quotes: IQuote[];
@@ -360,6 +362,50 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     now,
   });
   const scheduledSends: IScheduledSend[] = [];
+
+  // 11.8. PIX shortcut (design 2026-08-07) — two deterministic store-owned
+  // keys so the settings screen and the composer shortcut exercise both
+  // states: the active default CNPJ key and an inactive secondary phone key.
+  // Staff-created (Owner) — writes are staff-only per the RLS policy.
+  const pixKeyNowMs = now.getTime();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const pixKeys: IPixKey[] = [
+    {
+      id: "pix-0001",
+      storeId: stores[0].id,
+      alias: "Matriz — CNPJ",
+      keyType: "cnpj",
+      keyValue: "12345678000195",
+      receiverName: "GALLO BASE DIESEL",
+      receiverCity: "FREDERICO W",
+      defaultContext: "Segue a chave Pix da Gallo Base Diesel para o pagamento.",
+      shortcut: "/pix-matriz",
+      defaultSendText: true,
+      defaultSendQr: true,
+      isDefault: true,
+      isActive: true,
+      createdBy: SEED_OWNER_ID,
+      createdAt: new Date(pixKeyNowMs - 90 * DAY_MS).toISOString(),
+      updatedAt: new Date(pixKeyNowMs - 30 * DAY_MS).toISOString(),
+    },
+    {
+      id: "pix-0002",
+      storeId: stores[0].id,
+      alias: "Filial Palmeira",
+      keyType: "phone",
+      keyValue: "+5555991234567",
+      receiverName: "GALLO BASE DIESEL",
+      receiverCity: "FREDERICO W",
+      shortcut: "/pix-filial",
+      defaultSendText: true,
+      defaultSendQr: false,
+      isDefault: false,
+      isActive: false,
+      createdBy: SEED_OWNER_ID,
+      createdAt: new Date(pixKeyNowMs - 60 * DAY_MS).toISOString(),
+      updatedAt: new Date(pixKeyNowMs - 10 * DAY_MS).toISOString(),
+    },
+  ];
 
   // 12. Quotes — bound to customers or leads, items pulled from the part catalog.
   const quotes: IQuote[] = [];
@@ -612,6 +658,7 @@ export function bootstrap(seed: number = DEFAULT_SEED): IBootstrappedDataset {
     trackableLinks,
     assetCombos,
     scheduledSends,
+    pixKeys,
     whatsappAccounts,
     parts,
     quotes,
