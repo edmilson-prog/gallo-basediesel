@@ -26,6 +26,9 @@ import { ConvertLeadModal } from "../components/ConvertLeadModal";
 import { MarkAsLostModal } from "../components/MarkAsLostModal";
 import { useLeadsUrlState, type LeadsView } from "../hooks/useLeadsUrlState";
 import { useLeadsList } from "../hooks/useLeadsList";
+import { useLeadSelection } from "../hooks/useLeadSelection";
+import { useBulkLeadActions } from "../hooks/useBulkLeadActions";
+import { BulkActionBar } from "../components/BulkActionBar";
 import { usePipelineSettings } from "../hooks/usePipelineSettings";
 import { hasAnyFilter } from "../utils/listFilters";
 import { LEADS_STRINGS } from "../i18n/pt-BR";
@@ -46,7 +49,7 @@ export function LeadsPage() {
   const url = useLeadsUrlState();
   const { view, filters, sort } = url;
 
-  const { stages } = usePipelineSettings(currentStoreId);
+  const { stages, lossReasons } = usePipelineSettings(currentStoreId);
 
   const sellersProvider = useSellersProvider();
   const [sellersQuery] = useQueries({
@@ -156,6 +159,7 @@ export function LeadsPage() {
   // participation, not from the store's pipeline. `usePipelineSettings` stays
   // on for the filters bar and the new-lead modal, which still speak legacy.
   const board = useFunnelBoard(scopedFunnelId ?? null);
+  const activeFunnel = reachableFunnels.find((f) => f.id === scopedFunnelId);
   const showFunnelColumn = isAllFunnels || reachableFunnels.length > 1;
 
   const visibleLeads = useMemo(() => {
@@ -174,6 +178,14 @@ export function LeadsPage() {
     const keep = new Set(funnelStageFilter);
     return board.stages.filter((s) => keep.has(s.id));
   }, [board.stages, funnelStageFilter]);
+
+  // Bulk actions live on the list, which is where triage happens.
+  const visibleIds = useMemo(() => visibleLeads.map((l) => l.id), [visibleLeads]);
+  const selection = useLeadSelection(visibleIds);
+  const bulk = useBulkLeadActions(() => selection.clear());
+  const canBulk = usePermission("lead", "edit");
+  // The stage a lost lead lands on, mirroring MarkAsLostModal.
+  const lostStage = stages.find((s) => /perdid/i.test(s.name)) ?? stages[stages.length - 1];
 
   const noticeShownRef = useRef(false);
   useEffect(() => {
@@ -249,6 +261,14 @@ export function LeadsPage() {
             onLeadMoved={handleLeadMoved}
             onRequestClose={handleRequestClose}
             onFilterOverdue={() => url.patchFilters({ nextAction: "overdue" })}
+            entryThreshold={activeFunnel?.entryAlertThreshold ?? 50}
+            onTriageInList={(stageId) => {
+              // One navigation, not two: the List has to open already narrowed
+              // to that stage, or the user lands on nine hundred rows and the
+              // "triar em lista" promise is broken on arrival.
+              url.setView("list");
+              url.patchFilters({ stageIds: [stageId] });
+            }}
           />
         ) : visibleLeads.length === 0 ? (
           <EmptyState
@@ -258,6 +278,7 @@ export function LeadsPage() {
             onCreate={handleEmptyCreate}
           />
         ) : (
+          <>
           <LeadsList
             leads={visibleLeads}
             sellersById={sellersById}
@@ -266,7 +287,30 @@ export function LeadsPage() {
             onSortChange={url.setSort}
             scrollRef={setScrollEl}
             funnelChipsByLead={showFunnelColumn ? funnelChipsByLead : undefined}
+            selection={canBulk ? selection : undefined}
           />
+          {canBulk && (
+            <BulkActionBar
+              count={selection.selected.size}
+              progress={bulk.progress}
+              funnels={reachableFunnels}
+              sellers={sellers}
+              lossReasons={lossReasons}
+              lostStage={lostStage}
+              onDefaultFunnel={Boolean(activeFunnel?.isDefault)}
+              onClear={selection.clear}
+              onAddToFunnel={(id, name) =>
+                void bulk.addToFunnel([...selection.selected], id, name)
+              }
+              onAssignSeller={(id, name) =>
+                void bulk.assignSeller([...selection.selected], id, name)
+              }
+              onMarkLost={(reason, stage) =>
+                void bulk.markLost([...selection.selected], reason, stage)
+              }
+            />
+          )}
+          </>
         )}
         </div>
       </div>
