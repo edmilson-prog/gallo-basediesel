@@ -21,8 +21,11 @@ function digitsOnly(value: string): string {
   return value.replace(/\D/g, "");
 }
 
+/** Exactly two passes: first check digit, then second. */
+type CheckDigitWeights = readonly [readonly number[], readonly number[]];
+
 /** Shared check-digit routine for CPF (9 base digits) and CNPJ (12 base digits). */
-function hasValidCheckDigits(digits: string, weights: number[][]): boolean {
+function hasValidCheckDigits(digits: string, weights: CheckDigitWeights): boolean {
   const base = digits.slice(0, weights[0].length);
   let acc = base;
   for (const weight of weights) {
@@ -33,11 +36,11 @@ function hasValidCheckDigits(digits: string, weights: number[][]): boolean {
   return acc === digits;
 }
 
-const CPF_WEIGHTS = [
+const CPF_WEIGHTS: CheckDigitWeights = [
   [10, 9, 8, 7, 6, 5, 4, 3, 2],
   [11, 10, 9, 8, 7, 6, 5, 4, 3, 2],
 ];
-const CNPJ_WEIGHTS = [
+const CNPJ_WEIGHTS: CheckDigitWeights = [
   [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
   [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
 ];
