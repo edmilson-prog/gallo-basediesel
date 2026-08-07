@@ -9,11 +9,12 @@ import {
   type IInboundToastEntry,
 } from "../engine/inboundToastAccumulator";
 import { subscribeInboundOnMine } from "../events/inboundOnMine";
+import { useInboundToastSettings } from "../hooks/useInboundToastSettings";
 
-/** Long enough to read the preview and click through without hunting. */
-const TOAST_DURATION_MS = 8_000;
 /** Title while the contact name has not resolved (or failed to). */
 const UNKNOWN_CONTACT_TITLE = "Nova mensagem";
+/** Body when the store chose to hide the message text. */
+const HIDDEN_PREVIEW_TEXT = "Nova mensagem";
 
 /**
  * Renders the clickable toast for inbound messages that land on the seller's
@@ -35,6 +36,12 @@ export function InboundToastHost() {
   /** Conversations with a `listContacts` call in flight — never ask twice. */
   const pendingNamesRef = useRef(new Set<string>());
 
+  // Store config mirrored into a ref: the subscription below must not be torn
+  // down and re-registered every time the settings query refetches.
+  const toastSettings = useInboundToastSettings();
+  const toastSettingsRef = useRef(toastSettings);
+  toastSettingsRef.current = toastSettings;
+
   useEffect(() => {
     const accumulator = accumulatorRef.current;
     const names = namesRef.current;
@@ -42,6 +49,10 @@ export function InboundToastHost() {
 
     function raise(conversationId: string, entry: IInboundToastEntry) {
       const name = names.get(conversationId);
+      const { showPreview, durationSeconds } = toastSettingsRef.current;
+      // With the preview hidden the body still has to say something, otherwise
+      // an alert with an unresolved contact name would be a blank toast.
+      const body = showPreview ? entry.preview : HIDDEN_PREVIEW_TEXT;
       toast(name ? `💬 ${name}` : UNKNOWN_CONTACT_TITLE, {
         id: conversationId,
         // The line break is an inline style, not a utility class: sonner injects
@@ -51,13 +62,13 @@ export function InboundToastHost() {
         // counter is guaranteed to sit on its own line.
         description: (
           <span style={{ display: "flex", flexDirection: "column", gap: "0.125rem" }}>
-            <span>{entry.preview}</span>
+            <span>{body}</span>
             {entry.count > 1 && (
               <span className="text-xs opacity-70">{entry.count} novas mensagens</span>
             )}
           </span>
         ),
-        duration: TOAST_DURATION_MS,
+        duration: durationSeconds * 1000,
         action: {
           label: "Abrir",
           onClick: () => {
@@ -74,6 +85,11 @@ export function InboundToastHost() {
     }
 
     return subscribeInboundOnMine((event) => {
+      // Store switched the on-screen alert off. The SOUND is governed
+      // separately (Central de Sons), so it keeps playing — turning one off
+      // must never take the other with it.
+      if (!toastSettingsRef.current.enabled) return;
+
       const { conversationId } = event;
       const entry = accumulator.register(
         conversationId,

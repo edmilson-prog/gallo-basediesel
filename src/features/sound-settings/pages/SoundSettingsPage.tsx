@@ -15,7 +15,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DEFAULT_INBOUND_TOAST_SETTINGS,
   DEFAULT_SOUND_SETTINGS,
+  INBOUND_TOAST_DURATION_MAX_SECONDS,
+  INBOUND_TOAST_DURATION_MIN_SECONDS,
+  type IInboundToastSettings,
   type ISoundSettings,
   type SoundEventId,
   type SoundTemplateId,
@@ -37,20 +41,29 @@ export function SoundSettingsPage() {
   const queryClient = useQueryClient();
 
   const [draft, setDraft] = useState<ISoundSettings>(DEFAULT_SOUND_SETTINGS);
+  const [toastDraft, setToastDraft] = useState<IInboundToastSettings>(
+    DEFAULT_INBOUND_TOAST_SETTINGS,
+  );
 
   const playerRef = useRef<ISoundPlayer | null>(null);
   if (!playerRef.current) playerRef.current = createSoundPlayer();
   useEffect(() => () => playerRef.current?.dispose(), []);
 
   useEffect(() => {
-    if (settings) setDraft(settings.sound ?? DEFAULT_SOUND_SETTINGS);
+    if (!settings) return;
+    setDraft(settings.sound ?? DEFAULT_SOUND_SETTINGS);
+    setToastDraft(settings.inboundToast ?? DEFAULT_INBOUND_TOAST_SETTINGS);
   }, [settings]);
 
   const dirty = useMemo(() => {
     if (!settings) return false;
     const current = settings.sound ?? DEFAULT_SOUND_SETTINGS;
-    return JSON.stringify(current) !== JSON.stringify(draft);
-  }, [settings, draft]);
+    const currentToast = settings.inboundToast ?? DEFAULT_INBOUND_TOAST_SETTINGS;
+    return (
+      JSON.stringify(current) !== JSON.stringify(draft) ||
+      JSON.stringify(currentToast) !== JSON.stringify(toastDraft)
+    );
+  }, [settings, draft, toastDraft]);
 
   const patchEvent = (id: SoundEventId, p: Partial<ISoundSettings["events"][SoundEventId]>) =>
     setDraft((d) => ({ events: { ...d.events, [id]: { ...d.events[id], ...p } } }));
@@ -63,7 +76,7 @@ export function SoundSettingsPage() {
 
   const handleSave = async () => {
     try {
-      await update({ sound: draft }, "settings.sound.update");
+      await update({ sound: draft, inboundToast: toastDraft }, "settings.sound.update");
       await queryClient.invalidateQueries({ queryKey: ["settings", storeId] });
       toast.success(T.saved, { icon: <Icon icon="mdi:check" size={16} /> });
     } catch {
@@ -72,7 +85,9 @@ export function SoundSettingsPage() {
   };
 
   const handleReset = () => {
-    if (settings) setDraft(settings.sound ?? DEFAULT_SOUND_SETTINGS);
+    if (!settings) return;
+    setDraft(settings.sound ?? DEFAULT_SOUND_SETTINGS);
+    setToastDraft(settings.inboundToast ?? DEFAULT_INBOUND_TOAST_SETTINGS);
   };
 
   if (loading || !settings) {
@@ -152,6 +167,58 @@ export function SoundSettingsPage() {
                   aria-label={`${T.volumeLabel}: ${event.label}`}
                 />
               </div>
+
+              {/* The on-screen alert exists only for this event, and is NOT
+                  gated by `cfg.enabled` — sound and alert are independent by
+                  design, so the store can keep one without the other. */}
+              {event.id === "inboxAssignedMine" && (
+                <div className="space-y-3 border-t border-border/60 pt-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">{T.toastTitle}</p>
+                      <p className="text-xs text-muted-foreground">{T.toastDescription}</p>
+                    </div>
+                    <Switch
+                      checked={toastDraft.enabled}
+                      onCheckedChange={(v) => setToastDraft((d) => ({ ...d, enabled: v }))}
+                      aria-label={T.toastEnabledAria}
+                    />
+                  </div>
+
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{T.toastPreviewLabel}</Label>
+                      <p className="text-xs text-muted-foreground">{T.toastPreviewHint}</p>
+                    </div>
+                    <Switch
+                      checked={toastDraft.showPreview}
+                      onCheckedChange={(v) => setToastDraft((d) => ({ ...d, showPreview: v }))}
+                      disabled={!toastDraft.enabled}
+                      aria-label={T.toastPreviewAria}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">
+                      {T.toastDurationLabel(toastDraft.durationSeconds)}
+                    </Label>
+                    <Slider
+                      value={[toastDraft.durationSeconds]}
+                      min={INBOUND_TOAST_DURATION_MIN_SECONDS}
+                      max={INBOUND_TOAST_DURATION_MAX_SECONDS}
+                      step={1}
+                      onValueChange={(v) =>
+                        setToastDraft((d) => ({
+                          ...d,
+                          durationSeconds: v[0] ?? d.durationSeconds,
+                        }))
+                      }
+                      disabled={!toastDraft.enabled}
+                      aria-label={T.toastDurationAria}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
