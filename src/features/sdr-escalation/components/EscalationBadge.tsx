@@ -15,11 +15,9 @@ export interface IEscalationBadgeProps {
 }
 
 const MODE_CLASSES: Record<SdrEscalationMode, string> = {
-  urgent: "bg-red-500/15 text-red-700 ring-red-500/30 dark:bg-red-500/25 dark:text-red-200",
-  normal:
-    "bg-amber-500/15 text-amber-700 ring-amber-500/30 dark:bg-amber-500/25 dark:text-amber-200",
-  standard:
-    "bg-emerald-500/15 text-emerald-700 ring-emerald-500/30 dark:bg-emerald-500/25 dark:text-emerald-200",
+  urgent: "bg-severity-critical/15 text-severity-critical ring-severity-critical/30",
+  normal: "bg-severity-warning/15 text-severity-warning ring-severity-warning/30",
+  standard: "bg-severity-info/15 text-severity-info ring-severity-info/30",
 };
 
 /**

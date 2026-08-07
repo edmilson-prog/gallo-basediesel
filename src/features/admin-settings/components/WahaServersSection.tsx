@@ -241,7 +241,7 @@ function WahaServerForm({
             Gravado criptografado no cofre — nunca exibido de volta.
           </p>
         ) : (
-          <p className="text-[11px] text-amber-600 dark:text-amber-400">
+          <p className="text-[11px] text-severity-warning">
             Sem HMAC, sessões não poderão ser criadas até o HMAC ser definido — você pode
             adicioná-lo depois.
           </p>
