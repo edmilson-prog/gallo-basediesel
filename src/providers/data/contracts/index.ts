@@ -6,6 +6,7 @@
  */
 
 import type { ICustomersProvider } from "./customers";
+import type { IContactsProvider } from "./contacts";
 import type { IVehiclesProvider } from "./vehicles";
 import type { ILeadsProvider } from "./leads";
 import type { ILeadFunnelsProvider } from "./leadFunnels";
@@ -205,6 +206,7 @@ export type { IConversationRescuesProvider } from "./conversationRescues";
  */
 export interface IDataProviders {
   customers: ICustomersProvider;
+  contacts: IContactsProvider;
   vehicles: IVehiclesProvider;
   leads: ILeadsProvider;
   leadFunnels: ILeadFunnelsProvider;

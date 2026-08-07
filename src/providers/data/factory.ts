@@ -1,6 +1,7 @@
 import type { IDataProviders } from "./contracts";
 
 import { mockCustomersProvider } from "./impl/mock/customers";
+import { mockContactsProvider } from "./impl/mock/contacts";
 import { mockVehiclesProvider } from "./impl/mock/vehicles";
 import { mockLeadsProvider } from "./impl/mock/leads";
 import { mockLeadFunnelsProvider } from "./impl/mock/leadFunnels";
@@ -55,6 +56,7 @@ import { mockSdrPilotSettingsProvider } from "./impl/mock/sdrPilotSettings";
 import { mockConversationRescuesProvider } from "./impl/mock/conversationRescues";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
+import { supabaseContactsProvider } from "./impl/supabase/contacts";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
 import { supabaseLeadsProvider } from "./impl/supabase/leads";
 import { supabaseLeadFunnelsProvider } from "./impl/supabase/leadFunnels";
@@ -142,6 +144,7 @@ if (import.meta.env.DEV) {
 
 const mockProviders: IDataProviders = {
   customers: mockCustomersProvider,
+  contacts: mockContactsProvider,
   vehicles: mockVehiclesProvider,
   leads: mockLeadsProvider,
   leadFunnels: mockLeadFunnelsProvider,
@@ -198,6 +201,7 @@ const mockProviders: IDataProviders = {
 
 const supabaseProviders: IDataProviders = {
   customers: supabaseCustomersProvider,
+  contacts: supabaseContactsProvider,
   vehicles: supabaseVehiclesProvider,
   leads: supabaseLeadsProvider,
   leadFunnels: supabaseLeadFunnelsProvider,
