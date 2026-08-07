@@ -19,6 +19,12 @@ versioning follows [SemVer](https://semver.org/).
 
 - **O som de mensagem não toca mais na conversa que está aberta** — antes ele tocava mesmo com o cliente à sua frente, o que ensinava a ignorar o som. Agora só toca quando você não está vendo aquela conversa.
 - **O que o Gestor vê nas Configurações passou a obedecer à matriz de papéis** — antes, 22 telas estavam presas a uma lista fixa de "só o dono", e liberar a permissão na matriz não adiantava: o item aparecia no menu e a tela continuava bloqueando. O Editor de papéis só conseguia tirar acesso, nunca dar.
+- **O papel base de um papel personalizado pode ser corrigido** — errar o papel base na criação obrigava a apagar o papel e refazer todas as permissões. Agora dá para trocá-lo ao renomear, enquanto ninguém estiver usando aquele papel. Quem já usa carrega o papel base no próprio acesso, então a troca só é liberada depois de mover essas pessoas.
+
+### Fixed
+
+- **Papel personalizado que não podia ser atribuído a ninguém** — ao criar um papel, a lista de papéis base oferecia "Owner" e "Cliente". Quem escolhesse um dos dois criava um papel que aparecia normalmente na hora de atribuir e era recusado pelo servidor na hora de salvar, sem explicar o motivo. Esses dois saíram da lista, e duplicar o papel "Owner" — que produzia o mesmo resultado — deixou de ser oferecido.
+- **Dois papéis com o mesmo nome** — a checagem de nome repetido existia só na tela; o banco aceitava a duplicata. Duas abas abertas, ou duas pessoas criando ao mesmo tempo, produziam papéis indistinguíveis na hora de atribuir. Agora o nome é único de verdade, sem diferenciar maiúsculas.
 
 ### Notes
 
@@ -26,6 +32,8 @@ versioning follows [SemVer](https://semver.org/).
 - **Abrir a conversa dispensa o aviso dela** e zera o contador; uma mensagem posterior começa um aviso novo.
 - **Desligar o som não desliga o aviso.** Em Configurações → Sons de notificação, desligar o som de mensagem silencia o áudio, mas o aviso visual continua aparecendo.
 - **O aviso é só das suas conversas.** Conversas na fila sem atendente, e aquelas em que você é apenas colaborador, não geram aviso.
+- **Esta versão traz duas migrations**, ambas já aplicadas em produção: as permissões do Gestor na área de Configurações e o nome único dos papéis.
+- **O papel base continua sendo o teto real de acesso aos dados.** A matriz de permissões refina o que aparece na tela dentro desse teto — ela não amplia o que o banco libera. Um papel personalizado com base "Gestor" enxerga tudo o que um Gestor enxerga, por mais que se desmarque na matriz.
 
 ## [0.164.0] — Roster · 2026-08-07
 
