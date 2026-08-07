@@ -4,7 +4,7 @@ import { requireAuth } from "@/features/auth/guards";
 import { GamificationConfigPage } from "@/features/gamification/pages/GamificationConfigPage";
 
 export const Route = createFileRoute("/app/configuracoes/gamificacao")({
-  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner"]),
+  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner", "Gestor"]),
   component: () => (
     <SettingsLayout>
       <GamificationConfigPage />
