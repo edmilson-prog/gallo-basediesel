@@ -14,6 +14,10 @@ interface ISellerKpiRowProps {
   isLoading: boolean;
   hasError: boolean;
   onRetry: () => void;
+  /** Gated by `order:view` in the role matrix. */
+  showSales: boolean;
+  /** Gated by `conversation:view` in the role matrix. */
+  showService: boolean;
 }
 
 export function SellerKpiRow({
@@ -23,6 +27,8 @@ export function SellerKpiRow({
   isLoading,
   hasError,
   onRetry,
+  showSales,
+  showService,
 }: ISellerKpiRowProps) {
   if (hasError) {
     // Without this branch a failed fetch left `isLoading === false` and
@@ -68,13 +74,18 @@ export function SellerKpiRow({
       ? metrics.totals.totalConversations - metrics.previous.totalConversations
       : null;
 
-  const items: {
+  type KpiItem = {
     icon: string;
     label: string;
     value: string;
     delta: string | null;
     good: boolean | null;
-  }[] = [
+  };
+
+  // Conversation-derived tiles need `conversation:view`; the revenue tile needs
+  // `order:view`. Both come from the editable role matrix, so a seller whose
+  // matrix lost one of them simply sees fewer tiles.
+  const serviceItems: KpiItem[] = [
     {
       icon: "mdi:forum-outline",
       label: S.kpiConversations,
@@ -104,17 +115,37 @@ export function SellerKpiRow({
       delta: convDeltaPts == null ? null : `${convDeltaPts >= 0 ? "+" : ""}${convDeltaPts} pts`,
       good: convDeltaPts == null ? null : convDeltaPts >= 0,
     },
-    {
-      icon: "mdi:cash-multiple",
-      label: S.kpiSales,
-      value: formatBRL(salesCurrent),
-      delta: salesDeltaPct == null ? null : formatPercent(salesDeltaPct),
-      good: salesDeltaPct == null ? null : salesDeltaPct >= 0,
-    },
   ];
 
+  const salesItem: KpiItem = {
+    icon: "mdi:cash-multiple",
+    label: S.kpiSales,
+    value: formatBRL(salesCurrent),
+    delta: salesDeltaPct == null ? null : formatPercent(salesDeltaPct),
+    good: salesDeltaPct == null ? null : salesDeltaPct >= 0,
+  };
+
+  const items: KpiItem[] = [
+    ...(showService ? serviceItems : []),
+    ...(showSales ? [salesItem] : []),
+  ];
+
+  if (items.length === 0) return null;
+
+  // Static class strings so Tailwind's scanner keeps these in the build.
+  const COLUMNS_BY_COUNT: Record<number, string> = {
+    1: "sm:grid-cols-1",
+    4: "sm:grid-cols-4",
+    5: "sm:grid-cols-5",
+  };
+
   return (
-    <div className="grid grid-cols-1 divide-y divide-border rounded-xl border border-border bg-card sm:grid-cols-5 sm:divide-x sm:divide-y-0">
+    <div
+      className={cn(
+        "grid grid-cols-1 divide-y divide-border rounded-xl border border-border bg-card sm:divide-x sm:divide-y-0",
+        COLUMNS_BY_COUNT[items.length] ?? "sm:grid-cols-5",
+      )}
+    >
       {items.map((item) => (
         <div key={item.label} className="p-4">
           <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">

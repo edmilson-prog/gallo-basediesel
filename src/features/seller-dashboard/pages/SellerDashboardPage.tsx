@@ -1,5 +1,6 @@
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";
+import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { DashboardLayout } from "@/features/shell/layouts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSellerPeriod } from "../hooks/useSellerPeriod";
@@ -35,6 +36,14 @@ export function SellerDashboardPage() {
   const sellerId = currentUser?.sellerId;
   const storeId = currentStoreId;
 
+  // Permissions live in the editable matrix (Configurações → Papéis), not in
+  // the role name: an Owner can revoke `goal:view` from Vendedor and the Metas
+  // menu disappears. Each card mirrors the resource that governs its full
+  // screen, so the home screen never shows what the matrix has taken away.
+  const canViewGoals = usePermission("goal", "view");
+  const canViewConversations = usePermission("conversation", "view");
+  const canViewOrders = usePermission("order", "view");
+
   const service = useSellerServiceMetrics({
     storeId: storeId ?? "",
     sellerId: sellerId ?? "",
@@ -68,38 +77,48 @@ export function SellerDashboardPage() {
   return (
     <DashboardLayout>
       <SellerGreeting firstName={firstName} period={period} onPeriodChange={setPeriod} now={now} />
-      <SellerKpiRow
-        metrics={service.metrics}
-        salesCurrent={service.salesCurrent}
-        salesPrevious={service.salesPrevious}
-        isLoading={service.isLoading}
-        hasError={service.isError}
-        onRetry={service.refetch}
-      />
+      {(canViewConversations || canViewOrders) && (
+        <SellerKpiRow
+          metrics={service.metrics}
+          salesCurrent={service.salesCurrent}
+          salesPrevious={service.salesPrevious}
+          isLoading={service.isLoading}
+          hasError={service.isError}
+          onRetry={service.refetch}
+          showSales={canViewOrders}
+          showService={canViewConversations}
+        />
+      )}
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
         <div className="flex flex-col gap-4">
-          <SellerGoalCard
-            goal={goalProgress.goal}
-            progress={goalProgress.progress}
-            pace={goalProgress.pace}
-            isLoading={goalProgress.isLoading}
-            hasError={goalProgress.hasError}
-          />
-          <SellerActivityChart
-            period={period}
-            metrics={service.metrics}
-            conversationsCurrent={service.conversationsCurrent}
-            now={now}
-          />
+          {canViewGoals && (
+            <SellerGoalCard
+              goal={goalProgress.goal}
+              progress={goalProgress.progress}
+              pace={goalProgress.pace}
+              isLoading={goalProgress.isLoading}
+              hasError={goalProgress.hasError}
+            />
+          )}
+          {canViewConversations && (
+            <SellerActivityChart
+              period={period}
+              metrics={service.metrics}
+              conversationsCurrent={service.conversationsCurrent}
+              now={now}
+            />
+          )}
         </div>
         <div className="flex flex-col gap-4">
-          <SellerQueueCard
-            entries={queue.entries}
-            total={queue.total}
-            isLoading={queue.isLoading}
-            hasError={queue.hasError}
-            now={now}
-          />
+          {canViewConversations && (
+            <SellerQueueCard
+              entries={queue.entries}
+              total={queue.total}
+              isLoading={queue.isLoading}
+              hasError={queue.hasError}
+              now={now}
+            />
+          )}
           <SellerRecordsCard />
         </div>
       </div>

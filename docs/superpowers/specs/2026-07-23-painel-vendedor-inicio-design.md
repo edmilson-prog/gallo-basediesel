@@ -23,6 +23,24 @@ Entrega em **fase única**, com 6 dos 7 blocos do protótipo com dado real e 1 b
 | Ranking da loja | ✅ real |
 | Recordes & curiosidades (todos os tempos) | ⏸️ layout + dado de exemplo, badge "em breve" — spec própria depois |
 
+## Permissões — matriz de Papéis, não nome de papel
+
+O papel **base** decide *qual home* o usuário vê (`userRole === "Vendedor"` → este painel; Owner/Gestor → `ManagerDashboardPage`). Isso é seguro para papéis customizados: `profiles.role` guarda sempre o papel base e `profiles.role_id` guarda o papel customizado, então um papel customizado com `base_role = Vendedor` continua caindo aqui (`SupabaseAuthProvider` → `mapDbRoleToRoleName`).
+
+Mas **o que cada card mostra** é governado pela matriz editável em `Configurações → Papéis` (PRD-211), não pelo nome do papel. Cada card espelha o recurso que governa a tela cheia correspondente:
+
+| Card | Recurso RBAC |
+|---|---|
+| KPIs de atendimento (atendimentos, 1ª resposta, fechamento, conversão) | `conversation:view` |
+| KPI "Suas vendas" | `order:view` |
+| Gráfico de atendimentos | `conversation:view` |
+| Sua fila agora | `conversation:view` |
+| Sua meta do mês | `goal:view` |
+
+Hoje a matriz concede exatamente isso ao papel Vendedor (`conversation: view+edit/own`, `goal: view/own`, `order: view/own`, `commission: view/own` — verificado em produção). Se o Owner revogar um deles, o menu correspondente some **e o card também** — sem isso, a tela Metas desapareceria do menu enquanto o card da meta continuaria no início.
+
+⚠️ O card de recordes não é gated: é placeholder estático, sem dado real.
+
 ## Onde vive (arquitetura)
 
 - Novo componente `SellerDashboardPage` em `src/features/seller-dashboard/` (feature própria — `pages/`, `components/`, `hooks/`, `engine/`, `i18n/`, barrel `index.ts`).
