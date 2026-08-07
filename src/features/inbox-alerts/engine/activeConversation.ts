@@ -10,7 +10,7 @@ const CONVERSATION_ROUTE_PREFIX = "/app/atendimento/";
  * future caller passing `location.href`'s tail should not silently miss.
  */
 export function activeConversationIdFromPath(pathname: string): string | null {
-  const path = pathname.split("?")[0].split("#")[0];
+  const path = pathname.replace(/[?#].*$/, "");
   if (!path.startsWith(CONVERSATION_ROUTE_PREFIX)) return null;
   const tail = path.slice(CONVERSATION_ROUTE_PREFIX.length).replace(/\/+$/, "");
   // A nested segment means the user is on a sub-route, not on the conversation.
