@@ -4,47 +4,58 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { ICarteiraTransfer, ID, ISeller } from "@/shared/types";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Icon } from "@/components/Icon";
 import { EmptyState } from "@/features/shell/components/EmptyState";
+import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
-import { ActiveTransferCard } from "../components/ActiveTransferCard";
+import { CarteiraHeader } from "../components/CarteiraHeader";
+import { SectionHeading } from "../components/SectionHeading";
+import { SellerWalletBoard } from "../components/SellerWalletBoard";
+import { ActiveCoverageCard } from "../components/ActiveCoverageCard";
+import { CoverageEmptyState } from "../components/CoverageEmptyState";
+import { RecentChangesTable } from "../components/RecentChangesTable";
+import { SellerWalletModal } from "../components/SellerWalletModal";
+import { UnassignedCustomersModal } from "../components/UnassignedCustomersModal";
 import { TransferHistoryTable } from "../components/TransferHistoryTable";
 import { TransferFiltersBar } from "../components/TransferFiltersBar";
 import { TransferAuditTab } from "../components/TransferAuditTab";
 import { RevertTransferModal } from "../components/RevertTransferModal";
 import { NewTemporaryTransferModal } from "../components/NewTemporaryTransferModal";
+import { CustomerListModal } from "../components/CustomerListModal";
 import { useTransfersList, type ITransfersListFilters } from "../hooks/useTransfersList";
 import { useTransferClosureAudit } from "../hooks/useTransferClosureAudit";
+import { useWalletStats, type ISellerWalletRow } from "../hooks/useWalletStats";
 import { CARTEIRA_STRINGS } from "../i18n/pt-BR";
 
-type Tab = "active" | "history" | "audit";
+type Tab = "wallet" | "history" | "audit";
 
 const EMPTY_FILTERS: ITransfersListFilters = {};
+
+/** Window the "Mudanças recentes" section covers. */
+const RECENT_WINDOW_DAYS = 30;
 
 export function CarteiraPage() {
   const { currentUser } = useAuth();
   const role = useCurrentRole();
   const { currentStoreId } = useCurrentStore();
-  const isOwner = role === "Owner";
-  const isManager = role === "Gestor";
-  const canManage = isOwner || isManager;
+  const canManage = role === "Owner" || role === "Gestor";
 
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("active");
-  const [newOpen, setNewOpen] = useState<"none" | "temporary" | "individual" | "batch">("none");
+  const [tab, setTab] = useState<Tab>("wallet");
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
+
+  const [coverageOpen, setCoverageOpen] = useState(false);
+  const [coveragePreset, setCoveragePreset] = useState<ID | undefined>(undefined);
+  const [unassignedOpen, setUnassignedOpen] = useState(false);
   const [revertTarget, setRevertTarget] = useState<ICarteiraTransfer | null>(null);
-  const [activeFilters, setActiveFilters] = useState<ITransfersListFilters>(EMPTY_FILTERS);
+  const [sellerDetail, setSellerDetail] = useState<ISellerWalletRow | null>(null);
+  const [customerListIds, setCustomerListIds] = useState<ID[] | null>(null);
+
   const [historyFilters, setHistoryFilters] = useState<ITransfersListFilters>(EMPTY_FILTERS);
   const [historyPage, setHistoryPage] = useState(1);
 
@@ -61,12 +72,44 @@ export function CarteiraPage() {
     return map;
   }, [sellers]);
 
-  const activeQuery = useTransfersList({
+  const walletStats = useWalletStats(currentStoreId ?? undefined, sellers);
+
+  // Coverages in force — the only thing here that expires on its own.
+  const coveragesQuery = useTransfersList({
     storeId: currentStoreId ?? undefined,
     scope: "active",
-    filters: activeFilters,
+    filters: useMemo(() => ({ types: ["temporary"] }) as ITransfersListFilters, []),
     pageSize: 50,
   });
+  const coverages = useMemo(() => coveragesQuery.data?.data ?? [], [coveragesQuery.data]);
+
+  // Permanent changes in the recent window — done deals, listed for review.
+  const recentSince = useMemo(
+    () => new Date(Date.now() - RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+    [],
+  );
+  const changesFilters = useMemo<ITransfersListFilters>(
+    () => ({ types: ["permanent_individual", "permanent_batch"], since: recentSince }),
+    [recentSince],
+  );
+  const changesQuery = useTransfersList({
+    storeId: currentStoreId ?? undefined,
+    scope: "active",
+    filters: changesFilters,
+    pageSize: 50,
+  });
+  const recentChanges = useMemo(() => changesQuery.data?.data ?? [], [changesQuery.data]);
+
+  const coverageByTitular = useMemo(() => {
+    const map = new Map<ID, ICarteiraTransfer>();
+    coverages.forEach((t) => map.set(t.fromSellerId, t));
+    return map;
+  }, [coverages]);
+
+  const coveredCustomers = useMemo(
+    () => coverages.reduce((sum, t) => sum + t.customerIds.length, 0),
+    [coverages],
+  );
 
   const historyQuery = useTransfersList({
     storeId: currentStoreId ?? undefined,
@@ -75,198 +118,252 @@ export function CarteiraPage() {
     page: historyPage,
     pageSize: 20,
   });
-
-  const activeList = activeQuery.data?.data ?? [];
-  const temporaryCount = activeList.filter((t) => t.type === "temporary").length;
-  const totalActive = activeList.length;
-
-  const handleActiveFilterChange = useCallback((patch: Partial<ITransfersListFilters>) => {
-    setActiveFilters((prev) => ({ ...prev, ...patch }));
-  }, []);
-
-  const handleHistoryFilterChange = useCallback((patch: Partial<ITransfersListFilters>) => {
-    setHistoryFilters((prev) => ({ ...prev, ...patch }));
-    setHistoryPage(1);
-  }, []);
-
   const historyTotal = historyQuery.data?.total ?? 0;
   const historyTotalPages = Math.max(1, Math.ceil(historyTotal / 20));
-
   const historyIds = useMemo(
     () => (historyQuery.data?.data ?? []).map((t) => t.id),
     [historyQuery.data],
   );
   const { closureByTransferId } = useTransferClosureAudit(historyIds, currentStoreId ?? undefined);
 
+  const handleHistoryFilterChange = useCallback((patch: Partial<ITransfersListFilters>) => {
+    setHistoryFilters((prev) => ({ ...prev, ...patch }));
+    setHistoryPage(1);
+  }, []);
+
+  const openCoverageModal = useCallback((fromSellerId?: ID) => {
+    setCoveragePreset(fromSellerId);
+    setCoverageOpen(true);
+  }, []);
+
+  /**
+   * Permanent transfers need the customer in hand, so this is an honest link
+   * out to Clientes rather than a menu item that fires a toast and navigates
+   * anyway — which is what the old "Nova transferência" dropdown did for two of
+   * its three options.
+   */
+  const goToCustomers = useCallback(() => {
+    toast.info(CARTEIRA_STRINGS.page.transferCustomersHint);
+    void navigate({ to: "/app/clientes" });
+  }, [navigate]);
+
+  const handleCoverSeller = useCallback(
+    (row: ISellerWalletRow) => {
+      const existing = coverageByTitular.get(row.sellerId);
+      if (existing) {
+        setCustomerListIds(existing.customerIds);
+        return;
+      }
+      openCoverageModal(row.sellerId);
+    },
+    [coverageByTitular, openCoverageModal],
+  );
+
+  const isBoardLoading = sellersQuery.isLoading || walletStats.isLoading;
+
   return (
-    <div className="flex h-full flex-col bg-background">
-      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-card px-6 py-5">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            {CARTEIRA_STRINGS.page.title}
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            {CARTEIRA_STRINGS.page.subtitle}
-          </p>
-          <p className="mt-2 text-xs font-medium text-foreground">
-            {CARTEIRA_STRINGS.page.activeSummary(totalActive, temporaryCount)}
-          </p>
-        </div>
-
-        {canManage && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="gap-2">
-                <Icon icon="mdi:plus" size={16} />
-                {CARTEIRA_STRINGS.page.newTransfer}
-                <Icon icon="mdi:chevron-down" size={14} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuItem onSelect={() => setNewOpen("temporary")}>
-                <Icon icon="mdi:clock-time-five-outline" size={14} />
-                {CARTEIRA_STRINGS.page.newTemporary}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => {
-                  toast.info(
-                    "Transferência permanente individual: abra a ficha do cliente e use o menu ⋮ → Transferir carteira.",
-                  );
-                  void navigate({ to: "/app/clientes" });
-                }}
-              >
-                <Icon icon="mdi:account-arrow-right-outline" size={14} />
-                {CARTEIRA_STRINGS.page.newPermanentIndividual}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => {
-                  toast.info(
-                    "Transferência em lote: selecione múltiplos clientes na lista e clique em 'Transferir vendedor'.",
-                  );
-                  void navigate({ to: "/app/clientes" });
-                }}
-              >
-                <Icon icon="mdi:account-group-outline" size={14} />
-                {CARTEIRA_STRINGS.page.newPermanentBatch}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </header>
-
+    <div className="flex h-full min-h-0 flex-col bg-background">
       <Tabs
         value={tab}
         onValueChange={(v) => setTab(v as Tab)}
-        className="flex flex-1 flex-col overflow-hidden"
+        className="flex min-h-0 flex-1 flex-col gap-0"
       >
-        <div className="border-b border-border bg-card px-6">
-          <TabsList className="my-2">
-            <TabsTrigger value="active">{CARTEIRA_STRINGS.tabs.active}</TabsTrigger>
-            <TabsTrigger value="history">{CARTEIRA_STRINGS.tabs.history}</TabsTrigger>
-            <TabsTrigger value="audit">{CARTEIRA_STRINGS.tabs.audit}</TabsTrigger>
-          </TabsList>
+        {/* Fixed header block — the progress line rides its bottom edge. */}
+        <div className="relative">
+          <CarteiraHeader
+            totalCustomers={walletStats.board.total}
+            sellerCount={sellers.length}
+            coverageCount={coverages.length}
+            coveredCustomers={coveredCustomers}
+            unassigned={walletStats.board.unassigned}
+            isLoading={isBoardLoading}
+            canManage={canManage}
+            onNewCoverage={() => openCoverageModal()}
+            onTransferCustomers={goToCustomers}
+          />
+          <ScrollProgressBar container={scrollEl} />
         </div>
 
-        <TabsContent value="active" className="m-0 flex-1 overflow-y-auto px-6 py-4">
-          <div className="space-y-4">
-            <TransferFiltersBar
-              filters={activeFilters}
-              sellers={sellers}
-              showStatusFilter={false}
-              onChange={handleActiveFilterChange}
-              onClear={() => setActiveFilters(EMPTY_FILTERS)}
+        <TabsContent
+          value="wallet"
+          className="m-0 min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-4 md:px-6"
+          ref={setScrollEl}
+        >
+          <SectionHeading
+            title={CARTEIRA_STRINGS.wallet.boardTitle}
+            count={CARTEIRA_STRINGS.wallet.boardCount(sellers.length, walletStats.board.total)}
+          >
+            <SellerWalletBoard
+              rows={walletStats.board.rows}
+              unassigned={walletStats.board.unassigned}
+              coverageByTitular={coverageByTitular}
+              sellersById={sellersById}
+              isLoading={isBoardLoading}
+              isError={walletStats.isError}
+              canManage={canManage}
+              onOpenSeller={setSellerDetail}
+              onCoverSeller={handleCoverSeller}
+              onDistributeUnassigned={() => setUnassignedOpen(true)}
             />
+          </SectionHeading>
 
-            {activeQuery.isLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-32 w-full rounded-lg" />
-                ))}
-              </div>
-            ) : activeQuery.isError ? (
-              <EmptyState
-                icon="mdi:alert-circle-outline"
-                title="Falha ao carregar transferências"
-                description="Tente novamente em instantes."
-              />
-            ) : activeList.length === 0 ? (
-              <EmptyState
-                icon="mdi:briefcase-account-outline"
-                title={CARTEIRA_STRINGS.active.emptyTitle}
-                description={CARTEIRA_STRINGS.active.emptyDescription}
-              />
-            ) : (
-              <div className="space-y-3">
-                {activeList.map((t) => (
-                  <ActiveTransferCard
+          <SectionHeading
+            title={CARTEIRA_STRINGS.coverage.sectionTitle}
+            count={coverages.length || null}
+            hint={coverages.length ? CARTEIRA_STRINGS.coverage.sectionHint : undefined}
+          >
+            {coveragesQuery.isLoading ? (
+              <Skeleton className="h-28 w-full rounded-xl" />
+            ) : coverages.length > 0 ? (
+              <div className="flex flex-col gap-2.5">
+                {coverages.map((t) => (
+                  <ActiveCoverageCard
                     key={t.id}
                     transfer={t}
                     sellersById={sellersById}
                     canRevert={canManage}
                     onRevert={setRevertTarget}
+                    onViewCustomers={(transfer) => setCustomerListIds(transfer.customerIds)}
                   />
                 ))}
               </div>
+            ) : (
+              <CoverageEmptyState canManage={canManage} onNewCoverage={() => openCoverageModal()} />
             )}
-          </div>
-        </TabsContent>
+          </SectionHeading>
 
-        <TabsContent value="history" className="m-0 flex-1 overflow-y-auto px-6 py-4">
-          <div className="space-y-4">
-            <TransferFiltersBar
-              filters={historyFilters}
-              sellers={sellers}
-              showStatusFilter
-              onChange={handleHistoryFilterChange}
-              onClear={() => {
-                setHistoryFilters(EMPTY_FILTERS);
-                setHistoryPage(1);
-              }}
-            />
-
-            {historyQuery.isLoading ? (
-              <Skeleton className="h-64 w-full rounded-lg" />
-            ) : historyQuery.isError ? (
+          <SectionHeading
+            title={CARTEIRA_STRINGS.changes.sectionTitle}
+            count={CARTEIRA_STRINGS.changes.sectionCount(recentChanges.length)}
+            hint={CARTEIRA_STRINGS.changes.sectionHint}
+            right={
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                onClick={() => setTab("history")}
+              >
+                {CARTEIRA_STRINGS.changes.seeFullHistory}
+                <Icon icon="mdi:arrow-right" size={13} />
+              </Button>
+            }
+          >
+            {changesQuery.isLoading ? (
+              <Skeleton className="h-40 w-full rounded-xl" />
+            ) : recentChanges.length === 0 ? (
               <EmptyState
-                icon="mdi:alert-circle-outline"
-                title="Falha ao carregar histórico"
-                description="Tente novamente em instantes."
-              />
-            ) : (historyQuery.data?.data.length ?? 0) === 0 ? (
-              <EmptyState
-                icon="mdi:history"
-                title={CARTEIRA_STRINGS.history.emptyTitle}
-                description={CARTEIRA_STRINGS.history.emptyDescription}
+                icon="mdi:swap-horizontal"
+                title={CARTEIRA_STRINGS.changes.emptyTitle}
+                description={CARTEIRA_STRINGS.changes.emptyDescription}
               />
             ) : (
-              <TransferHistoryTable
-                transfers={historyQuery.data?.data ?? []}
+              <RecentChangesTable
+                transfers={recentChanges}
                 sellersById={sellersById}
-                closureByTransferId={closureByTransferId}
-                page={historyPage}
-                totalPages={historyTotalPages}
-                total={historyTotal}
-                onPageChange={setHistoryPage}
+                canRevert={canManage}
+                onRevert={setRevertTarget}
+                onViewCustomers={(t) => setCustomerListIds(t.customerIds)}
               />
             )}
-          </div>
+          </SectionHeading>
         </TabsContent>
 
-        <TabsContent value="audit" className="m-0 flex-1 overflow-y-auto px-6 py-4">
+        <TabsContent
+          value="history"
+          className="m-0 min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-6"
+        >
+          <TransferFiltersBar
+            filters={historyFilters}
+            sellers={sellers}
+            showStatusFilter
+            onChange={handleHistoryFilterChange}
+            onClear={() => {
+              setHistoryFilters(EMPTY_FILTERS);
+              setHistoryPage(1);
+            }}
+          />
+
+          {historyQuery.isLoading ? (
+            <Skeleton className="h-64 w-full rounded-lg" />
+          ) : historyQuery.isError ? (
+            <EmptyState
+              icon="mdi:alert-circle-outline"
+              title="Falha ao carregar histórico"
+              description="Tente novamente em instantes."
+            />
+          ) : (historyQuery.data?.data.length ?? 0) === 0 ? (
+            <EmptyState
+              icon="mdi:history"
+              title={CARTEIRA_STRINGS.history.emptyTitle}
+              description={CARTEIRA_STRINGS.history.emptyDescription}
+            />
+          ) : (
+            <TransferHistoryTable
+              transfers={historyQuery.data?.data ?? []}
+              sellersById={sellersById}
+              closureByTransferId={closureByTransferId}
+              page={historyPage}
+              totalPages={historyTotalPages}
+              total={historyTotal}
+              onPageChange={setHistoryPage}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="audit" className="m-0 min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
           <TransferAuditTab storeId={currentStoreId ?? undefined} sellersById={sellersById} />
         </TabsContent>
       </Tabs>
 
       {canManage && currentUser && (
         <NewTemporaryTransferModal
-          open={newOpen === "temporary"}
+          open={coverageOpen}
           sellers={sellers}
           storeId={currentStoreId ?? "00000000-0000-0000-0000-000000000001"}
           currentSellerId={currentUser.sellerId}
-          activeTransfers={activeList}
-          onClose={() => setNewOpen("none")}
+          activeTransfers={coverages}
+          presetFromSellerId={coveragePreset}
+          onClose={() => setCoverageOpen(false)}
         />
       )}
+
+      {canManage && (
+        <UnassignedCustomersModal
+          open={unassignedOpen}
+          storeId={currentStoreId ?? undefined}
+          sellers={sellers}
+          onClose={() => setUnassignedOpen(false)}
+        />
+      )}
+
+      <SellerWalletModal
+        row={sellerDetail}
+        coveredBy={sellerDetail ? coverageByTitular.get(sellerDetail.sellerId) : undefined}
+        sellersById={sellersById}
+        recentChanges={recentChanges}
+        canManage={canManage}
+        onClose={() => setSellerDetail(null)}
+        onCover={(row) => {
+          setSellerDetail(null);
+          openCoverageModal(row.sellerId);
+        }}
+        onViewCustomers={(row) => {
+          setSellerDetail(null);
+          // `sellers` is the CSV search param the Clientes list reads.
+          void navigate({ to: "/app/clientes", search: { sellers: row.sellerId } });
+        }}
+        onHandWallet={() => {
+          setSellerDetail(null);
+          goToCustomers();
+        }}
+      />
+
+      <CustomerListModal
+        open={customerListIds !== null}
+        customerIds={customerListIds ?? []}
+        onClose={() => setCustomerListIds(null)}
+      />
 
       <RevertTransferModal
         transfer={revertTarget}
