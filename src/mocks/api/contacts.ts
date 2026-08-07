@@ -339,13 +339,15 @@ function matchesRecencyBucket(
 }
 
 /**
- * Fields this mock-API layer is allowed to filter by directly: `storeId`
- * (trivial equality) and `lastContactBucket` (not covered by the contacts
- * engine). Everything else — scope, search, owners, tags, city/uf, sources —
- * is the responsibility of the caller. See `impl/mock/contacts.ts` for why:
- * the tested filter engine (`applyContactFilters`/`countScopes`) lives under
- * `src/features/contacts/engine/`, and the ESLint boundary forbids importing
- * feature code into `src/mocks/api/**` — only the provider layer may do it.
+ * Fields this mock-API layer filters by directly: `storeId` (trivial
+ * equality) and `lastContactBucket` (not covered by the contacts engine).
+ * Everything else — scope, search, owners, tags, city/uf, sources — is the
+ * caller's responsibility. See `impl/mock/contacts.ts` for why: the tested
+ * filter engine (`applyContactFilters`/`countScopes`) lives under
+ * `src/features/contacts/engine/`, and this task keeps feature code out of
+ * `src/mocks/api/**` by convention (ESLint doesn't enforce this specific
+ * boundary — it ignores `src/mocks/**` entirely) so only the provider layer
+ * imports it.
  */
 function matchesBaseParams(contact: IContact, params: IListContactsParams, nowMs: number): boolean {
   if (params.storeId !== undefined && contact.storeId !== params.storeId) return false;
@@ -507,3 +509,18 @@ export function countContactScopes(params: IListContactsParams = {}): Promise<IC
     { payload: params },
   );
 }
+
+/**
+ * Grouped surface, shaped like every sibling (`customersApi`, `leadsApi`, …)
+ * so `contacts` has an entry in the `@/mocks` barrel — the standalone
+ * functions above stay exported too, since `impl/mock/contacts.ts` destructures
+ * them off this same object and other call sites may still want them directly.
+ */
+export const contactsApi = {
+  list: listContacts,
+  get: getContact,
+  create: createContact,
+  update: updateContact,
+  delete: deleteContact,
+  countScopes: countContactScopes,
+};

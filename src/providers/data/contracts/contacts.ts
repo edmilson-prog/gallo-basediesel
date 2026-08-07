@@ -7,7 +7,26 @@ import type {
 } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
-/** Bucket for the "Último contato" filter. */
+/**
+ * Bucket for the "Último contato" filter. Windows are CUMULATIVE look-backs
+ * from now, NOT a partition of the timeline — "30d" already includes "7d"
+ * and "hoje". Picking one answers "who did I reach in the last N days",
+ * not "days N to M ago" (compare `RecencyBucket` on `customers.ts`, which
+ * IS a partition — do not copy that shape here).
+ *
+ * Boundaries, with `days = floor((nowMs - Date.parse(lastContactAt)) / 86_400_000)`:
+ *   - `"hoje"`: `days <= 0` (contacted today)
+ *   - `"7d"`: `0 <= days <= 7`
+ *   - `"30d"`: `0 <= days <= 30`
+ *   - `"90d+"`: `days > 90` (strictly more than 90 days ago)
+ *   - `"nunca"`: `lastContactAt === null` (never contacted)
+ *
+ * There is a deliberate gap between "30d" and "90d+" — a contact last
+ * reached 45 days ago matches neither. That's intentional: each bucket is a
+ * specific question, not a slice of a full partition.
+ *
+ * Both providers (mock and Supabase) MUST implement these exact boundaries.
+ */
 export type ContactRecencyBucket = "hoje" | "7d" | "30d" | "90d+" | "nunca";
 
 export type ContactsOrderBy =
@@ -31,6 +50,7 @@ export interface IListContactsParams extends IPaginationParams {
   /** True to restrict to contacts with no owner. Combines with ownerSellerIds. */
   unassignedOwner?: boolean;
   tags?: string[];
+  /** Independent columns — either may be set alone. `city` alone matches any UF; `uf` alone matches any city. */
   city?: string;
   uf?: string;
   sources?: ContactSource[];

@@ -1,12 +1,6 @@
 import type { ID, IContact, IContactScopeCounts } from "@/shared/types";
 import { paginate } from "@/mocks/api/utils";
-import {
-  createContact,
-  deleteContact,
-  getContact,
-  listContacts,
-  updateContact,
-} from "@/mocks/api/contacts";
+import { contactsApi } from "@/mocks";
 import {
   applyContactFilters,
   UNASSIGNED_OWNER,
@@ -18,26 +12,38 @@ import type { IContactsProvider, IListContactsParams } from "../../contracts/con
 import { FETCH_ALL_PAGE_SIZE } from "../../contracts/_shared";
 import { logMockMutation } from "./_audit";
 
+// Same bridge every sibling mock provider uses (`customersApi`, `leadsApi`, …).
+const {
+  list: listContacts,
+  get: getContact,
+  create: createContact,
+  update: updateContact,
+  delete: deleteContact,
+} = contactsApi;
+
 /**
  * Translate the provider-level params into the engine's filter state.
  *
- * `IListContactsParams` splits location into `city`/`uf`, while the engine
- * (built for the filter bar's single "Cidade / UF" select) compares a combined
- * label. Rebuilding that label here is a faithful adapter, not a shortcut: it
- * mirrors exactly what a UI-driven `city` value would already look like.
+ * `city`/`uf` are handled OUTSIDE the engine (see {@link filteredContacts}):
+ * `IListContactsParams` treats them as independent columns — matching
+ * Task 8's Supabase sketch, which filters each with its own `.eq(...)` — but
+ * the engine's `IContactFilterState.city` only compares a single combined
+ * "Cidade / UF" label. Feeding a bare `city` (no `uf`) into that label never
+ * matches an actual contact (whose label is always "City / UF"), so `city`
+ * is left out of the filter state entirely and applied as plain equality
+ * afterwards, symmetrically with `uf`.
  */
 function buildFilterState(params: IListContactsParams): IContactFilterState {
   const owners: (ID | typeof UNASSIGNED_OWNER)[] = [
     ...(params.ownerSellerIds ?? []),
     ...(params.unassignedOwner ? [UNASSIGNED_OWNER] : []),
   ];
-  const city = params.city ? (params.uf ? `${params.city} / ${params.uf}` : params.city) : null;
   return {
     scope: params.scope ?? "todos",
     search: params.search ?? "",
     owners,
     tags: params.tags ?? [],
-    city,
+    city: null,
     sources: params.sources ?? [],
   };
 }
@@ -58,11 +64,10 @@ async function filteredContacts(params: IListContactsParams): Promise<IContact[]
   });
   const filterState = buildFilterState(params);
   let filtered = applyContactFilters(superset.data, filterState);
-  // `uf` with no `city` has no engine equivalent (the engine only compares the
-  // combined "Cidade / UF" label) — apply it as a plain equality pass.
-  if (params.uf && !params.city) {
-    filtered = filtered.filter((c) => c.uf === params.uf);
-  }
+  // city/uf are independent columns — each applied on its own, so either may
+  // be set alone (city-only matches any UF, uf-only matches any city).
+  if (params.city) filtered = filtered.filter((c) => c.city === params.city);
+  if (params.uf) filtered = filtered.filter((c) => c.uf === params.uf);
   return filtered;
 }
 
@@ -163,8 +168,8 @@ export const mockContactsProvider: IContactsProvider = {
   bulkAddTag: async (ids, tag) => {
     let affected = 0;
     for (const id of ids) {
-      const current = await getContact(id);
-      if (current.tags.includes(tag)) continue;
+      const current = await getContact(id).catch(() => null);
+      if (!current || current.tags.includes(tag)) continue;
       const updated = await updateContact(id, { tags: [...current.tags, tag] });
       logMockMutation({
         action: "bulk_add_tag",
@@ -182,8 +187,8 @@ export const mockContactsProvider: IContactsProvider = {
   bulkRemoveTag: async (ids, tag) => {
     let affected = 0;
     for (const id of ids) {
-      const current = await getContact(id);
-      if (!current.tags.includes(tag)) continue;
+      const current = await getContact(id).catch(() => null);
+      if (!current || !current.tags.includes(tag)) continue;
       const updated = await updateContact(id, { tags: current.tags.filter((t) => t !== tag) });
       logMockMutation({
         action: "bulk_remove_tag",
@@ -201,8 +206,8 @@ export const mockContactsProvider: IContactsProvider = {
   bulkTransferOwner: async (ids, ownerSellerId) => {
     let affected = 0;
     for (const id of ids) {
-      const current = await getContact(id);
-      if (current.ownerSellerId === ownerSellerId) continue;
+      const current = await getContact(id).catch(() => null);
+      if (!current || current.ownerSellerId === ownerSellerId) continue;
       const updated = await updateContact(id, { ownerSellerId });
       logMockMutation({
         action: "bulk_transfer_owner",
@@ -220,8 +225,8 @@ export const mockContactsProvider: IContactsProvider = {
   bulkSetOptOut: async (ids, optOut) => {
     let affected = 0;
     for (const id of ids) {
-      const current = await getContact(id);
-      if (current.optOut === optOut) continue;
+      const current = await getContact(id).catch(() => null);
+      if (!current || current.optOut === optOut) continue;
       const updated = await updateContact(id, stampOptOut(optOut));
       logMockMutation({
         action: "bulk_set_opt_out",
