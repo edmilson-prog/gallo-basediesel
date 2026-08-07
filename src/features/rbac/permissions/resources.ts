@@ -11,6 +11,7 @@
  */
 export const RESOURCES = [
   "customer",
+  "contact",
   "vehicle",
   "lead",
   "conversation",
