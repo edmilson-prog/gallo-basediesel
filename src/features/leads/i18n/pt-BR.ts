@@ -81,6 +81,8 @@ export const LEADS_STRINGS = {
     daysInStage: (n: number) => `${n} ${n === 1 ? "dia" : "dias"} no estágio`,
     converted: "Convertido",
     lost: "Perdido",
+    ariaLabel: (name: string, stage: string, temperature: string) =>
+      `Lead ${name}, etapa ${stage}, temperatura ${temperature}`,
   },
   kanban: {
     columnCount: (n: number) => `${n} ${n === 1 ? "lead" : "leads"}`,
@@ -88,6 +90,55 @@ export const LEADS_STRINGS = {
       `Média ${days.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${days === 1 ? "dia" : "dias"}`,
     emptyColumn: "Sem leads",
     quickMove: "Mover para…",
+    columnSum: "Soma dos valores desta etapa",
+    overdue: (n: number) => `${n} ${n === 1 ? "atrasado" : "atrasados"}`,
+    overdueHint: "Filtrar só os atrasados",
+    averageDaysTooltip: (days: number) =>
+      `Média de ${days.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${days === 1 ? "dia" : "dias"} nesta etapa`,
+    partialHint: "Contagem parcial — o total do servidor ainda está carregando.",
+    sortLabel: "Ordenar por",
+    sortModes: {
+      oldest: "Mais antigos",
+      newest: "Mais recentes",
+      nextAction: "Próxima ação",
+      highestValue: "Maior valor",
+      stalest: "Parados há mais tempo",
+    },
+    collapse: "Recolher coluna",
+    expand: "Expandir coluna",
+    columnMenu: (stage: string) => `Ações da etapa ${stage}`,
+    loadMore: (n: number) => `Carregar mais ${n}`,
+    showingOf: (shown: number, total: number) => `${shown} de ${total}`,
+    hover: {
+      phone: "Telefone",
+      origin: "Origem",
+      tags: "Tags",
+      daysInStage: "Nesta etapa",
+      createdAt: "Criado em",
+      funnels: "Funis",
+      daysValue: (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`,
+      noTags: "Sem tags",
+    },
+    triage: {
+      title: "Virou depósito",
+      body: (n: number) =>
+        `${n.toLocaleString("pt-BR")} leads parados na entrada. Triar em lista é mais rápido que arrastar um a um.`,
+      oldest: (days: number) =>
+        days === 0
+          ? "O mais antigo chegou hoje."
+          : `O mais antigo está aqui há ${days} ${days === 1 ? "dia" : "dias"}.`,
+      toList: "Triar em lista",
+      distribute: "Distribuir",
+      distributeSoon: "A distribuição em lote usa a fila de rodízio e ainda não está pronta.",
+      dropHint: "Solte para devolver à triagem",
+    },
+    dnd: {
+      grabbed: (lead: string) => `Pegou o lead ${lead}. Use as setas para mover e espaço para soltar.`,
+      over: (stage: string) => `Sobre a etapa ${stage}.`,
+      dropped: (lead: string, stage: string) => `${lead} movido para ${stage}.`,
+      outside: "Solto fora de qualquer etapa — nada mudou.",
+      cancelled: "Movimento cancelado.",
+    },
     metrics: {
       conversion: "Taxa de conversão",
       avgCycle: "Tempo médio total",
@@ -99,6 +150,7 @@ export const LEADS_STRINGS = {
   },
   list: {
     columns: {
+      selectVisible: "Selecionar os leads visíveis",
       name: "Nome",
       phone: "Telefone",
       stage: "Estágio",
@@ -109,6 +161,35 @@ export const LEADS_STRINGS = {
       nextAction: "Próxima ação",
       daysInStage: "Dias no estágio",
       createdAt: "Criado em",
+    },
+    bulk: {
+      selected: (n: number) => (n === 1 ? "1 lead selecionado" : `${n} leads selecionados`),
+      clear: "Limpar seleção",
+      addToFunnel: "Adicionar ao funil…",
+      assignSeller: "Atribuir vendedor",
+      markLost: "Marcar perdido",
+      running: (done: number, total: number) => `${done} de ${total}…`,
+      // No Geral a ação canônica é adicionar, não mover: o lead entra noutro
+      // funil e CONTINUA na triagem até alguém tirá-lo de lá.
+      defaultFunnelNote:
+        "Adicionar põe o lead noutro funil; ele continua na triagem até ser tirado de lá.",
+      addTitle: "Adicionar ao funil",
+      addConfirm: "Adicionar",
+      addedAll: (n: number, funil: string) =>
+        `${n} ${n === 1 ? "lead adicionado" : "leads adicionados"} ao funil ${funil}.`,
+      assignTitle: "Atribuir vendedor",
+      assignConfirm: "Atribuir",
+      assignedAll: (n: number, vendedor: string) =>
+        `${n} ${n === 1 ? "lead atribuído" : "leads atribuídos"} a ${vendedor}.`,
+      lostTitle: "Marcar como perdido",
+      lostConfirm: "Marcar perdido",
+      lostBody: "Escolha o motivo. Vale para todos os leads selecionados.",
+      lostAll: (n: number) => `${n} ${n === 1 ? "lead marcado" : "leads marcados"} como perdido.`,
+      reason: "Motivo",
+      partial: (ok: number, fail: number) =>
+        `${ok} ${ok === 1 ? "concluído" : "concluídos"}, ${fail} ${fail === 1 ? "falhou" : "falharam"}.`,
+      allFailed: "Nenhum lead pôde ser alterado.",
+      cancel: "Cancelar",
     },
     emptyTitle: "Nenhum lead encontrado",
     emptyDescription: "Ajuste os filtros ou crie um novo lead.",

@@ -5,7 +5,7 @@ import { SoundSettingsPage } from "@/features/sound-settings";
 
 export const Route = createFileRoute("/app/configuracoes/sons")({
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner"], { resource: "settings", action: "edit" }),
+    requireAuth(location.pathname, undefined, { resource: "settings", action: "edit" }),
   component: () => (
     <SettingsLayout>
       <SoundSettingsPage />

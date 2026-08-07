@@ -68,7 +68,11 @@ export type {
   IListCustomersParams,
   IConvertPendingContactInput,
   ICustomerDocumentMatch,
+  IWalletStats,
+  IWalletStatsParams,
+  IWalletSellerStats,
 } from "./customers";
+export { WALLET_STALE_DAYS } from "./customers";
 export type {
   IContactsProvider,
   IListContactsParams,

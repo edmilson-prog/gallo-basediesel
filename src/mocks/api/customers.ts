@@ -32,6 +32,8 @@ export interface IListCustomersParams extends IPaginationParams {
   type?: ICustomer["type"];
   sellerId?: ID;
   sellerIds?: ID[];
+  /** Only customers with no wallet owner — mirror of the supabase `is null`. */
+  unassignedOnly?: boolean;
   search?: string;
   tag?: string;
   tags?: string[];
@@ -150,6 +152,7 @@ function matches(
     !params.sellerIds.includes(customer.sellerId ?? "")
   )
     return false;
+  if (params.unassignedOnly && customer.sellerId) return false;
 
   if (params.tag && !customer.tags.includes(params.tag)) return false;
   if (params.tags && params.tags.length > 0) {

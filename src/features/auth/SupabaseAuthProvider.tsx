@@ -6,6 +6,7 @@ import { AuthContext, type IAuthContextValue, type IAuthResult } from "./authCon
 import type { IUserProfile } from "./mock-users";
 import { readAuthSyncMirror, writeAuthSyncMirror } from "./authSession";
 import { isInvalidSessionError } from "./sessionValidity";
+import { shouldDiscardSession } from "./engine/profileResolution";
 import { defaultRedirectForRole, mapDbRoleToRoleName, roleGroup } from "./roleMap";
 import { getVerifiedTotpFactor, readMfaGate, verifyTotpChallenge } from "./mfa";
 
@@ -81,8 +82,16 @@ async function resolveProfile(supabase: SupabaseClient, user: User): Promise<Pro
       .eq("auth_user_id", user.id)
       .maybeSingle();
     if (data) return { status: "ok", profile: buildProfile(data as ProfileRow, user) };
-    if (!error) return { status: "absent" }; // no row, no error → genuinely no profile
-    if (attempt === 0) await new Promise((r) => setTimeout(r, 400)); // transient → retry once
+    // An EMPTY read is retried too, not just an errored one. `profiles` is
+    // RLS-gated on `auth_user_id = auth.uid()`, so a request that leaves before
+    // the client applied the session is filtered to zero rows and reports
+    // data:null/error:null — byte-for-byte what a genuinely missing row looks
+    // like. The retry runs once the session has settled and tells the two apart.
+    if (attempt === 0) {
+      await new Promise((r) => setTimeout(r, 400));
+      continue;
+    }
+    if (!error) return { status: "absent" }; // still empty, no error → no profile
   }
   return { status: "error" };
 }
@@ -144,12 +153,19 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       setMfaPending(false);
       const res = await resolveProfile(supabase, user);
       if (!active) return;
-      // Transient profile-read failure on a VALID auth session: keep whatever we
-      // had. Zeroing here would let a hiccup (e.g. on the hourly TOKEN_REFRESHED)
-      // log out a working user. Never do that. revalidate() recovers it.
-      if (res.status === "error") return;
-      // "ok" → set the profile; "absent" → authenticated with no profiles row,
-      // so the user cannot use the app and must be cleared (guard → login).
+      // No profile came back. Whether that may drop the session depends on the
+      // status AND on whether a user is already established — an empty read is
+      // only evidence of "no row" when we had nothing to lose (see the engine).
+      // Zeroing an established user here is what bounced a signed-in user back
+      // to /auth/login on their next click, with the server session still valid.
+      if (
+        res.status !== "ok" &&
+        !shouldDiscardSession(res.status, Boolean(currentUserRef.current))
+      ) {
+        return;
+      }
+      // "ok" → set the profile; "absent" at boot/sign-in → authenticated with no
+      // profiles row, so the user cannot use the app and must be cleared.
       const profile = res.status === "ok" ? res.profile : null;
       // A valid session was just (re)established → clear any prior expiry signal.
       if (profile) setSessionExpired(false);

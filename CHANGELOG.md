@@ -4,6 +4,124 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.164.0] — Roster · 2026-08-07
+
+**A Gestão de carteira mostrava transferências; agora mostra a carteira. A tela abre com um quadro de todos os vendedores — quantos clientes cada um tem, que fatia da base isso representa e quantos desses clientes estão parados há mais de 30 dias. Os clientes que não estão na carteira de ninguém, que antes não apareciam em lugar nenhum, ganharam uma linha própria em vermelho, com um botão para distribuí-los.**
+
+### Added
+
+- **Quadro da carteira** — um vendedor por linha, com o total de clientes, uma barra que compara o tamanho das carteiras, um ponto verde, âmbar ou vermelho conforme a quantidade de clientes parados, e a situação de cada um: carteira própria, coberto por alguém ou cobrindo alguém.
+- **Clientes sem responsável** — a última linha do quadro mostra quantos clientes estão fora de todas as carteiras. Eles não entram em positivação, meta nem rodízio, e até agora a tela não dizia que existiam.
+- **Distribuir clientes sem responsável** — o botão abre uma janela que lista quem são, deixa escolher um vendedor e passa todos para ele de uma vez.
+- **Ficha do vendedor** — clicar em uma linha do quadro abre um resumo com clientes na carteira, positivados no mês, clientes parados e a movimentação dos últimos 30 dias: quantos recebeu, quantos passou e o saldo.
+- **Resumo no topo da tela** — total de clientes, quantos vendedores dividem a base, quantas coberturas estão em vigor e quantos clientes estão sem responsável.
+
+### Changed
+
+- **Cobertura e transferência definitiva ficaram separadas** — são coisas diferentes e agora aparecem em blocos distintos. A cobertura mantém o relógio, a barra de tempo decorrido, a data em que os clientes voltam sozinhos e o botão **Devolver agora**. Quando ninguém está afastado, o bloco diz isso em vez de ficar vazio.
+- **Mudanças recentes viraram uma tabela** — as transferências definitivas dos últimos 30 dias ocupam uma linha cada, em vez de um cartão grande por transferência. Onde antes cabiam três, agora cabem quinze. **Reverter** continua em cada linha.
+- **"Nova transferência" virou "Nova cobertura"** — é a única transferência que se conclui nesta tela. As outras duas opções do menu antigo apenas mostravam um aviso e levavam para a lista de clientes; agora existe um botão **Transferir clientes** que diz abertamente que é para lá que se vai, porque a transferência definitiva precisa do cliente à vista.
+- **A aba Carteira não tem mais barra de filtros** — filtrar meia dúzia de registros não ajudava. Os filtros continuam no Histórico, onde há volume.
+- **A primeira aba passou a se chamar Carteira**, no lugar de Ativas. Histórico e Auditoria seguem iguais.
+
+### Notes
+
+- **A coluna de risco mede compra, não conversa.** O sistema registra a data da última compra de cada cliente, mas não a do último contato — por isso a coluna diz **"sem compra 30d"**, que é o que o número realmente mostra.
+- **Distribuir tem uma modalidade só:** um vendedor assume todos. O rodízio automático por proximidade de cidade e a triagem cliente a cliente ainda não existem, e um botão que fizesse outra coisa seria pior do que não ter o botão.
+- Nenhuma migration nesta versão.
+
+## [0.163.0] — Sieve · 2026-08-06
+
+**O funil de triagem ganhou saída. Quando a etapa de entrada passa do limite, ela para de ser uma pilha de cards e diz quantos leads estão parados ali, há quanto tempo o mais antigo espera, e leva direto para a lista. Na lista, agora dá para marcar vários leads de uma vez e mandar todos para outro funil, atribuir a um vendedor ou marcar como perdidos.**
+
+### Added
+
+- **Aviso de depósito na entrada** — acima do limite configurado em Funis (padrão 50), a coluna de entrada troca de modo: mostra a contagem real, há quantos dias o lead mais antigo está lá, e um botão que abre a lista já filtrada por aquela etapa. Arrastar um lead de volta para ela continua funcionando.
+- **Selecionar vários leads na lista** — uma caixa por linha, e `Shift` + clique marca uma faixa inteira. A caixa do cabeçalho marca os leads que estão à vista, nunca todos de uma vez.
+- **Ações em lote** — com leads selecionados aparece uma barra com **Adicionar ao funil**, **Atribuir vendedor** e **Marcar perdido**.
+- **Aviso de resultado parcial** — se parte do lote falhar, a mensagem diz quantos foram e quantos não, em vez de um "pronto" que esconderia o problema.
+
+### Notes
+
+- **No funil de triagem, adicionar não move.** O lead entra no outro funil e **continua** na triagem até alguém tirá-lo de lá — a barra avisa isso, para ninguém estranhar que a linha não sumiu.
+- **Trocar de funil, de filtro ou de busca limpa a seleção**, para que uma ação em lote nunca alcance um lead que saiu da tela.
+- **Distribuir em lote ainda não está pronto** — o botão aparece desabilitado, com explicação. Ele depende da fila de rodízio, que tem regras próprias de horário e departamento.
+- Nenhuma migration nesta versão.
+
+## [0.162.1] — Blueprint · 2026-08-06
+
+### Fixed
+
+- **A tela de Funis não aparecia para ninguém** — a versão anterior registrou a permissão "Funis" na lista do editor de papéis, mas não a concedeu a nenhum papel. Como é a concessão que decide quem pode abrir a tela, nem o dono conseguia chegar nela. Dono e gestor passam a tê-la.
+
+## [0.162.0] — Blueprint · 2026-08-06
+
+**Existe uma tela para administrar os funis. Em Configurações → Atendimento → Funis, dá para renomear um funil, trocar ícone e cor, reordenar e editar as etapas, escolher quem enxerga cada um e arquivar o que não se usa mais. Até agora só era possível criar funil por um atalho na página de Leads — editar não era possível em lugar nenhum.**
+
+### Added
+
+- **Tela de Funis** — lista à esquerda, três abas à direita: Etapas, Acesso e Geral. Trocar de funil com alterações não salvas pergunta antes de descartar.
+- **Etapas** — arraste pela alça à esquerda para reordenar, nome, cor entre as nove identidades do sistema e tipo (Entrada, Aberta, Ganho, Perda). Cada linha mostra quantos leads estão naquela etapa.
+- **Excluir etapa pede para onde vão os leads** — se a etapa tem leads, a tela pergunta o destino antes de excluir, e move todos. Etapas de entrada, ganho e perda são obrigatórias e não podem ser excluídas; o funil também precisa de ao menos uma etapa aberta.
+- **Acesso com prévia** — o topo mostra quantos vendedores enxergam o funil e recalcula a cada clique. Há um atalho "Todos da loja" que libera para todo vendedor, e ele soma com as marcações individuais. Se ninguém sobrar, a tela avisa e o botão passa a dizer "Salvar sem acesso" — pode ser proposital, mas não por acidente.
+- **Visão geral de acesso** — uma tabela de quem enxerga qual funil, só para conferir. Clicar num funil leva à aba Acesso dele.
+- **Arquivar funil** — ele sai do seletor da página de Leads mas continua em relatórios e auditoria, e os leads ficam onde estão. A lista avisa quantos leads ativos estão em funis arquivados.
+
+### Changed
+
+- **A tela "Pipeline de leads" passou a dizer o que ela é.** O aviso "a edição visual estará disponível na Fase 2" era uma promessa parada de outro projeto e foi lida por muita gente como se fosse sobre os funis. Agora o texto explica que aquele é o pipeline legado da loja, que ele ainda alimenta os modais de conversão e de perda, o menu da conversa e o filtro de estágio na visão de todos os funis — e leva para a tela de Funis.
+
+### Notes
+
+- **O funil de triagem não tem aba Acesso e não pode ser arquivado.** Ele recebe todo lead novo e é para onde um lead volta ao sair de outro funil: restringi-lo trancaria a operação.
+- **Esta versão traz uma migration** que precisa ser aplicada em produção para a permissão "Funis" aparecer no editor de papéis. Sem ela a tela funciona para donos e gestores, mas a permissão não é editável.
+
+## [0.161.0] — Lanyard · 2026-08-06
+
+**Durante o atendimento, o painel da direita agora mostra em quais funis aquele lead está e em que etapa em cada um — e deixa você mudar a etapa ou colocar o lead em outro funil sem sair da conversa. Mudou de etapa por engano? O aviso que aparece traz um "Desfazer".**
+
+### Added
+
+- **Bloco "Funis" na ficha da conversa** — logo abaixo do nome do contato, antes dos dados. Uma linha por funil, com a etapa de cada um num seletor. É a primeira coisa acionável de quem está respondendo uma mensagem.
+- **Atalho para colocar o lead em outro funil** — o botão `+` ao lado de "Funis" lista só os funis em que ele ainda não está. O lead entra na etapa inicial daquele funil e já aparece no quadro de Leads.
+- **Desfazer ao mudar a etapa** — o aviso de confirmação fica 6 segundos com um botão que volta atrás. Mudar de etapa é comum e reversível, e um pedido de confirmação a cada vez faria você parar de mudar.
+- **Tirar o lead de um funil** — no menu de três pontos da linha, com confirmação. Se for a única participação dele, o aviso explica que o lead volta para a triagem e não fica sem funil nenhum.
+- **Aviso de funil sem acesso** — se o lead estiver em algum funil que você não acessa, aparece "+N funis que você não acessa". Sem essa linha a lista pareceria incompleta sem explicação; com os nomes, mostraria a estrutura comercial que o controle de acesso existe para separar.
+
+### Changed
+
+- **A etiqueta de etapa saiu do topo da ficha** — ela nomeava uma etapa do pipeline único da loja, que com vários funis responde por um só. O bloco novo diz a etapa em cada funil onde o lead realmente está.
+- **"Dados do lead" agora abre e fecha** — vem fechado. Quem atende precisa de funil, etapa e status na hora; dono e data de criação são consulta ocasional, e o espaço foi para o bloco de funis.
+
+### Fixed
+
+- **Cores fixas nos selos de convertido e perdido da ficha** — usavam verde e vermelho travados no código, que em alguns temas ficavam ilegíveis. Passaram a usar as cores oficiais de aviso do sistema, que se ajustam a cada tema.
+
+## [0.160.0] — Trellis · 2026-08-06
+
+**O quadro de Leads virou o quadro do funil. As colunas agora são as etapas do funil que você abriu — não mais as etapas fixas da loja — e o valor de cada card é o daquela oportunidade, não o do lead. O cabeçalho de cada coluna troca a média de dias pela soma dos valores e por quantos estão atrasados, com um clique que filtra só eles. O card encolheu de sete informações para quatro e cabem mais que o dobro na tela; o que saiu está a um instante de mouse parado em cima. E dá para mover um lead sem tocar no mouse.**
+
+### Added
+
+- **Cada funil tem o seu quadro** — as colunas passam a ser as etapas do funil aberto. Mover um card altera **só a participação daquele funil**: o mesmo lead pode estar em negociação num funil e recém-chegado noutro, e um não mexe no outro.
+- **Soma dos valores e atrasados no topo da coluna** — no lugar de "N leads · Média X dias" aparecem quanto vale a etapa inteira e quantos leads estão com a próxima ação vencida. O número de atrasados é clicável e filtra o quadro só neles. A média de dias continua lá, ao passar o mouse sobre a contagem.
+- **Mover um lead pelo teclado** — antes só existia arrastando com o mouse. Agora: `Tab` até o card, `Espaço` para pegar, setas para escolher a etapa, `Espaço` para soltar, `Esc` para desistir. Cada passo é anunciado para quem usa leitor de tela. Há também um menu "Mover para…" no próprio card, no botão de três pontos.
+- **Ordenar cada coluna do seu jeito** — Mais antigos, Mais recentes, Próxima ação, Maior valor ou Parados há mais tempo. A escolha é gravada por etapa e volta do jeito que você deixou. Na etapa de entrada o padrão passa a ser **mais antigos primeiro** — o lead esquecido era o último de novecentos, justamente o que ninguém rolava até o fim para ver.
+- **Recolher uma coluna** — vira uma faixa fina com o nome de lado, e continua aceitando cards soltos nela.
+- **Ver em quais outros funis o lead está** — um marcador discreto no card, com a contagem. Passando o mouse aparecem os nomes, e clicando num deles você vai para aquele quadro com o lead destacado. Conta apenas os funis que você acessa.
+
+### Changed
+
+- **Card menor** — saíram a foto do lead, o telefone, a origem, o nome do vendedor e a etiqueta de próxima ação quando ela não é urgente. Ficaram o nome, a temperatura, o valor da oportunidade e o atraso quando existe. Cabem cerca de nove por coluna, contra quatro antes. Tudo que saiu aparece ao parar o mouse sobre o card, junto com há quantos dias ele está naquela etapa.
+- **A coluna carrega 40 cards por vez** — com um botão para carregar os próximos. A coluna "Novo" chegava a montar novecentos cards de uma vez.
+- **O filtro "Estágio" fala a língua do funil aberto** — as opções passam a ser as etapas dele, e escolher uma deixa no quadro só as colunas escolhidas.
+- **Um funil sem nenhum lead mostra as colunas dele** — antes a tela dizia apenas "nenhum lead encontrado" e escondia o quadro, o que deixava um funil recém-criado sem lugar nenhum para receber o primeiro lead.
+
+### Fixed
+
+- **O selo Convertido/Perdido dizia a mesma coisa em todos os funis** — ele lia a situação do lead, e não a da participação. Um lead ganho num funil aparecia como convertido em todos. Agora cada quadro mostra a situação daquele funil.
+- **Soltar na última coluna dependia de um identificador fixo no código** — passa a olhar o tipo da etapa, que todo funil tem.
+
 ## [0.159.2] — Heartbeat · 2026-08-06
 
 ### Fixed

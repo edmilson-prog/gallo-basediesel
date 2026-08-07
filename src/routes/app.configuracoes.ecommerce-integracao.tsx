@@ -5,7 +5,7 @@ import { EcommerceIntegrationConfigPage } from "@/features/ecommerce-integration
 
 export const Route = createFileRoute("/app/configuracoes/ecommerce-integracao")({
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner"], {
+    requireAuth(location.pathname, undefined, {
       resource: "ecommerce_integration",
       action: "edit",
     }),

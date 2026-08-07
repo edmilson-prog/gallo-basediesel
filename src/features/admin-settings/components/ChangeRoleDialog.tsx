@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import type { ISeller } from "@/shared/types";
 import { useRolesProvider } from "@/providers/data";
+import { isAssignableRole, sortAssignableRoles } from "@/features/rbac/utils/assignableRoles";
 import { setSellerRole } from "../api/sellerAccess";
 
 interface IChangeRoleDialogProps {
@@ -55,20 +56,13 @@ export function ChangeRoleDialog({
     queryFn: () => rolesProvider.list(),
   });
 
-  // Owner is immutable (never assignable); customer-base roles aren't platform
-  // access for staff; store-scoped roles only apply to their own store (mirrors
-  // the Edge guard). Everything else (system + this store's custom roles) is
-  // assignable.
-  const assignable = (rolesQuery.data ?? [])
-    .filter(
-      (r) =>
-        !r.isOwnerImmutable &&
-        r.baseRole !== "Cliente" &&
-        (r.storeId == null || r.storeId === storeId),
-    )
-    .sort((a, b) =>
-      a.isSystem === b.isSystem ? a.name.localeCompare(b.name) : a.isSystem ? -1 : 1,
-    );
+  // `isAssignableRole` mirrors the Edge guard and is shared with the role
+  // creation form, so the two screens can no longer disagree about what counts
+  // as assignable — they used to, which let a custom role be created with base
+  // Owner, listed here, and then rejected with 403 on save.
+  const assignable = sortAssignableRoles(
+    (rolesQuery.data ?? []).filter((r) => isAssignableRole(r, storeId)),
+  );
 
   const mutation = useMutation({
     mutationFn: () => setSellerRole(seller.id, roleId),

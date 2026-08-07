@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { ID, ILead, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { getAccentClasses } from "@/features/funnels/engine/accentClasses";
@@ -56,6 +57,14 @@ export interface ILeadsListProps {
    * only thing telling you which board a row belongs to.
    */
   funnelChipsByLead?: Map<ID, ILeadFunnelChip[]>;
+  /** Present only when bulk actions are available to this user. */
+  selection?: {
+    selected: Set<ID>;
+    allVisibleSelected: boolean;
+    someVisibleSelected: boolean;
+    toggle: (id: ID, index: number, withShift: boolean) => void;
+    selectAllVisible: () => void;
+  };
 }
 
 export function LeadsList({
@@ -66,6 +75,7 @@ export function LeadsList({
   onSortChange,
   scrollRef,
   funnelChipsByLead,
+  selection,
 }: ILeadsListProps) {
   const navigate = useNavigate();
   const now = new Date();
@@ -93,6 +103,23 @@ export function LeadsList({
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow>
+            {selection && (
+              <TableHead className="w-9">
+                <Checkbox
+                  checked={
+                    selection.allVisibleSelected
+                      ? true
+                      : selection.someVisibleSelected
+                        ? "indeterminate"
+                        : false
+                  }
+                  onCheckedChange={selection.selectAllVisible}
+                  // "Visible", never "all 903" — a header box that promised the
+                  // whole set would apply a batch to rows nobody has seen.
+                  aria-label={COPY.selectVisible}
+                />
+              </TableHead>
+            )}
             <SortableHeader column="name" label={COPY.name} sort={sort} onSort={handleSort} />
             <TableHead>{COPY.phone}</TableHead>
             <TableHead>{COPY.stage}</TableHead>
@@ -134,7 +161,7 @@ export function LeadsList({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {leads.map((lead) => {
+          {leads.map((lead, index) => {
             const tempMeta = TEMPERATURE_META[lead.temperature];
             const originMeta = getOriginMeta(lead.origin);
             const nextAction = getNextActionInfo(lead.nextActionAt, now);
@@ -142,9 +169,33 @@ export function LeadsList({
             return (
               <TableRow
                 key={lead.id}
-                className="cursor-pointer hover:bg-accent/40"
+                data-state={selection?.selected.has(lead.id) ? "selected" : undefined}
+                className={cn(
+                  "cursor-pointer hover:bg-accent/40",
+                  selection?.selected.has(lead.id) && "bg-accent/40",
+                )}
                 onClick={() => void navigate({ to: "/app/leads/$id", params: { id: lead.id } })}
               >
+                {selection && (
+                  <TableCell
+                    // The row opens the lead; the checkbox must not. Without
+                    // this every tick would navigate away from the selection
+                    // being built.
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={selection.selected.has(lead.id)}
+                      onCheckedChange={() => selection.toggle(lead.id, index, false)}
+                      onClick={(e) => {
+                        if (e.shiftKey) {
+                          e.preventDefault();
+                          selection.toggle(lead.id, index, true);
+                        }
+                      }}
+                      aria-label={lead.name}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="font-medium text-foreground">{lead.name}</TableCell>
                 <TableCell className="text-muted-foreground">{formatPhone(lead.phone)}</TableCell>
                 <TableCell>

@@ -1,5 +1,6 @@
 import type { ID, IPermission, IRbacResource, IRole, RoleName } from "@/shared/types";
 import { buildRoleSeed } from "@/features/rbac/permissions/seed";
+import { isAssignableBaseRole } from "@/features/rbac/utils/assignableRoles";
 import { selectAllRbacResources, selectAllRoles } from "../store/selectors";
 import { useMockStore } from "../store/mockStore";
 import { MockNotFoundError, MockValidationError, runApi } from "./utils";
@@ -86,11 +87,29 @@ export const rolesApi = {
     );
   },
 
-  updateMeta(id: ID, patch: { name?: string; description?: string }): Promise<IRole> {
+  updateMeta(
+    id: ID,
+    patch: { name?: string; description?: string; baseRole?: RoleName },
+  ): Promise<IRole> {
     return runApi(
       "rolesApi",
       "updateMeta",
       () => {
+        // Mirrors the supabase guard on which base-role changes are legal.
+        // The "role still in use" check has no mock counterpart: custom-role
+        // assignment lives in `profiles.role_id`, which only the Supabase
+        // backend models — mock sellers carry no custom role at all.
+        const current = useMockStore.getState().roles.find((r) => r.id === id);
+        if (current && patch.baseRole !== undefined && patch.baseRole !== current.baseRole) {
+          if (current.isSystem) {
+            throw new Error("O papel-base de um papel de sistema não pode ser alterado.");
+          }
+          if (!isAssignableBaseRole(patch.baseRole)) {
+            throw new Error(
+              `"${patch.baseRole}" não pode ser papel-base: a atribuição seria recusada pelo servidor.`,
+            );
+          }
+        }
         let updated: IRole | null = null;
         useMockStore.setState((state) => {
           const roles = state.roles.map((r) => {
@@ -99,6 +118,7 @@ export const rolesApi = {
               ...r,
               ...(patch.name !== undefined ? { name: patch.name } : {}),
               ...(patch.description !== undefined ? { description: patch.description } : {}),
+              ...(patch.baseRole !== undefined ? { baseRole: patch.baseRole } : {}),
               updatedAt: NOW(),
             };
             return updated;

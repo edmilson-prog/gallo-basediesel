@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import type { ID, ILead, IPipelineStage, ISeller } from "@/shared/types";
+import type { ID, ILead, ILeadFunnelStage, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { FunnelNav } from "@/features/funnels/components/FunnelNav";
 import { FUNNELS_COPY, useFunnelNavigation } from "@/features/funnels";
 import { useLeadFunnelChips } from "@/features/funnels/hooks/useLeadFunnelChips";
+import { useFunnelBoard } from "@/features/funnels/hooks/useFunnelBoard";
 import { NewFunnelModal } from "@/features/funnels/components/NewFunnelModal";
 import { ALL_FUNNELS } from "@/features/funnels/engine/resolveInitialFunnel";
 import { LeadsHeader } from "../components/LeadsHeader";
@@ -25,9 +26,15 @@ import { ConvertLeadModal } from "../components/ConvertLeadModal";
 import { MarkAsLostModal } from "../components/MarkAsLostModal";
 import { useLeadsUrlState, type LeadsView } from "../hooks/useLeadsUrlState";
 import { useLeadsList } from "../hooks/useLeadsList";
+import { useLeadSelection } from "../hooks/useLeadSelection";
+import { useBulkLeadActions } from "../hooks/useBulkLeadActions";
+import { BulkActionBar } from "../components/BulkActionBar";
 import { usePipelineSettings } from "../hooks/usePipelineSettings";
 import { hasAnyFilter } from "../utils/listFilters";
 import { LEADS_STRINGS } from "../i18n/pt-BR";
+
+/** Stable identity so the stage-filter memo does not fire on every render. */
+const EMPTY_IDS: string[] = [];
 
 export function LeadsPage() {
   const { currentUser } = useAuth();
@@ -42,7 +49,7 @@ export function LeadsPage() {
   const url = useLeadsUrlState();
   const { view, filters, sort } = url;
 
-  const { stages } = usePipelineSettings(currentStoreId);
+  const { stages, lossReasons } = usePipelineSettings(currentStoreId);
 
   const sellersProvider = useSellersProvider();
   const [sellersQuery] = useQueries({
@@ -82,8 +89,18 @@ export function LeadsPage() {
   const isAllFunnels = url.funnelId === ALL_FUNNELS;
   const scopedFunnelId = isAllFunnels ? undefined : url.funnelId;
 
+  // The stage filter has to speak the board's language. With a funnel open its
+  // options are that funnel's stages, so it is applied over the PARTICIPATION —
+  // `useLeadsList` filters `lead.stage.id`, the legacy snapshot, which would
+  // match none of those ids and quietly empty the page.
+  const funnelStageFilter = scopedFunnelId ? filters.stageIds : EMPTY_IDS;
+  const listFilters = useMemo(
+    () => (scopedFunnelId ? { ...filters, stageIds: [] } : filters),
+    [scopedFunnelId, filters],
+  );
+
   const list = useLeadsList({
-    filters,
+    filters: listFilters,
     sort,
     storeId: currentStoreId ?? undefined,
     sellerScopeIds,
@@ -107,7 +124,7 @@ export function LeadsPage() {
   }, [queryClient]);
 
   const handleLeadMoved = useCallback(
-    (_lead: ILead, _stage: IPipelineStage) => {
+    (_lead: ILead, _stage: ILeadFunnelStage) => {
       invalidateLeads();
     },
     [invalidateLeads],
@@ -137,7 +154,38 @@ export function LeadsPage() {
   // which board a row belongs to.
   const { funnels: reachableFunnels } = useFunnelNavigation();
   const funnelChipsByLead = useLeadFunnelChips(reachableFunnels);
+
+  // The board is the FUNNEL's board: columns and card positions come from the
+  // participation, not from the store's pipeline. `usePipelineSettings` stays
+  // on for the filters bar and the new-lead modal, which still speak legacy.
+  const board = useFunnelBoard(scopedFunnelId ?? null);
+  const activeFunnel = reachableFunnels.find((f) => f.id === scopedFunnelId);
   const showFunnelColumn = isAllFunnels || reachableFunnels.length > 1;
+
+  const visibleLeads = useMemo(() => {
+    if (funnelStageFilter.length === 0) return list.leads;
+    const keep = new Set(funnelStageFilter);
+    return list.leads.filter((l) => {
+      const entry = board.entriesByLead.get(l.id);
+      return entry ? keep.has(entry.stageId) : false;
+    });
+  }, [list.leads, funnelStageFilter, board.entriesByLead]);
+
+  // A stage left out of the filter disappears from the board rather than
+  // becoming an empty column: filtering by stage is asking to see those only.
+  const visibleStages = useMemo(() => {
+    if (funnelStageFilter.length === 0) return board.stages;
+    const keep = new Set(funnelStageFilter);
+    return board.stages.filter((s) => keep.has(s.id));
+  }, [board.stages, funnelStageFilter]);
+
+  // Bulk actions live on the list, which is where triage happens.
+  const visibleIds = useMemo(() => visibleLeads.map((l) => l.id), [visibleLeads]);
+  const selection = useLeadSelection(visibleIds);
+  const bulk = useBulkLeadActions(() => selection.clear());
+  const canBulk = usePermission("lead", "edit");
+  // The stage a lost lead lands on, mirroring MarkAsLostModal.
+  const lostStage = stages.find((s) => /perdid/i.test(s.name)) ?? stages[stages.length - 1];
 
   const noticeShownRef = useRef(false);
   useEffect(() => {
@@ -171,7 +219,9 @@ export function LeadsPage() {
         filters={filters}
         patch={(p) => url.patchFilters(p)}
         onClear={url.clearAll}
-        stages={stages}
+        // With a funnel open the filter offers that funnel's stages; the
+        // consolidated view has no shared X axis, so it keeps the legacy list.
+        stages={scopedFunnelId && board.stages.length > 0 ? board.stages : stages}
         sellers={sellers}
         stores={accessibleStores}
         canFilterStore={isOwner}
@@ -190,31 +240,77 @@ export function LeadsPage() {
           </div>
         ) : list.isError ? (
           <ErrorState onRetry={list.refetch} />
-        ) : list.leads.length === 0 ? (
+        ) : effectiveView === "kanban" && scopedFunnelId && visibleStages.length > 0 ? (
+          // The board renders even with no leads. A funnel is its stages before
+          // it is its cards: a freshly created one would otherwise show
+          // "nenhum lead encontrado" and hide the very columns the user needs
+          // to see — and to drop the first lead into.
+          <LeadsKanban
+            leads={visibleLeads}
+            stages={visibleStages}
+            entriesByLead={board.entriesByLead}
+            summaryByStage={board.summaryByStage}
+            funnelId={scopedFunnelId}
+            sellersById={sellersById}
+            // The seller avatar is noise when the board is already one seller's
+            // — the case of a plain seller, forced above.
+            showSeller={sellerScopeIds === undefined && filters.sellerIds.length !== 1}
+            chipsByLead={funnelChipsByLead}
+            highlightLeadId={url.highlight}
+            onGoToFunnel={url.goToFunnelAndHighlight}
+            onLeadMoved={handleLeadMoved}
+            onRequestClose={handleRequestClose}
+            onFilterOverdue={() => url.patchFilters({ nextAction: "overdue" })}
+            entryThreshold={activeFunnel?.entryAlertThreshold ?? 50}
+            onTriageInList={(stageId) => {
+              // One navigation, not two: the List has to open already narrowed
+              // to that stage, or the user lands on nine hundred rows and the
+              // "triar em lista" promise is broken on arrival.
+              url.setView("list");
+              url.patchFilters({ stageIds: [stageId] });
+            }}
+          />
+        ) : visibleLeads.length === 0 ? (
           <EmptyState
             hasFilters={hasAnyFilter(filters)}
             searchTerm={filters.search}
             onClear={url.clearAll}
             onCreate={handleEmptyCreate}
           />
-        ) : effectiveView === "kanban" ? (
-          <LeadsKanban
-            leads={list.leads}
-            stages={stages}
-            sellersById={sellersById}
-            onLeadMoved={handleLeadMoved}
-            onRequestClose={handleRequestClose}
-          />
         ) : (
+          <>
           <LeadsList
-            leads={list.leads}
+            leads={visibleLeads}
             sellersById={sellersById}
             isLoading={list.isLoading}
             sort={sort}
             onSortChange={url.setSort}
             scrollRef={setScrollEl}
             funnelChipsByLead={showFunnelColumn ? funnelChipsByLead : undefined}
+            selection={canBulk ? selection : undefined}
           />
+          {canBulk && (
+            <BulkActionBar
+              count={selection.selected.size}
+              progress={bulk.progress}
+              funnels={reachableFunnels}
+              sellers={sellers}
+              lossReasons={lossReasons}
+              lostStage={lostStage}
+              onDefaultFunnel={Boolean(activeFunnel?.isDefault)}
+              onClear={selection.clear}
+              onAddToFunnel={(id, name) =>
+                void bulk.addToFunnel([...selection.selected], id, name)
+              }
+              onAssignSeller={(id, name) =>
+                void bulk.assignSeller([...selection.selected], id, name)
+              }
+              onMarkLost={(reason, stage) =>
+                void bulk.markLost([...selection.selected], reason, stage)
+              }
+            />
+          )}
+          </>
         )}
         </div>
       </div>

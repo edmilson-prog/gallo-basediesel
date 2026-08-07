@@ -1,12 +1,5 @@
 import { useState } from "react";
-import type {
-  ID,
-  IPipelineStage,
-  ISeller,
-  IStore,
-  LeadOrigin,
-  LeadTemperature,
-} from "@/shared/types";
+import type { ID, ISeller, IStore, LeadOrigin, LeadTemperature } from "@/shared/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +27,12 @@ export interface ILeadsFiltersBarProps {
   filters: ILeadsListFilters;
   patch: (patch: Partial<ILeadsListFilters>) => void;
   onClear: () => void;
-  stages: IPipelineStage[];
+  /**
+   * Options for the "Estágio" filter. Structural on purpose: with a funnel open
+   * these are `ILeadFunnelStage`, and with the consolidated view they are the
+   * store's legacy `IPipelineStage`. The bar only ever reads id and name.
+   */
+  stages: { id: ID; name: string }[];
   sellers: ISeller[];
   stores: IStore[];
   canFilterStore: boolean;
