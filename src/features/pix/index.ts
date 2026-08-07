@@ -1,2 +1,5 @@
 export { CopyKeyButton } from "./components/CopyKeyButton";
-export { PIX_STRINGS, PIX_TYPE_LABEL, PIX_TYPE_ICON } from "./i18n/pt-BR";
+export { PixKeysPage } from "./components/admin/PixKeysPage";
+export { usePixKeys, type IUsePixKeys } from "./hooks/usePixKeys";
+export { usePixKeyAdmin, type IUsePixKeyAdmin, type PixKeyDraft } from "./hooks/usePixKeyAdmin";
+export { PIX_STRINGS, PIX_TYPE_LABEL, PIX_TYPE_ICON, PIX_TYPE_PLACEHOLDER } from "./i18n/pt-BR";
