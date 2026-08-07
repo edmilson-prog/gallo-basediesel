@@ -56,6 +56,17 @@ describe("isValidPixKey", () => {
     expect(isValidPixKey("random", "e7b4f2a1-3c5d-4e6f-8a9b-0c1d2e3f4a5b")).toBe(true);
     expect(isValidPixKey("random", "e7b4f2a1-3c5d-4e6f")).toBe(false);
   });
+
+  it("rejects a non-ASCII e-mail key — Latin-1 encoding would corrupt the QR", () => {
+    // Rejecting is the only safe move: normalizing "joão" to "joao" would
+    // silently produce a DIFFERENT key, and the money would go elsewhere.
+    expect(isValidPixKey("email", "joão@empresa.com")).toBe(false);
+    expect(isValidPixKey("email", "josé.silva@açucar.com")).toBe(false);
+  });
+
+  it("still accepts a plain ASCII e-mail key", () => {
+    expect(isValidPixKey("email", "financeiro@gallo.com.br")).toBe(true);
+  });
 });
 
 describe("toDisplayPixKey", () => {

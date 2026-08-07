@@ -83,6 +83,16 @@ describe("buildPixPayload", () => {
     });
     expect(result.ok).toBe(false);
   });
+
+  it("rejects a non-ASCII key instead of emitting a payload the reader would corrupt", () => {
+    const result = buildPixPayload({
+      keyValue: "joão@empresa.com",
+      receiverName: "GALLO BASE DIESEL",
+      receiverCity: "FREDERICO W",
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("key-not-ascii");
+  });
 });
 
 describe("toAscii", () => {

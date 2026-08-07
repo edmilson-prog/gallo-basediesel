@@ -11,6 +11,11 @@ import type { PixKeyType } from "@/shared/types";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// Printable ASCII only. `qrcode-generator` serializes with a Latin-1
+// `stringToBytes`, so anything outside this range would encode wrong — and
+// BACEN restricts e-mail PIX keys to ASCII anyway. This is the REJECT gate:
+// normalizing (e.g. "joão" -> "joao") would silently produce a different key.
+const ASCII_RE = /^[\x20-\x7E]*$/;
 
 function digitsOnly(value: string): string {
   return value.replace(/\D/g, "");
@@ -54,6 +59,10 @@ export function toCanonicalPixKey(type: PixKeyType, raw: string): string {
 }
 
 export function isValidPixKey(type: PixKeyType, canonical: string): boolean {
+  // A key that cannot be encoded is not a valid key, regardless of type. For
+  // cnpj/cpf/phone/random the shape checks below already imply ASCII; this is
+  // the real gate for email, where the shape regex alone lets accents through.
+  if (!ASCII_RE.test(canonical)) return false;
   switch (type) {
     case "cnpj":
       if (canonical.length !== 14 || /^(\d)\1{13}$/.test(canonical)) return false;

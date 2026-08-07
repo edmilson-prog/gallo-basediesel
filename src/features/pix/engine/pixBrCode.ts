@@ -50,7 +50,16 @@ export interface IPixPayloadInput {
 
 export type PixPayloadResult =
   | { ok: true; value: string }
-  | { ok: false; reason: "missing-key" | "name-too-long" | "city-too-long" | "missing-receiver" };
+  | {
+      ok: false;
+      reason: "missing-key" | "name-too-long" | "city-too-long" | "missing-receiver" | "key-not-ascii";
+    };
+
+// Printable ASCII only — mirrors the gate in pixKeyFormat.isValidPixKey. Kept
+// as a second layer here because this function is the one place a corrupt
+// payload would actually get emitted; see the module doc on toAscii above for
+// why the key is REJECTED rather than normalized.
+const ASCII_RE = /^[\x20-\x7E]*$/;
 
 /**
  * Builds the full static payload. Returns a discriminated result instead of
@@ -60,6 +69,10 @@ export type PixPayloadResult =
 export function buildPixPayload(input: IPixPayloadInput): PixPayloadResult {
   const key = input.keyValue.trim();
   if (!key) return { ok: false, reason: "missing-key" };
+  // Never normalize the key: toAscii("joão@...") would silently produce a
+  // DIFFERENT key than the one the user actually owns, and money would go to
+  // the wrong account without anything looking wrong. Reject instead.
+  if (!ASCII_RE.test(key)) return { ok: false, reason: "key-not-ascii" };
 
   // Validate BEFORE truncating, so an over-long name is an error the editor can
   // report — silently cutting the receiver name is how money reaches a payload
