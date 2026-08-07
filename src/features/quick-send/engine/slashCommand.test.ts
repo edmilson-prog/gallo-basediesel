@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { IQuickReply } from "@/shared/types";
 import {
   isKnownSlashAssetCommand,
+  matchPixKeysByCommand,
   matchQuickRepliesByCommand,
   resolveSlashCommandCategory,
 } from "./slashCommand";
@@ -85,5 +86,49 @@ describe("matchQuickRepliesByCommand", () => {
 
   it("returns empty when no shortcut matches", () => {
     expect(matchQuickRepliesByCommand(replies, "xyz")).toEqual([]);
+  });
+});
+
+describe("matchPixKeysByCommand", () => {
+  const keys = [
+    { id: "k1", alias: "Matriz", shortcut: "/pix-matriz" },
+    { id: "k2", alias: "Filial", shortcut: "/pix-filial" },
+    { id: "k3", alias: "Sem atalho", shortcut: undefined },
+  ];
+
+  it("returns every key while browsing (bare '/')", () => {
+    expect(matchPixKeysByCommand(keys, "").map((k) => k.id)).toEqual(["k1", "k2", "k3"]);
+  });
+
+  it("lists every key for the bare /pix command, including ones without a shortcut", () => {
+    // The attendant picks in the staged bar, so /pix must surface all of them.
+    expect(matchPixKeysByCommand(keys, "pix").map((k) => k.id)).toEqual(["k1", "k2", "k3"]);
+  });
+
+  it("surfaces every key while /pix is still being typed", () => {
+    expect(matchPixKeysByCommand(keys, "p").map((k) => k.id)).toEqual(["k1", "k2", "k3"]);
+    expect(matchPixKeysByCommand(keys, "pi").map((k) => k.id)).toEqual(["k1", "k2", "k3"]);
+  });
+
+  it("narrows to a single key by its own shortcut prefix", () => {
+    expect(matchPixKeysByCommand(keys, "pix-mat").map((k) => k.id)).toEqual(["k1"]);
+  });
+
+  it("drops keys without a shortcut once the command goes past /pix", () => {
+    // "Sem atalho" has no shortcut, so it cannot match a longer command.
+    expect(matchPixKeysByCommand(keys, "pix-").map((k) => k.id)).toEqual(["k1", "k2"]);
+  });
+
+  it("is case-insensitive", () => {
+    expect(matchPixKeysByCommand(keys, "PIX-FIL").map((k) => k.id)).toEqual(["k2"]);
+  });
+
+  it("returns nothing for an unrelated command", () => {
+    expect(matchPixKeysByCommand(keys, "garantia")).toEqual([]);
+  });
+
+  it("returns nothing for a command that only shares a prefix letter", () => {
+    // "prazo" starts with "p" but is not on the way to "pix".
+    expect(matchPixKeysByCommand(keys, "prazo")).toEqual([]);
   });
 });
