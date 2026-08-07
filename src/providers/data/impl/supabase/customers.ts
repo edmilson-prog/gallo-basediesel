@@ -15,11 +15,29 @@ import type {
   ICustomersProvider,
   IConvertPendingContactInput,
   ICustomerDocumentMatch,
+  IWalletStats,
+  IWalletStatsParams,
 } from "../../contracts/customers";
 import type { IPaginatedResult } from "../../contracts/_shared";
+import { FETCH_ALL_PAGE_SIZE } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { buildDigitSearchCandidates } from "@/shared/utils/digitSearch";
 import { fetchLargePage } from "./_pagination";
+import { aggregateWalletStats } from "../_walletAggregate";
+
+/**
+ * Statuses that make up a wallet — the same three `useSellerCustomers` uses to
+ * build a coverage. `perdido` is excluded: those customers are not worked, so
+ * counting them would inflate every seller's carteira and drown the stale
+ * signal the board exists to show.
+ */
+const WALLET_STATUSES: ICustomer["status"][] = ["ativo", "recuperacao", "dormente"];
+
+/** Minimal projection `walletStats` reads — two columns, no payload bloat. */
+interface WalletStatsRow {
+  seller_id: string | null;
+  last_purchase_at: string | null;
+}
 
 /** Row shape returned by the `find_customers_by_document` RPC. */
 interface DocumentMatchRow {
@@ -336,6 +354,8 @@ export const supabaseCustomersProvider: ICustomersProvider = {
         query = query.eq("seller_id", params.sellerId);
       }
 
+      if (params.unassignedOnly) query = query.is("seller_id", null);
+
       if (params.hasB2BPortal) query = query.eq("has_b2b_portal", true);
 
       // Hide imported `pending_review` contacts (array overlap, negated): drop any
@@ -381,6 +401,39 @@ export const supabaseCustomersProvider: ICustomersProvider = {
       page,
       pageSize,
     };
+  },
+
+  async walletStats(params: IWalletStatsParams = {}): Promise<IWalletStats> {
+    const statuses = params.statuses ?? WALLET_STATUSES;
+
+    const buildQuery = () => {
+      let query = getSupabaseClient()
+        .from(TABLE)
+        .select("seller_id, last_purchase_at", { count: "exact" });
+
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (statuses.length > 0) query = query.in("status", statuses);
+      if (params.excludeTags && params.excludeTags.length > 0) {
+        query = query.not("tags", "ov", `{${params.excludeTags.join(",")}}`);
+      }
+      return query;
+    };
+
+    const { data } = await fetchLargePage<WalletStatsRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] customers.walletStats failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as WalletStatsRow[], count: count ?? 0 };
+      },
+      0,
+      FETCH_ALL_PAGE_SIZE,
+    );
+
+    return aggregateWalletStats(
+      data.map((row) => ({ sellerId: row.seller_id, lastPurchaseAt: row.last_purchase_at })),
+    );
   },
 
   async get(id: ID): Promise<ICustomer> {
