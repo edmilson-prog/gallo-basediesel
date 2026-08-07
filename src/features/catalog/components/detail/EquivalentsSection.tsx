@@ -98,7 +98,7 @@ export function EquivalentsSection({
                 <p
                   className={
                     savings
-                      ? "text-[10px] font-semibold text-emerald-600 dark:text-emerald-400"
+                      ? "text-[10px] font-semibold text-severity-success"
                       : "text-[10px] font-medium text-muted-foreground"
                   }
                 >

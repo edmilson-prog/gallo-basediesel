@@ -16,7 +16,7 @@ export interface IPartSefazBadgeProps {
 export function PartSefazBadge({ status = "not_checked", checkedAt }: IPartSefazBadgeProps) {
   if (status === "validated") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+      <span className="inline-flex items-center gap-1 rounded-full bg-severity-success/15 px-2 py-0.5 text-[11px] font-medium text-severity-success">
         <Icon icon="mdi:check-decagram" size={12} />
         {checkedAt ? COPY.validatedAt(formatDateBR(checkedAt)) : COPY.validated}
       </span>
@@ -34,7 +34,7 @@ export function PartSefazBadge({ status = "not_checked", checkedAt }: IPartSefaz
 
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5">
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+      <span className="inline-flex items-center gap-1 rounded-full bg-severity-warning/15 px-2 py-0.5 text-[11px] font-medium text-severity-warning">
         <Icon icon="mdi:shield-alert-outline" size={12} />
         {COPY.notChecked}
       </span>

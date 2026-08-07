@@ -12,9 +12,9 @@ import { customerLabel } from "../utils/customerLabel";
 import { PWA_STRINGS as S } from "../i18n/pt-BR";
 
 const STATUS_TONE: Record<string, string> = {
-  ativo: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-  dormente: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300",
-  recuperacao: "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-300",
+  ativo: "border-severity-success/40 bg-severity-success/10 text-severity-success",
+  dormente: "border-severity-warning/40 bg-severity-warning/10 text-severity-warning",
+  recuperacao: "border-severity-info/40 bg-severity-info/10 text-severity-info",
   perdido: "border-muted-foreground/30 bg-muted text-muted-foreground",
 };
 

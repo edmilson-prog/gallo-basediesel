@@ -27,9 +27,9 @@ export function RescueBroadcastClaim() {
       {queue.entries.map(({ rescue, age }) => (
         <div
           key={rescue.id}
-          className="rounded-md border border-amber-500/40 bg-amber-50 p-3 shadow-lg ring-1 ring-amber-500/20 dark:bg-amber-950/60"
+          className="rounded-md border border-severity-warning/40 bg-severity-warning/10 p-3 shadow-lg ring-1 ring-severity-warning/20"
         >
-          <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-amber-700 dark:text-amber-200">
+          <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-severity-warning">
             <Icon icon="mdi:account-alert-outline" size={14} />
             RESPONSÁVEL AUSENTE · há {age}s
           </div>

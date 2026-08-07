@@ -153,7 +153,7 @@ export function ForecastWidget({ storeId = "00000000-0000-0000-0000-000000000001
           <MiniBreakdown scenario={likely} />
 
           {forecast.lowConfidence && (
-            <p className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+            <p className="flex items-center gap-1 text-xs text-severity-warning">
               <Icon icon="mdi:alert-circle-outline" size={13} />
               Projeção pouco confiável — poucos dias decorridos.
             </p>

@@ -17,9 +17,9 @@ const OPTIONS: {
   icon: string;
   dotClass: string;
 }[] = [
-  { value: "online", label: "Online", icon: "mdi:circle", dotClass: "text-emerald-500" },
-  { value: "ausente", label: "Ausente", icon: "mdi:circle", dotClass: "text-amber-500" },
-  { value: "ocupado", label: "Ocupado", icon: "mdi:circle", dotClass: "text-orange-500" },
+  { value: "online", label: "Online", icon: "mdi:circle", dotClass: "text-severity-success" },
+  { value: "ausente", label: "Ausente", icon: "mdi:circle", dotClass: "text-severity-warning" },
+  { value: "ocupado", label: "Ocupado", icon: "mdi:circle", dotClass: "text-severity-critical" },
   { value: "offline", label: "Offline", icon: "mdi:circle", dotClass: "text-muted-foreground" },
 ];
 

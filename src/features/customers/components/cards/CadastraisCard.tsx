@@ -494,7 +494,7 @@ function CnpjField({
           <span className="hidden sm:inline">{COPY.lookupCnpj}</span>
         </Button>
       </div>
-      {error && <p className="text-[11px] text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-[11px] text-severity-critical">{error}</p>}
       {/* The disabled button can't show its `title` tooltip, so spell the reason
           out inline (only when there's no validation error already showing). */}
       {!canLookup && !loading && !error && (
@@ -543,7 +543,7 @@ function Field({
         className={cn("h-8 text-xs", mono && "font-mono")}
         aria-invalid={error ? true : undefined}
       />
-      {error && <p className="text-[11px] text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-[11px] text-severity-critical">{error}</p>}
     </div>
   );
 }

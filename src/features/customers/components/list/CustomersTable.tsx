@@ -416,9 +416,9 @@ function renderCell(col: ColumnId, ctx: ICellContext) {
         <span
           className={cn(
             "flex items-center gap-1 text-xs tabular-nums",
-            recencyDays !== null && recencyDays > 180 && "text-rose-600 dark:text-rose-400",
+            recencyDays !== null && recencyDays > 180 && "text-severity-critical",
             recencyDays !== null && recencyDays > 60 && recencyDays <= 180
-              ? "text-amber-600 dark:text-amber-400"
+              ? "text-severity-warning"
               : "",
           )}
         >

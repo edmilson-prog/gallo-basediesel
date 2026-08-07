@@ -275,8 +275,8 @@ function PreviewStat({
           <span
             className={
               delta > 0
-                ? "text-xs font-medium text-amber-600 dark:text-amber-400"
-                : "text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                ? "text-xs font-medium text-severity-warning"
+                : "text-xs font-medium text-severity-success"
             }
           >
             {delta > 0 ? `+${delta}` : delta} vs atual

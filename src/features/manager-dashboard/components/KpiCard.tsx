@@ -34,10 +34,10 @@ function TrendBadge({ trend }: { trend: ITrendInfo }) {
         ? "mdi:arrow-bottom-right"
         : "mdi:minus";
   const colorClass = trend.isImprovement
-    ? "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10"
+    ? "text-severity-success bg-severity-success/10"
     : trend.changePct === 0
       ? "text-muted-foreground bg-muted/60"
-      : "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-500/10";
+      : "text-severity-critical bg-severity-critical/10";
   const label =
     trend.direction === "up"
       ? MANAGER_DASHBOARD_STRINGS.kpiTrendUp
@@ -124,7 +124,7 @@ export function KpiCard({
           </div>
         </div>
         {hasError ? (
-          <Icon icon="mdi:alert-circle-outline" size={18} className="text-amber-500" />
+          <Icon icon="mdi:alert-circle-outline" size={18} className="text-severity-warning" />
         ) : (
           trend && !isLoading && <TrendBadge trend={trend} />
         )}

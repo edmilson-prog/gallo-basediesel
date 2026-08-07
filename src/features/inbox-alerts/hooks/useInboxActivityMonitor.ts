@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";
 import { useSoundEventPlayer } from "@/features/sound-settings";
@@ -8,6 +9,9 @@ import {
   useMessagesProvider,
 } from "@/providers/data";
 import { subscribeToTable } from "@/shared/lib/realtime";
+import type { MessageMediaType } from "@/shared/types";
+import { isConversationActive } from "../engine/activeConversation";
+import { emitInboundOnMine } from "../events/inboundOnMine";
 import { isQueuedConversation } from "../engine/isQueuedConversation";
 import { isRecentEvent } from "../engine/isRecentEvent";
 import { isFreshInboundTimestamp } from "../engine/isFreshInboundTimestamp";
@@ -52,6 +56,9 @@ interface IMessageRealtimeRow {
   conversation_id: string;
   direction: "in" | "out";
   sent_at: string;
+  /** Body text — carried straight into the toast preview (no extra query). */
+  text: string | null;
+  media_type: MessageMediaType | null;
 }
 
 /**
@@ -90,6 +97,14 @@ export function useInboxActivityMonitor(): void {
   const messagesProvider = useMessagesProvider();
 
   const { play } = useSoundEventPlayer();
+
+  // Route mirrored into a ref ON PURPOSE: the main effect below owns the
+  // Realtime subscriptions, and adding the pathname to its dependency array
+  // would tear the channels down and re-join them on every navigation. Same
+  // pattern as `useSoundEventPlayer`'s settings ref.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
 
   const cacheRef = useRef(new Map<string, ICachedConversation>());
   const lastAlertedInboundRef = useRef(new Map<string, string>());
@@ -191,12 +206,32 @@ export function useInboxActivityMonitor(): void {
       mineRevalidateHandle = window.setTimeout(revalidateMine, SIGNAL_REVALIDATE_DEBOUNCE_MS);
     }
 
-    function maybeBeepMine(conversationId: string, candidateSentAt: string) {
+    function maybeBeepMine(
+      conversationId: string,
+      candidateSentAt: string,
+      message?: { text: string | null; mediaType: MessageMediaType | null },
+    ) {
       const nowIso = new Date().toISOString();
       const lastAlerted = lastAlertedInbound.get(conversationId) ?? null;
       if (!isFreshInboundTimestamp(candidateSentAt, lastAlerted, nowIso, MAX_EVENT_AGE_MS)) return;
       lastAlertedInbound.set(conversationId, candidateSentAt);
       useInboxActivityStore.getState().setHasUnreadMine(true);
+
+      // The seller is looking straight at this conversation — no sound, no
+      // toast. A conversation open behind a hidden tab does NOT count as active
+      // (see engine/activeConversation), so the alert still fires there.
+      if (isConversationActive(pathnameRef.current, conversationId, document.visibilityState)) {
+        return;
+      }
+
+      // Raised BEFORE the sound throttle on purpose: the toast is keyed by
+      // conversation id and updates in place, so a burst must keep bumping its
+      // counter even while the throttle is silencing the extra beeps.
+      emitInboundOnMine({
+        conversationId,
+        text: message?.text ?? null,
+        mediaType: message?.mediaType ?? null,
+      });
 
       const nowMs = Date.now();
       if (shouldThrottle(lastMineBeepAtRef.current, nowMs, MIN_BEEP_INTERVAL_MS)) return;
@@ -302,7 +337,10 @@ export function useInboxActivityMonitor(): void {
       if (!row?.conversation_id || row.direction !== "in" || !row.sent_at) return;
       const cached = cache.get(row.conversation_id);
       if (!sellerId || !cached || cached.assignedSellerId !== sellerId) return;
-      maybeBeepMine(row.conversation_id, row.sent_at);
+      maybeBeepMine(row.conversation_id, row.sent_at, {
+        text: row.text ?? null,
+        mediaType: row.media_type ?? null,
+      });
     });
 
     return () => {

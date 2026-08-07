@@ -146,8 +146,8 @@ export function LeadCard({
             className={cn(
               "rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase",
               converted
-                ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
-                : "bg-red-500/20 text-red-700 dark:text-red-300",
+                ? "bg-severity-success/20 text-severity-success"
+                : "bg-severity-critical/20 text-severity-critical",
             )}
           >
             {converted ? LEADS_STRINGS.card.converted : LEADS_STRINGS.card.lost}

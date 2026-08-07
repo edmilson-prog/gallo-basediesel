@@ -94,7 +94,7 @@ export function SdrTemplateEditor({
           </code>
         </div>
         {dirty && (
-          <span className="text-[11px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-300">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-severity-warning">
             Não salvo
           </span>
         )}

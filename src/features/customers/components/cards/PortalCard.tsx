@@ -74,7 +74,7 @@ export function PortalCard({ customer }: IPortalCardProps) {
               <span
                 className={
                   settings[row.key]
-                    ? "inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                    ? "inline-flex h-4 w-4 items-center justify-center rounded-full bg-severity-success/20 text-severity-success"
                     : "inline-flex h-4 w-4 items-center justify-center rounded-full bg-muted text-muted-foreground"
                 }
                 aria-label={settings[row.key] ? COPY.yes : COPY.no}

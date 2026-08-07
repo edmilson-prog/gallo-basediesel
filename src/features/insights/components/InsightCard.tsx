@@ -24,8 +24,8 @@ const PRIORITY_BORDER: Record<string, string> = {
 
 const PRIORITY_BADGE: Record<string, string> = {
   critico: "bg-destructive/15 text-destructive border-destructive/30",
-  medio: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
-  oportunidade: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+  medio: "bg-severity-warning/15 text-severity-warning border-severity-warning/30",
+  oportunidade: "bg-severity-success/15 text-severity-success border-severity-success/30",
   info: "bg-muted text-muted-foreground border-border",
 };
 
@@ -58,9 +58,9 @@ export function InsightCard({ insight, onDismiss, dismissed = false }: IInsightC
               insight.priority === "critico"
                 ? "bg-destructive/10 text-destructive"
                 : insight.priority === "medio"
-                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                  ? "bg-severity-warning/10 text-severity-warning"
                   : insight.priority === "oportunidade"
-                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                    ? "bg-severity-success/10 text-severity-success"
                     : "bg-muted text-muted-foreground"
             }`}
           >

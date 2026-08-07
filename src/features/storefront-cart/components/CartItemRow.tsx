@@ -98,7 +98,7 @@ export function CartItemRow({ item }: ICartItemRowProps) {
           {live && live.stockAvailable <= 0 && (
             <Badge
               variant="outline"
-              className="border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
+              className="border-severity-critical/30 bg-severity-critical/10 text-severity-critical"
             >
               Sem estoque
             </Badge>

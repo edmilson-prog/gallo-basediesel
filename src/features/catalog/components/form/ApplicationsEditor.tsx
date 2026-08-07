@@ -46,7 +46,7 @@ export function ApplicationsEditor({ applications, onChange }: IApplicationsEdit
       </p>
 
       {applications.length === 0 && (
-        <p className="rounded-md border border-dashed border-amber-500/40 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+        <p className="rounded-md border border-dashed border-severity-warning/40 bg-severity-warning/10 px-3 py-2 text-xs text-severity-warning">
           {CATALOG_STRINGS.form.noApplicationsWarning}
         </p>
       )}
