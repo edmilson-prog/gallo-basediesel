@@ -61,6 +61,7 @@ import { Route as AppClientesRouteImport } from './routes/app.clientes'
 import { Route as AppCatalogoRouteImport } from './routes/app.catalogo'
 import { Route as AppCarteiraRouteImport } from './routes/app.carteira'
 import { Route as AppAtendimentoRouteImport } from './routes/app.atendimento'
+import { Route as AppAgendaRouteImport } from './routes/app.agenda'
 import { Route as PwaCarteiraIndexRouteImport } from './routes/pwa.carteira.index'
 import { Route as PwaAgendaIndexRouteImport } from './routes/pwa.agenda.index'
 import { Route as PortalSolicitacoesIndexRouteImport } from './routes/portal.solicitacoes.index'
@@ -455,6 +456,11 @@ const AppCarteiraRoute = AppCarteiraRouteImport.update({
 const AppAtendimentoRoute = AppAtendimentoRouteImport.update({
   id: '/atendimento',
   path: '/atendimento',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAgendaRoute = AppAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
   getParentRoute: () => AppRoute,
 } as any)
 const PwaCarteiraIndexRoute = PwaCarteiraIndexRouteImport.update({
@@ -1195,6 +1201,7 @@ export interface FileRoutesByFullPath {
   '/portal': typeof PortalRouteWithChildren
   '/pwa': typeof PwaRouteWithChildren
   '/sem-permissao': typeof SemPermissaoRoute
+  '/app/agenda': typeof AppAgendaRoute
   '/app/atendimento': typeof AppAtendimentoRouteWithChildren
   '/app/carteira': typeof AppCarteiraRoute
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
@@ -1381,6 +1388,7 @@ export interface FileRoutesByTo {
   '/design-system': typeof DesignSystemRoute
   '/erro': typeof ErroRoute
   '/sem-permissao': typeof SemPermissaoRoute
+  '/app/agenda': typeof AppAgendaRoute
   '/app/carteira': typeof AppCarteiraRoute
   '/app/inicio': typeof AppInicioRoute
   '/app/insights': typeof AppInsightsRoute
@@ -1550,6 +1558,7 @@ export interface FileRoutesById {
   '/portal': typeof PortalRouteWithChildren
   '/pwa': typeof PwaRouteWithChildren
   '/sem-permissao': typeof SemPermissaoRoute
+  '/app/agenda': typeof AppAgendaRoute
   '/app/atendimento': typeof AppAtendimentoRouteWithChildren
   '/app/carteira': typeof AppCarteiraRoute
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
@@ -1741,6 +1750,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/pwa'
     | '/sem-permissao'
+    | '/app/agenda'
     | '/app/atendimento'
     | '/app/carteira'
     | '/app/catalogo'
@@ -1927,6 +1937,7 @@ export interface FileRouteTypes {
     | '/design-system'
     | '/erro'
     | '/sem-permissao'
+    | '/app/agenda'
     | '/app/carteira'
     | '/app/inicio'
     | '/app/insights'
@@ -2095,6 +2106,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/pwa'
     | '/sem-permissao'
+    | '/app/agenda'
     | '/app/atendimento'
     | '/app/carteira'
     | '/app/catalogo'
@@ -2651,6 +2663,13 @@ declare module '@tanstack/react-router' {
       path: '/atendimento'
       fullPath: '/app/atendimento'
       preLoaderRoute: typeof AppAtendimentoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/agenda': {
+      id: '/app/agenda'
+      path: '/agenda'
+      fullPath: '/app/agenda'
+      preLoaderRoute: typeof AppAgendaRouteImport
       parentRoute: typeof AppRoute
     }
     '/pwa/carteira/': {
@@ -3865,6 +3884,7 @@ const AppGestaoRankingRouteWithChildren =
   AppGestaoRankingRoute._addFileChildren(AppGestaoRankingRouteChildren)
 
 interface AppRouteChildren {
+  AppAgendaRoute: typeof AppAgendaRoute
   AppAtendimentoRoute: typeof AppAtendimentoRouteWithChildren
   AppCarteiraRoute: typeof AppCarteiraRoute
   AppCatalogoRoute: typeof AppCatalogoRouteWithChildren
@@ -3951,6 +3971,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAgendaRoute: AppAgendaRoute,
   AppAtendimentoRoute: AppAtendimentoRouteWithChildren,
   AppCarteiraRoute: AppCarteiraRoute,
   AppCatalogoRoute: AppCatalogoRouteWithChildren,
