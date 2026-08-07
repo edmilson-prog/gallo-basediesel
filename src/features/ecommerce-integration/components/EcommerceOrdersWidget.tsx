@@ -46,7 +46,7 @@ export function EcommerceOrdersWidget({ storeId }: IEcommerceOrdersWidgetProps) 
             <p className="text-xs text-muted-foreground">Últimos 30 dias</p>
           </div>
           <div>
-            <p className="text-2xl font-semibold tabular-nums text-amber-600 dark:text-amber-400">
+            <p className="text-2xl font-semibold tabular-nums text-severity-warning">
               {data?.pendingCount ?? 0}
             </p>
             <p className="text-xs text-muted-foreground">Pendentes</p>

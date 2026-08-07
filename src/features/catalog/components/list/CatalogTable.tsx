@@ -276,14 +276,14 @@ export function CatalogTable({
                           className={cn(
                             "inline-flex items-center gap-1 text-xs",
                             part.active
-                              ? "text-emerald-600 dark:text-emerald-400"
+                              ? "text-severity-success"
                               : "text-muted-foreground",
                           )}
                         >
                           <span
                             className={cn(
                               "h-1.5 w-1.5 shrink-0 rounded-full",
-                              part.active ? "bg-emerald-500" : "bg-muted-foreground",
+                              part.active ? "bg-severity-success" : "bg-muted-foreground",
                             )}
                             aria-hidden="true"
                           />

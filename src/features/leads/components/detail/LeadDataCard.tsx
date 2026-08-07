@@ -79,14 +79,14 @@ export function LeadDataCard({
         </Badge>
         {converted && (
           <Badge
-            className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+            className="bg-severity-success/15 text-severity-success"
             icon="mdi:check-decagram"
           >
             {LEADS_STRINGS.card.converted}
           </Badge>
         )}
         {lost && (
-          <Badge className="bg-red-500/15 text-red-700 dark:text-red-300" icon="mdi:close-octagon">
+          <Badge className="bg-severity-critical/15 text-severity-critical" icon="mdi:close-octagon">
             {LEADS_STRINGS.card.lost}
           </Badge>
         )}
@@ -97,7 +97,7 @@ export function LeadDataCard({
         <Section title={LEADS_STRINGS.card.lost}>
           {lead.lossReason && (
             <Fact label={COPY.lossReason}>
-              <span className="text-red-700 dark:text-red-300">{lead.lossReason}</span>
+              <span className="text-severity-critical">{lead.lossReason}</span>
             </Fact>
           )}
           {lead.lossNotes && <Fact label={COPY.lossNotes}>{lead.lossNotes}</Fact>}
@@ -278,7 +278,7 @@ function EditCommercialSlot({
           onChange={(e) => onDraftChange({ estimatedValue: e.target.value })}
         />
         {errors.estimatedValue && (
-          <p className="text-[11px] text-red-600 dark:text-red-400">{errors.estimatedValue}</p>
+          <p className="text-[11px] text-severity-critical">{errors.estimatedValue}</p>
         )}
       </div>
       <div className="space-y-1">
@@ -331,7 +331,7 @@ function EditEmailSlot({
         inputMode="email"
         onChange={(e) => onDraftChange({ email: e.target.value })}
       />
-      {errors.email && <p className="text-[11px] text-red-600 dark:text-red-400">{errors.email}</p>}
+      {errors.email && <p className="text-[11px] text-severity-critical">{errors.email}</p>}
     </div>
   );
 }

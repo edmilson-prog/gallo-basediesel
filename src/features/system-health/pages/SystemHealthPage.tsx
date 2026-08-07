@@ -281,22 +281,22 @@ const PROVIDER_STATE_VISUAL: Record<
 > = {
   healthy: {
     label: S.providersStateHealthy,
-    className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    className: "border-severity-success/40 bg-severity-success/10 text-severity-success",
     icon: "mdi:check-circle-outline",
   },
   degraded: {
     label: S.providersStateDegraded,
-    className: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    className: "border-severity-warning/40 bg-severity-warning/10 text-severity-warning",
     icon: "mdi:alert-outline",
   },
   down: {
     label: S.providersStateDown,
-    className: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300",
+    className: "border-severity-critical/40 bg-severity-critical/10 text-severity-critical",
     icon: "mdi:close-circle-outline",
   },
   paused: {
     label: S.providersStatePaused,
-    className: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300",
+    className: "border-severity-critical/40 bg-severity-critical/10 text-severity-critical",
     icon: "mdi:pause-circle-outline",
   },
 };

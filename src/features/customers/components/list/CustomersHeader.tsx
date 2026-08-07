@@ -81,7 +81,7 @@ export function CustomersHeader({
             <Icon icon="mdi:bookmark-check" size={14} className="text-primary" />
             <span className="font-medium text-primary">{activeSegmentName}</span>
             {hasUnsavedFilters && (
-              <span className="rounded bg-amber-200/60 px-1 text-[10px] font-semibold uppercase text-amber-800 dark:bg-amber-400/20 dark:text-amber-300">
+              <span className="rounded bg-severity-warning/15 px-1 text-[10px] font-semibold uppercase text-severity-warning">
                 Modificado
               </span>
             )}

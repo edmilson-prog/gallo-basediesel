@@ -104,7 +104,7 @@ export function ManagerDashboardPage() {
               }
             >
               <span
-                className={`h-2 w-2 rounded-full ${realtime.enabled ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40"}`}
+                className={`h-2 w-2 rounded-full ${realtime.enabled ? "bg-severity-success animate-pulse" : "bg-muted-foreground/40"}`}
                 aria-hidden="true"
               />
               {realtime.enabled ? "Tempo real ativo" : "Atualização pausada"}

@@ -54,8 +54,8 @@ const KIND_ICON: Record<IAssetLibraryItem["kind"], string> = {
  * but applied to a Badge instead of an inline span.
  */
 const STATUS_TONE: Record<IAssetLibraryItem["status"], string> = {
-  published: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  draft: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  published: "border-severity-success/40 bg-severity-success/10 text-severity-success",
+  draft: "border-severity-warning/40 bg-severity-warning/10 text-severity-warning",
   archived: "border-border bg-muted text-muted-foreground",
 };
 
@@ -132,7 +132,7 @@ export function AssetManageCard({
         {sensitive && (
           <Badge
             variant="outline"
-            className="gap-0.5 border-amber-500/40 bg-amber-500/10 px-1 py-0 text-[10px] text-amber-700 dark:text-amber-300"
+            className="gap-0.5 border-severity-warning/40 bg-severity-warning/10 px-1 py-0 text-[10px] text-severity-warning"
           >
             <Icon icon="mdi:lock-outline" size={10} />
           </Badge>

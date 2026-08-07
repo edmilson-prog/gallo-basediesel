@@ -25,9 +25,9 @@ const COPY = CUSTOMER_STRINGS.recommendations;
 const MVP_TYPES: RecommendationType[] = ["recovery", "vehicle_maintenance", "follow_up"];
 
 const PRIORITY_TONE: Record<RecommendationPriority, string> = {
-  critical: "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/40",
-  high: "bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/40",
-  medium: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40",
+  critical: "bg-severity-critical/15 text-severity-critical border-severity-critical/40",
+  high: "bg-severity-warning/15 text-severity-warning border-severity-warning/40",
+  medium: "bg-severity-info/15 text-severity-info border-severity-info/40",
   low: "bg-muted text-muted-foreground border-border",
 };
 

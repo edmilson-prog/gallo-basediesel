@@ -296,7 +296,7 @@ function MetadataSection({
       )}
       <MetaRow label={s.version} value={`v${item.version}`} mono />
       {sensitive && (
-        <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+        <div className="flex items-center gap-1.5 text-severity-warning">
           <Icon icon="mdi:lock-outline" size={13} aria-hidden="true" />
           <span className="text-xs font-medium">{s.sensitive}</span>
         </div>

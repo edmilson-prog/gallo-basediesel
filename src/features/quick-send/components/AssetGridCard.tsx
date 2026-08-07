@@ -94,7 +94,7 @@ export function AssetGridCard({
         </Button>
       </div>
       {blocked && (
-        <span className="absolute left-1 top-1 rounded bg-amber-500/90 px-1 py-0.5 text-[9px] font-medium text-white">
+        <span className="absolute left-1 top-1 rounded bg-severity-warning px-1 py-0.5 text-[9px] font-medium text-white">
           {QUICK_SEND_STRINGS.library.noPermission}
         </span>
       )}
