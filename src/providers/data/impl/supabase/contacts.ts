@@ -420,6 +420,21 @@ function buildOrderedQuery(params: IListContactsParams, now: Date, searchCustome
       query = query.order(orderBy, { ascending, nullsFirst: ascending });
       break;
   }
+
+  // Unique tie-breaker, applied once here rather than inside every branch
+  // above so it can never be forgotten on a future one. Postgres does not
+  // guarantee a stable relative order for rows tied on the primary sort
+  // column across SEPARATE queries — and `list()` (via `fetchLargePage`)
+  // issues multiple `.range()` queries for any read past 1000 rows (Task
+  // 16's "select all N filtered" reads the whole filtered set this way).
+  // Without a unique secondary key, tied rows can be duplicated into two
+  // chunks or skipped entirely at a chunk boundary. Worst case here:
+  // orderBy "status" sorts primarily by `opt_out`, a boolean — nearly every
+  // row ties. Matches the precedent in `customers.ts` (`.order("id")` as the
+  // final key). Do not remove this as "redundant" — it only looks that way
+  // on a single, un-paginated query.
+  query = query.order("id", { ascending });
+
   return query;
 }
 
