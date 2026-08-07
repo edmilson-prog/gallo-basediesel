@@ -4,6 +4,32 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.164.0] — Roster · 2026-08-07
+
+**A Gestão de carteira mostrava transferências; agora mostra a carteira. A tela abre com um quadro de todos os vendedores — quantos clientes cada um tem, que fatia da base isso representa e quantos desses clientes estão parados há mais de 30 dias. Os clientes que não estão na carteira de ninguém, que antes não apareciam em lugar nenhum, ganharam uma linha própria em vermelho, com um botão para distribuí-los.**
+
+### Added
+
+- **Quadro da carteira** — um vendedor por linha, com o total de clientes, uma barra que compara o tamanho das carteiras, um ponto verde, âmbar ou vermelho conforme a quantidade de clientes parados, e a situação de cada um: carteira própria, coberto por alguém ou cobrindo alguém.
+- **Clientes sem responsável** — a última linha do quadro mostra quantos clientes estão fora de todas as carteiras. Eles não entram em positivação, meta nem rodízio, e até agora a tela não dizia que existiam.
+- **Distribuir clientes sem responsável** — o botão abre uma janela que lista quem são, deixa escolher um vendedor e passa todos para ele de uma vez.
+- **Ficha do vendedor** — clicar em uma linha do quadro abre um resumo com clientes na carteira, positivados no mês, clientes parados e a movimentação dos últimos 30 dias: quantos recebeu, quantos passou e o saldo.
+- **Resumo no topo da tela** — total de clientes, quantos vendedores dividem a base, quantas coberturas estão em vigor e quantos clientes estão sem responsável.
+
+### Changed
+
+- **Cobertura e transferência definitiva ficaram separadas** — são coisas diferentes e agora aparecem em blocos distintos. A cobertura mantém o relógio, a barra de tempo decorrido, a data em que os clientes voltam sozinhos e o botão **Devolver agora**. Quando ninguém está afastado, o bloco diz isso em vez de ficar vazio.
+- **Mudanças recentes viraram uma tabela** — as transferências definitivas dos últimos 30 dias ocupam uma linha cada, em vez de um cartão grande por transferência. Onde antes cabiam três, agora cabem quinze. **Reverter** continua em cada linha.
+- **"Nova transferência" virou "Nova cobertura"** — é a única transferência que se conclui nesta tela. As outras duas opções do menu antigo apenas mostravam um aviso e levavam para a lista de clientes; agora existe um botão **Transferir clientes** que diz abertamente que é para lá que se vai, porque a transferência definitiva precisa do cliente à vista.
+- **A aba Carteira não tem mais barra de filtros** — filtrar meia dúzia de registros não ajudava. Os filtros continuam no Histórico, onde há volume.
+- **A primeira aba passou a se chamar Carteira**, no lugar de Ativas. Histórico e Auditoria seguem iguais.
+
+### Notes
+
+- **A coluna de risco mede compra, não conversa.** O sistema registra a data da última compra de cada cliente, mas não a do último contato — por isso a coluna diz **"sem compra 30d"**, que é o que o número realmente mostra.
+- **Distribuir tem uma modalidade só:** um vendedor assume todos. O rodízio automático por proximidade de cidade e a triagem cliente a cliente ainda não existem, e um botão que fizesse outra coisa seria pior do que não ter o botão.
+- Nenhuma migration nesta versão.
+
 ## [0.163.0] — Sieve · 2026-08-06
 
 **O funil de triagem ganhou saída. Quando a etapa de entrada passa do limite, ela para de ser uma pilha de cards e diz quantos leads estão parados ali, há quanto tempo o mais antigo espera, e leva direto para a lista. Na lista, agora dá para marcar vários leads de uma vez e mandar todos para outro funil, atribuir a um vendedor ou marcar como perdidos.**
