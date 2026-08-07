@@ -52,6 +52,12 @@ export { DEFAULT_SESSION_TIMEOUT } from "./platform";
 // Sound center (Configurações → Sons de notificação)
 export type { SoundTemplateId, SoundEventId, ISoundEventConfig, ISoundSettings } from "./sound";
 export { DEFAULT_SOUND_SETTINGS } from "./sound";
+export type { IInboundToastSettings } from "./inbound-toast";
+export {
+  DEFAULT_INBOUND_TOAST_SETTINGS,
+  INBOUND_TOAST_DURATION_MIN_SECONDS,
+  INBOUND_TOAST_DURATION_MAX_SECONDS,
+} from "./inbound-toast";
 
 // System health & observability (PRD-110)
 export type {
