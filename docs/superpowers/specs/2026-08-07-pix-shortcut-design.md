@@ -185,8 +185,14 @@ Regras que o builder impõe e que os testes cobrem:
   `qrcode-generator` é Latin-1, então um `ç` no nome do favorecido produz bytes que alguns
   leitores decodificam errado. O padrão BR Code já exige ASCII — as duas exigências se
   resolvem na mesma função.
-- **Teste com CRC conhecido** — um payload de referência com o checksum esperado fixado no
-  teste, para pegar regressão no cálculo.
+- **Duas âncoras externas para o CRC.** Um teste de checksum só vale se o número esperado
+  vier de **fora** da nossa implementação — senão ele confirma apenas que o código concorda
+  consigo mesmo, e valida o bug junto. As âncoras são: `29B1`, o vetor de verificação
+  oficial do CRC-16/CCITT-FALSE para `"123456789"` (prova que o algoritmo é o certo,
+  independente de PIX), e `1D3D`, o checksum publicado com o exemplo real de BR Code
+  (prova que ele está certo sobre um payload PIX real). O `buildPixPayload` é testado
+  **estruturalmente** — ordem dos campos e comprimentos TLV — e só depois confere que anexa o
+  checksum do próprio corpo.
 
 ### 5.3 `drawPixQr.ts` — canvas
 

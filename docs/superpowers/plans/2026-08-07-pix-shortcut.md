@@ -263,7 +263,8 @@ git commit -m "feat(pix): add PIX key canonical/display formatting engine"
 - Test: `src/features/pix/engine/pixBrCode.test.ts`
 
 **Interfaces:**
-- Consumes: `PixKeyType` de `./pixKeyFormat`.
+- Consumes: nada. O BR Code monta os TLVs a partir do **valor** da chave; o tipo não
+  participa da montagem, então este módulo não importa `PixKeyType`.
 - Produces: `toAscii(value, maxLen): string`, `crc16Ccitt(payload): string`, `buildPixPayload(input): { ok: true; value: string } | { ok: false; reason: string }` onde `input = { keyValue: string; receiverName: string; receiverCity: string }`.
 
 > **A caixa do nome é preservada, não uppercase.** O padrão BR Code não exige maiúsculas, e
@@ -272,19 +273,42 @@ git commit -m "feat(pix): add PIX key canonical/display formatting engine"
 
 - [ ] **Step 1: Write the failing test**
 
-O caso de referência é o exemplo canônico do Manual do BR Code do BACEN. Ele existe para pegar regressão no CRC — **não altere seus valores**.
+**Sobre as âncoras do CRC.** Um teste de checksum só vale se o número esperado vier de
+**fora** da nossa implementação — senão ele apenas confirma que o código concorda consigo
+mesmo, e valida o bug junto. Por isso o CRC tem **duas âncoras externas** e o builder é
+testado estruturalmente:
+
+1. `29B1` — o vetor de verificação oficial do CRC-16/CCITT-FALSE para `"123456789"`.
+   Independe de PIX; prova que o algoritmo é o certo.
+2. `1D3D` — o checksum publicado junto com o exemplo real de BR Code (chave aleatória UUID,
+   GUI em minúsculas). Prova que o algoritmo está certo **sobre um payload PIX real**.
+
+**Não altere nenhum desses dois números.** Se a implementação discordar deles, é a
+implementação que está errada.
 
 ```ts
 // src/features/pix/engine/pixBrCode.test.ts
 import { describe, it, expect } from "vitest";
 import { buildPixPayload, crc16Ccitt, toAscii } from "./pixBrCode";
 
-const REFERENCE =
-  "00020126330014BR.GOV.BCB.PIX0111123456789015204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D";
+/** Official CRC-16/CCITT-FALSE check vector — external anchor, not PIX-specific. */
+const OFFICIAL_VECTOR = "123456789";
+
+/**
+ * Real published BR Code example (random UUID key, lowercase GUI), minus its
+ * four checksum characters. Its checksum is CITED, not computed by us.
+ */
+const BACEN_EXAMPLE_BODY =
+  "00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-426655440000" +
+  "5204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***6304";
 
 describe("crc16Ccitt", () => {
-  it("matches the BACEN reference payload checksum", () => {
-    expect(crc16Ccitt(REFERENCE.slice(0, -4))).toBe("1D3D");
+  it("matches the official CRC-16/CCITT-FALSE check vector", () => {
+    expect(crc16Ccitt(OFFICIAL_VECTOR)).toBe("29B1");
+  });
+
+  it("matches the checksum published with the real BR Code example", () => {
+    expect(crc16Ccitt(BACEN_EXAMPLE_BODY)).toBe("1D3D");
   });
 
   it("always returns four uppercase hex characters", () => {
@@ -293,14 +317,23 @@ describe("crc16Ccitt", () => {
 });
 
 describe("buildPixPayload", () => {
-  it("reproduces the BACEN reference payload byte for byte", () => {
+  it("emits the standard's fields in order and appends the matching CRC", () => {
     const result = buildPixPayload({
       keyValue: "12345678901",
       receiverName: "Fulano de Tal",
       receiverCity: "BRASILIA",
     });
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value).toBe(REFERENCE);
+    if (!result.ok) return;
+    // Field order: 00, 26, 52, 53, 58, 59, 60, 62, 63. Every TLV length is
+    // two digits, zero-padded. This asserts the ASSEMBLY.
+    expect(result.value.slice(0, -4)).toBe(
+      "00020126330014BR.GOV.BCB.PIX01111234567890152040000" +
+        "53039865802BR5913Fulano de Tal6008BRASILIA62070503***6304",
+    );
+    // The CRC itself is anchored by the two external vectors above; here we
+    // only assert the builder appends the checksum of its own body.
+    expect(result.value.slice(-4)).toBe(crc16Ccitt(result.value.slice(0, -4)));
   });
 
   it("carries no transaction amount — the key is static (D-3)", () => {
