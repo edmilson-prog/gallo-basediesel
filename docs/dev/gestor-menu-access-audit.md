@@ -197,3 +197,74 @@ extraída para `isSettingsItemVisible()`, exportada e testável sem montar o lay
 O bug da raiz `/` (`src/routes/index.tsx`) segue vivo: quem não é Owner, Vendedor
 ou Cliente — inclusive o Gestor — cai em `/sem-permissao` ao abrir o domínio sem
 caminho. Não foi tocado aqui para manter o PR coeso.
+
+---
+
+# Parte 3 — Becos sem saída do Editor de Papéis (2026-08-07)
+
+Com a área de Configurações destravada, o dono criou o primeiro papel customizado
+da história do projeto (`role.create` nunca havia rodado em produção). A criação
+funcionou — e caiu direto no primeiro beco.
+
+## 1. Papel natimorto: base `Owner` era oferecida
+
+O `TestePapel` nasceu com `base_role = 'Owner'`. O formulário montava as opções de
+papel-base a partir de **todos** os papéis de sistema, incluindo Owner e Cliente —
+exatamente os dois que a Edge `set-seller-role` recusa:
+
+- `Owner` → 403 `cannot assign the owner role` (seria escalonamento de privilégio);
+- `Cliente` → 403 `cannot assign a customer role to a seller` (quebra o login).
+
+O papel então aparecia na lista de atribuíveis do `ChangeRoleDialog` (não é
+`isOwnerImmutable`, não é base `Cliente`) e só era recusado no save, com 403 e sem
+explicação.
+
+**Causa de fundo:** a regra de "quem é atribuível" existia duplicada — um filtro
+inline no `ChangeRoleDialog` e nada no formulário de criação. Foi extraída para
+`src/features/rbac/utils/assignableRoles.ts` (`NON_ASSIGNABLE_BASE_ROLES`,
+`isAssignableBaseRole`, `isAssignableRole`), que agora é lida pelos dois — e por
+`updateMeta`. É a mesma classe de bug das Partes 1 e 2: **duas cópias da mesma
+regra que divergem**.
+
+Junto: "Duplicar" foi desabilitado no papel Dono, que produzia o mesmo clone
+natimorto (e cujo poder vem da base, não da matriz — copiar não faria sentido).
+
+## 2. Papel-base era irreversível
+
+`updateMeta` aceitava apenas `{name, description}`. Errar a base na criação exigia
+excluir o papel e refazer a matriz inteira.
+
+Agora aceita `baseRole`, com três guardas no provider (não só na UI):
+
+- papel **de sistema** não troca de base — ele *é* a sua base, e mexer nisso
+  dessincronizaria o claim do JWT, a RLS e a matriz estática de fallback;
+- base não-atribuível é recusada (mesma lista acima);
+- **bloqueado enquanto alguém usa o papel** — a base é copiada para
+  `profiles.role` no momento da atribuição, então trocá-la depois deixaria os
+  portadores atuais rodando na base antiga, com a matriz dizendo uma coisa e a RLS
+  outra. Reusa `countRoleUsage()`, o mesmo contador que já protege a exclusão.
+
+O mock espelha as duas primeiras guardas; a terceira não tem equivalente lá,
+porque atribuição de papel customizado vive em `profiles.role_id`, que só o
+backend Supabase modela.
+
+## 3. Nome duplicado passava
+
+A unicidade era validada só no cliente; o banco tinha `UNIQUE` apenas em `slug`,
+que para papel customizado é um uuid gerado e nunca colide. Migration
+`20260807150000_roles_unique_name.sql` adiciona índice único
+`(coalesce(store_id, …), lower(name))` — case-insensitive, por loja.
+
+## 4. Papel sempre global
+
+`storeId: null` fixo, sem seletor de loja. Mantido **de propósito**: a coluna, o
+filtro por loja em `isAssignableRole` e a FK já existem, mas há uma única loja em
+produção — um seletor hoje seria UI morta. A decisão virou comentário no código e
+o texto "O papel vale para todas as lojas." no formulário. Quando surgir a segunda
+loja, basta acrescentar o seletor.
+
+## Nota operacional
+
+O `TestePapel` (base `Owner`) continua no banco e agora **não aparece mais** na
+lista de atribuíveis — o filtro novo o exclui. Pode ser excluído pelo editor sem
+efeito colateral: ninguém o usa.

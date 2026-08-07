@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Icon } from "@/components/Icon";
 import { ROLE_EDITOR_LABELS } from "../../i18n/pt-BR";
+import { isAssignableBaseRole } from "../../utils/assignableRoles";
 
 /** Dialog mode — drives which fields render and which provider call runs. */
 export type RoleFormMode = "create" | "duplicate" | "edit-meta";
@@ -142,8 +143,13 @@ export function RoleFormDialog({
 }: IRoleFormDialogProps) {
   const provider = useRolesProvider();
 
-  // System roles drive the base-role select; every role can be a duplicate source.
-  const systemRoles = useMemo(() => roles.filter((r) => r.isSystem), [roles]);
+  // System roles drive the base-role select — minus the ones the Edge refuses to
+  // assign (Owner, Cliente). Offering those produced a role that shows up in the
+  // assignment dropdown and can only ever answer 403.
+  const systemRoles = useMemo(
+    () => roles.filter((r) => r.isSystem && isAssignableBaseRole(r.baseRole)),
+    [roles],
+  );
 
   // Other roles' names for the uniqueness check — exclude the edited role itself
   // so a no-op rename stays valid.
@@ -206,7 +212,12 @@ export function RoleFormDialog({
       const description = values.description.trim() || undefined;
 
       if (mode === "edit-meta" && sourceRole) {
-        const updated = await provider.updateMeta(sourceRole.id, { name, description });
+        const updated = await provider.updateMeta(sourceRole.id, {
+          name,
+          description,
+          // Only custom roles expose the field; sending it unchanged is a no-op.
+          ...(sourceRole.isSystem ? {} : { baseRole: values.baseRole as RoleName }),
+        });
         return { role: updated, created: false };
       }
 
@@ -224,6 +235,10 @@ export function RoleFormDialog({
         description,
         baseRole: values.baseRole as RoleName,
         permissions,
+        // Deliberately global. `roles.store_id` and the per-store filter in
+        // `isAssignableRole` already exist, but there is a single store in
+        // production — a store picker here would be dead UI. When a second store
+        // arrives, add the picker; nothing else needs to change.
         storeId: null,
       });
       return { role: created, created: true };
@@ -252,7 +267,12 @@ export function RoleFormDialog({
   const onSubmit = form.handleSubmit((values) => mutation.mutate(values));
 
   const { title, description, submitLabel } = dialogCopy(mode);
-  const showBaseRole = mode !== "edit-meta";
+  // The base role is now editable when renaming a CUSTOM role — getting it wrong
+  // at creation used to be unfixable (delete + rebuild the whole matrix). System
+  // roles ARE their base, so theirs stays read-only. The provider still refuses
+  // the change while anyone holds the role, since the base is copied into
+  // `profiles.role` at assignment time.
+  const showBaseRole = mode !== "edit-meta" || (sourceRole != null && !sourceRole.isSystem);
   // Only the standalone create dialog exposes the initial-permissions choice —
   // duplicate mode always copies the source role.
   const showInitialPermissions = mode === "create";
@@ -324,7 +344,10 @@ export function RoleFormDialog({
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormDescription>{ROLE_EDITOR_LABELS.baseRoleHelp}</FormDescription>
+                    <FormDescription>
+                      {ROLE_EDITOR_LABELS.baseRoleHelp}
+                      {mode !== "edit-meta" && ` ${ROLE_EDITOR_LABELS.scopeHelp}`}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
