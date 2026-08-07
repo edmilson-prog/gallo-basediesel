@@ -1440,7 +1440,7 @@ Estas medidas vêm de `agd-views.jsx` e precisam sobreviver à tradução para t
 
 - container: `rounded-xl border border-border bg-card p-[14px_15px]`, coluna com `gap-[11px]`
 - hover: `-translate-y-0.5` + sombra; selecionado: borda em accent e fundo levemente tingido
-- **opt-out:** barra vertical de **3px** colada à esquerda, `bg-severity-danger`
+- **opt-out:** barra vertical de **3px** colada à esquerda, `bg-severity-critical`
 - topo: avatar **40px** com `contactInitials`, nome em fonte display **uppercase** truncado, abaixo `cargo · origem`
 - checkbox no canto superior direito em `opacity-30`, subindo para `opacity-100` no hover ou quando selecionado
 - **bloco de vínculo:**
@@ -1471,7 +1471,7 @@ Expected: PASS.
 Conferir por leitura do componente (não renderizar — o smoke visual é do dono):
 - a grade usa `grid-cols-[repeat(auto-fill,minmax(330px,1fr))]` com `gap-[14px]`
 - `contact.customerId === null` renderiza a caixa **tracejada** com o botão Vincular
-- `contact.optOut` renderiza a barra de 3px em `severity-danger` **e** desabilita a ação de conversa
+- `contact.optOut` renderiza a barra de 3px em `severity-critical` **e** desabilita a ação de conversa
 - as etiquetas cortam em 3, ou em 1 quando `optOut`
 - nenhum hex literal e nenhuma constante `AGD`
 
@@ -1695,7 +1695,7 @@ git commit -m "feat(contacts): add server-side pagination controls"
 - "N selecionado(s)" em accent, com singular e plural corretos
 - **"Selecionar todos os N filtrados"** aparece quando a seleção é menor que o total filtrado — o `N` vem de `total` do servidor
 - "Limpar" zera a seleção
-- cinco ações: Adicionar etiqueta · Remover etiqueta · Transferir responsável · Exportar · **Bloquear / opt-out** (em `severity-danger`)
+- cinco ações: Adicionar etiqueta · Remover etiqueta · Transferir responsável · Exportar · **Bloquear / opt-out** (em `severity-critical`)
 - **Envio em massa fica fora desta fase** (§7.1 do spec)
 
 - [ ] **Step 2: Implementar os modais**
@@ -1704,7 +1704,7 @@ Todos com título, subtítulo indicando o escopo ("N contatos selecionados"), co
 
 - **Adicionar/Remover etiqueta:** select de etiqueta + nota explicando que é aplicada a todos os selecionados / removida só de quem a tiver
 - **Transferir responsável:** select de vendedor, mais o aviso do kit: *"A transferência move o contato, não a carteira do cliente. Fica registrada na auditoria."*
-- **Opt-out:** caixa em `severity-danger` com o texto do kit: *"Os contatos deixam de receber envio em massa e disparos automáticos. Conversas iniciadas por eles continuam funcionando. A ação fica registrada na auditoria com autor e data."* Botão de confirmação em variante destrutiva.
+- **Opt-out:** caixa em `severity-critical` com o texto do kit: *"Os contatos deixam de receber envio em massa e disparos automáticos. Conversas iniciadas por eles continuam funcionando. A ação fica registrada na auditoria com autor e data."* Botão de confirmação em variante destrutiva.
 - **Exportar:** select de escopo (Contatos selecionados · Todos os filtrados · Toda a agenda) e o aviso de LGPD: *"O CSV sai com as colunas visíveis. Exportação de dados pessoais é registrada na auditoria (LGPD)."*
 
 - [ ] **Step 3: Gravar a trilha de auditoria**
@@ -1753,7 +1753,7 @@ Seções, em ordem:
 4. **Responsável** — avatar + nome + "último contato …", ou *"Não atribuído — entra na fila de rodízio"*; ação **Transferir**
 5. **Agendar retorno** — quando não há agendamento: campo de data + campo de motivo + botão **Agendar retorno**; quando há: ícone de confirmação, `data · motivo` e a linha de apoio "Cai na sua fila e na timeline do cliente". Quando `focus === "retorno"`, a caixa entra com a borda destacada em accent.
 6. **Últimas interações** — lista com ícone colorido, título e subtítulo
-7. **LGPD** — caixa com ícone, título "Aceita contato comercial" / "Contato em opt-out", o texto *"Bloqueia envio em massa e disparos automáticos. A mudança fica registrada na auditoria."* e uma chave que alterna o estado. Em opt-out a caixa inteira vai para `severity-danger`.
+7. **LGPD** — caixa com ícone, título "Aceita contato comercial" / "Contato em opt-out", o texto *"Bloqueia envio em massa e disparos automáticos. A mudança fica registrada na auditoria."* e uma chave que alterna o estado. Em opt-out a caixa inteira vai para `severity-critical`.
 
 - [ ] **Step 2: Implementar os modais individuais**
 
