@@ -38,9 +38,9 @@ function TrendCell({ value }: { value: number | null }) {
         : "mdi:minus";
   const colorClass =
     direction === "up"
-      ? "text-emerald-600 dark:text-emerald-400"
+      ? "text-severity-success"
       : direction === "down"
-        ? "text-red-600 dark:text-red-400"
+        ? "text-severity-critical"
         : "text-muted-foreground";
   return (
     <span className={cn("inline-flex items-center gap-1 text-xs font-medium", colorClass)}>

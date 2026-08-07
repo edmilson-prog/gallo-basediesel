@@ -75,8 +75,8 @@ export function PartPriceHistory({ part }: IPartPriceHistoryProps) {
                         <span
                           className={
                             diff < 0
-                              ? " ml-2 text-emerald-600 dark:text-emerald-400"
-                              : " ml-2 text-amber-600 dark:text-amber-400"
+                              ? " ml-2 text-severity-success"
+                              : " ml-2 text-severity-warning"
                           }
                         >
                           {diff > 0 ? "+" : ""}

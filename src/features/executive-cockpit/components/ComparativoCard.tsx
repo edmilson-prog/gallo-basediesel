@@ -27,8 +27,8 @@ function formatValue(value: number, currency: boolean): string {
 function colorClass(trend: ITrendInfo): string {
   if (trend.direction === "flat") return "text-muted-foreground";
   return trend.isImprovement
-    ? "text-emerald-600 dark:text-emerald-400"
-    : "text-red-600 dark:text-red-400";
+    ? "text-severity-success"
+    : "text-severity-critical";
 }
 
 function arrowIcon(trend: ITrendInfo): string {

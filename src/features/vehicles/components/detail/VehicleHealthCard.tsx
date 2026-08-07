@@ -12,14 +12,14 @@ const STATUS_META: Record<
 > = {
   ok: {
     label: COPY.ok,
-    ring: "text-emerald-500",
-    text: "text-emerald-600 dark:text-emerald-400",
+    ring: "text-severity-success",
+    text: "text-severity-success",
     icon: "mdi:check-circle-outline",
   },
   attention: {
     label: COPY.attention,
-    ring: "text-amber-500",
-    text: "text-amber-600 dark:text-amber-300",
+    ring: "text-severity-warning",
+    text: "text-severity-warning",
     icon: "mdi:alert-circle-outline",
   },
   overdue: {

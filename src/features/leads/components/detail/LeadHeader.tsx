@@ -94,13 +94,13 @@ export function LeadHeader({
               {originMeta.label}
             </span>
             {converted && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+              <span className="inline-flex items-center gap-1 rounded-full bg-severity-success/15 px-2 py-0.5 text-[10px] font-semibold text-severity-success">
                 <Icon icon="mdi:check-decagram" size={11} />
                 {LEADS_STRINGS.card.converted}
               </span>
             )}
             {lost && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-700 dark:text-red-300">
+              <span className="inline-flex items-center gap-1 rounded-full bg-severity-critical/15 px-2 py-0.5 text-[10px] font-semibold text-severity-critical">
                 <Icon icon="mdi:close-octagon" size={11} />
                 {LEADS_STRINGS.card.lost}
               </span>

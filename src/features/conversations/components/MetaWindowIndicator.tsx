@@ -26,13 +26,13 @@ export function MetaWindowIndicator({
   const { hours, minutes } = formatRemaining(window.msRemaining);
 
   let icon = "mdi:clock-outline";
-  let tone = "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30";
+  let tone = "bg-severity-success/10 text-severity-success border-severity-success/30";
   let text: string = CONVERSATION_STRINGS.windowOpen(hours);
   let suggestion: string | null = null;
 
   if (window.state === "open-soon") {
     icon = "mdi:clock-alert-outline";
-    tone = "bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30";
+    tone = "bg-severity-warning/10 text-severity-warning border-severity-warning/30";
     text = CONVERSATION_STRINGS.windowOpen(hours);
     suggestion = CONVERSATION_STRINGS.windowSuggestTemplate;
   } else if (window.state === "open-closing") {

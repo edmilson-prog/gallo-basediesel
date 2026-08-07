@@ -66,7 +66,7 @@ export function PreConversionBadge({ customer }: IPreConversionBadgeProps) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-700 transition hover:bg-amber-500/25 focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-amber-300"
+          className="inline-flex items-center gap-1 rounded-full border border-severity-warning/40 bg-severity-warning/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-severity-warning transition hover:bg-severity-warning/25 focus:outline-none focus:ring-2 focus:ring-severity-warning/50"
           aria-label={CUSTOMER_STRINGS.preConversion.badge}
         >
           <Icon icon="mdi:history" size={11} />
@@ -75,7 +75,7 @@ export function PreConversionBadge({ customer }: IPreConversionBadgeProps) {
       </PopoverTrigger>
       <PopoverContent side="bottom" align="start" className="w-72 space-y-3 p-3">
         <div className="flex items-start gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-severity-warning/15 text-severity-warning">
             <Icon icon="mdi:account-convert" size={16} />
           </div>
           <div className="min-w-0">

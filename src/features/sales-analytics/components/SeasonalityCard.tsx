@@ -17,16 +17,16 @@ export function SeasonalityCard({ signal }: ISeasonalityCardProps) {
       className={cn(
         "flex items-start gap-3 p-4",
         isPositive
-          ? "border-emerald-500/40 bg-emerald-500/5"
-          : "border-amber-500/40 bg-amber-500/5",
+          ? "border-severity-success/40 bg-severity-success/5"
+          : "border-severity-warning/40 bg-severity-warning/5",
       )}
     >
       <span
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
           isPositive
-            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-            : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+            ? "bg-severity-success/10 text-severity-success"
+            : "bg-severity-warning/10 text-severity-warning",
         )}
         aria-hidden="true"
       >

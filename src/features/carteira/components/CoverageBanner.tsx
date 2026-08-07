@@ -56,7 +56,7 @@ export function CoverageBanner({ customer }: ICoverageBannerProps) {
   return (
     <div
       role="status"
-      className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200"
+      className="flex items-start gap-2 rounded-md border border-severity-warning/40 bg-severity-warning/10 px-3 py-2 text-xs text-severity-warning"
     >
       <Icon icon="mdi:clock-time-five-outline" size={14} className="mt-0.5 shrink-0" />
       <span>{message}</span>

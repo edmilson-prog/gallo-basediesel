@@ -133,7 +133,7 @@ export function CustomerPendingActionsCard({
 
       {items.length === 0 ? (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Icon icon="mdi:check-circle-outline" size={14} className="text-emerald-500" />
+          <Icon icon="mdi:check-circle-outline" size={14} className="text-severity-success" />
           {COPY.allClear}
         </p>
       ) : (
@@ -148,7 +148,7 @@ export function CustomerPendingActionsCard({
                 <Icon
                   icon={item.icon}
                   size={15}
-                  className={cn(item.critical ? "text-rose-500" : "text-muted-foreground")}
+                  className={cn(item.critical ? "text-severity-critical" : "text-muted-foreground")}
                 />
                 <span className="min-w-0 flex-1 truncate text-foreground">{item.label}</span>
                 {typeof item.count === "number" && (
