@@ -44,8 +44,13 @@ export function InboundToastHost() {
       const name = names.get(conversationId);
       toast(name ? `💬 ${name}` : UNKNOWN_CONTACT_TITLE, {
         id: conversationId,
+        // The line break is an inline style, not a utility class: sonner injects
+        // its own UNLAYERED stylesheet, and `src/components/ui/sonner.tsx`
+        // documents that Tailwind utilities are inert on the toast and its
+        // inner parts. An inline declaration cannot lose that cascade, so the
+        // counter is guaranteed to sit on its own line.
         description: (
-          <span className="flex flex-col gap-0.5">
+          <span style={{ display: "flex", flexDirection: "column", gap: "0.125rem" }}>
             <span>{entry.preview}</span>
             {entry.count > 1 && (
               <span className="text-xs opacity-70">{entry.count} novas mensagens</span>
