@@ -293,8 +293,11 @@ Duas portas, nenhum botão novo no toolbar (ele já tem cinco):
 |---|---|
 | 0 | Item desabilitado, com `title` apontando para Configurações |
 | 1 | **Pula a escolha** — vai direto para a barra staged |
-| 2–8 | `DropdownMenuSub` com as chaves; a `isDefault` no topo |
-| 9+ | `CommandDialog` com busca |
+| 2+ | `DropdownMenuSub` com as chaves; a `isDefault` no topo |
+
+> Uma variante com `CommandDialog` de busca foi considerada para 9+ chaves e **descartada
+> por YAGNI**: uma loja não tem 9 chaves PIX, e o Radix já dá scroll no submenu. Se um dia
+> passar disso, a busca entra numa iteração própria.
 
 `aria-label` completo em cada item: `"Chave PIX Matriz, CNPJ, 12.345.678/0001-90"`. Só o
 apelido não permite decidir às cegas — e "às cegas" aqui inclui o atendente apressado.
@@ -383,8 +386,13 @@ Desligar os dois toggles esvazia o preview. É feedback correto: não há mensag
 
 ## 9. O botão de copiar
 
-Um componente, três lugares: linha da lista, barra staged, e rodapé da bolha já enviada
-(o `BubbleChrome` já expõe um slot `footer`).
+Um componente, **dois** lugares: linha da lista (conferir/copiar sem abrir o editor) e barra
+staged (conferir antes de mandar).
+
+> Um terceiro lugar — o rodapé da bolha já enviada, reaproveitando o slot `footer` do
+> `BubbleChrome` — foi considerado e **fica fora desta iteração**: reconhecer que uma bolha
+> de texto contém uma chave PIX exigiria um discriminador persistido na mensagem (uma coluna
+> nova, como o `media_type: "payment"` do PR #352), o que é escopo bem maior que o benefício.
 
 **Feedback inline, não toast.** O atendente copia dezenas de vezes por turno; toast viraria
 ruído empilhado sobre a conversa. O toast fica reservado para a **falha** — que é o caso em
