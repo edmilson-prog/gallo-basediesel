@@ -38,6 +38,14 @@ create table if not exists public.pix_keys (
 create index if not exists pix_keys_store_id_idx on public.pix_keys (store_id);
 create index if not exists pix_keys_shortcut_idx on public.pix_keys (shortcut);
 
+-- Only one default key per store. The client-side demote (engine/defaultKey.ts)
+-- is best-effort: it sees one render's worth of keys, so two overlapping
+-- promotions could otherwise leave two defaults behind. This constraint is what
+-- actually holds the invariant.
+create unique index if not exists pix_keys_one_default_per_store
+  on public.pix_keys (store_id)
+  where is_default;
+
 alter table public.pix_keys enable row level security;
 
 drop policy if exists pix_keys_select on public.pix_keys;

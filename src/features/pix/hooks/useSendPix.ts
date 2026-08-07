@@ -1,11 +1,13 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import type { IConversation, IPixKey, IWhatsAppAccount } from "@/shared/types";
+import { recordAuditLog } from "@/providers/data";
+import { useAuth } from "@/features/auth/useAuth";
 import { useMessageSend } from "@/features/conversations/hooks/useMessageSend";
 import { useAttachmentUpload } from "@/features/conversations/hooks/useAttachmentUpload";
 import { buildPixPayload } from "../engine/pixBrCode";
-import { buildPixCaption } from "../engine/pixMessage";
 import { canvasToPixFile, drawPixQr } from "../engine/drawPixQr";
+import { planPixSend } from "../engine/planPixSend";
 import { PIX_STRINGS } from "../i18n/pt-BR";
 
 export interface IPixSendOptions {
@@ -43,6 +45,7 @@ export function useSendPix(
 ): IUseSendPixResult {
   const { send } = useMessageSend(conversation, whatsappAccount);
   const { prepareAttachment } = useAttachmentUpload(conversation);
+  const { currentUser } = useAuth();
   const [isSending, setIsSending] = useState(false);
 
   const sendPix = useCallback(
@@ -53,21 +56,13 @@ export function useSendPix(
       // return value and the "did a retry become unsafe" decision below.
       let delivered = 0;
       try {
-        const caption = buildPixCaption({
-          receiverName: key.receiverName,
-          keyType: key.keyType,
-          context: opts.context,
-          // The caption only promises "a chave vai na próxima mensagem" when a
-          // key message really follows.
-          includeKeyHint: opts.sendText,
-        });
-
-        // ── Message 1: the QR image, with the caption ────────────────────────
-        // Its own try/catch on purpose. The QR is the complement; the key is the
-        // product. A render or upload failure degrades to text, it never takes
-        // the send down. (The brief let prepareAttachment's throw escape to the
-        // outer catch, which silently dropped the key — see the task report.)
-        let qrSent = false;
+        // ── Render the QR first, so the plan knows whether one exists ────────
+        // This block owns its own try/catch on purpose. The QR is the
+        // complement; the key is the product. A render or upload failure
+        // degrades to text and never takes the send down. The decision of WHAT
+        // to send lives in planPixSend; discovering what FAILED lives here,
+        // because only this side runs the canvas and the upload.
+        let qrMedia: Awaited<ReturnType<typeof prepareAttachment>> = null;
         let qrFailed = false;
         if (opts.sendQr) {
           try {
@@ -84,13 +79,15 @@ export function useSendPix(
             const file = await canvasToPixFile(canvas, key.alias);
             if (!file) throw new Error("blob-null");
 
-            // null = rejected by the size cap; prepareAttachment already toasted.
-            const media = await prepareAttachment(file, "image", caption);
-            if (!media) throw new Error("attachment-rejected");
+            // The caption travels as the image's caption, so the plan is built
+            // first to know what that text is.
+            const planned = planPixSend(key, { ...opts, qrAvailable: true });
+            const captionText = planned.find((m) => m.kind === "caption")?.text ?? "";
 
-            await send(media);
-            qrSent = true;
-            delivered += 1;
+            // null = rejected by the size cap; prepareAttachment already toasted.
+            const media = await prepareAttachment(file, "image", captionText);
+            if (!media) throw new Error("attachment-rejected");
+            qrMedia = media;
           } catch {
             qrFailed = true;
             toast.error(
@@ -99,25 +96,41 @@ export function useSendPix(
           }
         }
 
-        // Caption as a plain message when the image did not go out — but only
-        // when the key still follows it. A lone caption in QR-only mode would
-        // announce a payment and deliver no way to make it, so in that case
-        // nothing is sent and the bar stays open for a retry.
-        if (!qrSent && opts.sendText && caption) {
-          await send({ text: caption });
-          delivered += 1;
-        }
-
-        // ── Message 2: the key, alone and last ───────────────────────────────
-        // `unsigned` keeps applyAttendantSignature away from this body. Without
-        // it, a seller with a display name would ship `*Nome:* 11222333000181`
-        // and the customer's long-press would copy an unusable string.
-        if (opts.sendText) {
-          await send({ text: key.keyValue, unsigned: true });
+        // ── Dispatch exactly what the plan says, in the order it gives ───────
+        const plan = planPixSend(key, { ...opts, qrAvailable: qrMedia !== null });
+        for (const message of plan) {
+          if (message.withQr && qrMedia) {
+            await send(qrMedia);
+          } else {
+            await send({
+              text: message.text,
+              ...(message.unsigned ? { unsigned: true } : {}),
+            });
+          }
           delivered += 1;
         }
 
         if (delivered === 0) return false;
+
+        // Who sent which key, in which conversation. This is a fraud surface —
+        // the trail is what makes it investigable after the fact.
+        if (currentUser) {
+          void recordAuditLog({
+            actorId: currentUser.id,
+            storeId: conversation.storeId,
+            action: "send",
+            resource: "pix_key",
+            resourceId: key.id,
+            after: {
+              conversationId: conversation.id,
+              alias: key.alias,
+              keyType: key.keyType,
+              sentText: opts.sendText,
+              sentQr: qrMedia !== null,
+            },
+          });
+        }
+
         // The degraded-QR toast already says the key went as text; a success
         // toast on top would just contradict it.
         if (!qrFailed) toast.success(PIX_STRINGS.composer.sent);
@@ -133,7 +146,7 @@ export function useSendPix(
         setIsSending(false);
       }
     },
-    [prepareAttachment, send],
+    [prepareAttachment, send, currentUser, conversation.id, conversation.storeId],
   );
 
   return { sendPix, isSending };

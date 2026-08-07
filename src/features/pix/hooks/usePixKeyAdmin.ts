@@ -4,6 +4,7 @@ import type { ID, IPixKey } from "@/shared/types";
 import { usePixKeyProvider } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";
+import { keysToDemote } from "../engine/defaultKey";
 import { usePixKeys } from "./usePixKeys";
 
 /** Everything the editor form owns. The rest is server/context-derived. */
@@ -67,8 +68,8 @@ export function usePixKeyAdmin(): IUsePixKeyAdmin {
    */
   const demoteOtherDefaults = useCallback(
     async (keepId: ID): Promise<void> => {
-      const stale = keys.filter((k) => k.isDefault && k.id !== keepId);
-      await Promise.all(stale.map((k) => provider.update(k.id, { isDefault: false })));
+      const stale = keysToDemote(keys, keepId);
+      await Promise.all(stale.map((id) => provider.update(id, { isDefault: false })));
     },
     [keys, provider],
   );
