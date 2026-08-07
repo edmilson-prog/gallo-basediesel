@@ -2087,11 +2087,59 @@ git commit -m "feat(pix): wire the PIX shortcut into the conversation composer"
 
 ---
 
-## Task 11: Auditoria e documentação
+## Task 11: Auditoria, invariante da chave padrão e documentação
 
 **Files:**
 - Modify: `src/features/pix/hooks/useSendPix.ts`
+- Create: `src/features/pix/engine/defaultKey.ts`
+- Test: `src/features/pix/engine/defaultKey.test.ts`
+- Modify: `src/features/pix/hooks/usePixKeyAdmin.ts`
+- Modify: `supabase/migrations/<ts>_create_pix_keys_table.sql`
 - Create: `docs/dev/pix-shortcut.md`
+
+### Contexto: a invariante da chave padrão
+
+A Task 7 introduziu, sem que o plano pedisse, a regra **"só uma chave padrão por loja"**
+(`usePixKeyAdmin.ts`, `demoteOtherDefaults`). A regra é correta e necessária, mas está no
+lugar errado por duas razões:
+
+1. É lógica de negócio dentro de um hook de mutação — o projeto exige `engine/` testado.
+2. Ela fecha sobre `keys` do render corrente, então **duas promoções sobrepostas ainda
+   deixam duas chaves padrão**. Só uma restrição no banco fecha essa corrida de verdade.
+
+- [ ] **Step A1: Extract the invariant to a tested engine**
+
+Crie `engine/defaultKey.ts` com uma função pura que, dado o conjunto de chaves e o id da
+que está sendo promovida, devolva **os ids que precisam ser rebaixados**:
+
+```ts
+/** Ids that must lose `isDefault` when `promotedId` becomes the store's default. */
+export function keysToDemote(keys: Pick<IPixKey, "id" | "isDefault">[], promotedId: ID): ID[] {
+  return keys.filter((k) => k.isDefault && k.id !== promotedId).map((k) => k.id);
+}
+```
+
+Testes que a função precisa passar: promover uma chave quando não há padrão devolve `[]`;
+promover quando outra é padrão devolve o id dela; promover a que **já é** padrão devolve
+`[]` (não rebaixa a si mesma); e com duas padrão por corrida anterior, devolve as duas.
+
+Depois faça `usePixKeyAdmin` consumir `keysToDemote` em vez da lógica inline.
+
+- [ ] **Step A2: Close the race in the database**
+
+A migration `<ts>_create_pix_keys_table.sql` **nunca foi aplicada** — edite-a no lugar,
+sem criar uma segunda migration. Acrescente ao final:
+
+```sql
+-- Only one default key per store. The client-side demote is best-effort — it closes
+-- over the keys of the current render, so two overlapping promotions could otherwise
+-- leave two defaults. This constraint is what actually holds the invariant.
+create unique index if not exists pix_keys_one_default_per_store
+  on public.pix_keys (store_id)
+  where is_default;
+```
+
+⚠️ Continua valendo: **não aplique a migration**. O arquivo no PR é a entrega.
 
 - [ ] **Step 1: Record the audit trail**
 
