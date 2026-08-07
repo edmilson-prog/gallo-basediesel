@@ -1,36 +1,61 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import type { ID, IGoal } from "@/shared/types";
-import { useGoalsProvider } from "@/providers/data";
-import { deriveGoalPace, type IGoalPaceResult } from "../engine/goalPace";
-
-const STALE_MS = 30_000;
+import type { GoalStatus, ID, IGoal, IGoalProgress } from "@/shared/types";
+import { useGoalsWithProgress } from "@/features/goals";
+import { deriveGoalPace, isGoalPeriodCurrent, type IGoalPaceResult } from "../engine/goalPace";
 
 export interface IUseSellerGoalProgressResult {
   isLoading: boolean;
+  hasError: boolean;
   goal: IGoal | null;
+  progress: IGoalProgress | null;
   pace: IGoalPaceResult | null;
 }
 
-/** The seller's individual `revenue` goal whose period covers today. */
+/**
+ * The seller's active individual `revenue` goal for the current period.
+ *
+ * Delegates to `useGoalsWithProgress` — the single aggregator the rest of the
+ * goals feature uses — so progress is DERIVED from paid orders via
+ * `calculateGoalProgress`. The persisted `goal.currentValue` / `progressPercent`
+ * snapshot is never read: it is only written by `useGoalAutoStatusUpdate`, which
+ * is a no-op in this project, so reading it would show every seller R$ 0,00
+ * against their target while the Metas screen showed the real figure.
+ *
+ * Delegating also inherits the aggregator's `pageSize: 500` (the goals list is
+ * client-filtered, so the provider's 20-row default would silently hide the
+ * current month behind a page of future-dated goals) and its shared query keys
+ * (dedup with the Metas screens).
+ */
 export function useSellerGoalProgress(storeId: ID, sellerId: ID): IUseSellerGoalProgressResult {
-  const goalsProvider = useGoalsProvider();
+  // Only `ativa` goals: a cancelled or archived target whose period still
+  // covers today must not be presented to the seller as their goal.
+  const statuses = useMemo<GoalStatus[]>(() => ["ativa", "concluida"], []);
 
-  const goalsQuery = useQuery({
-    queryKey: ["seller-dashboard", "goals", storeId, sellerId],
-    queryFn: () =>
-      goalsProvider.list({ storeId, level: "individual", targetId: sellerId, metric: "revenue" }),
-    staleTime: STALE_MS,
-    enabled: Boolean(storeId) && Boolean(sellerId),
+  const goalsWithProgress = useGoalsWithProgress({
+    storeId: storeId || undefined,
+    sellerId: sellerId || undefined,
+    statuses,
   });
 
-  const goal = useMemo<IGoal | null>(() => {
-    const goals = goalsQuery.data?.data ?? [];
-    const nowIso = new Date().toISOString();
-    return goals.find((g) => g.period.start <= nowIso && nowIso <= g.period.end) ?? null;
-  }, [goalsQuery.data]);
+  const current = useMemo(() => {
+    const now = new Date();
+    return (
+      goalsWithProgress.items.find(
+        (item) => item.goal.metric === "revenue" && isGoalPeriodCurrent(item.goal, now),
+      ) ?? null
+    );
+  }, [goalsWithProgress.items]);
 
-  const pace = useMemo<IGoalPaceResult | null>(() => (goal ? deriveGoalPace(goal) : null), [goal]);
+  const pace = useMemo<IGoalPaceResult | null>(
+    () => (current ? deriveGoalPace(current.goal, current.progress.currentValue) : null),
+    [current],
+  );
 
-  return { isLoading: goalsQuery.isLoading, goal, pace };
+  return {
+    isLoading: goalsWithProgress.isLoading,
+    hasError: goalsWithProgress.hasError,
+    goal: current?.goal ?? null,
+    progress: current?.progress ?? null,
+    pace,
+  };
 }

@@ -23,10 +23,30 @@ const RECORD_EXAMPLES: ISellerRecordExample[] = [
     value: "4 min",
     hint: "exemplo — do primeiro contato à resposta",
   },
-  { icon: "mdi:fire", label: "Sequência", value: "9 dias", hint: "exemplo — batendo a meta diária" },
-  { icon: "mdi:clock-outline", label: "Seu pico", value: "ter · 14–16h", hint: "exemplo — quando você mais fecha" },
-  { icon: "mdi:cog-outline", label: "Peça mais vendida", value: "—", hint: "exemplo — no mês corrente" },
-  { icon: "mdi:heart-outline", label: "Cliente mais frequente", value: "—", hint: "exemplo — nos últimos 12 meses" },
+  {
+    icon: "mdi:fire",
+    label: "Sequência",
+    value: "9 dias",
+    hint: "exemplo — batendo a meta diária",
+  },
+  {
+    icon: "mdi:clock-outline",
+    label: "Seu pico",
+    value: "ter · 14–16h",
+    hint: "exemplo — quando você mais fecha",
+  },
+  {
+    icon: "mdi:cog-outline",
+    label: "Peça mais vendida",
+    value: "—",
+    hint: "exemplo — no mês corrente",
+  },
+  {
+    icon: "mdi:heart-outline",
+    label: "Cliente mais frequente",
+    value: "—",
+    hint: "exemplo — nos últimos 12 meses",
+  },
 ];
 
 export function SellerRecordsCard() {

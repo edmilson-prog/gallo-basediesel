@@ -33,7 +33,8 @@ export function SellerGreeting({
       <div>
         <p className="mb-1 text-xs capitalize text-muted-foreground">{dateLabel}</p>
         <h1 className="font-display text-2xl font-bold uppercase tracking-tight text-foreground">
-          {greetingLabel(now.getHours())}, {firstName}. <span className="text-primary">Seu painel.</span>
+          {greetingLabel(now.getHours())}, {firstName}.{" "}
+          <span className="text-primary">Seu painel.</span>
         </h1>
       </div>
       <div className="flex gap-1 rounded-lg border border-border bg-muted/40 p-1">

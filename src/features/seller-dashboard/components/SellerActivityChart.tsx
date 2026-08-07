@@ -26,7 +26,10 @@ export function SellerActivityChart({
           value: p.count,
         }))
       : (metrics?.trendDaily ?? []).map((p) => ({
-          label: p.dayKey.slice(5),
+          // `dayKey` is ISO `YYYY-MM-DD`; render DD/MM, the convention used
+          // everywhere else in the product. Slicing to `MM-DD` showed a
+          // Brazilian seller "08-06", which reads as 8 June.
+          label: `${p.dayKey.slice(8, 10)}/${p.dayKey.slice(5, 7)}`,
           value: p.totalConversations,
         }));
 

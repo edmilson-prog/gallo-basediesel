@@ -12,9 +12,39 @@ interface ISellerKpiRowProps {
   salesCurrent: number;
   salesPrevious: number;
   isLoading: boolean;
+  hasError: boolean;
+  onRetry: () => void;
 }
 
-export function SellerKpiRow({ metrics, salesCurrent, salesPrevious, isLoading }: ISellerKpiRowProps) {
+export function SellerKpiRow({
+  metrics,
+  salesCurrent,
+  salesPrevious,
+  isLoading,
+  hasError,
+  onRetry,
+}: ISellerKpiRowProps) {
+  if (hasError) {
+    // Without this branch a failed fetch left `isLoading === false` and
+    // `metrics === null`, pinning the row in skeletons forever with no error
+    // text and no way to retry.
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
+        <p className="flex items-center gap-2 text-sm text-severity-critical">
+          <Icon icon="mdi:alert-circle-outline" size={16} />
+          {S.metricsError}
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+        >
+          {S.retry}
+        </button>
+      </div>
+    );
+  }
+
   if (isLoading || !metrics) {
     return (
       <div className="grid grid-cols-1 divide-y divide-border rounded-xl border border-border bg-card sm:grid-cols-5 sm:divide-x sm:divide-y-0">
@@ -49,7 +79,8 @@ export function SellerKpiRow({ metrics, salesCurrent, salesPrevious, isLoading }
       icon: "mdi:forum-outline",
       label: S.kpiConversations,
       value: String(metrics.totals.totalConversations),
-      delta: atendDelta == null ? null : `${atendDelta >= 0 ? "+" : ""}${atendDelta} ${S.kpiVsPeriod}`,
+      delta:
+        atendDelta == null ? null : `${atendDelta >= 0 ? "+" : ""}${atendDelta} ${S.kpiVsPeriod}`,
       good: atendDelta == null ? null : atendDelta >= 0,
     },
     {

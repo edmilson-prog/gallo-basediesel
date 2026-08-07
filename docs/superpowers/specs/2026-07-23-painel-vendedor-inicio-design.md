@@ -45,7 +45,13 @@ Reaproveita o engine puro `calculateCustomerServiceMetrics` (`src/features/custo
 
 ### Sua meta do mês
 
-Reaproveita o provider `goals` + o engine de projeção já existente em `src/features/goals/engine/projection.ts` (mesma lógica de ritmo/"vai bater em tal data" já usada no `GoalsWidget` do Gestor), consultando a meta `level: "individual"` do vendedor no mês corrente.
+Delega a `useGoalsWithProgress` (`src/features/goals`), o agregador canônico da feature de metas, com `statuses: ["ativa", "concluida"]` e `sellerId` travado. O progresso é **derivado dos pedidos pagos** por `calculateGoalProgress`; `deriveGoalPace` recebe esse valor vivo e projeta o ritmo.
+
+⚠️ **Nunca ler `goal.currentValue` / `goal.progressPercent`** (erro da 1ª implementação, corrigido em 2026-07-24): são snapshots persistidos que só `useGoalAutoStatusUpdate` escreve — e esse hook é um no-op conhecido neste projeto. O card mostrava "R$ 0,00 · 0%" para vendedores cuja tela de Metas exibia o valor real. O próprio engine de metas documenta a regra (`calculate.ts:30`: *"Never reads `goal.currentValue` / `progressPercent`"*).
+
+Delegar também herda de graça: `pageSize: 500` (o default de 20 do provider escondia a meta do mês corrente atrás de metas futuras, já que a lista é filtrada no cliente), o filtro de status (uma meta **cancelada** cujo período cobre hoje não pode ser apresentada como a meta do vendedor) e as query keys compartilhadas com as telas de Metas.
+
+A fronteira do período é comparada **por dia** (`isGoalPeriodCurrent`), não por instante: o formulário persiste `period.end` como meia-noite UTC do último dia (`new Date("2026-07-31").toISOString()` = 21h BRT do dia 30), então um `now <= period.end` cru derrubava a meta ~2 dias antes do fim do mês — justamente na reta de fechamento.
 
 ### Gráfico — atendimentos por hora (Hoje) / por dia (7d, 30d)
 
@@ -55,11 +61,19 @@ Reaproveita o provider `goals` + o engine de projeção já existente em `src/fe
 
 ### Sua fila agora
 
-Conversas abertas atribuídas a esse vendedor, ordenadas por tempo de espera — mesma fonte de dado que já alimenta `ActiveAlertsList`/`buildConversaSemRespostaAlerts` (`src/features/manager-dashboard/hooks/useActiveAlerts.ts`, via `openConversations` do snapshot), só que filtrada para o próprio vendedor e sem a lógica de alerta/threshold (aqui é lista simples, não alerta). Cada item linka para abrir a conversa na Central (`/app/atendimento`).
+Conversas abertas (`aguardando`, `em_andamento`, `aguardando_cliente`) atribuídas a esse vendedor, ordenadas por `lastMessageAt` ascendente (quem espera há mais tempo primeiro), via `conversationsProvider.list({ assignedSellerId, status, orderBy, withTotal: false })`. Nomes de contato resolvidos por `listContacts`. Cada item abre a conversa direto em `/app/atendimento/$id`.
 
-### Ranking da loja
+⚠️ **Não usar `getIdleSummary()`** (tentado na 1ª implementação, corrigido em 2026-07-24): esse é o feed de **alertas de ociosidade**, duplamente filtrado — pelo toggle por loja `idleAlerts.enabled` (desligado por padrão e ainda desligado em produção) e pelo limiar de nível 1 (2 horas úteis). Ligado nele, o card afirmava "Nenhuma conversa aguardando sua resposta agora" para vendedores com backlog real.
 
-Reaproveita `useRanking` (`src/features/gamification/hooks/useRanking.ts`), escopado à loja do vendedor, para achar a posição dele no ranking mensal (`ranking.findIndex` + total de vendedores). A variação semanal ("subiu 1 posição") exige rodar `useRanking` também para o período anterior e comparar a posição — mesmo padrão que o hook já usa internamente para badges/recovery, só que aqui o consumo é o delta de posição, não o score.
+### Ranking da loja — ❌ REMOVIDO da entrega (2026-07-24)
+
+O plano original era reaproveitar `useRanking` (`src/features/gamification/hooks/useRanking.ts`) escopado à loja. **Isso não funciona para o público-alvo desta tela.** A revisão de código (xhigh) mostrou que `useRanking` calcula o score de cada vendedor a partir de queries store-wide de `orders` e `customers`, e a RLS por vendedor (`orders_select`/`customers_select`: `store_id = current_store_id() and (is_staff() or seller_id = current_seller_id())`, migration `20260608235552`) devolve **apenas as linhas do próprio caller** para um Vendedor — que não é `is_staff`. Resultado: todo colega pontua 0, `calculateRanking` ordena o próprio vendedor em primeiro, e o card exibiria **"#1 de 8"** para qualquer vendedor, com badge verde de "subiu N posições" igualmente falso.
+
+Não há caminho server-side pronto: a RPC de BI `mv_sales_by_seller_month_read()` reaplica exatamente o mesmo escopo per-seller.
+
+**Decisão:** o card saiu desta entrega. Restaurá-lo exige uma RPC `SECURITY DEFINER` nova que agregue o ranking no servidor (posição + total, sem expor as vendas dos colegas) + migration — trabalho próprio, a decidir com o dono.
+
+⚠️ **Bug pré-existente relacionado:** a tela `/app/gestao/ranking` (`RankingPage`, PRD-043) permite o papel Vendedor e usa o **mesmo** `useRanking` sem escopo server-side — ou seja, provavelmente já mostra um ranking distorcido para vendedores hoje, independentemente desta branch. Vale investigação própria.
 
 ### Recordes & curiosidades (fora do dado real nesta entrega)
 
