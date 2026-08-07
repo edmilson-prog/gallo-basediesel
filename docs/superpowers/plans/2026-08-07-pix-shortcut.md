@@ -24,6 +24,14 @@ Valem para **todas** as tarefas, sem repetição em cada uma:
 - **Commits** em Conventional Commits, em inglês, no imperativo.
 - **Migration** aplicada via MCP **deve** ser exportada para `supabase/migrations/` no mesmo PR. **Aplicar em produção é manual e exige OK explícito do dono** — nunca aplicar por conta própria.
 - **`bun run test`** e **`bun run build`** são o gate de CI. `bunx tsc --noEmit` tem baseline pré-existente (~315 erros) — avaliar **por delta**, nunca exigir zero.
+- ⚠️ **`bun run lint` agregado NÃO é utilizável neste ambiente Windows.** Ele acusa ~364 mil
+  erros `Delete ␍` em todo o repositório, inclusive em arquivos que ninguém tocou
+  (verificado em `src/features/quick-send/engine/slashCommand.ts`: 40 erros de CRLF sem
+  nenhuma alteração nossa). É ruído de `autocrlf`, não dívida real. **Rode o lint apenas
+  nos arquivos que você criou ou alterou**, com `npx eslint <caminhos>`, e trate como
+  achado só o que **não** for `Delete ␍` — tipicamente `Replace`/`Insert` do
+  `prettier/prettier`, que são formatação real e devem ser corrigidos com
+  `npx eslint --fix <caminhos>`.
 
 ## Mapa de arquivos
 
@@ -1009,13 +1017,20 @@ Em `src/features/pix/engine/pixKeyFormat.ts`, troque a definição local por
 Crie `supabase/migrations/<timestamp>_create_pix_keys_table.sql` (timestamp no formato
 `YYYYMMDDHHMMSS`, à frente do último arquivo existente):
 
+> ⚠️ **`uuid`, não `text`.** O `quick_replies` que este plano manda espelhar foi criado
+> **antes** da conversão `20260608182429_convert_reference_pks_to_uuid.sql`. Desde então,
+> `current_store_id()` e `current_seller_id()` **retornam `uuid`** e toda tabela nova usa
+> `id uuid primary key default gen_random_uuid()`. Uma tabela com `text` aqui **falha ao
+> aplicar**: `uuid = text` não tem operador, então as FKs e as políticas de RLS quebram.
+> Espelhe o vizinho **atual** (ex.: `conversation_tags`), não o mais antigo.
+
 ```sql
 -- Store-owned PIX keys for the conversation shortcut.
 -- Read: the whole store (the attendant needs the key to send it).
 -- Write: staff only (Owner/Gestor) — a PIX key is the company's, not the seller's.
 create table if not exists public.pix_keys (
-  id text primary key,
-  store_id text not null references public.stores (id),
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid not null references public.stores (id),
   alias text not null,
   key_type text not null check (key_type in ('cnpj','cpf','phone','email','random')),
   key_value text not null,
@@ -1027,7 +1042,7 @@ create table if not exists public.pix_keys (
   default_send_qr boolean not null default false,
   is_default boolean not null default false,
   is_active boolean not null default true,
-  created_by text not null references public.sellers (id),
+  created_by uuid not null references public.sellers (id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

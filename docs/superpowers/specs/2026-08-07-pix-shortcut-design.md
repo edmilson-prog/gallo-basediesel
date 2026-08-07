@@ -87,12 +87,16 @@ dinheiro.
 
 ### 4.2 Tabela
 
-`pix_keys`, espelhando o padrão de `quick_replies` (`text` PK, FK para `stores`).
+`pix_keys`, espelhando o padrão das tabelas **atuais** (`uuid` PK, FK para `stores`).
+
+> ⚠️ `uuid`, não `text`: `quick_replies` foi criada antes da conversão
+> `20260608182429_convert_reference_pks_to_uuid.sql`. Hoje `current_store_id()` retorna
+> `uuid`, e uma coluna `text` faria as FKs e as políticas de RLS falharem ao aplicar.
 
 ```sql
 create table if not exists public.pix_keys (
-  id text primary key,
-  store_id text not null references public.stores (id),
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid not null references public.stores (id),
   alias text not null,
   key_type text not null check (key_type in ('cnpj','cpf','phone','email','random')),
   key_value text not null,
