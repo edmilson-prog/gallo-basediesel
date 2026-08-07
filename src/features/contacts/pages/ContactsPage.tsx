@@ -20,6 +20,7 @@ import {
 import { useContactsBulkActions } from "../hooks/useContactsBulkActions";
 import { useContactActions } from "../hooks/useContactActions";
 import { ContactDrawer, type ContactDrawerFocus } from "../components/detail/ContactDrawer";
+import { LinkCustomerDialog } from "../components/modals/LinkCustomerDialog";
 
 const DEFAULT_COLUMNS: OptionalContactColumn[] = [
   "phone",
@@ -62,6 +63,7 @@ export function ContactsPage() {
   const [drawer, setDrawer] = useState<{ contact: IContact; focus?: ContactDrawerFocus } | null>(
     null,
   );
+  const [linkTarget, setLinkTarget] = useState<IContact | null>(null);
 
   const params = useMemo<IListContactsParams>(() => {
     const [city, uf] = cityUf === ANY_VALUE ? [undefined, undefined] : cityUf.split(" / ");
@@ -247,7 +249,7 @@ export function ContactsPage() {
               if (action === "schedule") handleOpen(contact, "retorno");
               else toast.info(`${action} — ${contact.name}`);
             }}
-            onLink={(contact) => toast.info(`Vincular ${contact.name} — em breve`)}
+            onLink={setLinkTarget}
           />
         ) : (
           <ContactsTable
@@ -272,7 +274,7 @@ export function ContactsPage() {
         contact={drawerContact}
         focus={drawer?.focus}
         onClose={() => setDrawer(null)}
-        onLink={(contact) => toast.info(`Vincular ${contact.name} — em breve`)}
+        onLink={setLinkTarget}
         onUnlink={(contact) => void actions.linkToCustomer(contact, null)}
         onOpenCustomer={(contact) => toast.info(`Ficha de ${contact.customerName}`)}
         onAddTag={() => setBulkAction("addTag")}
@@ -282,6 +284,15 @@ export function ContactsPage() {
         onScheduleFollowUp={(contact, at, note) => void actions.scheduleFollowUp(contact, at, note)}
         onOpenConversation={(contact) => toast.info(`Conversa de ${contact.name} — em breve`)}
         onCall={(contact) => toast.info(`Ligar para ${contact.name} — em breve`)}
+      />
+
+      <LinkCustomerDialog
+        contact={linkTarget}
+        onClose={() => setLinkTarget(null)}
+        onConfirm={(contact, customerId) => {
+          setLinkTarget(null);
+          void actions.linkToCustomer(contact, customerId);
+        }}
       />
 
       <ContactBulkActionDialog
