@@ -90,6 +90,14 @@ create policy contacts_select on public.contacts
     )
   );
 
+-- The customer_id guard below is NOT redundant with owner_seller_id. It closes
+-- a bridge unique to this table: contacts_select surfaces a contact to a
+-- customer's real owner via `customer_id in seller_accessible_customer_ids()`.
+-- Without this guard a seller could point customer_id at someone else's
+-- wallet and inject a contact straight into that seller's Agenda. A NULL
+-- customer_id (a loose contact) is always allowed — that is the legitimate
+-- workflow for a seller who meets someone tied to another seller's customer;
+-- Triagem links it properly later.
 drop policy if exists contacts_insert on public.contacts;
 create policy contacts_insert on public.contacts
   for insert
@@ -97,8 +105,16 @@ create policy contacts_insert on public.contacts
   with check (
     store_id = (select public.current_store_id())
     and ((select public.is_staff()) or owner_seller_id = (select public.current_seller_id()))
+    and (
+      customer_id is null
+      or (select public.is_staff())
+      or customer_id in (select public.seller_accessible_customer_ids())
+    )
   );
 
+-- Same cross-wallet guard as contacts_insert, on both using and with check —
+-- see the comment above contacts_insert for why this is not redundant with
+-- owner_seller_id.
 drop policy if exists contacts_update on public.contacts;
 create policy contacts_update on public.contacts
   for update
@@ -106,10 +122,20 @@ create policy contacts_update on public.contacts
   using (
     store_id = (select public.current_store_id())
     and ((select public.is_staff()) or owner_seller_id = (select public.current_seller_id()))
+    and (
+      customer_id is null
+      or (select public.is_staff())
+      or customer_id in (select public.seller_accessible_customer_ids())
+    )
   )
   with check (
     store_id = (select public.current_store_id())
     and ((select public.is_staff()) or owner_seller_id = (select public.current_seller_id()))
+    and (
+      customer_id is null
+      or (select public.is_staff())
+      or customer_id in (select public.seller_accessible_customer_ids())
+    )
   );
 
 drop policy if exists contacts_delete on public.contacts;
