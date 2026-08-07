@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { contactInitials } from "../../engine/contactInitials";
+import { CONTACT_SOURCE_LABELS } from "../../utils/labels";
 
 /** Which section should draw attention when the drawer opens. */
 export type ContactDrawerFocus = "retorno" | undefined;
@@ -134,7 +135,7 @@ export function ContactDrawer({
                     Ativo
                   </Badge>
                 )}
-                <Badge variant="outline">{contact.source}</Badge>
+                <Badge variant="outline">{CONTACT_SOURCE_LABELS[contact.source]}</Badge>
               </div>
             </div>
           </div>

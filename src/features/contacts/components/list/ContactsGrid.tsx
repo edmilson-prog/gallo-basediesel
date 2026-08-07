@@ -1,12 +1,12 @@
 import type { IContact, ID } from "@/shared/types";
-import { ContactCard, type ContactQuickAction } from "./ContactCard";
+import { ContactCard, type ContactAction } from "./ContactCard";
 
 export interface IContactsGridProps {
   contacts: IContact[];
   selectedIds: Set<ID>;
   onSelect: (contact: IContact, selected: boolean) => void;
   onOpen: (contact: IContact) => void;
-  onQuickAction: (contact: IContact, action: ContactQuickAction) => void;
+  onAction: (contact: IContact, action: ContactAction) => void;
   onLink: (contact: IContact) => void;
 }
 
@@ -20,7 +20,7 @@ export function ContactsGrid({
   selectedIds,
   onSelect,
   onOpen,
-  onQuickAction,
+  onAction,
   onLink,
 }: IContactsGridProps) {
   return (
@@ -32,7 +32,7 @@ export function ContactsGrid({
           selected={selectedIds.has(contact.id)}
           onSelect={onSelect}
           onOpen={onOpen}
-          onQuickAction={onQuickAction}
+          onAction={onAction}
           onLink={onLink}
         />
       ))}

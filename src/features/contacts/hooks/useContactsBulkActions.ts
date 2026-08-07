@@ -44,14 +44,17 @@ export function useContactsBulkActions(onDone: () => void): IContactsBulkActions
   }
 
   async function run(action: ContactBulkAction, ids: ID[], value: string): Promise<void> {
-    if (ids.length === 0) return;
-
+    // Export is scoped by the dialog's own picker (selection / filtered / whole
+    // agenda), so it must run even with nothing selected — guarding it behind
+    // the id count made the header's "Exportar" do nothing at all, silently.
     if (action === "export") {
       // Exporting personal data is auditable even though it changes nothing.
-      audit("export", ids.length, `Exportou ${ids.length} contatos (escopo: ${value})`);
+      audit("export", ids.length, `Exportou contatos (escopo: ${value})`);
       toast.info("Exportação de contatos — disponível em breve");
       return;
     }
+
+    if (ids.length === 0) return;
 
     setIsRunning(true);
     try {
@@ -80,7 +83,12 @@ export function useContactsBulkActions(onDone: () => void): IContactsBulkActions
       audit(action, ids.length, `${summary} — ${affected} de ${ids.length}`);
 
       if (affected === 0) {
-        toast.error("Nenhum contato foi alterado. Você pode não ter permissão sobre eles.");
+        // Duas causas possíveis e indistinguíveis daqui: RLS barrou a escrita,
+        // ou os contatos já estavam no estado pedido (a etiqueta já aplicada,
+        // por exemplo). Culpar só a permissão confundiria o segundo caso.
+        toast.warning(
+          "Nenhum contato foi alterado — eles já estavam assim ou você não tem permissão sobre eles.",
+        );
       } else if (affected < ids.length) {
         // Not an error: some rows legitimately had nothing to change (a tag
         // they already carried), others may have been blocked by RLS. Either

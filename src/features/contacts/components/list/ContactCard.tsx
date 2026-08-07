@@ -4,31 +4,45 @@ import { Icon } from "@/components/Icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { initialsFrom } from "@/shared/utils/avatar";
 import { formatRelativeTimeBR } from "@/shared/utils/format";
 import { contactInitials } from "../../engine/contactInitials";
-
-/** Origin label shown under the name ("cargo · origem"). */
-const SOURCE_LABELS: Record<ContactSource, string> = {
-  whatsapp: "WhatsApp",
-  dintec: "DINTEC",
-  manual: "Manual",
-  csv: "CSV",
-  balcao: "Balcão",
-  portal_b2b: "Portal B2B",
-  storefront: "Loja online",
-};
+import { CONTACT_SOURCE_LABELS } from "../../utils/labels";
 
 /** Tags cap on the chip row — tighter when the contact is opted out (danger chip needs room). */
 const TAG_CAP = 3;
 const TAG_CAP_OPT_OUT = 1;
 
-export type ContactQuickAction = "conversation" | "call" | "schedule" | "more";
+/**
+ * Everything the card can ask the page to do.
+ *
+ * The first three are the inline footer buttons; the rest live behind the "…"
+ * menu. They share one union so the page answers all of them in a single
+ * exhaustive switch — a menu entry that nobody handles then fails to compile
+ * instead of falling through to a toast.
+ */
+export type ContactAction =
+  | "conversation"
+  | "call"
+  | "schedule"
+  | "open"
+  | "openCustomer"
+  | "unlink"
+  | "addTag"
+  | "transferOwner"
+  | "toggleOptOut";
 
 interface IQuickActionDef {
-  id: ContactQuickAction;
+  id: Extract<ContactAction, "conversation" | "call" | "schedule">;
   icon: string;
   label: string;
 }
@@ -37,7 +51,6 @@ const QUICK_ACTIONS: IQuickActionDef[] = [
   { id: "conversation", icon: "mdi:message-text-outline", label: "Iniciar conversa" },
   { id: "call", icon: "mdi:phone-outline", label: "Ligar" },
   { id: "schedule", icon: "mdi:calendar-clock-outline", label: "Agendar retorno" },
-  { id: "more", icon: "mdi:dots-horizontal", label: "Mais ações" },
 ];
 
 export interface IContactCardProps {
@@ -51,13 +64,13 @@ export interface IContactCardProps {
   isDuplicate?: boolean;
   onSelect: (contact: IContact, selected: boolean) => void;
   onOpen: (contact: IContact) => void;
-  onQuickAction: (contact: IContact, action: ContactQuickAction) => void;
+  onAction: (contact: IContact, action: ContactAction) => void;
   onLink: (contact: IContact) => void;
 }
 
 /** "Cargo · Origem", or just the origin when there's no role on file. */
 function formatRoleOrigin(role: string | null, source: ContactSource): string {
-  const originLabel = SOURCE_LABELS[source];
+  const originLabel = CONTACT_SOURCE_LABELS[source];
   return role ? `${role} · ${originLabel}` : originLabel;
 }
 
@@ -78,7 +91,7 @@ export function ContactCard({
   isDuplicate = false,
   onSelect,
   onOpen,
-  onQuickAction,
+  onAction,
   onLink,
 }: IContactCardProps) {
   const cityUf = formatCityUf(contact.city, contact.uf);
@@ -281,7 +294,9 @@ export function ContactCard({
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
           {QUICK_ACTIONS.map((action) => {
-            const disabled = action.id === "conversation" && contact.optOut;
+            const disabled =
+              (action.id === "conversation" && contact.optOut) ||
+              (action.id === "call" && !contact.phone);
             return (
               <Tooltip key={action.id}>
                 <TooltipTrigger asChild>
@@ -290,7 +305,7 @@ export function ContactCard({
                     disabled={disabled}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onQuickAction(contact, action.id);
+                      onAction(contact, action.id);
                     }}
                     onKeyDown={(e) => e.stopPropagation()}
                     aria-label={action.label}
@@ -300,11 +315,89 @@ export function ContactCard({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {disabled ? "Contato em opt-out — conversa desabilitada" : action.label}
+                  {action.id === "conversation" && contact.optOut
+                    ? "Contato em opt-out — conversa desabilitada"
+                    : action.id === "call" && !contact.phone
+                      ? "Contato sem telefone"
+                      : action.label}
                 </TooltipContent>
               </Tooltip>
             );
           })}
+
+          {/* Deliberately no Radix Tooltip on this trigger: a tooltip wrapping a
+              menu trigger stays open behind the menu. `title` gives the same
+              hint without the stuck-tooltip behaviour. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Mais ações"
+                title="Mais ações"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground"
+              >
+                <Icon icon="mdi:dots-horizontal" size={16} />
+              </button>
+            </DropdownMenuTrigger>
+            {/* The menu renders in a portal, but React still bubbles its events
+                through the component tree — without this the card's onClick
+                would fire and open the drawer behind every menu choice. */}
+            <DropdownMenuContent
+              align="end"
+              className="w-56"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              <DropdownMenuItem onSelect={() => onAction(contact, "open")}>
+                <Icon icon="mdi:card-account-details-outline" size={15} />
+                Abrir contato
+              </DropdownMenuItem>
+
+              {contact.customerId ? (
+                <>
+                  <DropdownMenuItem onSelect={() => onAction(contact, "openCustomer")}>
+                    <Icon icon="mdi:open-in-new" size={15} />
+                    Ver ficha do cliente
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onAction(contact, "unlink")}>
+                    <Icon icon="mdi:link-off" size={15} />
+                    Desvincular do cliente
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem onSelect={() => onLink(contact)}>
+                  <Icon icon="mdi:link-variant" size={15} />
+                  Vincular a cliente
+                </DropdownMenuItem>
+              )}
+
+              <DropdownMenuItem onSelect={() => onAction(contact, "addTag")}>
+                <Icon icon="mdi:tag-plus-outline" size={15} />
+                Adicionar etiqueta
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onAction(contact, "transferOwner")}>
+                <Icon icon="mdi:account-switch-outline" size={15} />
+                Transferir responsável
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                onSelect={() => onAction(contact, "toggleOptOut")}
+                className={cn(
+                  !contact.optOut && "text-severity-critical focus:text-severity-critical",
+                )}
+              >
+                <Icon
+                  icon={contact.optOut ? "mdi:shield-check-outline" : "mdi:shield-off-outline"}
+                  size={15}
+                />
+                {contact.optOut ? "Remover opt-out" : "Marcar opt-out"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
