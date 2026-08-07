@@ -99,9 +99,16 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("recommendation", ["view"], "store"),
   p("transfer", CRUD, "store"),
   p("segment", CRUD, "store"),
-  p("seller", ["view"], "store"),
+  // `edit` unlocks Departamentos and the rotation queue — team administration is
+  // the Gestor's job. Assigning platform roles stays Owner-only (see the Edge).
+  p("seller", ["view", "edit"], "store"),
   p("store", ["view"], "own"),
-  p("settings", ["view"], "store"),
+  // The `settings` umbrella governs the operational settings screens
+  // (Distribuição, Ciclo de vida, Horário comercial, Cadastro de veículos, Sons,
+  // Alertas/Resgate/Continuidade de conversas, Frete, Insights, templates SDR).
+  // Those routes used to also carry a hardcoded `["Owner"]` ceiling, which made
+  // the grant inert — the ceiling was removed so the matrix actually governs them.
+  p("settings", ["view", "edit"], "store"),
   p("audit_log", ["view"], "store"),
   p("media", ["view", "edit", "delete"], "store"),
   p("role", ["view"], "store"),
@@ -110,12 +117,14 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("expense", ["view"], "store"),
   p("cashflow", ["view"], "store"),
   p("profitability", ["view"], "store"),
-  p("inventory", ["view"], "store"),
+  // `edit` unlocks Estoque (análise) — stock policy is store operation.
+  p("inventory", ["view", "edit"], "store"),
   p("customer_service_analytics", ["view"], "store"),
   p("service_volume", ["view"], "store"),
   p("insight", ["view", "edit"], "store"),
   // Gestor: read-only on the storefront admin dashboard/analysis (PRD-066 RF-023).
   p("storefront_admin", ["view"], "store"),
+  p("ecommerce_integration", ["view", "edit"], "store"),
   // Quick Send & Asset Library (PRD-027 D-12) — manage at store scope.
   p("asset_library", CRUD, "store"),
   p("quick_reply", CRUD, "store"),

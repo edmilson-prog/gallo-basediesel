@@ -5,7 +5,7 @@ import { SdrTemplatesPage } from "@/features/sdr/pages/SdrTemplatesPage";
 
 export const Route = createFileRoute("/app/configuracoes/sdr/templates")({
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner"], {
+    requireAuth(location.pathname, undefined, {
       resource: "settings",
       action: "edit",
     }),

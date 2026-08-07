@@ -276,7 +276,11 @@ export function UsersPage() {
                           )}
                         </>
                       ))}
-                    {!isOwnerAccess && !isSelf && (
+                    {/* Owner-only, mirroring `delete-seller`'s own guard: the
+                        Gestor now reaches this screen, and an ungated button
+                        would just hand them a 403. Same reasoning already
+                        applies to "Alterar papel" and "Remover 2FA" above. */}
+                    {isOwner && !isOwnerAccess && !isSelf && (
                       <Button
                         size="sm"
                         variant="ghost"

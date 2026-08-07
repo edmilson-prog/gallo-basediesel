@@ -108,3 +108,92 @@ O único genuinamente Owner-only por permissão (coerente, sem ação) é
    consegue editar o próprio cadastro por esse caminho.
 3. **`profiles.role_id` é `NULL` para todos.** Nenhum papel customizado em uso —
    o Editor de Papéis governa apenas os 7 papéis de sistema hoje.
+
+---
+
+# Parte 2 — Acesso do Gestor à área de Configurações (2026-08-07)
+
+Sequência da mesma investigação, agora sobre as telas **dentro** de Configurações.
+Motivador: o dono promoveu um segundo usuário a Gestor e relatou que "não exibe
+todos os menus dentro de Admin".
+
+## Estado anterior
+
+O Gestor via **19 das 46** telas. As 27 restantes estavam presas de duas formas:
+
+- **Allowlist `roles: ["Owner"]`** no `SettingsLayout` (22 telas);
+- **Permissões que ele não tinha** — `settings.edit`, `seller.edit`,
+  `inventory.edit`, `ecommerce_integration` (5 telas).
+
+## A descoberta que definiu o desenho da correção
+
+As rotas operacionais carregavam **os dois portões ao mesmo tempo**:
+
+```ts
+requireAuth(location.pathname, ["Owner"], { resource: "settings", action: "edit" })
+```
+
+e `requireAuth` exige satisfazer **ambos**. Logo o teto de papel tornava qualquer
+concessão na matriz **inerte**: conceder `settings.edit` ao Gestor faria o item
+aparecer no menu (que olha só a permissão) e a tela bloquear — o bug da Parte 1
+ao contrário. Na prática, **o Editor de Papéis só conseguia restringir, nunca
+ampliar** — o gap nº 3 da auditoria de granularidade se manifestando.
+
+Por isso a correção não foi somar `"Gestor"` a 20 listas fixas: onde já existia
+recurso RBAC, **o teto de papel foi removido** e a permissão ficou como gate
+único. Essas telas passaram a ser governadas pelo Editor de Papéis de verdade.
+
+## O que mudou
+
+| Categoria | Telas | Tratamento |
+|---|---|---|
+| Rota com `["Owner"]` + `settings.edit` | Distribuição, Ciclo de vida, Horário comercial, Cadastro de veículos, Alertas de ociosidade, Resgate de conversas, Continuidade, Sons, Templates SDR, Insights | teto removido; menu migrado de `roles` para `permission` |
+| Rota com `["Owner"]` + outro recurso | Estoque (análise) `inventory.edit`, E-commerce `ecommerce_integration.edit` | idem |
+| Rota já admitia Gestor | Vitrine pública | só o menu divergia — corrigido para `storefront_admin.view` |
+| Sem recurso RBAC natural | Orçamento automático SDR, Gamificação, Comissões, Forecast, Divisões, Usuários | `"Gestor"` somado à allowlist (rota + menu) |
+| Só matriz | Departamentos | destravado por `seller.edit`, sem tocar em código |
+
+Concessões na matriz (`matrix.ts` **e** migration `20260807120000` — os dois
+precisam ficar em paridade, senão o fallback estático diverge do banco):
+`settings` → `[view, edit]`, `seller` → `[view, edit]`, `inventory` →
+`[view, edit]`, `ecommerce_integration` → `[view, edit]` (novo).
+
+Resultado: **39 de 46**.
+
+## O que segue Dono-only (decisão do dono)
+
+Chaves & API · WhatsApp · Inteligência artificial · Ambiente & Dados · Segurança
+da sessão · Portal do cliente · Financeiro/DRE.
+
+São telas onde um erro vaza credencial ou derruba a plataforma, mais o P&L.
+
+## Tela de Usuários: nenhuma Edge Function foi afrouxada
+
+O Gestor passou a alcançar `/app/configuracoes/usuarios`, mas as operações
+perigosas continuam com o Dono. Isso já era verdade nas Edges — só faltava a UI
+acompanhar:
+
+| Operação | Edge | Guarda | Gestor |
+|---|---|---|---|
+| Convidar | `invite-seller` | `STAFF_ROLES` | ✅ |
+| Redefinir senha | `reset-seller-password` | `STAFF_ROLES` | ✅ |
+| Ligar/desligar acesso | `set-seller-access` | `STAFF_ROLES` | ✅ |
+| Alterar e-mail | `set-seller-email` | `STAFF_ROLES` | ✅ |
+| **Alterar papel** | `set-seller-role` | `["owner"]` | ❌ (já oculto na UI) |
+| **Remover 2FA** | `reset-seller-mfa` | `["owner"]` | ❌ (já oculto na UI) |
+| **Excluir** | `delete-seller` | `["owner"]` | ❌ (**gate adicionado** — o botão aparecia e dava 403) |
+
+Consequência: **nenhum deploy de Edge Function é necessário** neste PR.
+
+## Testes
+
+`SettingsLayout.test.ts` (novo) fixa o contrato: o Owner vê tudo; o Gestor vê
+tudo menos os 7 acima; o Vendedor segue restrito ao pessoal; e as telas
+operacionais têm gate de permissão (não de papel). A regra de visibilidade foi
+extraída para `isSettingsItemVisible()`, exportada e testável sem montar o layout.
+
+## Continua pendente
+
+O bug da raiz `/` (`src/routes/index.tsx`) segue vivo: quem não é Owner, Vendedor
+ou Cliente — inclusive o Gestor — cai em `/sem-permissao` ao abrir o domínio sem
+caminho. Não foi tocado aqui para manter o PR coeso.

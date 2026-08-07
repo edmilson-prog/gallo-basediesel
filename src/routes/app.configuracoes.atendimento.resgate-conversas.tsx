@@ -5,7 +5,7 @@ import { ConversationRescueSettingsPage } from "@/features/admin-settings";
 
 export const Route = createFileRoute("/app/configuracoes/atendimento/resgate-conversas")({
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner"], { resource: "settings", action: "edit" }),
+    requireAuth(location.pathname, undefined, { resource: "settings", action: "edit" }),
   component: () => (
     <SettingsLayout>
       <ConversationRescueSettingsPage />

@@ -5,7 +5,7 @@ import { DistributionRulesPanel } from "@/features/distribution/pages/Distributi
 
 export const Route = createFileRoute("/app/configuracoes/distribuicao")({
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner"], {
+    requireAuth(location.pathname, undefined, {
       resource: "settings",
       action: "edit",
     }),
