@@ -35,10 +35,10 @@ export interface IContactsSort {
 export interface IContactsTableProps {
   contacts: IContact[];
   visibleColumns: OptionalContactColumn[];
-  selectedIds: ID[];
+  selectedIds: Set<ID>;
   sort: IContactsSort;
   onSortChange: (sort: IContactsSort) => void;
-  onSelect: (id: ID) => void;
+  onSelect: (contact: IContact, selected: boolean) => void;
   onToggleAllInPage: (checked: boolean) => void;
   onOpen: (contact: IContact) => void;
   onToggleColumn: (id: OptionalContactColumn) => void;
@@ -83,8 +83,8 @@ export function ContactsTable({
   );
 
   const allInPageSelected =
-    contacts.length > 0 && contacts.every((contact) => selectedIds.includes(contact.id));
-  const someInPageSelected = contacts.some((contact) => selectedIds.includes(contact.id));
+    contacts.length > 0 && contacts.every((contact) => selectedIds.has(contact.id));
+  const someInPageSelected = contacts.some((contact) => selectedIds.has(contact.id));
 
   function handleHeaderClick(column: ContactColumn) {
     const key = CONTACT_COLUMN_SORT_KEY[column];
@@ -256,7 +256,7 @@ export function ContactsTable({
 
       <TableBody>
         {contacts.map((contact) => {
-          const selected = selectedIds.includes(contact.id);
+          const selected = selectedIds.has(contact.id);
           return (
             <TableRow
               key={contact.id}
@@ -268,7 +268,7 @@ export function ContactsTable({
                 <Checkbox
                   aria-label={`Selecionar ${contact.name}`}
                   checked={selected}
-                  onCheckedChange={() => onSelect(contact.id)}
+                  onCheckedChange={(checked) => onSelect(contact, Boolean(checked))}
                 />
               </TableCell>
               {columns.map((column) => (
