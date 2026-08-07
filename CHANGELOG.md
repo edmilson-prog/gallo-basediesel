@@ -4,6 +4,29 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.165.0] — Chime · 2026-08-07
+
+**Mensagem que chega enquanto você está em outra conversa — ou em outra tela — agora avisa. Toca um som e aparece um aviso no canto com o nome do cliente e o que ele escreveu; clicar nele abre a conversa. O que você já está lendo não avisa mais: o som parou de tocar na conversa que está aberta na sua frente. Nesta versão o Gestor também passou a enxergar a área de Configurações, que antes estava quase toda trancada para ele.**
+
+### Added
+
+- **Aviso de mensagem nova fora da conversa aberta** — quando chega mensagem em um atendimento seu e você não está olhando para ele, toca o som e aparece um aviso no canto da tela com o nome do cliente e a mensagem. Clicar abre a conversa direto.
+- **Um aviso por cliente, com contador** — se o cliente manda quatro mensagens seguidas, o aviso não se multiplica: ele se atualiza com a mensagem mais recente e passa a dizer "4 novas mensagens". Clientes diferentes aparecem em avisos separados.
+- **Mídia aparece pelo nome no aviso** — foto, áudio, vídeo, documento e figurinha aparecem identificados. Quando o cliente manda uma foto com legenda, o aviso mostra a legenda.
+- **O Gestor entra na área de Configurações** — o papel passou de 19 para 39 das 46 telas de configuração. As 7 que continuam fora são as de dono: cobrança, chaves de integração e afins.
+
+### Changed
+
+- **O som de mensagem não toca mais na conversa que está aberta** — antes ele tocava mesmo com o cliente à sua frente, o que ensinava a ignorar o som. Agora só toca quando você não está vendo aquela conversa.
+- **O que o Gestor vê nas Configurações passou a obedecer à matriz de papéis** — antes, 22 telas estavam presas a uma lista fixa de "só o dono", e liberar a permissão na matriz não adiantava: o item aparecia no menu e a tela continuava bloqueando. O Editor de papéis só conseguia tirar acesso, nunca dar.
+
+### Notes
+
+- **Aba em segundo plano volta a avisar.** Se você deixa a conversa aberta mas vai para o ERP, o WhatsApp Web ou minimiza a janela, o aviso dispara normalmente — você não está vendo a tela. E o aviso espera você voltar em vez de sumir sozinho.
+- **Abrir a conversa dispensa o aviso dela** e zera o contador; uma mensagem posterior começa um aviso novo.
+- **Desligar o som não desliga o aviso.** Em Configurações → Sons de notificação, desligar o som de mensagem silencia o áudio, mas o aviso visual continua aparecendo.
+- **O aviso é só das suas conversas.** Conversas na fila sem atendente, e aquelas em que você é apenas colaborador, não geram aviso.
+
 ## [0.164.0] — Roster · 2026-08-07
 
 **A Gestão de carteira mostrava transferências; agora mostra a carteira. A tela abre com um quadro de todos os vendedores — quantos clientes cada um tem, que fatia da base isso representa e quantos desses clientes estão parados há mais de 30 dias. Os clientes que não estão na carteira de ninguém, que antes não apareciam em lugar nenhum, ganharam uma linha própria em vermelho, com um botão para distribuí-los.**
