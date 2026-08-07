@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Icon } from "@/components/Icon";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -24,7 +25,13 @@ export type ContactBulkAction = "addTag" | "removeTag" | "transferOwner" | "optO
 
 export interface IContactBulkActionDialogProps {
   action: ContactBulkAction | null;
-  selectedCount: number;
+  /**
+   * Who the action hits, already worded: a contact's name when it came from the
+   * card menu or the drawer, "N contatos selecionados" when it came from the
+   * bulk bar. The dialog must never assume the current selection — a single
+   * contact acted on from its own menu is usually not selected at all.
+   */
+  targetLabel: string;
   tagOptions: string[];
   ownerOptions: { id: ID; name: string }[];
   onClose: () => void;
@@ -74,7 +81,7 @@ const COPY: Record<ContactBulkAction, IActionCopy> = {
  */
 export function ContactBulkActionDialog({
   action,
-  selectedCount,
+  targetLabel,
   tagOptions,
   ownerOptions,
   onClose,
@@ -83,19 +90,19 @@ export function ContactBulkActionDialog({
   const [value, setValue] = useState("");
 
   // Reset the choice whenever a different action opens, so a tag picked last
-  // time is never silently reused for the next one.
+  // time is never silently reused for the next one. `addTag` starts empty
+  // because it is free text — the agenda has to be able to mint its first tag.
   useEffect(() => {
     if (!action) return;
     if (action === "export") setValue("selected");
     else if (action === "transferOwner") setValue(ownerOptions[0]?.id ?? UNASSIGN);
-    else if (action === "addTag" || action === "removeTag") setValue(tagOptions[0] ?? "");
+    else if (action === "removeTag") setValue(tagOptions[0] ?? "");
     else setValue("");
   }, [action, ownerOptions, tagOptions]);
 
   if (!action) return null;
   const copy = COPY[action];
   const needsValue = action !== "optOut";
-  const scopeLabel = `${selectedCount} ${selectedCount === 1 ? "contato selecionado" : "contatos selecionados"}`;
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -105,29 +112,70 @@ export function ContactBulkActionDialog({
             <Icon icon={copy.icon} size={18} className="text-primary" />
             {copy.title}
           </DialogTitle>
-          <DialogDescription>{scopeLabel}</DialogDescription>
+          <DialogDescription>{targetLabel}</DialogDescription>
         </DialogHeader>
 
-        {(action === "addTag" || action === "removeTag") && (
+        {action === "addTag" && (
           <div className="space-y-2">
             <Label htmlFor="contact-bulk-tag">Etiqueta</Label>
-            <Select value={value} onValueChange={setValue}>
-              <SelectTrigger id="contact-bulk-tag">
-                <SelectValue placeholder="Escolher" />
-              </SelectTrigger>
-              <SelectContent>
+            <Input
+              id="contact-bulk-tag"
+              value={value}
+              maxLength={40}
+              autoComplete="off"
+              placeholder="Ex.: Frota, Comprador, Pós-venda"
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && value.trim()) onConfirm(action, value.trim());
+              }}
+            />
+            {tagOptions.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <span className="text-xs text-muted-foreground">Já usadas:</span>
                 {tagOptions.map((tag) => (
-                  <SelectItem key={tag} value={tag}>
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setValue(tag)}
+                    className="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+                  >
                     {tag}
-                  </SelectItem>
+                  </button>
                 ))}
-              </SelectContent>
-            </Select>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
-              {action === "addTag"
-                ? "Aplicada a todos os contatos selecionados."
-                : "Removida apenas de quem tiver a etiqueta."}
+              Aplicada a todos os contatos do escopo acima. Etiqueta nova é criada na hora.
             </p>
+          </div>
+        )}
+
+        {action === "removeTag" && (
+          <div className="space-y-2">
+            <Label htmlFor="contact-bulk-tag">Etiqueta</Label>
+            {tagOptions.length > 0 ? (
+              <>
+                <Select value={value} onValueChange={setValue}>
+                  <SelectTrigger id="contact-bulk-tag">
+                    <SelectValue placeholder="Escolher" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tagOptions.map((tag) => (
+                      <SelectItem key={tag} value={tag}>
+                        {tag}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Removida apenas de quem tiver a etiqueta.
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Nenhuma etiqueta em uso nos contatos carregados. Não há o que remover.
+              </p>
+            )}
           </div>
         )}
 
@@ -200,8 +248,8 @@ export function ContactBulkActionDialog({
           </Button>
           <Button
             variant={copy.destructive ? "destructive" : "default"}
-            disabled={needsValue && !value}
-            onClick={() => onConfirm(action, value)}
+            disabled={needsValue && !value.trim()}
+            onClick={() => onConfirm(action, value.trim())}
           >
             {copy.cta}
           </Button>

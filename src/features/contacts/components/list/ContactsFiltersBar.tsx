@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { UNASSIGNED_OWNER } from "../../engine/contactFilters";
+import { CONTACT_SOURCE_LABELS } from "../../utils/labels";
 
 /** Sentinel for "no filter" inside a Select — Radix forbids an empty value. */
 export const ANY_VALUE = "__any__";
@@ -55,15 +56,7 @@ const SCOPES: { id: ContactScope; label: string; countKey: keyof IContactScopeCo
   { id: "optout", label: "Opt-out", countKey: "optout" },
 ];
 
-const SOURCE_LABELS: Record<ContactSource, string> = {
-  whatsapp: "WhatsApp",
-  dintec: "DINTEC",
-  manual: "Manual",
-  csv: "CSV",
-  balcao: "Balcão",
-  portal_b2b: "Portal B2B",
-  storefront: "Loja online",
-};
+const SOURCE_LABELS = CONTACT_SOURCE_LABELS;
 
 const RECENCY_LABELS: Record<ContactRecencyBucket, string> = {
   hoje: "Hoje",
