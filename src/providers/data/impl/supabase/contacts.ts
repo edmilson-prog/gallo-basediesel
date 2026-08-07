@@ -15,6 +15,7 @@ import type {
   IListContactsParams,
 } from "../../contracts/contacts";
 import type { IPaginatedResult } from "../../contracts/_shared";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link IContactsProvider} (Agenda, phase 1).
@@ -250,11 +251,25 @@ export function contactRecencyBucketRange(
   }
 }
 
-/** Resolves the free-text search term against customer display names
- *  (`nome_fantasia → razao_social → full_name`), so a company name finds its
- *  linked contacts — the mock's `matchesSearch` haystack includes
- *  `contact.customerName`, so this provider must too. A no-op (empty array,
- *  no query) when the term is blank. */
+/**
+ * Resolves the free-text search term against customer display names
+ * (`nome_fantasia → razao_social → full_name`), so a company name finds its
+ * linked contacts — the mock's `matchesSearch` haystack includes
+ * `contact.customerName`, so this provider must too. A no-op (empty array,
+ * no query) when the term is blank.
+ *
+ * Capped at `SEARCH_CUSTOMER_MATCH_LIMIT` (200) matches: those ids get folded
+ * into the contacts query as `customer_id.in.(...)`, and a longer list risks
+ * the same `.in()` URL-length blowup already known in this codebase (see the
+ * carteira-transfer chunking) — raising the cap is not the fix, 200 UUIDs is
+ * already ~7.4 kB of URL. When a term matches MORE than the cap, the extra
+ * companies' contacts are silently dropped from the result today — that part
+ * is unchanged — but the overflow itself is now detectable (queries for
+ * `LIMIT + 1` and only truncates if it actually got the extra row) and logged
+ * to the dev console instead of being invisible. Task 18 (Agenda search box)
+ * should read this before wiring the search: a "refine sua busca" affordance
+ * belongs there, not in this data layer.
+ */
 async function resolveSearchCustomerIds(search: string | undefined): Promise<string[]> {
   const term = search?.trim();
   if (!term) return [];
@@ -263,9 +278,23 @@ async function resolveSearchCustomerIds(search: string | undefined): Promise<str
     .from("customers")
     .select("id")
     .or(`nome_fantasia.ilike.*${safe}*,razao_social.ilike.*${safe}*,full_name.ilike.*${safe}*`)
-    .limit(SEARCH_CUSTOMER_MATCH_LIMIT);
+    // +1 so an overflow (more matches than the cap) is distinguishable from
+    // "exactly at the cap" instead of being truncated in silence.
+    .limit(SEARCH_CUSTOMER_MATCH_LIMIT + 1);
   if (error) throw new Error(`contacts.list (customer name search): ${error.message}`);
-  return ((data ?? []) as { id: string }[]).map((row) => row.id);
+  const rows = (data ?? []) as { id: string }[];
+  if (rows.length > SEARCH_CUSTOMER_MATCH_LIMIT) {
+    if (import.meta.env.DEV) {
+      console.warn(
+        `[contacts] search term "${term}" matched more than ` +
+          `${SEARCH_CUSTOMER_MATCH_LIMIT} customers by name — only the first ` +
+          `${SEARCH_CUSTOMER_MATCH_LIMIT} are folded into the contacts search. ` +
+          "Some matching contacts may be missing from the results.",
+      );
+    }
+    return rows.slice(0, SEARCH_CUSTOMER_MATCH_LIMIT).map((row) => row.id);
+  }
+  return rows.map((row) => row.id);
 }
 
 /**
@@ -332,6 +361,68 @@ function buildFilteredQuery(
   return query;
 }
 
+/**
+ * `buildFilteredQuery` plus the scope branch and the ordering switch —
+ * everything `list()` needs except `.range()`, which `fetchLargePage`
+ * applies itself on every chunk. Kept as one function (not composed from two
+ * smaller ones) because factoring the scope/order steps out would need an
+ * explicit type annotation for the intermediate query, same reasoning as
+ * `countScope` below.
+ */
+function buildOrderedQuery(params: IListContactsParams, now: Date, searchCustomerIds: string[]) {
+  let query = buildFilteredQuery(COLUMNS, { count: "exact" }, params, now, searchCustomerIds);
+  if (params.scope === "vinculados") query = query.not("customer_id", "is", null);
+  else if (params.scope === "soltos") query = query.is("customer_id", null);
+  else if (params.scope === "optout") query = query.eq("opt_out", true);
+
+  const orderBy: ContactsOrderBy = params.orderBy ?? "name";
+  const ascending = params.orderDir !== "desc";
+  switch (orderBy) {
+    case "owner":
+      // Single real column, no fallback chain needed.
+      query = query.order("full_name", {
+        ascending,
+        nullsFirst: ascending,
+        referencedTable: "owner",
+      });
+      break;
+    case "customer":
+      // Best-effort proxy: no physical column reproduces the mock's
+      // nome_fantasia → razao_social → full_name fallback chain, so this
+      // orders by nome_fantasia alone (accurate for B2B-linked contacts,
+      // imprecise for B2C-linked ones, which typically lack it). Flagged
+      // for the product owner — a true match needs a computed column/view.
+      query = query.order("nome_fantasia", {
+        ascending,
+        nullsFirst: ascending,
+        referencedTable: "customer",
+      });
+      break;
+    case "status":
+      // No physical column holds the mock's derived "1-vinculado" /
+      // "2-solto" / "3-optout" key. Two real columns reproduce it exactly:
+      // opt_out groups the optout bucket last (first when desc), and
+      // customer_id explicitly ordered NULLS LAST/FIRST puts "solto" right
+      // after "vinculado" in the same direction as the string key would.
+      query = query
+        .order("opt_out", { ascending })
+        .order("customer_id", { ascending, nullsFirst: !ascending });
+      break;
+    case "phone":
+      query = query.order("phone_digits", { ascending, nullsFirst: ascending });
+      break;
+    case "lastContactAt":
+      query = query.order("last_contact_at", { ascending, nullsFirst: ascending });
+      break;
+    default:
+      // "name" | "role" | "email" | "city" | "source" — camelCase key
+      // equals the column name.
+      query = query.order(orderBy, { ascending, nullsFirst: ascending });
+      break;
+  }
+  return query;
+}
+
 async function countScope(
   params: IListContactsParams,
   now: Date,
@@ -345,10 +436,10 @@ async function countScope(
     now,
     searchCustomerIds,
   );
-  // Mirrors the scope branch in `list()` below — keep the two in sync if the
-  // scope semantics ever change. Not factored into a shared helper: the
-  // query's inferred generic type would need an explicit (and awkward)
-  // annotation to cross a function boundary here, for no real gain.
+  // Mirrors the scope branch in `buildOrderedQuery` above — keep the two in
+  // sync if the scope semantics ever change. Not factored into a shared
+  // helper: the query's inferred generic type would need an explicit (and
+  // awkward) annotation to cross a function boundary here, for no real gain.
   if (scope === "vinculados") query = query.not("customer_id", "is", null);
   else if (scope === "soltos") query = query.is("customer_id", null);
   else if (scope === "optout") query = query.eq("opt_out", true);
@@ -376,63 +467,32 @@ export const supabaseContactsProvider: IContactsProvider = {
     const from = (page - 1) * pageSize;
 
     const searchCustomerIds = await resolveSearchCustomerIds(params.search);
-    let query = buildFilteredQuery(COLUMNS, { count: "exact" }, params, now, searchCustomerIds);
-    // Mirrors the scope branch in `countScope()` above — keep the two in sync.
-    if (params.scope === "vinculados") query = query.not("customer_id", "is", null);
-    else if (params.scope === "soltos") query = query.is("customer_id", null);
-    else if (params.scope === "optout") query = query.eq("opt_out", true);
 
-    const orderBy: ContactsOrderBy = params.orderBy ?? "name";
-    const ascending = params.orderDir !== "desc";
-    switch (orderBy) {
-      case "owner":
-        // Single real column, no fallback chain needed.
-        query = query.order("full_name", {
-          ascending,
-          nullsFirst: ascending,
-          referencedTable: "owner",
-        });
-        break;
-      case "customer":
-        // Best-effort proxy: no physical column reproduces the mock's
-        // nome_fantasia → razao_social → full_name fallback chain, so this
-        // orders by nome_fantasia alone (accurate for B2B-linked contacts,
-        // imprecise for B2C-linked ones, which typically lack it). Flagged
-        // for the product owner — a true match needs a computed column/view.
-        query = query.order("nome_fantasia", {
-          ascending,
-          nullsFirst: ascending,
-          referencedTable: "customer",
-        });
-        break;
-      case "status":
-        // No physical column holds the mock's derived "1-vinculado" /
-        // "2-solto" / "3-optout" key. Two real columns reproduce it exactly:
-        // opt_out groups the optout bucket last (first when desc), and
-        // customer_id explicitly ordered NULLS LAST/FIRST puts "solto" right
-        // after "vinculado" in the same direction as the string key would.
-        query = query
-          .order("opt_out", { ascending })
-          .order("customer_id", { ascending, nullsFirst: !ascending });
-        break;
-      case "phone":
-        query = query.order("phone_digits", { ascending, nullsFirst: ascending });
-        break;
-      case "lastContactAt":
-        query = query.order("last_contact_at", { ascending, nullsFirst: ascending });
-        break;
-      default:
-        // "name" | "role" | "email" | "city" | "source" — camelCase key
-        // equals the column name.
-        query = query.order(orderBy, { ascending, nullsFirst: ascending });
-        break;
-    }
+    // PostgREST caps a single response at `db-max-rows` (1000) regardless of
+    // `.range()`. `pageSize` is usually well under that, but callers CAN ask
+    // for the full filtered set (`FETCH_ALL_PAGE_SIZE` = 10 000 — e.g. the
+    // bulk-actions "select all N filtered" flow), and a plain `.range()`
+    // would silently return only the first 1000 while `total` kept reporting
+    // the real count. `fetchLargePage` issues the extra chunks transparently,
+    // rebuilding the query fresh for each one (query builders aren't safe to
+    // reuse across executions) — same pattern as every other provider here.
+    const { data, total } = await fetchLargePage<IRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildOrderedQuery(
+          params,
+          now,
+          searchCustomerIds,
+        ).range(rangeFrom, rangeTo);
+        if (error) throw new Error(`contacts.list: ${error.message}`);
+        return { data: (data ?? []) as unknown as IRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
-    const { data, error, count } = await query.range(from, from + pageSize - 1);
-    if (error) throw new Error(`contacts.list: ${error.message}`);
     return {
-      data: ((data ?? []) as unknown as IRow[]).map(rowToContact),
-      total: count ?? 0,
+      data: data.map(rowToContact),
+      total,
       page,
       pageSize,
     };
