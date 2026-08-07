@@ -3,7 +3,7 @@ import { toCanonicalPixKey, toDisplayPixKey, isValidPixKey } from "./pixKeyForma
 
 describe("toCanonicalPixKey", () => {
   it("strips punctuation from CNPJ and CPF", () => {
-    expect(toCanonicalPixKey("cnpj", "12.345.678/0001-90")).toBe("12345678000190");
+    expect(toCanonicalPixKey("cnpj", "12.345.678/0001-95")).toBe("12345678000195");
     expect(toCanonicalPixKey("cpf", "123.456.789-09")).toBe("12345678909");
   });
 
@@ -22,11 +22,13 @@ describe("toCanonicalPixKey", () => {
 });
 
 describe("isValidPixKey", () => {
+  // 12345678000195 — base 123456780001 with its real check digits (9 then 5).
   it("accepts a CNPJ with a correct check digit", () => {
-    expect(isValidPixKey("cnpj", "12345678000190")).toBe(true);
+    expect(isValidPixKey("cnpj", "12345678000195")).toBe(true);
   });
 
   it("rejects a CNPJ with a wrong check digit", () => {
+    expect(isValidPixKey("cnpj", "12345678000190")).toBe(false);
     expect(isValidPixKey("cnpj", "12345678000191")).toBe(false);
   });
 
@@ -58,7 +60,7 @@ describe("isValidPixKey", () => {
 
 describe("toDisplayPixKey", () => {
   it("formats each type for reading", () => {
-    expect(toDisplayPixKey("cnpj", "12345678000190")).toBe("12.345.678/0001-90");
+    expect(toDisplayPixKey("cnpj", "12345678000195")).toBe("12.345.678/0001-95");
     expect(toDisplayPixKey("cpf", "12345678909")).toBe("123.456.789-09");
     expect(toDisplayPixKey("phone", "+5555999999999")).toBe("+55 55 99999-9999");
     expect(toDisplayPixKey("email", "financeiro@gallo.com.br")).toBe("financeiro@gallo.com.br");
