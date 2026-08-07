@@ -396,8 +396,15 @@ Desligar os dois toggles esvazia o preview. É feedback correto: não há mensag
 
 ## 9. O botão de copiar
 
-Um componente, **dois** lugares: linha da lista (conferir/copiar sem abrir o editor) e barra
-staged (conferir antes de mandar).
+Um componente, **um** lugar: a linha da lista em Configurações (conferir/copiar sem abrir o
+editor), mais o editor.
+
+> A barra staged do composer **não** leva o botão, e a razão é espaço: ela já carrega cinco
+> controles em uma linha que precisa caber em 360 px, e a variante compacta é `h-9` contra
+> os `h-8` da moldura, o que quebraria o alinhamento com a barra de ativo. O valor perdido é
+> pequeno — **a chave já está visível ali em mono**, que é o que a barra precisa entregar
+> (conferência antes do envio). Copiar é conveniência e continua a um clique de distância
+> em Configurações.
 
 > Um terceiro lugar — o rodapé da bolha já enviada, reaproveitando o slot `footer` do
 > `BubbleChrome` — foi considerado e **fica fora desta iteração**: reconhecer que uma bolha

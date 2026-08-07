@@ -2125,6 +2125,46 @@ promover quando outra é padrão devolve o id dela; promover a que **já é** pa
 
 Depois faça `usePixKeyAdmin` consumir `keysToDemote` em vez da lógica inline.
 
+- [ ] **Step A3: Extract the send plan to a tested engine**
+
+A Task 9 deixou a ordenação das duas mensagens dentro do `useSendPix`, sem teste — seguindo
+os vizinhos `useSendAsset`/`useComboSend`, que também não têm. Mas **esta é a feature de
+dinheiro**, e a ordem é a propriedade mais arriscada dela: se a chave deixar de ser a última,
+ou deixar de ir crua e `unsigned`, o toque-e-segurar do cliente para de funcionar e ninguém
+percebe até alguém tentar pagar.
+
+Crie `engine/planPixSend.ts` com uma função pura que decide **o que enviar e em que ordem**,
+sem tocar em rede:
+
+```ts
+export interface IPlannedPixMessage {
+  kind: "caption" | "key";
+  text: string;
+  /** True only on the key message — it must stay byte-exact. */
+  unsigned?: boolean;
+  /** True when this message should carry the QR image. */
+  withQr?: boolean;
+}
+
+export function planPixSend(
+  key: Pick<IPixKey, "keyValue" | "keyType" | "receiverName">,
+  opts: { sendText: boolean; sendQr: boolean; context: string; qrAvailable: boolean },
+): IPlannedPixMessage[];
+```
+
+Testes que a função precisa passar:
+- texto+QR → duas mensagens, a **última** com `kind: "key"`, `unsigned: true` e `text` igual
+  ao `keyValue` **cru** (sem prefixo, sem sufixo, sem pontuação);
+- QR indisponível mas texto ligado → a legenda vira mensagem de texto e a chave continua
+  saindo por último (o complemento não derruba o produto);
+- só QR → uma mensagem, nenhuma com `kind: "key"`;
+- só texto → legenda + chave, nesta ordem;
+- nada marcado → lista vazia;
+- em nenhum caso a legenda contém o `keyValue`.
+
+Depois faça `useSendPix` consumir `planPixSend` e apenas despachar o que ela devolver. O hook
+fica responsável por I/O; a decisão fica testada.
+
 - [ ] **Step A2: Close the race in the database**
 
 A migration `<ts>_create_pix_keys_table.sql` **nunca foi aplicada** — edite-a no lugar,
