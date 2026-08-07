@@ -34,6 +34,7 @@ function p(
 
 const OWNER_ENTRIES: ScopedActions[] = [
   p("customer", CRUD, "all"),
+  p("contact", CRUD, "all"),
   p("vehicle", CRUD, "all"),
   p("lead", CRUD, "all"),
   p("funnel", CRUD, "all"),
@@ -81,6 +82,7 @@ const OWNER_ENTRIES: ScopedActions[] = [
 
 const GESTOR_ENTRIES: ScopedActions[] = [
   p("customer", CRUD, "store"),
+  p("contact", CRUD, "store"),
   p("vehicle", CRUD, "store"),
   p("lead", CRUD, "store"),
   // Administrar funil e decisao de estrutura comercial. O vendedor nao recebe:
@@ -134,6 +136,7 @@ const GESTOR_ENTRIES: ScopedActions[] = [
 
 const VENDEDOR_ENTRIES: ScopedActions[] = [
   p("customer", ["view", "edit"], "own"),
+  p("contact", ["view", "create", "edit"], "own"),
   p("vehicle", ["view", "edit"], "own"),
   p("lead", ["view", "edit"], "own"),
   p("conversation", ["view", "edit"], "own"),
@@ -160,6 +163,7 @@ const VENDEDOR_ENTRIES: ScopedActions[] = [
 
 const SDR_ENTRIES: ScopedActions[] = [
   p("customer", ["view"], "store"),
+  p("contact", ["view"], "own"),
   p("vehicle", ["view"], "store"),
   p("lead", ["view", "create"], "own"),
   p("conversation", ["view", "create"], "own"),
@@ -187,6 +191,7 @@ const CLIENTE_ENTRIES: ScopedActions[] = [
 
 const VENDEDOR_EXTERNO_ENTRIES: ScopedActions[] = [
   p("customer", ["view", "edit"], "own"),
+  p("contact", ["view", "edit"], "own"),
   p("vehicle", ["view", "edit"], "own"),
   p("lead", ["view", "edit"], "own"),
   p("conversation", ["view", "edit"], "own"),
@@ -205,6 +210,7 @@ const VENDEDOR_EXTERNO_ENTRIES: ScopedActions[] = [
 
 const FINANCEIRO_ENTRIES: ScopedActions[] = [
   p("customer", ["view"], "store"),
+  p("contact", ["view"], "store"),
   p("quote", ["view"], "store"),
   p("order", ["view"], "store"),
   p("commission", ["view", "approve"], "store"),

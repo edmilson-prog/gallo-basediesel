@@ -26,6 +26,10 @@ export type {
   IWalletSellerStats,
   IConvertPendingContactInput,
   ICustomerDocumentMatch,
+  IContactsProvider,
+  IListContactsParams,
+  ContactsOrderBy,
+  ContactRecencyBucket,
   IVehiclesProvider,
   IListVehiclesParams,
   IAddServiceEntryInput,
@@ -140,6 +144,7 @@ export type {
 export { computeFailureRate, FETCH_ALL_PAGE_SIZE, WALLET_STALE_DAYS } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
+export { useContactsProvider } from "./hooks/useContactsProvider";
 export { useVehiclesProvider } from "./hooks/useVehiclesProvider";
 export { useLeadsProvider } from "./hooks/useLeadsProvider";
 export { useLeadFunnelsProvider } from "./hooks/useLeadFunnelsProvider";

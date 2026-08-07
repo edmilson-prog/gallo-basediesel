@@ -1,4 +1,5 @@
 export { customersApi, type IListCustomersParams } from "./customers";
+export { contactsApi } from "./contacts";
 export { vehiclesApi, type IListVehiclesParams } from "./vehicles";
 export { leadsApi, type IListLeadsParams } from "./leads";
 export { conversationsApi, type IListConversationsParams } from "./conversations";

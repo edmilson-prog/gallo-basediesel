@@ -4,6 +4,34 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.166.0] — Rolodex · 2026-08-07
+
+**Os contatos da operação estavam em três lugares e em nenhum: uma linha só no cadastro do cliente, a lista de leads, e o WhatsApp de cada vendedor. A Agenda reúne tudo numa tela — 5.411 contatos hoje. Cada contato é uma pessoa ou um número, e a diferença que faltava: um mesmo cliente pode ter o comprador, o gerente de frota e o financeiro, cada um com seu telefone, sua etiqueta e seu responsável.**
+
+### Added
+
+- **Agenda** (menu Atendimento, entre Clientes e Leads) — o catálogo de contatos da operação. Abre com todos os 5.411, em cards ou em tabela.
+- **Contato solto** — número que já conversou com a gente e ainda não pertence a nenhum cliente. Aparece com borda tracejada e um botão **Vincular** no próprio card. Hoje são 3.432, quase todos vindos do histórico do WhatsApp.
+- **Várias pessoas no mesmo cliente** — o cadastro do cliente guardava um único nome de contato. Agora cada pessoa da empresa tem seu próprio registro, com cargo, telefone, e-mail, etiquetas e responsável.
+- **Busca que encontra do jeito que se digita** — nome, empresa, cargo, cidade, e-mail e telefone. O telefone casa com ou sem formatação, e a busca ignora acento: procurar "irai" acha "Iraí". Atalho `/` foca o campo de qualquer lugar da tela.
+- **Quatro visões rápidas** — Todos, Vinculados, Sem cliente e Opt-out, cada uma com sua contagem. Mais filtros por responsável, etiqueta, cidade/UF, origem e último contato.
+- **Ações em massa** — selecionar vários contatos para etiquetar, remover etiqueta, transferir responsável, exportar ou bloquear. Dá para estender a seleção a todos os contatos do filtro, não só aos da página.
+- **Ficha do contato** — painel lateral com o vínculo ao cliente, etiquetas, responsável, agendamento de retorno e as opções de LGPD.
+- **Opt-out por pessoa (LGPD)** — marcar um contato como opt-out bloqueia envio em massa e disparo automático para ele, sem afetar conversas que ele mesmo iniciar. A ação fica registrada na auditoria com autor e data, e o botão de abrir conversa fica desabilitado enquanto durar.
+- **Tabela densa** — para quem prefere lista: 11 colunas, ordenação por clique, colunas que podem ser escondidas pelo botão direito no cabeçalho e larguras que ficam salvas entre sessões.
+
+### Changed
+
+- **Clientes e Leads não mudaram** — a Agenda é uma tela nova que lê deles, sem alterar nada. Um contato criado a partir de um lead guarda de onde veio.
+
+### Security
+
+- **Contato só é vinculado a cliente que o vendedor já atende** — a regra vale no banco, não só na tela: não é possível pendurar um contato na carteira de outro vendedor. Contato solto continua livre para qualquer um registrar, que é o caminho normal de quem atende alguém de uma empresa que não é sua.
+
+### Notes
+
+- Contatos que vieram do histórico do WhatsApp e nunca tiveram nome no perfil aparecem com o número no lugar do nome e um `#` no avatar. São 1.451 — o dado é esse mesmo, e eles ganham nome conforme forem atendidos.
+- A triagem dos contatos sem cliente, a importação de CSV, a mesclagem de duplicados e o envio em massa entram nas próximas versões.
 ## [0.165.0] — Chime · 2026-08-07
 
 **Mensagem que chega enquanto você está em outra conversa — ou em outra tela — agora avisa. Toca um som e aparece um aviso no canto com o nome do cliente e o que ele escreveu; clicar nele abre a conversa. O que você já está lendo não avisa mais: o som parou de tocar na conversa que está aberta na sua frente. Nesta versão o Gestor também passou a enxergar a área de Configurações, que antes estava quase toda trancada para ele.**

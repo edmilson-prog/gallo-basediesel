@@ -90,6 +90,12 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         permission: { resource: "customer" },
       },
       {
+        label: "Agenda",
+        icon: "mdi:book-account",
+        to: ROUTES.APP_AGENDA,
+        permission: { resource: "contact" },
+      },
+      {
         label: "Leads",
         icon: "mdi:account-question",
         to: ROUTES.APP_LEADS,

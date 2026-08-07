@@ -39,6 +39,8 @@ const ROLE_LABELS: Record<RoleName, string> = {
  */
 const RESOURCE_LABELS: Record<ResourceName, string> = {
   customer: "Clientes",
+  // `contact` is a matrix resource absent from the legacy RolesPage table.
+  contact: "Contatos",
   vehicle: "Veículos",
   lead: "Leads",
   funnel: "Funis",
@@ -86,6 +88,7 @@ const RESOURCE_LABELS: Record<ResourceName, string> = {
 const RESOURCE_GROUPS: Record<ResourceName, string> = {
   // Comercial
   customer: "Comercial",
+  contact: "Comercial",
   vehicle: "Comercial",
   lead: "Comercial",
   funnel: "Comercial",

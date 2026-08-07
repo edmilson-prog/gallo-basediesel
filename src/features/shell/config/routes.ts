@@ -16,6 +16,7 @@ export const ROUTES = {
   APP_INICIO: "/app/inicio",
   APP_ATENDIMENTO: "/app/atendimento",
   APP_CLIENTES: "/app/clientes",
+  APP_AGENDA: "/app/agenda",
   APP_LEADS: "/app/leads",
   APP_VEICULOS: "/app/veiculos",
   APP_CARTEIRA: "/app/carteira",
