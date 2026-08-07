@@ -97,7 +97,7 @@ Padrões arquiteturais que devem ser preservados ao implementar features:
 
 ## Versionamento e changelog
 
-- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Sieve` — v0.163.0). Cada bump ganha uma tag `vX.Y.Z` (lista completa: `git tag -l`).
+- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Roster` — v0.164.0). Cada bump ganha uma tag `vX.Y.Z` (lista completa: `git tag -l`).
 - A versão vive **só** no `package.json` e é injetada em build como `__APP_VERSION__` (via `define` no `vite.config.ts`).
 - **`CHANGELOG.md` é também o changelog da UI** — os pre-scripts o copiam para `public/`, e a página "Sobre/Novidades" lê essa cópia. Não existe segundo arquivo de changelog.
 - Bump após PRD completo (obrigatório) ou quando solicitado para um acumulado de fixes diretos.
