@@ -21,6 +21,9 @@ export type {
   IPaginationParams,
   ICustomersProvider,
   IListCustomersParams,
+  IWalletStats,
+  IWalletStatsParams,
+  IWalletSellerStats,
   IConvertPendingContactInput,
   ICustomerDocumentMatch,
   IVehiclesProvider,
@@ -134,7 +137,7 @@ export type {
   ISdrPilotSettingsProvider,
   IConversationRescuesProvider,
 } from "./contracts";
-export { computeFailureRate, FETCH_ALL_PAGE_SIZE } from "./contracts";
+export { computeFailureRate, FETCH_ALL_PAGE_SIZE, WALLET_STALE_DAYS } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
 export { useVehiclesProvider } from "./hooks/useVehiclesProvider";

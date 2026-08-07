@@ -1,10 +1,32 @@
 import { conversationsApi, customersApi, sellersApi } from "@/mocks";
+import type { ICustomer } from "@/shared/types";
 import type { ICustomersProvider } from "../../contracts/customers";
+import { FETCH_ALL_PAGE_SIZE } from "../../contracts/_shared";
+import { aggregateWalletStats } from "../_walletAggregate";
 import { logMockMutation } from "./_audit";
 import { assertImmutableStoreId, scopedListParams, withCreateStoreId } from "./_storeScope";
 
+/** Mirrors the supabase provider's wallet universe — see its `WALLET_STATUSES`. */
+const WALLET_STATUSES: ICustomer["status"][] = ["ativo", "recuperacao", "dormente"];
+
 export const mockCustomersProvider: ICustomersProvider = {
   list: (params) => customersApi.list(scopedListParams(params, "customer")),
+  walletStats: async (params = {}) => {
+    const res = await customersApi.list(
+      scopedListParams(
+        {
+          storeId: params.storeId,
+          statuses: params.statuses ?? WALLET_STATUSES,
+          excludeTags: params.excludeTags,
+          pageSize: FETCH_ALL_PAGE_SIZE,
+        },
+        "customer",
+      ),
+    );
+    return aggregateWalletStats(
+      res.data.map((c) => ({ sellerId: c.sellerId, lastPurchaseAt: c.lastPurchaseAt })),
+    );
+  },
   get: (id) => customersApi.get(id),
   create: async (input) => {
     const created = await customersApi.create(withCreateStoreId(input));
