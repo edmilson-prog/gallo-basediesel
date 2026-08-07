@@ -2165,6 +2165,17 @@ Testes que a função precisa passar:
 Depois faça `useSendPix` consumir `planPixSend` e apenas despachar o que ela devolver. O hook
 fica responsável por I/O; a decisão fica testada.
 
+> ⚠️ **A degradação do QR NÃO migra para o engine.** O `planPixSend` recebe `qrAvailable`
+> como **entrada** — quem descobre que o QR falhou (erro de render, `toBlob` nulo, upload
+> que lança) é o lado de I/O, e é lá que o `try/catch` próprio do bloco do QR tem de
+> continuar. Pela mesma razão, a semântica do retorno ("algo chegou ao thread") é do hook:
+> o engine planeja o que enviar, não sabe o que falhou em runtime.
+>
+> Se essa lógica for puxada para dentro do `planPixSend`, as duas propriedades que a Task 9
+> garantiu — o complemento não derruba o produto, e um retry nunca reenvia uma chave que já
+> saiu — se perdem **exatamente onde os testes dariam a impressão de cobri-las**. É a pior
+> forma de perder: com a suíte verde.
+
 - [ ] **Step A2: Close the race in the database**
 
 A migration `<ts>_create_pix_keys_table.sql` **nunca foi aplicada** — edite-a no lugar,
