@@ -4,6 +4,37 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.167.0] — Tender · 2026-08-07
+
+**Mandar a chave PIX para o cliente era digitar de novo, em toda conversa, um CNPJ de catorze dígitos. Um dígito errado e o dinheiro vai para a conta de outra pessoa, sem volta. Agora a chave fica cadastrada e vai por atalho — e vai do jeito que o cliente consegue usar: sozinha numa mensagem, para ele segurar o dedo e copiar limpo.**
+
+### Added
+
+- **Chaves PIX** (Configurações, logo abaixo de Respostas rápidas) — cadastro das chaves da empresa. Dá para ter várias: o CNPJ da matriz, o da filial, um telefone, um e-mail ou uma chave aleatória. Cada uma com apelido, favorecido, cidade e uma mensagem padrão.
+- **Atalho na conversa** — o item **Chave PIX** no menu de anexo (o clipe) ou digitar `/pix` no campo de mensagem. Se a loja tem uma chave só, ele já vai direto; com mais de uma, abre a lista para escolher.
+- **Confirmação antes de enviar** — aparece uma barra acima do campo de texto com a chave à vista, onde dá para escrever uma mensagem e escolher o que mandar. **Nunca sai com um clique só** — dinheiro na conta errada é o pior erro possível aqui, então a chave sempre aparece antes.
+- **QR Code opcional** — gerado na hora, no padrão do Banco Central. Útil quando o cliente está no computador ou vai mostrar a tela para outra pessoa.
+- **A chave vai numa mensagem sozinha** — sem nome de atendente na frente, sem emoji, sem ponto final. É isso que faz o "segurar e copiar" do WhatsApp entregar a chave limpa, pronta para colar no aplicativo do banco.
+- **Prévia do que o cliente recebe** — na tela de cadastro, do lado direito, as duas mensagens exatamente como vão chegar, no mesmo tamanho de balão da conversa.
+- **Botão de copiar** na lista de chaves, para conferir ou colar em outro lugar sem abrir o cadastro.
+- **Chave padrão** — marque uma como padrão e ela aparece primeiro na hora de escolher.
+
+### Changed
+
+- **Chave desativada some do atendimento** — trocou de banco? desative em vez de excluir. Ela para de aparecer na conversa e o histórico do que já foi enviado continua intacto.
+
+### Security
+
+- **A chave é da empresa, não do vendedor** — todo mundo da loja vê e envia, mas só Owner e Gestor cadastram ou alteram. A regra vale no banco, não só na tela.
+- **Todo envio fica registrado** — quem enviou, qual chave e em qual conversa.
+- **Chave com acento é recusada no cadastro** — um e-mail como `joão@empresa.com` geraria um QR que alguns aplicativos de banco leem errado. O sistema recusa em vez de "corrigir" para `joao@`, que seria a chave de outra pessoa.
+
+### Notes
+
+- O texto do envio pode ser editado na hora, antes de mandar.
+- **SDR e Financeiro enviam PIX normalmente, mas não cadastram chave** — o cadastro é de Owner e Gestor.
+- Cobrança com valor já preenchido no QR não entra nesta versão: a chave vai sem valor e o cliente digita quanto vai pagar.
+
 ## [0.166.0] — Rolodex · 2026-08-07
 
 **Os contatos da operação estavam em três lugares e em nenhum: uma linha só no cadastro do cliente, a lista de leads, e o WhatsApp de cada vendedor. A Agenda reúne tudo numa tela — 5.411 contatos hoje. Cada contato é uma pessoa ou um número, e a diferença que faltava: um mesmo cliente pode ter o comprador, o gerente de frota e o financeiro, cada um com seu telefone, sua etiqueta e seu responsável.**
