@@ -1,6 +1,4 @@
 import { useCallback, useMemo, useState } from "react";
-import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
   DragOverlay,
@@ -20,12 +18,11 @@ import type {
   ILeadFunnelStage,
   ISeller,
 } from "@/shared/types";
-import { auditLog } from "@/features/rbac/utils/auditLog";
-import { useLeadFunnelsProvider } from "@/providers/data/hooks/useLeadFunnelsProvider";
 import { bucketLeadsByStage, type IBoardCard } from "@/features/funnels/engine/boardBuckets";
 import { resolveColumnStats } from "@/features/funnels/engine/columnStats";
 import { resolveTriageMode } from "@/features/funnels/engine/triageMode";
 import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
+import { useMoveLeadStage } from "../../hooks/useMoveLeadStage";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 import { BoardCard } from "./BoardCard";
 import { boardKeyboardCoordinates } from "./boardKeyboardCoordinates";
@@ -86,8 +83,6 @@ export function LeadsKanban({
   entryThreshold,
   onTriageInList,
 }: ILeadsKanbanProps) {
-  const provider = useLeadFunnelsProvider();
-  const queryClient = useQueryClient();
   const [dragging, setDragging] = useState<IBoardCard | null>(null);
 
   const buckets = useMemo(
@@ -157,40 +152,19 @@ export function LeadsKanban({
     useSensor(KeyboardSensor, { coordinateGetter: boardKeyboardCoordinates }),
   );
 
-  /** One move, whether it came from the pointer, the keyboard or the menu. */
+  /**
+   * One move, whether it came from the pointer, the keyboard or the menu — and
+   * the same one the list's triage actions run, so the two cannot drift.
+   */
+  const moveStage = useMoveLeadStage({
+    funnelId,
+    onRequestClose,
+    onMoved: onLeadMoved,
+  });
   const move = useCallback(
-    async (card: IBoardCard, target: ILeadFunnelStage) => {
-      if (card.entry.stageId === target.id) return;
-
-      // No longer compares against CLOSING_STAGE_ID, a constant in the code:
-      // the stage's own `kind` carries the meaning, and every funnel has one.
-      if (target.kind === "ganho" || target.kind === "perda") {
-        onRequestClose(card.lead);
-        return;
-      }
-
-      try {
-        // moveEntry, not leads.update: with N:N the board alters ONLY this
-        // funnel's participation. The lead's other funnels are untouched.
-        await provider.moveEntry(card.entry.id, target.id);
-        auditLog({
-          action: "lead_funnel_entry.stage_changed",
-          resource: "lead",
-          resourceId: card.lead.id,
-          before: { stageId: card.entry.stageId },
-          after: { stageId: target.id },
-        });
-        toast.success(LEADS_STRINGS.toasts.moved(target.name));
-        onLeadMoved(card.lead, target);
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["lead-funnel-entries", funnelId] }),
-          queryClient.invalidateQueries({ queryKey: ["lead-funnel-board-summary", funnelId] }),
-        ]);
-      } catch {
-        toast.error(LEADS_STRINGS.toasts.moveError);
-      }
-    },
-    [provider, queryClient, funnelId, onLeadMoved, onRequestClose],
+    (card: IBoardCard, target: ILeadFunnelStage) =>
+      moveStage({ lead: card.lead, entry: card.entry, target }),
+    [moveStage],
   );
 
   const announcements: Announcements = useMemo(

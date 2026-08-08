@@ -4,6 +4,7 @@ import { useQueries, useQueryClient } from "@tanstack/react-query";
 import type { ID, ILead, ILeadFunnelStage, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
@@ -31,6 +32,7 @@ import { useLeadsUrlState, type LeadsView } from "../hooks/useLeadsUrlState";
 import { useLeadsList } from "../hooks/useLeadsList";
 import { useLeadSelection } from "../hooks/useLeadSelection";
 import { useBulkLeadActions } from "../hooks/useBulkLeadActions";
+import { useMoveLeadStage } from "../hooks/useMoveLeadStage";
 import { BulkActionBar } from "../components/BulkActionBar";
 import { usePipelineSettings } from "../hooks/usePipelineSettings";
 import { hasAnyFilter } from "../utils/listFilters";
@@ -227,6 +229,47 @@ export function LeadsPage() {
   const selection = useLeadSelection(visibleIds);
   const bulk = useBulkLeadActions(() => selection.clear());
   const canBulk = usePermission("lead", "edit");
+
+  // Triage mode pins the row decisions open. Off by default — the list is also
+  // where people just read — and turned on for them when the band sends them
+  // here, which is precisely the trip that exists to decide things.
+  const [triageMode, setTriageMode] = useState(false);
+
+  const stagesById = useMemo(() => {
+    const map = new Map<ID, ILeadFunnelStage>();
+    for (const s of board.stages) map.set(s.id, s);
+    return map;
+  }, [board.stages]);
+
+  const moveStage = useMoveLeadStage({
+    funnelId: scopedFunnelId ?? "",
+    onRequestClose: handleRequestClose,
+    onMoved: invalidateLeads,
+  });
+
+  const rowActions = useMemo(
+    () =>
+      canBulk
+        ? {
+            sellers,
+            // The consolidated view has no shared stage axis, so moving from a
+            // row there has no destination list to offer.
+            stages: scopedFunnelId ? board.stages : [],
+            onAssign: (lead: ILead, sellerId: ID, sellerName: string) =>
+              void bulk.assignSeller([lead.id], sellerId, sellerName),
+            onMove: (lead: ILead, stageId: ID) => {
+              const entry = board.entriesByLead.get(lead.id);
+              const target = stagesById.get(stageId);
+              if (!entry || !target) return;
+              void moveStage({ lead, entry, target });
+            },
+            // Losing a lead goes through the modal that demands a reason — the
+            // reason is what turns the loss into data.
+            onDiscard: (lead: ILead) => setLostTarget(lead),
+          }
+        : undefined,
+    [canBulk, sellers, scopedFunnelId, board.stages, board.entriesByLead, stagesById, bulk, moveStage],
+  );
   // The stage a lost lead lands on, mirroring MarkAsLostModal.
   const lostStage = stages.find((s) => /perdid/i.test(s.name)) ?? stages[stages.length - 1];
 
@@ -320,9 +363,11 @@ export function LeadsPage() {
             onFilterOverdue={() => url.patchFilters({ nextAction: "overdue" })}
             entryThreshold={activeFunnel?.entryAlertThreshold ?? 50}
             onTriageInList={(stageId) => {
-              // One navigation, not two: the List has to open already narrowed
-              // to that stage, or the user lands on nine hundred rows and the
-              // "triar em lista" promise is broken on arrival.
+              // The List has to open already narrowed to that stage, or the
+              // user lands on nine hundred rows and the "triar em lista"
+              // promise is broken on arrival — and already in triage mode,
+              // because deciding is the entire reason for the trip.
+              setTriageMode(true);
               url.setView("list");
               url.patchFilters({ stageIds: [stageId] });
             }}
@@ -336,6 +381,29 @@ export function LeadsPage() {
           />
         ) : (
           <>
+          <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2 text-xs text-muted-foreground">
+            <span>
+              <b className="font-semibold text-foreground">
+                {LEADS_STRINGS.list.triage.summary(visibleLeads.length)}
+              </b>
+              {sort.orderBy === "nextActionAt" && ` · ${LEADS_STRINGS.list.triage.sortedByOverdue}`}
+            </span>
+            {canBulk && (
+              <Button
+                variant="outline"
+                size="sm"
+                aria-pressed={triageMode}
+                onClick={() => setTriageMode((v) => !v)}
+                className={cn(
+                  "ml-auto h-8 gap-1.5 text-xs",
+                  triageMode && "border-primary/40 bg-primary/5 font-semibold text-primary",
+                )}
+              >
+                <Icon icon="mdi:format-list-checks" size={14} aria-hidden />
+                {LEADS_STRINGS.list.triage.toggle}
+              </Button>
+            )}
+          </div>
           <LeadsList
             leads={visibleLeads}
             sellersById={sellersById}
@@ -344,7 +412,11 @@ export function LeadsPage() {
             onSortChange={url.setSort}
             scrollRef={setScrollEl}
             funnelChipsByLead={showFunnelColumn ? funnelChipsByLead : undefined}
+            entriesByLead={scopedFunnelId ? board.entriesByLead : undefined}
+            stagesById={scopedFunnelId ? stagesById : undefined}
             selection={canBulk ? selection : undefined}
+            rowActions={rowActions}
+            triageMode={triageMode}
           />
           {canBulk && (
             <BulkActionBar
