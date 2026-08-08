@@ -4,6 +4,35 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.168.0] — Dial · 2026-08-08
+
+**O aviso de mensagem nova virou ajustável: dá para desligá-lo, esconder o texto da mensagem e escolher quanto tempo ele fica na tela — tudo em Configurações → Sons de notificações, junto do som do mesmo aviso. E os botões da Agenda que só mostravam um aviso de teste agora fazem o que prometem: o "…" de cada contato abre um menu de verdade, com iniciar conversa, ligar, ver ficha, etiquetar, transferir responsável e marcar opt-out.**
+
+### Added
+
+- **Aviso na tela, com três controles** — em Configurações → Sons de notificações, dentro de "Mensagem na minha conversa": ligar ou desligar o aviso, mostrar ou esconder o texto da mensagem, e o tempo que ele fica na tela (de 3 a 30 segundos). Vale para a loja inteira.
+- **Menu de ações do contato na Agenda** — o "…" de cada cartão abre abrir contato, ver ficha, vincular ou desvincular cliente, adicionar etiqueta, transferir responsável e marcar ou remover opt-out.
+
+### Changed
+
+- **Som e aviso na tela são independentes.** Desligar o som do aviso de mensagem não desliga o aviso visual, e vice-versa — quem trabalha em ambiente barulhento pode querer só o aviso; quem atende perto do cliente pode querer só o som.
+- **Esconder o texto da mensagem** deixa o aviso com o nome do cliente e "Nova mensagem". Serve para monitor que fica à vista de quem passa no balcão.
+- **"Iniciar conversa" na Agenda leva ao Atendimento com o telefone já buscado** — o caminho ignora os outros filtros e reconcilia o nono dígito, então a conversa aparece mesmo quando é de outro atendente.
+- **"Ligar" abre o discador e copia o número** — no computador sem discador instalado, o link de telefone não faz nada, e o número copiado resolve.
+- **Etiqueta virou texto livre** na Agenda, com as já usadas oferecidas como sugestão.
+- **A lista de responsáveis passou a ser a da loja**, não a dos contatos carregados na tela.
+
+### Fixed
+
+- **Adicionar etiqueta pela ficha do contato não fazia nada** — a confirmação lia a seleção da lista, que estava vazia quando a ação vinha de dentro da ficha. Não dava erro nem aviso: simplesmente não acontecia.
+- **A Agenda não conseguia criar a primeira etiqueta.** Os 5.411 contatos tinham a lista de etiquetas vazia, então o campo não tinha o que oferecer e o botão nunca habilitava.
+- **Só dava para filtrar e transferir entre os ~15 responsáveis visíveis na página**, em vez de todos os da loja.
+- **O "…" do cartão respondia com um aviso de depuração** ("more — ."), em vez de abrir o menu.
+
+### Notes
+
+- **Nenhuma configuração precisa ser feita para o aviso continuar funcionando.** Lojas que nunca abriram a tela seguem com o padrão: aviso ligado, texto visível, 8 segundos.
+
 ## [0.167.0] — Tender · 2026-08-07
 
 **Mandar a chave PIX para o cliente era digitar de novo, em toda conversa, um CNPJ de catorze dígitos. Um dígito errado e o dinheiro vai para a conta de outra pessoa, sem volta. Agora a chave fica cadastrada e vai por atalho — e vai do jeito que o cliente consegue usar: sozinha numa mensagem, para ele segurar o dedo e copiar limpo.**
