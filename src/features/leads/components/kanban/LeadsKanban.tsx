@@ -23,11 +23,14 @@ import type {
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { useLeadFunnelsProvider } from "@/providers/data/hooks/useLeadFunnelsProvider";
 import { bucketLeadsByStage, type IBoardCard } from "@/features/funnels/engine/boardBuckets";
+import { resolveColumnStats } from "@/features/funnels/engine/columnStats";
+import { resolveTriageMode } from "@/features/funnels/engine/triageMode";
 import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 import { BoardCard } from "./BoardCard";
 import { boardKeyboardCoordinates } from "./boardKeyboardCoordinates";
 import { KanbanColumn } from "./KanbanColumn";
+import { TriageBand } from "./TriageBand";
 
 const NO_CHIPS: ILeadFunnelChip[] = [];
 
@@ -103,6 +106,44 @@ export function LeadsKanban({
     for (const s of stages) map.set(s.id, s);
     return map;
   }, [stages]);
+
+  // Whether the entry stage has stopped being a column. Decided here rather
+  // than inside the column, because the answer changes what the BOARD renders:
+  // a band above it and one fewer column, not a different body in the same
+  // 288px. A funnel need not have an entry stage at all.
+  const entryStage = useMemo(() => columnStages.find((s) => s.kind === "entrada"), [columnStages]);
+
+  const triage = useMemo(() => {
+    if (!entryStage) return null;
+    const cards = buckets.get(entryStage.id) ?? [];
+    // The REAL total, from the server aggregate — the panel exists to say
+    // "903" precisely when the column itself has loaded forty.
+    const { count } = resolveColumnStats({
+      cards,
+      summary: summaryByStage.get(entryStage.id),
+      now: new Date(),
+    });
+    // The oldest among the LOADED cards: `getBoardSummary` does not carry it,
+    // and one extra query for one line of text is a bad trade.
+    let oldestEnteredAt: string | undefined;
+    for (const c of cards) {
+      if (!oldestEnteredAt || c.entry.enteredStageAt < oldestEnteredAt)
+        oldestEnteredAt = c.entry.enteredStageAt;
+    }
+    const view = resolveTriageMode({
+      kind: "entrada",
+      count,
+      threshold: entryThreshold,
+      oldestEnteredAt,
+      now: new Date(),
+    });
+    return view.active ? view : null;
+  }, [entryStage, buckets, summaryByStage, entryThreshold]);
+
+  const renderedColumns = useMemo(
+    () => (triage && entryStage ? columnStages.filter((s) => s.id !== entryStage.id) : columnStages),
+    [triage, entryStage, columnStages],
+  );
 
   const sensors = useSensors(
     // distance 6: `cursor-grab` is always on and a click competes with a drag.
@@ -211,26 +252,33 @@ export function LeadsKanban({
       onDragEnd={handleDragEnd}
       onDragCancel={() => setDragging(null)}
     >
-      <div className="flex h-full min-h-0 gap-3 overflow-x-auto p-3">
-        {columnStages.map((stage) => (
-          <KanbanColumn
-            key={stage.id}
-            stage={stage}
-            stages={stages}
-            cards={buckets.get(stage.id) ?? []}
-            summary={summaryByStage.get(stage.id)}
-            sellersById={sellersById}
-            showSeller={showSeller}
-            chipsByLead={chipsByLead}
-            funnelId={funnelId}
-            highlightLeadId={highlightLeadId}
-            onGoToFunnel={onGoToFunnel}
-            onFilterOverdue={onFilterOverdue}
-            onMove={handleMoveById}
-            entryThreshold={entryThreshold}
-            onTriageInList={onTriageInList}
+      <div className="flex h-full min-h-0 flex-col p-3">
+        {triage && entryStage && (
+          <TriageBand
+            stage={entryStage}
+            view={triage}
+            onTriageInList={() => onTriageInList(entryStage.id)}
           />
-        ))}
+        )}
+        <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto">
+          {renderedColumns.map((stage) => (
+            <KanbanColumn
+              key={stage.id}
+              stage={stage}
+              stages={stages}
+              cards={buckets.get(stage.id) ?? []}
+              summary={summaryByStage.get(stage.id)}
+              sellersById={sellersById}
+              showSeller={showSeller}
+              chipsByLead={chipsByLead}
+              funnelId={funnelId}
+              highlightLeadId={highlightLeadId}
+              onGoToFunnel={onGoToFunnel}
+              onFilterOverdue={onFilterOverdue}
+              onMove={handleMoveById}
+            />
+          ))}
+        </div>
       </div>
 
       {/* A floating copy at 1.02 with a shadow. The original stays where it is,

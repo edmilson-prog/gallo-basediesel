@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useDroppable } from "@dnd-kit/core";
 import { Button } from "@/components/ui/button";
@@ -9,15 +9,14 @@ import type { IBoardCard } from "@/features/funnels/engine/boardBuckets";
 import { resolveColumnStats } from "@/features/funnels/engine/columnStats";
 import { defaultSortForKind, sortBoardCards } from "@/features/funnels/engine/boardSort";
 import { otherFunnelsFor } from "@/features/funnels/engine/otherFunnels";
-import { resolveTriageMode } from "@/features/funnels/engine/triageMode";
 import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
 import { useColumnPreferences } from "../../hooks/useColumnPreferences";
+import { getNextActionInfo } from "../../utils/leadDisplay";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 import { BoardCard } from "./BoardCard";
 import { CollapsedColumn } from "./CollapsedColumn";
 import { ColumnHeader } from "./ColumnHeader";
 import { ColumnMenu } from "./ColumnMenu";
-import { TriagePanel } from "./TriagePanel";
 import { OtherFunnelsBadge } from "./OtherFunnelsBadge";
 
 /** 40 cards, then "carregar mais" — see the note on the `visible` state. */
@@ -43,10 +42,6 @@ export interface IKanbanColumnProps {
   onGoToFunnel: (funnelId: ID, leadId: ID) => void;
   onFilterOverdue: () => void;
   onMove: (leadId: ID, stageId: ID) => void;
-  /** `lead_funnels.entry_alert_threshold` of the open funnel. */
-  entryThreshold: number;
-  /** Opens the List filtered by this stage — the way out of the warehouse. */
-  onTriageInList: (stageId: ID) => void;
 }
 
 export function KanbanColumn({
@@ -62,8 +57,6 @@ export function KanbanColumn({
   onGoToFunnel,
   onFilterOverdue,
   onMove,
-  entryThreshold,
-  onTriageInList,
 }: IKanbanColumnProps) {
   const navigate = useNavigate();
   const { sortByStage, collapsedByStage, setSort, toggleCollapsed } = useColumnPreferences();
@@ -77,8 +70,38 @@ export function KanbanColumn({
   );
   const count = stats.count;
 
-  const mode = sortByStage[stage.id] ?? defaultSortForKind(stage.kind);
-  const sorted = useMemo(() => sortBoardCards(cards, mode, new Date()), [cards, mode]);
+  // An explicit choice from the ⋮ menu turns the overdue grouping OFF. Asking
+  // for "maior valor" and getting late-first anyway is the column overruling
+  // the person; with no choice made, grouping is what the default should do.
+  const chosenMode = sortByStage[stage.id];
+  const mode = chosenMode ?? defaultSortForKind(stage.kind);
+  const groupOverdue = chosenMode === undefined;
+
+  const sorted = useMemo(() => {
+    const now = new Date();
+    const base = sortBoardCards(cards, mode, now);
+    if (!groupOverdue) return base;
+    // Late first, the chosen order preserved INSIDE each group. When almost
+    // every card is late, red stops alarming and starts ordering — and the
+    // divider above them is a filter, so the column can also stop showing the
+    // rest entirely.
+    const late: IBoardCard[] = [];
+    const rest: IBoardCard[] = [];
+    for (const card of base) (isOverdue(card, now) ? late : rest).push(card);
+    return [...late, ...rest];
+  }, [cards, mode, groupOverdue]);
+
+  /** Where the "Em dia" divider goes — and how many the red one counts. */
+  const lateCount = useMemo(() => {
+    if (!groupOverdue) return 0;
+    const now = new Date();
+    let n = 0;
+    for (const card of sorted) {
+      if (!isOverdue(card, now)) break;
+      n += 1;
+    }
+    return n;
+  }, [sorted, groupOverdue]);
 
   // Legitimately per-instance: each column owns its own window, and no sibling
   // needs to see it. Virtualisation was weighed and dropped — it fights the
@@ -102,28 +125,6 @@ export function KanbanColumn({
   }, [highlightIndex, visible]);
 
   const shown = useMemo(() => sorted.slice(0, visible), [sorted, visible]);
-
-  // The oldest among the LOADED cards. On the entry stage the default sort is
-  // oldest-first, so the loaded window starts at the true oldest — and this is
-  // the only stage where the panel shows the age at all. `getBoardSummary`
-  // does not carry it, and one extra query for one line of text is a bad trade.
-  const oldestEnteredAt = useMemo(() => {
-    let oldest: string | undefined;
-    for (const c of cards) {
-      if (!oldest || c.entry.enteredStageAt < oldest) oldest = c.entry.enteredStageAt;
-    }
-    return oldest;
-  }, [cards]);
-
-  const triage = resolveTriageMode({
-    kind: stage.kind,
-    // The REAL total of the stage, not the loaded page: the panel exists to say
-    // "903" precisely when the column itself is showing forty.
-    count: stats.count,
-    threshold: entryThreshold,
-    oldestEnteredAt,
-    now: new Date(),
-  });
 
   if (collapsedByStage[stage.id]) {
     return (
@@ -159,15 +160,6 @@ export function KanbanColumn({
           />
         }
       />
-      {triage.active ? (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <TriagePanel
-            view={triage}
-            isOver={isOver}
-            onTriageInList={() => onTriageInList(stage.id)}
-          />
-        </div>
-      ) : (
       <div className="flex-1 space-y-2 overflow-y-auto p-2">
         {sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 px-3 py-6 text-center text-[11px] text-muted-foreground">
@@ -176,27 +168,46 @@ export function KanbanColumn({
           </div>
         ) : (
           <>
-            {shown.map((boardCard) => (
-              <BoardCard
-                key={boardCard.lead.id}
-                card={boardCard}
-                stage={stage}
-                stages={stages}
-                seller={
-                  boardCard.lead.sellerId ? sellersById.get(boardCard.lead.sellerId) : undefined
-                }
-                showSeller={showSeller}
-                chips={chipsByLead.get(boardCard.lead.id) ?? NO_CHIPS}
-                highlighted={boardCard.lead.id === highlightLeadId}
-                indicator={
-                  <OtherFunnelsBadge
-                    others={otherFunnelsFor(chipsByLead.get(boardCard.lead.id), funnelId)}
-                    onGo={(target) => onGoToFunnel(target, boardCard.lead.id)}
-                  />
-                }
-                onOpen={(id) => void navigate({ to: "/app/leads/$id", params: { id } })}
-                onMove={onMove}
-              />
+            {shown.map((boardCard, index) => (
+              <Fragment key={boardCard.lead.id}>
+                {index === 0 && lateCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={onFilterOverdue}
+                    title={LEADS_STRINGS.kanban.overdueHint}
+                    className="flex w-full items-center gap-1.5 px-0.5 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-severity-critical focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Icon icon="mdi:calendar-alert" size={12} aria-hidden />
+                    {LEADS_STRINGS.kanban.overdueGroup(lateCount)}
+                    <span aria-hidden className="h-px flex-1 bg-severity-critical/25" />
+                  </button>
+                )}
+                {index === lateCount && lateCount > 0 && (
+                  <p className="flex items-center gap-1.5 px-0.5 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {LEADS_STRINGS.kanban.onTimeGroup}
+                    <span aria-hidden className="h-px flex-1 bg-border" />
+                  </p>
+                )}
+                <BoardCard
+                  card={boardCard}
+                  stage={stage}
+                  stages={stages}
+                  seller={
+                    boardCard.lead.sellerId ? sellersById.get(boardCard.lead.sellerId) : undefined
+                  }
+                  showSeller={showSeller}
+                  chips={chipsByLead.get(boardCard.lead.id) ?? NO_CHIPS}
+                  highlighted={boardCard.lead.id === highlightLeadId}
+                  indicator={
+                    <OtherFunnelsBadge
+                      others={otherFunnelsFor(chipsByLead.get(boardCard.lead.id), funnelId)}
+                      onGo={(target) => onGoToFunnel(target, boardCard.lead.id)}
+                    />
+                  }
+                  onOpen={(id) => void navigate({ to: "/app/leads/$id", params: { id } })}
+                  onMove={onMove}
+                />
+              </Fragment>
             ))}
             {sorted.length > visible && (
               <Button
@@ -214,7 +225,18 @@ export function KanbanColumn({
           </>
         )}
       </div>
-      )}
     </div>
   );
+}
+
+/**
+ * The card's own definition of late, not the header's.
+ *
+ * `getBoardSummary` counts `next_action_at < now`, which flips a card at
+ * midday; the card paints red from `getNextActionInfo`, which compares whole
+ * days. Grouping by the server's rule would put cards with no red token under
+ * a red divider, so this follows what the reader can actually see.
+ */
+function isOverdue(card: IBoardCard, now: Date): boolean {
+  return getNextActionInfo(card.lead.nextActionAt, now).urgency === "overdue";
 }
