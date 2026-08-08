@@ -367,6 +367,8 @@ export const LEADS_STRINGS = {
       },
       composerPlaceholder: "Escrever uma nota interna…",
       composerAction: "Nota",
+      /** Título de um item de nota no fio (singular do filtro "Notas"). */
+      noteTitle: "Nota",
       noteSaved: "Nota registrada.",
       empty: "Nada registrado neste filtro.",
       by: (who: string) => `por ${who}`,

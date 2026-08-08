@@ -39,7 +39,7 @@ export function FicheFunnelsBlock({
     expanded,
   });
   const { moveStage, addToFunnel, removeFrom, pendingEntryId } = useEntryMutations({
-    conversationId,
+    entriesQueryKey: ["lead-funnel-entries-via-conversation", conversationId],
     storeId,
   });
 
