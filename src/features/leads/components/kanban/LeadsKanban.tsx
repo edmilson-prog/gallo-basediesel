@@ -33,8 +33,18 @@ const NO_CHIPS: ILeadFunnelChip[] = [];
 
 export interface ILeadsKanbanProps {
   leads: ILead[];
-  /** The active funnel's stages — never the store's legacy pipeline. */
+  /**
+   * The active funnel's stages — never the store's legacy pipeline. ALL of
+   * them, terminal ones included: they are move targets and drop targets even
+   * though they no longer own a column.
+   */
   stages: ILeadFunnelStage[];
+  /**
+   * The subset that actually gets a column. Convertido and Perdido are read on
+   * the readout strip above the board instead: they are outcomes, not stages of
+   * work, and as columns they took a third of the width for leads nobody drags.
+   */
+  columnStages: ILeadFunnelStage[];
   entriesByLead: Map<ID, ILeadFunnelEntry>;
   summaryByStage: Map<ID, IFunnelBoardSummary>;
   funnelId: ID;
@@ -58,6 +68,7 @@ export interface ILeadsKanbanProps {
 export function LeadsKanban({
   leads,
   stages,
+  columnStages,
   entriesByLead,
   summaryByStage,
   funnelId,
@@ -201,7 +212,7 @@ export function LeadsKanban({
       onDragCancel={() => setDragging(null)}
     >
       <div className="flex h-full min-h-0 gap-3 overflow-x-auto p-3">
-        {stages.map((stage) => (
+        {columnStages.map((stage) => (
           <KanbanColumn
             key={stage.id}
             stage={stage}

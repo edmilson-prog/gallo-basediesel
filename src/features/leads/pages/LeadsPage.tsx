@@ -16,6 +16,9 @@ import { useLeadFunnelChips } from "@/features/funnels/hooks/useLeadFunnelChips"
 import { useFunnelBoard } from "@/features/funnels/hooks/useFunnelBoard";
 import { NewFunnelModal } from "@/features/funnels/components/NewFunnelModal";
 import { ALL_FUNNELS } from "@/features/funnels/engine/resolveInitialFunnel";
+import { resolveFunnelReadout } from "@/features/funnels/engine/funnelReadout";
+import { isClosingKind } from "@/features/funnels/engine/stageKind";
+import { FunnelReadout } from "../components/FunnelReadout";
 import { LeadsHeader } from "../components/LeadsHeader";
 import { LeadsFiltersBar } from "../components/LeadsFiltersBar";
 import { LeadsKanban } from "../components/kanban/LeadsKanban";
@@ -179,6 +182,46 @@ export function LeadsPage() {
     return board.stages.filter((s) => keep.has(s.id));
   }, [board.stages, funnelStageFilter]);
 
+  // Convertido and Perdido stop being columns. They are outcomes, not stages of
+  // work — nobody drags a card into them to decide something — and as columns
+  // they were spending a third of the board's width on leads nobody touches.
+  // They still exist as move targets: the card's "mover para…" menu is fed the
+  // FULL stage list, so closing a lead from the board keeps working.
+  const boardColumns = useMemo(
+    () => visibleStages.filter((s) => !isClosingKind(s.kind)),
+    [visibleStages],
+  );
+
+  const readout = useMemo(
+    () => resolveFunnelReadout({ stages: board.stages, summaryByStage: board.summaryByStage }),
+    [board.stages, board.summaryByStage],
+  );
+
+  /** A second click on the same segment clears it — no dead end at one stage. */
+  const toggleStageFilter = useCallback(
+    (stageId: ID) => {
+      const only = filters.stageIds.length === 1 && filters.stageIds[0] === stageId;
+      url.patchFilters({ stageIds: only ? [] : [stageId] });
+    },
+    [filters.stageIds, url],
+  );
+
+  // An outcome has no column to jump to, so it opens the list scoped to it —
+  // and lifts the exclusion that keeps closed leads out of the board, or the
+  // click would land on "nenhum lead encontrado".
+  const openOutcome = useCallback(
+    (stageId: ID) => {
+      const stage = board.stages.find((s) => s.id === stageId);
+      url.setView("list");
+      url.patchFilters({
+        stageIds: [stageId],
+        ...(stage?.kind === "perda" ? { includeLost: true } : {}),
+        ...(stage?.kind === "ganho" ? { includeConverted: true } : {}),
+      });
+    },
+    [board.stages, url],
+  );
+
   // Bulk actions live on the list, which is where triage happens.
   const visibleIds = useMemo(() => visibleLeads.map((l) => l.id), [visibleLeads]);
   const selection = useLeadSelection(visibleIds);
@@ -215,6 +258,16 @@ export function LeadsPage() {
 
       <FunnelNav slot="tabs" canManage={canManageFunnels} onCreate={openNewFunnel} />
 
+      {scopedFunnelId && (
+        <FunnelReadout
+          readout={readout}
+          activeStageIds={filters.stageIds}
+          onToggleStage={toggleStageFilter}
+          onOpenOutcome={openOutcome}
+          onFilterOverdue={() => url.patchFilters({ nextAction: "overdue" })}
+        />
+      )}
+
       <LeadsFiltersBar
         filters={filters}
         patch={(p) => url.patchFilters(p)}
@@ -240,14 +293,18 @@ export function LeadsPage() {
           </div>
         ) : list.isError ? (
           <ErrorState onRetry={list.refetch} />
-        ) : effectiveView === "kanban" && scopedFunnelId && visibleStages.length > 0 ? (
+        ) : effectiveView === "kanban" && scopedFunnelId && boardColumns.length > 0 ? (
           // The board renders even with no leads. A funnel is its stages before
           // it is its cards: a freshly created one would otherwise show
           // "nenhum lead encontrado" and hide the very columns the user needs
           // to see — and to drop the first lead into.
           <LeadsKanban
             leads={visibleLeads}
-            stages={visibleStages}
+            // Every stage, including the terminal ones: they feed the card's
+            // move menu and the drop resolution even though they no longer own
+            // a column. `columnStages` is what actually gets rendered.
+            stages={board.stages}
+            columnStages={boardColumns}
             entriesByLead={board.entriesByLead}
             summaryByStage={board.summaryByStage}
             funnelId={scopedFunnelId}
