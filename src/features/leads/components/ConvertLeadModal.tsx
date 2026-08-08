@@ -28,6 +28,7 @@ import { useMinhaReceita } from "@/features/customers/hooks/useMinhaReceita";
 import { usePipelineSettings } from "../hooks/usePipelineSettings";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { CLOSING_STAGE_ID } from "../utils/leadDisplay";
+import { LeadOpportunitiesNotice } from "./LeadOpportunitiesNotice";
 import { LEADS_STRINGS } from "../i18n/pt-BR";
 
 const COPY = LEADS_STRINGS.convertModal;
@@ -759,6 +760,13 @@ export function ConvertLeadModal({
             </>
           )}
         </div>
+
+        {/*
+          Outside the scrolling body: what converting leaves behind has to be
+          visible at the moment the button is pressed, not somewhere above the
+          fold of a wizard.
+        */}
+        {lead && <LeadOpportunitiesNotice leadId={lead.id} storeId={lead.storeId} />}
 
         <DialogFooter>
           <Button

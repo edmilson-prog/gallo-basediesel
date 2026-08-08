@@ -471,6 +471,22 @@ export const LEADS_STRINGS = {
     linkError: "Lead criado, mas não foi possível vinculá-lo à conversa.",
   },
   convertModal: {
+    /**
+     * Um lead em dois funis são duas oportunidades. A conversão grava
+     * `converted_to_customer_id` e o estágio legado — `convert_lead_mark` não
+     * mexe em `lead_funnel_entries` —, então as participações continuam onde
+     * estavam. Dizer isso na hora da decisão é mais honesto que deixar
+     * descobrir no quadro uma semana depois.
+     */
+    opportunities: {
+      body: (n: number) =>
+        n === 1
+          ? "Este lead tem 1 oportunidade aberta em funil:"
+          : `Este lead tem ${n} oportunidades abertas em funis:`,
+      hint: "Elas continuam abertas depois da conversão — feche ou remova cada uma para não inflar o forecast.",
+      noValue: "sem valor",
+      total: (value: string) => `Total em aberto: ${value}`,
+    },
     title: "Converter lead em cliente",
     description: "Confirme os dados para criar a ficha do cliente.",
     descriptionLink: "Selecione o cliente já cadastrado para vincular a este lead.",
