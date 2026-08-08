@@ -358,7 +358,7 @@ function DesignSystemPage() {
             {/* Tipografia */}
             <Section
               title="Tipografia"
-              description="Saira Condensed (display) · Inter (UI) · JetBrains Mono (códigos)"
+              description="Saira Condensed (display) · Barlow (UI) · JetBrains Mono (códigos)"
             >
               <Stack gap={4}>
                 <div>
@@ -371,7 +371,7 @@ function DesignSystemPage() {
                 </div>
                 <Separator />
                 <div>
-                  <p className="text-xs uppercase text-muted-foreground">Body · Inter</p>
+                  <p className="text-xs uppercase text-muted-foreground">Body · Barlow</p>
                   <p className="text-base">
                     A GALLO BASE DIESEL atende as principais marcas do mercado pesado, com peças
                     genuínas e equipe técnica especializada.
