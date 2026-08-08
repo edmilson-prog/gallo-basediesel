@@ -156,6 +156,7 @@ export type {
   ICarteiraTransfer,
   LeadTemperature,
   LeadOrigin,
+  LeadNextActionKind,
   CarteiraTransferType,
   CarteiraTransferStatus,
 } from "./lead";
