@@ -51,7 +51,12 @@ describe("roleMap", () => {
     expect(defaultRedirectForRole("Owner")).toBe("/app/inicio");
     expect(defaultRedirectForRole("Gestor")).toBe("/app/inicio");
     expect(defaultRedirectForRole("Financeiro")).toBe("/app/inicio");
-    expect(defaultRedirectForRole("Vendedor")).toBe("/app/atendimento");
+    // Vendedor tem painel pessoal em /app/inicio desde o PR do seller-dashboard;
+    // antes disso a rota renderizava um bloqueio para este papel, e o destino
+    // pós-login desviava para a Central.
+    expect(defaultRedirectForRole("Vendedor")).toBe("/app/inicio");
+    // SDR e VendedorExterno seguem na Central: /app/inicio renderiza o painel
+    // do gestor para eles, cujos dados são restritos a Owner/Gestor.
     expect(defaultRedirectForRole("SDR")).toBe("/app/atendimento");
     expect(defaultRedirectForRole("VendedorExterno")).toBe("/app/atendimento");
     expect(defaultRedirectForRole("Cliente")).toBe("/loja");
