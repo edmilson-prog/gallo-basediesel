@@ -92,7 +92,9 @@ export function SellerKpiRow({
       value: String(metrics.totals.totalConversations),
       delta:
         atendDelta == null ? null : `${atendDelta >= 0 ? "+" : ""}${atendDelta} ${S.kpiVsPeriod}`,
-      good: atendDelta == null ? null : atendDelta >= 0,
+      // `null` = neutral. An unchanged figure is neither good nor bad, so "+0"
+      // must not render in the success colour.
+      good: atendDelta == null || atendDelta === 0 ? null : atendDelta > 0,
     },
     {
       icon: "mdi:timer-outline",
@@ -113,7 +115,7 @@ export function SellerKpiRow({
       label: S.kpiConversion,
       value: formatPercent(metrics.totals.conversionRate),
       delta: convDeltaPts == null ? null : `${convDeltaPts >= 0 ? "+" : ""}${convDeltaPts} pts`,
-      good: convDeltaPts == null ? null : convDeltaPts >= 0,
+      good: convDeltaPts == null || convDeltaPts === 0 ? null : convDeltaPts > 0,
     },
   ];
 
@@ -122,7 +124,7 @@ export function SellerKpiRow({
     label: S.kpiSales,
     value: formatBRL(salesCurrent),
     delta: salesDeltaPct == null ? null : formatPercent(salesDeltaPct),
-    good: salesDeltaPct == null ? null : salesDeltaPct >= 0,
+    good: salesDeltaPct == null || salesDeltaPct === 0 ? null : salesDeltaPct > 0,
   };
 
   const items: KpiItem[] = [

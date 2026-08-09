@@ -22,8 +22,16 @@ export interface IUseSellerPeriodResult {
   now: Date;
 }
 
-/** Local (non-persisted) period selection for the seller dashboard. */
-export function useSellerPeriod(initial: SellerPeriodKey = "hoje"): IUseSellerPeriodResult {
+/**
+ * Local (non-persisted) period selection for the seller dashboard.
+ *
+ * Defaults to "7d", not "hoje": this is a home screen that has to be worth
+ * something at a glance, and "hoje" renders the whole page as zeros on a
+ * Sunday, a holiday, or simply before the day's first reply — while the
+ * seller has hundreds of conversations waiting. A 7-day window is always
+ * populated for an active seller, and "Hoje" stays one click away.
+ */
+export function useSellerPeriod(initial: SellerPeriodKey = "7d"): IUseSellerPeriodResult {
   const [period, setPeriod] = useState<SellerPeriodKey>(initial);
   const now = useTimeTick(TICK_MS);
 
