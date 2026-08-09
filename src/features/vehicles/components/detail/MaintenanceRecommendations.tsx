@@ -38,7 +38,7 @@ export function MaintenanceRecommendations({ vehicle }: IMaintenanceRecommendati
       </h2>
       {recommendations.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/20 px-4 py-6 text-center">
-          <Icon icon="mdi:check-circle-outline" size={20} className="text-emerald-500" />
+          <Icon icon="mdi:check-circle-outline" size={20} className="text-severity-success" />
           <p className="text-xs text-muted-foreground">{COPY.empty}</p>
         </div>
       ) : (
@@ -54,7 +54,7 @@ export function MaintenanceRecommendations({ vehicle }: IMaintenanceRecommendati
                   "rounded-md border bg-card px-4 py-3",
                   isOverdue
                     ? "border-destructive/30 bg-destructive/5"
-                    : "border-amber-500/30 bg-amber-500/5",
+                    : "border-severity-warning/30 bg-severity-warning/5",
                 )}
               >
                 <div className="flex items-start gap-2">
@@ -62,7 +62,7 @@ export function MaintenanceRecommendations({ vehicle }: IMaintenanceRecommendati
                     icon={isOverdue ? "mdi:alert-octagon" : "mdi:alert-circle-outline"}
                     size={18}
                     className={
-                      isOverdue ? "text-destructive" : "text-amber-600 dark:text-amber-300"
+                      isOverdue ? "text-destructive" : "text-severity-warning"
                     }
                   />
                   <div className="min-w-0 flex-1">

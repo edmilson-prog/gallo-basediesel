@@ -8,7 +8,8 @@ import { useWhatsAppAccountsProvider } from "@/providers/data";
  * Shared connection-status source for the shell (TopBar icon + global
  * disconnect banner). One TanStack Query — both consumers dedupe into the
  * same 60s refetch — reading the accounts list, which the webhook
- * (connection.update) and the settings-screen polling keep truthful.
+ * (connection.update / session.status) and the settings-screen polling keep
+ * truthful.
  *
  * Snooze model (design review 2026-06-11): muting the banner is PER ACCOUNT
  * for 30min in sessionStorage; a reconnection clears the mute, so the NEXT
@@ -79,6 +80,22 @@ export function deriveConnectionSignals(
   return { total, connectedCount, disconnected, alerting, snoozed };
 }
 
+/**
+ * `whatsappAccountsProvider.list()` excludes `provider: 'waha'` rows (their
+ * shape has no `providerConfig.baseUrl`/`instanceName`, which ~12 OTHER
+ * consumers of that generic list assume — see
+ * `supabaseWhatsAppAccountsProvider.list()`). WAHA accounts live only in
+ * `listWaha()`. Merging both here is what makes this shell-level signal (icon
+ * + banner) cover every engine, matching what the per-engine settings screens
+ * already do — without touching the shared `list()` the other consumers rely on.
+ */
+export function mergeConnectionAccounts(
+  familyAccounts: IWhatsAppAccount[],
+  wahaAccounts: IWhatsAppAccount[],
+): IWhatsAppAccount[] {
+  return [...familyAccounts, ...wahaAccounts];
+}
+
 export function useWhatsAppConnectionStatus() {
   const { currentStoreId } = useCurrentStore();
   const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
@@ -86,7 +103,13 @@ export function useWhatsAppConnectionStatus() {
 
   const { data } = useQuery({
     queryKey: ["shell", "whatsapp-connection-status", storeId],
-    queryFn: () => provider.list({ storeId }),
+    queryFn: async () => {
+      const [familyAccounts, wahaAccounts] = await Promise.all([
+        provider.list({ storeId }),
+        provider.listWaha({ storeId }),
+      ]);
+      return mergeConnectionAccounts(familyAccounts, wahaAccounts);
+    },
     refetchInterval: REFRESH_INTERVAL_MS,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,

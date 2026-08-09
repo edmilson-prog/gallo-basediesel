@@ -63,10 +63,21 @@ import {
   useQuickReplies,
   type SchedulingTab,
 } from "@/features/quick-send";
+import {
+  ComposerStagedPix,
+  PIX_STRINGS,
+  PIX_TYPE_ICON,
+  PIX_TYPE_LABEL,
+  toDisplayPixKey,
+  usePixKeys,
+  useSendPix,
+  type IPixSendOptions,
+} from "@/features/pix";
 import { parseSlash } from "@/features/quick-send/engine/slashParser";
 import { filterAssets } from "@/features/quick-send/engine/assetFiltering";
 import {
   isKnownSlashAssetCommand,
+  matchPixKeysByCommand,
   matchQuickRepliesByCommand,
   resolveSlashCommandCategory,
 } from "@/features/quick-send/engine/slashCommand";
@@ -75,8 +86,14 @@ import {
   hasUnresolved,
 } from "@/features/quick-send/engine/placeholderResolver";
 import { useAssetLibrary } from "@/features/quick-send/hooks/useAssetLibrary";
-import type { IAssetLibraryItem, IPart } from "@/shared/types";
-import { DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import type { IAssetLibraryItem, IPart, IPixKey } from "@/shared/types";
+import {
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from "@/components/ui/dropdown-menu";
 import { QUICK_SEND_STRINGS } from "@/features/quick-send/i18n/pt-BR";
 import { PART_LOOKUP_STRINGS } from "@/features/part-lookup";
 
@@ -251,10 +268,17 @@ export function MessageInput(props: IMessageInputProps) {
   const { sendAsset } = useSendAsset(conversation, whatsappAccount);
   const { sendProductCard } = useSendProductCard(conversation, whatsappAccount);
   const quickReplies = useQuickReplies();
+  const pixKeys = usePixKeys();
+  const { sendPix, isSending: pixSending } = useSendPix(conversation, whatsappAccount);
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [productSearchOpen, setProductSearchOpen] = useState(false);
   const [stagedAsset, setStagedAsset] = useState<IAssetLibraryItem | null>(null);
+  // --- PIX shortcut (staged, never one-click: money in the wrong account is
+  // this feature's worst possible failure, so the key is always confirmed).
+  // Only WHICH key is staged lives here; ComposerStagedPix owns the context
+  // text and the two toggles so they survive a failed send. ---
+  const [stagedPixKey, setStagedPixKey] = useState<IPixKey | null>(null);
   const [stagedContext, setStagedContext] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
   // Caret position tracked in STATE (not read from the ref during render) so the
@@ -311,8 +335,16 @@ export function MessageInput(props: IMessageInputProps) {
   const slashReplies = slash.active
     ? matchQuickRepliesByCommand(quickReplies.replies, slash.command).slice(0, 5)
     : [];
-  const slashTotal = slashAssets.length + slashReplies.length;
+  // `/pix` surfaces the store's active keys; a key without its own shortcut is
+  // still reachable, since the attendant picks in the staged bar.
+  const slashPixKeys = slash.active
+    ? matchPixKeysByCommand(pixKeys.activeKeys, slash.command).slice(0, 5)
+    : [];
+  const slashTotal = slashAssets.length + slashReplies.length + slashPixKeys.length;
   const slashOpen = slash.active && slashTotal > 0;
+  // Non-null only when the store has exactly one active key — that is the case
+  // where the attach menu skips the picker and stages it directly.
+  const soleKey = pixKeys.activeKeys.length === 1 ? pixKeys.activeKeys[0] : null;
 
   // --- Snippet gaps (double send-lock) ---
   // RF-011: {{nome}} resolves from the conversation's contact; {{peca}}/{{prazo}}
@@ -429,6 +461,33 @@ export function MessageInput(props: IMessageInputProps) {
   const stageAsset = (item: IAssetLibraryItem) => {
     setStagedAsset(item);
     setStagedContext("");
+  };
+
+  /**
+   * Stages a PIX key for confirmation. Every entry point lands here — there is
+   * deliberately no path that dispatches on a single click, because sending
+   * money to the wrong account is this feature's worst possible failure.
+   * The bar owns the context text and the two toggles (it seeds them from the
+   * key's own defaults), so the composer only tracks WHICH key is staged.
+   */
+  const stagePixKey = (key: IPixKey) => {
+    setStagedAsset(null); // one staged bar at a time
+    setStagedPixKey(key);
+  };
+
+  const handleSendPix = async (opts: IPixSendOptions) => {
+    if (!stagedPixKey) return;
+    if (!canSendFreeText) {
+      toast.info(CONVERSATION_STRINGS.windowDisabledHint);
+      setTemplateOpen(true);
+      return;
+    }
+    // `false` means nothing reached the thread: leave the bar mounted so its
+    // internal context survives and the attendant retries without retyping.
+    const delivered = await sendPix(stagedPixKey, opts);
+    if (!delivered) return;
+    setStagedPixKey(null);
+    onSent?.();
   };
 
   const handleStagedSend = async () => {
@@ -649,6 +708,12 @@ export function MessageInput(props: IMessageInputProps) {
     stageAsset(item);
   };
 
+  const pickSlashPixKey = (key: IPixKey) => {
+    // Same contract as pickSlashAsset: drop the slash token, then stage.
+    setValue("");
+    stagePixKey(key);
+  };
+
   const handleSend = async () => {
     const text = value.trim();
     if (!text) return;
@@ -748,11 +813,21 @@ export function MessageInput(props: IMessageInputProps) {
       }
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        if (slashIndex < slashAssets.length) {
-          pickSlashAsset(slashAssets[slashIndex]);
-        } else {
-          insertSnippetBody(slashReplies[slashIndex - slashAssets.length].body);
+        // The menu renders assets, then replies, then PIX keys, and activeIndex
+        // runs continuously across all three. Resolve by section, guarding each
+        // lookup — the index can outrun a list that shrank between renders.
+        const asset = slashAssets[slashIndex];
+        if (asset) {
+          pickSlashAsset(asset);
+          return;
         }
+        const reply = slashReplies[slashIndex - slashAssets.length];
+        if (reply) {
+          insertSnippetBody(reply.body);
+          return;
+        }
+        const pixKey = slashPixKeys[slashIndex - slashAssets.length - slashReplies.length];
+        if (pixKey) pickSlashPixKey(pixKey);
         return;
       }
     }
@@ -825,6 +900,16 @@ export function MessageInput(props: IMessageInputProps) {
         </div>
       )}
 
+      {stagedPixKey && (
+        <ComposerStagedPix
+          pixKey={stagedPixKey}
+          keyCount={pixKeys.activeKeys.length}
+          isSending={pixSending}
+          onSend={(opts) => void handleSendPix(opts)}
+          onSwapKey={() => setStagedPixKey(null)}
+          onCancel={() => setStagedPixKey(null)}
+        />
+      )}
       {stagedAsset && (
         <ComposerStagedAsset
           item={stagedAsset}
@@ -936,6 +1021,63 @@ export function MessageInput(props: IMessageInputProps) {
                     <Icon icon="mdi:magnify-scan" size={14} className="mr-2" />
                     {PART_LOOKUP_STRINGS.panelTitle}
                   </DropdownMenuItem>
+                )}
+
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-[11px] uppercase text-muted-foreground">
+                  {PIX_STRINGS.composer.menuSection}
+                </DropdownMenuLabel>
+                {pixKeys.activeKeys.length === 0 ? (
+                  <DropdownMenuItem disabled title={PIX_STRINGS.composer.noKeys}>
+                    <Icon icon="mdi:qrcode" size={14} className="mr-2" aria-hidden="true" />
+                    {PIX_STRINGS.composer.menuItem}
+                  </DropdownMenuItem>
+                ) : soleKey ? (
+                  // One key: skip the choice entirely rather than make the
+                  // attendant pick from a list of one.
+                  <DropdownMenuItem onSelect={() => stagePixKey(soleKey)}>
+                    <Icon icon="mdi:qrcode" size={14} className="mr-2" aria-hidden="true" />
+                    {PIX_STRINGS.composer.menuItem}
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      {PIX_STRINGS.composer.menuHint}
+                    </span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Icon icon="mdi:qrcode" size={14} className="mr-2" aria-hidden="true" />
+                      {PIX_STRINGS.composer.menuItem}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-64">
+                      {pixKeys.activeKeys.map((k) => (
+                        <DropdownMenuItem
+                          key={k.id}
+                          onSelect={() => stagePixKey(k)}
+                          // The alias alone does not let someone decide blind —
+                          // and "blind" includes the attendant working fast.
+                          aria-label={`${PIX_STRINGS.composer.menuItem} ${k.alias}, ${
+                            PIX_TYPE_LABEL[k.keyType]
+                          }, ${toDisplayPixKey(k.keyType, k.keyValue)}`}
+                        >
+                          <Icon
+                            icon={PIX_TYPE_ICON[k.keyType]}
+                            size={14}
+                            className="mr-2"
+                            aria-hidden="true"
+                          />
+                          <span className="truncate">{k.alias}</span>
+                          {k.isDefault && (
+                            <Icon
+                              icon="mdi:star"
+                              size={11}
+                              className="ml-auto shrink-0 text-primary"
+                              aria-hidden="true"
+                            />
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
                 )}
 
                 <DropdownMenuSeparator />
@@ -1052,9 +1194,11 @@ export function MessageInput(props: IMessageInputProps) {
                   state={slash}
                   items={slashAssets}
                   replies={slashReplies}
+                  pixKeys={slashPixKeys}
                   activeIndex={slashIndex}
                   onPickAsset={pickSlashAsset}
                   onPickReply={(r) => insertSnippetBody(r.body)}
+                  onPickPixKey={pickSlashPixKey}
                   onClose={() => setValue(value + " ")}
                 />
               )}

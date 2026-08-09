@@ -15,8 +15,8 @@ export interface IStatCell {
 
 const TONE_CLASS: Record<StatTone, string> = {
   default: "text-foreground",
-  good: "text-emerald-600 dark:text-emerald-400",
-  warn: "text-amber-600 dark:text-amber-400",
+  good: "text-severity-success",
+  warn: "text-severity-warning",
   bad: "text-destructive",
 };
 

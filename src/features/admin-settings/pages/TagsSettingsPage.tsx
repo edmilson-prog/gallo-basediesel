@@ -298,7 +298,7 @@ export function TagsSettingsPage() {
                     const usage =
                       officialUsage.get(confirmRemove.label.toLocaleLowerCase("pt-BR")) ?? 0;
                     return usage > 0 ? (
-                      <span className="mt-2 block text-amber-600 dark:text-amber-400">
+                      <span className="mt-2 block text-severity-warning">
                         Atenção: {usage} cliente(s) ainda usam esta tag — ela continuará aplicada
                         mas passará a ser considerada rascunho.
                       </span>

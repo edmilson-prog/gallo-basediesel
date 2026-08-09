@@ -22,10 +22,9 @@ interface IBannerProps {
 }
 
 const TONE_STYLES: Record<IBannerProps["tone"], string> = {
-  positive:
-    "border-emerald-500/40 bg-emerald-50 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-100",
-  negative: "border-red-500/40 bg-red-50 text-red-900 dark:bg-red-500/10 dark:text-red-100",
-  neutral: "border-sky-500/40 bg-sky-50 text-sky-900 dark:bg-sky-500/10 dark:text-sky-100",
+  positive: "border-severity-success/40 bg-severity-success/10 text-severity-success",
+  negative: "border-severity-critical/40 bg-severity-critical/10 text-severity-critical",
+  neutral: "border-severity-info/40 bg-severity-info/10 text-severity-info",
 };
 
 function Banner({ icon, title, description, count, tone, onClick }: IBannerProps) {

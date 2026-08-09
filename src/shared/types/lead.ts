@@ -6,6 +6,16 @@ export type LeadTemperature = "frio" | "morno" | "quente";
 /** Origin channel of a lead. */
 export type LeadOrigin = "whatsapp" | "ecommerce" | "indicacao" | "google" | "outro" | "import";
 
+/**
+ * What the next agreed action actually IS, alongside the date it is due.
+ *
+ * A date on its own answers "when" and leaves "what" to whoever remembers the
+ * conversation — which is exactly the state the detail screen was in. Kept as a
+ * closed set rather than free text: the point is that the four ways out of a
+ * stalled lead are named and countable, not that anybody can write a sentence.
+ */
+export type LeadNextActionKind = "ligar" | "orcamento" | "retomar" | "visita";
+
 /** Pipeline stage of a lead. Stages are configurable per store (see IPlatformSettings.pipelineStages). */
 export interface ILeadStage {
   id: ID;
@@ -38,13 +48,28 @@ export interface ILead {
    * app — no editor writes it.
    */
   avatarUrl?: string;
+  /**
+   * @deprecated Snapshot of the single-pipeline era. The truth now lives in
+   * `lead_funnel_entries.stage_id`, one per funnel. Still written by legacy
+   * call sites; removed once phase 4 migrates them.
+   */
   stage: ILeadStage;
   temperature: LeadTemperature;
   origin: LeadOrigin;
-  /** Estimated commercial value of this opportunity. */
+  /**
+   * @deprecated Aggregate/legacy value. The per-funnel value lives in
+   * `ILeadFunnelEntry.estimatedValue` — a lead in two funnels is two distinct
+   * revenues, and reading this one per membership double-counts the forecast.
+   */
   estimatedValue?: Money;
   /** Date for the next agreed follow-up action. */
   nextActionAt?: ISO8601;
+  /**
+   * Which action was agreed, when one was. Optional independently of
+   * `nextActionAt`: rows written before the column existed carry a date and no
+   * kind, and the UI degrades to showing the deadline alone.
+   */
+  nextActionKind?: LeadNextActionKind;
   lossReason?: string;
   lossNotes?: string;
   convertedToCustomerId?: ID;

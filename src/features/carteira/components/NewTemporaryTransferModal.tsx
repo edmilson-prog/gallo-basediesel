@@ -39,6 +39,12 @@ export interface INewTemporaryTransferModalProps {
    */
   currentSellerId: ID | undefined;
   activeTransfers: ICarteiraTransfer[];
+  /**
+   * Pre-selects the titular when the modal is opened from a specific seller's
+   * row on the wallet board — the manager already said who is leaving by
+   * clicking there, so asking again would be busywork.
+   */
+  presetFromSellerId?: ID;
   onClose: () => void;
   onCreated?: (transfer: ICarteiraTransfer) => void;
 }
@@ -57,6 +63,7 @@ export function NewTemporaryTransferModal({
   storeId,
   currentSellerId,
   activeTransfers,
+  presetFromSellerId,
   onClose,
   onCreated,
 }: INewTemporaryTransferModalProps) {
@@ -81,7 +88,7 @@ export function NewTemporaryTransferModal({
 
   useEffect(() => {
     if (open) {
-      setFromSellerId("");
+      setFromSellerId(presetFromSellerId ?? "");
       setToSellerId("");
       setStartDate(today);
       setEndDate(tomorrow);
@@ -91,7 +98,7 @@ export function NewTemporaryTransferModal({
       setSelectedCustomerIds(new Set());
       setAllowConflict(false);
     }
-  }, [open, today, tomorrow]);
+  }, [open, today, tomorrow, presetFromSellerId]);
 
   const customersQuery = useSellerCustomers(fromSellerId || undefined, storeId);
   const sellerCustomers = useMemo(

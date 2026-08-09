@@ -104,11 +104,11 @@ export function PortfolioHealthWidget({ storeId, sellerId }: IPortfolioHealthWid
               </span>
             </div>
             <div className="flex items-center gap-3 text-[11px]">
-              <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400">
+              <span className="inline-flex items-center gap-1 text-severity-critical">
                 <Icon icon="mdi:trending-down" size={12} />
                 Churn {churn.toLocaleString("pt-BR")}
               </span>
-              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <span className="inline-flex items-center gap-1 text-severity-success">
                 <Icon icon="mdi:trending-up" size={12} />
                 Recup. {recovery.toLocaleString("pt-BR")}
               </span>

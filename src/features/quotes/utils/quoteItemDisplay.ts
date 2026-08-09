@@ -32,15 +32,15 @@ export function stockBadge(part: IPart): IStockBadge {
     return {
       tone: "low",
       label: `${part.stockAvailable} (baixo)`,
-      textClassName: "text-amber-600 dark:text-amber-400",
-      dotClassName: "bg-amber-500",
+      textClassName: "text-severity-warning",
+      dotClassName: "bg-severity-warning",
     };
   }
   return {
     tone: "ok",
     label: `${part.stockAvailable} em estoque`,
     textClassName: "text-muted-foreground",
-    dotClassName: "bg-emerald-500",
+    dotClassName: "bg-severity-success",
   };
 }
 

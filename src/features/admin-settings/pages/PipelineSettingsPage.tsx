@@ -1,7 +1,7 @@
+import { Link } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { useCurrentStore } from "@/features/multistore";
 import { SectionHeader } from "../components/SectionHeader";
@@ -30,19 +30,19 @@ export function PipelineSettingsPage() {
     <div className="space-y-6">
       <SectionHeader
         title="Pipeline de leads"
-        description="Estágios pelos quais um lead passa até virar cliente (PRD-017). A edição visual estará disponível na Fase 2."
+        description="Pipeline legado da loja. Continua alimentando os modais de conversão e de perda, o menu da conversa e o filtro de estágio na visão consolidada de Leads — por isso segue aqui. Para administrar os funis, use Funis."
         action={
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span tabIndex={0}>
-                <Button variant="outline" disabled>
-                  <Icon icon="mdi:pencil-outline" size={16} />
-                  Sugerir mudança
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>Edição visual disponível na Fase 2.</TooltipContent>
-          </Tooltip>
+          /* The old button promised an edition that never arrived — the "Fase 2"
+             it referred to belongs to PRD-017's own phasing, not to the
+             multi-funnel work, and it has been stalled for a long time. It is
+             replaced by a link to the screen that actually administers funnels,
+             rather than a disabled control that says "later" forever. */
+          <Button variant="outline" asChild>
+            <Link to="/app/configuracoes/atendimento/funis">
+              <Icon icon="mdi:filter-variant" size={16} />
+              Administrar funis
+            </Link>
+          </Button>
         }
       />
 

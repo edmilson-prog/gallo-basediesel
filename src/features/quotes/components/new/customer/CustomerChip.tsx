@@ -101,7 +101,7 @@ export function CustomerChip({
                 </span>
               )}
               {finance.overdueTitlesCount !== undefined && (
-                <span className="rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] text-rose-700 dark:text-rose-300">
+                <span className="rounded border border-severity-critical/30 bg-severity-critical/10 px-1.5 py-0.5 text-[10px] text-severity-critical">
                   <Icon icon="mdi:alert-circle-outline" size={11} className="mr-1 inline" />
                   {finance.overdueTitlesCount} título{finance.overdueTitlesCount > 1 ? "s" : ""}{" "}
                   vencido

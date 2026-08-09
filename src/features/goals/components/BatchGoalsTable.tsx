@@ -98,7 +98,7 @@ export function BatchGoalsTable({ ctl, monthIdx }: IBatchGoalsTableProps) {
                 </td>
                 <td className="p-2.5">
                   {conflict ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2 py-1 text-[11px] font-semibold text-amber-500">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-severity-warning/15 px-2 py-1 text-[11px] font-semibold text-severity-warning">
                       <Icon icon="mdi:alert-outline" size={12} />
                       {S.batchRowConflict(monthLabel)}
                     </span>

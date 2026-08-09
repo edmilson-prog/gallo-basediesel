@@ -121,7 +121,9 @@ export const ROLE_EDITOR_LABELS = {
   fieldBaseRole: "Papel base",
   fieldBaseRolePlaceholder: "Selecione o papel base",
   baseRoleHelp:
-    "O papel base define o teto de acesso real (RLS); a matriz de permissões apenas refina a navegação dentro desse teto.",
+    "O papel base define o teto de acesso real (RLS); a matriz de permissões apenas refina a navegação dentro desse teto. Só pode ser trocado enquanto ninguém usar o papel — depois de atribuído, ele fica gravado no acesso de cada pessoa.",
+  /** Shown on create: every custom role is global today (single-store production). */
+  scopeHelp: "O papel vale para todas as lojas.",
   fieldInitialPermissions: "Permissões iniciais",
   initialBlank: "Em branco",
   initialDuplicate: "Duplicar de…",

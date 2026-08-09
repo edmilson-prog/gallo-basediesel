@@ -4,6 +4,381 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.168.0] — Sightline · 2026-08-08
+
+**O quadro de leads mostrava seis colunas do mesmo tamanho e escondia a única coisa que interessa: de cada dez leads ativos, quase dez nunca saíram da entrada. Agora a tela diz isso na primeira linha, a entrada virou uma faixa larga com a saída em destaque, e a lista parou de só listar — dá para decidir sem sair dela. Do outro lado, a ficha do lead deixou de responder "que campos existem" e passou a responder "o que eu faço com este lead agora".**
+
+### Added
+
+- **Leitura do funil no topo do quadro** — uma barra proporcional com o tamanho real de cada etapa e, ao lado, a frase que faltava: quantos leads estão ativos, qual a fatia que nunca saiu da entrada, quantos estão de fato em trabalho e quantos estão atrasados. O número de atrasados é clicável e filtra o quadro.
+- **Convertido e Perdido viraram placar** — saíram do quadro e viraram dois blocos de leitura ao lado da barra. São desfechos, não etapas de trabalho: ninguém arrasta um card para lá para decidir alguma coisa, e como colunas ocupavam um terço da tela. Clicar em um deles abre a lista já filtrada.
+- **Faixa de triagem da entrada** — quando a entrada acumula, ela deixa de ser uma coluna estreita e vira uma faixa no alto do quadro, com há quanto tempo o lead mais antigo está parado e o botão de triar em lista em destaque. Continua aceitando cards arrastados de volta.
+- **Modo triagem na lista** — liga sozinho quando você chega pela faixa. Cada linha ganha as quatro decisões da triagem: atribuir vendedor, mover de etapa, abrir a conversa e marcar como perdido, sem abrir o lead.
+- **Bloco "Agora" na ficha do lead** — no lugar da linha apagada que dizia "Sem próxima ação", um bloco que mostra há quanto tempo o cliente escreveu sem resposta e oferece as quatro saídas em um clique: ligar agora, enviar orçamento, retomar contato ou agendar visita. Com uma ação marcada, ele vira contador e fica vermelho quando atrasa.
+- **A próxima ação agora guarda o que é, não só quando** — antes ficava registrada só a data, e o que tinha sido combinado dependia de quem lembrava da conversa.
+- **Os funis do lead na ficha** — cada funil em que o lead está vira uma linha com a trilha de etapas, e mover é clicar na etapa de destino. Cada um tem o seu próprio valor, editável ali mesmo, e o total soma os funis em vez de repetir um número só.
+- **Linha do tempo única** — conversas, notas e histórico deixaram de ser três abas separadas e viraram um fio só, filtrável, com o campo de nota no topo. Acima dele, a conversa real do WhatsApp: o que o cliente pediu, que antes não aparecia em lugar nenhum da ficha.
+- **Telefone com botões na ficha do lead** — copiar, abrir no WhatsApp e ligar. O WhatsApp abre a conversa que já existe no Atendimento em vez de começar outra do zero.
+- **Aviso na tela para mensagem recebida** (Configurações → Sons de notificação) — dá para ligar ou desligar, escolher se o texto da mensagem aparece e por quanto tempo o aviso fica na tela, de 3 a 30 segundos. É independente do som: a loja pode ficar com um sem o outro.
+
+### Changed
+
+- **Card do quadro parou de quebrar linha** — "Atrasada há 58 dias" ocupava duas linhas e dobrava a altura do card, em quase todos, porque quase todos estão atrasados. Virou `58d`. "Valor não informado" virou um traço. A sobra virou o tempo que o lead está parado naquela etapa.
+- **Vermelho agora ordena em vez de alarmar** — os atrasados sobem para o topo da coluna, sob um separador que diz quantos são e serve de filtro. Escolher uma ordenação no menu da coluna desliga o agrupamento.
+- **Filtros dizem o que está filtrando** — a pílula mostra o valor aplicado em vez de repetir o nome do filtro, o X limpa ali mesmo, e o "limpar" só aparece quando há algo para limpar.
+- **Lista de leads mais enxuta** — de onze para sete colunas. A temperatura virou o ponto colorido ao lado do nome, o telefone entrou na mesma célula, e a origem e a data de criação passaram para o texto que aparece ao passar o mouse.
+- **Etapa, valor e tempo do lead vêm do funil certo** — a lista mostrava um número só, herdado de quando existia um pipeline único. Um lead em dois funis tem duas etapas e dois valores, e agora é isso que aparece.
+- **Dados do lead editáveis no lugar** — acabou o botão "Editar" que trocava metade da tela por formulário e a barra de salvar no rodapé. Cada campo é clicado e alterado onde está. Campo vazio deixou de ser um traço e virou convite: "adicionar e-mail".
+- **Fonte do texto trocada para Barlow** — é a fonte da marca; o sistema vinha usando outra.
+
+### Fixed
+
+- **Agenda: ações que pareciam funcionar e não faziam nada** — o "…" do card abria um aviso de depuração com o código da ação. Agora é um menu de verdade, com abrir contato, vincular ou desvincular do cliente, adicionar etiqueta, transferir responsável e marcar opt-out.
+- **Agenda: adicionar etiqueta a partir do contato** — a ação lia a seleção da lista, então quando saía da ficha do próprio contato rodava sem ninguém selecionado e terminava em silêncio.
+- **Agenda: primeira etiqueta** — como nenhum dos 5.411 contatos tinha etiqueta, a lista de opções vinha vazia e o botão nunca habilitava: não havia como criar a primeira. Agora dá para escrever a etiqueta, com as já usadas oferecidas como sugestão.
+- **Agenda: filtrar e transferir por responsável** — só apareciam os responsáveis dos contatos carregados na tela. Agora vêm todos os vendedores ativos da loja.
+- **Agenda: "Iniciar conversa" e "Ligar"** — a conversa agora abre no Atendimento com o telefone na busca, e aparece mesmo quando pertence a outro atendente. O "Ligar" também copia o número, porque em computador sem aplicativo de telefone o clique não fazia nada.
+
+### Notes
+
+- **Converter um lead não encerra os funis dele.** Um lead convertido continua na etapa em que estava em cada funil, e por isso continua somando no previsto. A tela de conversão agora mostra essas oportunidades e avisa que elas seguem abertas, para você fechar ou tirar cada uma. Mudar isso automaticamente altera o que "converter" significa em todos os relatórios, então fica para uma decisão à parte.
+- **A conversa na ficha do lead é somente leitura.** Para responder, o botão leva ao Atendimento, que é onde ficam a janela de 24 horas, os modelos de mensagem e o histórico completo.
+
+## [0.167.0] — Tender · 2026-08-07
+
+**Mandar a chave PIX para o cliente era digitar de novo, em toda conversa, um CNPJ de catorze dígitos. Um dígito errado e o dinheiro vai para a conta de outra pessoa, sem volta. Agora a chave fica cadastrada e vai por atalho — e vai do jeito que o cliente consegue usar: sozinha numa mensagem, para ele segurar o dedo e copiar limpo.**
+
+### Added
+
+- **Chaves PIX** (Configurações, logo abaixo de Respostas rápidas) — cadastro das chaves da empresa. Dá para ter várias: o CNPJ da matriz, o da filial, um telefone, um e-mail ou uma chave aleatória. Cada uma com apelido, favorecido, cidade e uma mensagem padrão.
+- **Atalho na conversa** — o item **Chave PIX** no menu de anexo (o clipe) ou digitar `/pix` no campo de mensagem. Se a loja tem uma chave só, ele já vai direto; com mais de uma, abre a lista para escolher.
+- **Confirmação antes de enviar** — aparece uma barra acima do campo de texto com a chave à vista, onde dá para escrever uma mensagem e escolher o que mandar. **Nunca sai com um clique só** — dinheiro na conta errada é o pior erro possível aqui, então a chave sempre aparece antes.
+- **QR Code opcional** — gerado na hora, no padrão do Banco Central. Útil quando o cliente está no computador ou vai mostrar a tela para outra pessoa.
+- **A chave vai numa mensagem sozinha** — sem nome de atendente na frente, sem emoji, sem ponto final. É isso que faz o "segurar e copiar" do WhatsApp entregar a chave limpa, pronta para colar no aplicativo do banco.
+- **Prévia do que o cliente recebe** — na tela de cadastro, do lado direito, as duas mensagens exatamente como vão chegar, no mesmo tamanho de balão da conversa.
+- **Botão de copiar** na lista de chaves, para conferir ou colar em outro lugar sem abrir o cadastro.
+- **Chave padrão** — marque uma como padrão e ela aparece primeiro na hora de escolher.
+
+### Changed
+
+- **Chave desativada some do atendimento** — trocou de banco? desative em vez de excluir. Ela para de aparecer na conversa e o histórico do que já foi enviado continua intacto.
+
+### Security
+
+- **A chave é da empresa, não do vendedor** — todo mundo da loja vê e envia, mas só Owner e Gestor cadastram ou alteram. A regra vale no banco, não só na tela.
+- **Todo envio fica registrado** — quem enviou, qual chave e em qual conversa.
+- **Chave com acento é recusada no cadastro** — um e-mail como `joão@empresa.com` geraria um QR que alguns aplicativos de banco leem errado. O sistema recusa em vez de "corrigir" para `joao@`, que seria a chave de outra pessoa.
+
+### Notes
+
+- O texto do envio pode ser editado na hora, antes de mandar.
+- **SDR e Financeiro enviam PIX normalmente, mas não cadastram chave** — o cadastro é de Owner e Gestor.
+- Cobrança com valor já preenchido no QR não entra nesta versão: a chave vai sem valor e o cliente digita quanto vai pagar.
+
+## [0.166.0] — Rolodex · 2026-08-07
+
+**Os contatos da operação estavam em três lugares e em nenhum: uma linha só no cadastro do cliente, a lista de leads, e o WhatsApp de cada vendedor. A Agenda reúne tudo numa tela — 5.411 contatos hoje. Cada contato é uma pessoa ou um número, e a diferença que faltava: um mesmo cliente pode ter o comprador, o gerente de frota e o financeiro, cada um com seu telefone, sua etiqueta e seu responsável.**
+
+### Added
+
+- **Agenda** (menu Atendimento, entre Clientes e Leads) — o catálogo de contatos da operação. Abre com todos os 5.411, em cards ou em tabela.
+- **Contato solto** — número que já conversou com a gente e ainda não pertence a nenhum cliente. Aparece com borda tracejada e um botão **Vincular** no próprio card. Hoje são 3.432, quase todos vindos do histórico do WhatsApp.
+- **Várias pessoas no mesmo cliente** — o cadastro do cliente guardava um único nome de contato. Agora cada pessoa da empresa tem seu próprio registro, com cargo, telefone, e-mail, etiquetas e responsável.
+- **Busca que encontra do jeito que se digita** — nome, empresa, cargo, cidade, e-mail e telefone. O telefone casa com ou sem formatação, e a busca ignora acento: procurar "irai" acha "Iraí". Atalho `/` foca o campo de qualquer lugar da tela.
+- **Quatro visões rápidas** — Todos, Vinculados, Sem cliente e Opt-out, cada uma com sua contagem. Mais filtros por responsável, etiqueta, cidade/UF, origem e último contato.
+- **Ações em massa** — selecionar vários contatos para etiquetar, remover etiqueta, transferir responsável, exportar ou bloquear. Dá para estender a seleção a todos os contatos do filtro, não só aos da página.
+- **Ficha do contato** — painel lateral com o vínculo ao cliente, etiquetas, responsável, agendamento de retorno e as opções de LGPD.
+- **Opt-out por pessoa (LGPD)** — marcar um contato como opt-out bloqueia envio em massa e disparo automático para ele, sem afetar conversas que ele mesmo iniciar. A ação fica registrada na auditoria com autor e data, e o botão de abrir conversa fica desabilitado enquanto durar.
+- **Tabela densa** — para quem prefere lista: 11 colunas, ordenação por clique, colunas que podem ser escondidas pelo botão direito no cabeçalho e larguras que ficam salvas entre sessões.
+
+### Changed
+
+- **Clientes e Leads não mudaram** — a Agenda é uma tela nova que lê deles, sem alterar nada. Um contato criado a partir de um lead guarda de onde veio.
+
+### Security
+
+- **Contato só é vinculado a cliente que o vendedor já atende** — a regra vale no banco, não só na tela: não é possível pendurar um contato na carteira de outro vendedor. Contato solto continua livre para qualquer um registrar, que é o caminho normal de quem atende alguém de uma empresa que não é sua.
+
+### Notes
+
+- Contatos que vieram do histórico do WhatsApp e nunca tiveram nome no perfil aparecem com o número no lugar do nome e um `#` no avatar. São 1.451 — o dado é esse mesmo, e eles ganham nome conforme forem atendidos.
+- A triagem dos contatos sem cliente, a importação de CSV, a mesclagem de duplicados e o envio em massa entram nas próximas versões.
+## [0.165.0] — Chime · 2026-08-07
+
+**Mensagem que chega enquanto você está em outra conversa — ou em outra tela — agora avisa. Toca um som e aparece um aviso no canto com o nome do cliente e o que ele escreveu; clicar nele abre a conversa. O que você já está lendo não avisa mais: o som parou de tocar na conversa que está aberta na sua frente. Nesta versão o Gestor também passou a enxergar a área de Configurações, que antes estava quase toda trancada para ele.**
+
+### Added
+
+- **Aviso de mensagem nova fora da conversa aberta** — quando chega mensagem em um atendimento seu e você não está olhando para ele, toca o som e aparece um aviso no canto da tela com o nome do cliente e a mensagem. Clicar abre a conversa direto.
+- **Um aviso por cliente, com contador** — se o cliente manda quatro mensagens seguidas, o aviso não se multiplica: ele se atualiza com a mensagem mais recente e passa a dizer "4 novas mensagens". Clientes diferentes aparecem em avisos separados.
+- **Mídia aparece pelo nome no aviso** — foto, áudio, vídeo, documento e figurinha aparecem identificados. Quando o cliente manda uma foto com legenda, o aviso mostra a legenda.
+- **O Gestor entra na área de Configurações** — o papel passou de 19 para 39 das 46 telas de configuração. As 7 que continuam fora são as de dono: cobrança, chaves de integração e afins.
+
+### Changed
+
+- **O som de mensagem não toca mais na conversa que está aberta** — antes ele tocava mesmo com o cliente à sua frente, o que ensinava a ignorar o som. Agora só toca quando você não está vendo aquela conversa.
+- **O que o Gestor vê nas Configurações passou a obedecer à matriz de papéis** — antes, 22 telas estavam presas a uma lista fixa de "só o dono", e liberar a permissão na matriz não adiantava: o item aparecia no menu e a tela continuava bloqueando. O Editor de papéis só conseguia tirar acesso, nunca dar.
+- **O papel base de um papel personalizado pode ser corrigido** — errar o papel base na criação obrigava a apagar o papel e refazer todas as permissões. Agora dá para trocá-lo ao renomear, enquanto ninguém estiver usando aquele papel. Quem já usa carrega o papel base no próprio acesso, então a troca só é liberada depois de mover essas pessoas.
+
+### Fixed
+
+- **Papel personalizado que não podia ser atribuído a ninguém** — ao criar um papel, a lista de papéis base oferecia "Owner" e "Cliente". Quem escolhesse um dos dois criava um papel que aparecia normalmente na hora de atribuir e era recusado pelo servidor na hora de salvar, sem explicar o motivo. Esses dois saíram da lista, e duplicar o papel "Owner" — que produzia o mesmo resultado — deixou de ser oferecido.
+- **Dois papéis com o mesmo nome** — a checagem de nome repetido existia só na tela; o banco aceitava a duplicata. Duas abas abertas, ou duas pessoas criando ao mesmo tempo, produziam papéis indistinguíveis na hora de atribuir. Agora o nome é único de verdade, sem diferenciar maiúsculas.
+
+### Notes
+
+- **Aba em segundo plano volta a avisar.** Se você deixa a conversa aberta mas vai para o ERP, o WhatsApp Web ou minimiza a janela, o aviso dispara normalmente — você não está vendo a tela. E o aviso espera você voltar em vez de sumir sozinho.
+- **Abrir a conversa dispensa o aviso dela** e zera o contador; uma mensagem posterior começa um aviso novo.
+- **Desligar o som não desliga o aviso.** Em Configurações → Sons de notificação, desligar o som de mensagem silencia o áudio, mas o aviso visual continua aparecendo.
+- **O aviso é só das suas conversas.** Conversas na fila sem atendente, e aquelas em que você é apenas colaborador, não geram aviso.
+- **Esta versão traz duas migrations**, ambas já aplicadas em produção: as permissões do Gestor na área de Configurações e o nome único dos papéis.
+- **O papel base continua sendo o teto real de acesso aos dados.** A matriz de permissões refina o que aparece na tela dentro desse teto — ela não amplia o que o banco libera. Um papel personalizado com base "Gestor" enxerga tudo o que um Gestor enxerga, por mais que se desmarque na matriz.
+
+## [0.164.0] — Roster · 2026-08-07
+
+**A Gestão de carteira mostrava transferências; agora mostra a carteira. A tela abre com um quadro de todos os vendedores — quantos clientes cada um tem, que fatia da base isso representa e quantos desses clientes estão parados há mais de 30 dias. Os clientes que não estão na carteira de ninguém, que antes não apareciam em lugar nenhum, ganharam uma linha própria em vermelho, com um botão para distribuí-los.**
+
+### Added
+
+- **Quadro da carteira** — um vendedor por linha, com o total de clientes, uma barra que compara o tamanho das carteiras, um ponto verde, âmbar ou vermelho conforme a quantidade de clientes parados, e a situação de cada um: carteira própria, coberto por alguém ou cobrindo alguém.
+- **Clientes sem responsável** — a última linha do quadro mostra quantos clientes estão fora de todas as carteiras. Eles não entram em positivação, meta nem rodízio, e até agora a tela não dizia que existiam.
+- **Distribuir clientes sem responsável** — o botão abre uma janela que lista quem são, deixa escolher um vendedor e passa todos para ele de uma vez.
+- **Ficha do vendedor** — clicar em uma linha do quadro abre um resumo com clientes na carteira, positivados no mês, clientes parados e a movimentação dos últimos 30 dias: quantos recebeu, quantos passou e o saldo.
+- **Resumo no topo da tela** — total de clientes, quantos vendedores dividem a base, quantas coberturas estão em vigor e quantos clientes estão sem responsável.
+
+### Changed
+
+- **Cobertura e transferência definitiva ficaram separadas** — são coisas diferentes e agora aparecem em blocos distintos. A cobertura mantém o relógio, a barra de tempo decorrido, a data em que os clientes voltam sozinhos e o botão **Devolver agora**. Quando ninguém está afastado, o bloco diz isso em vez de ficar vazio.
+- **Mudanças recentes viraram uma tabela** — as transferências definitivas dos últimos 30 dias ocupam uma linha cada, em vez de um cartão grande por transferência. Onde antes cabiam três, agora cabem quinze. **Reverter** continua em cada linha.
+- **"Nova transferência" virou "Nova cobertura"** — é a única transferência que se conclui nesta tela. As outras duas opções do menu antigo apenas mostravam um aviso e levavam para a lista de clientes; agora existe um botão **Transferir clientes** que diz abertamente que é para lá que se vai, porque a transferência definitiva precisa do cliente à vista.
+- **A aba Carteira não tem mais barra de filtros** — filtrar meia dúzia de registros não ajudava. Os filtros continuam no Histórico, onde há volume.
+- **A primeira aba passou a se chamar Carteira**, no lugar de Ativas. Histórico e Auditoria seguem iguais.
+
+### Notes
+
+- **A coluna de risco mede compra, não conversa.** O sistema registra a data da última compra de cada cliente, mas não a do último contato — por isso a coluna diz **"sem compra 30d"**, que é o que o número realmente mostra.
+- **Distribuir tem uma modalidade só:** um vendedor assume todos. O rodízio automático por proximidade de cidade e a triagem cliente a cliente ainda não existem, e um botão que fizesse outra coisa seria pior do que não ter o botão.
+- Nenhuma migration nesta versão.
+
+## [0.163.0] — Sieve · 2026-08-06
+
+**O funil de triagem ganhou saída. Quando a etapa de entrada passa do limite, ela para de ser uma pilha de cards e diz quantos leads estão parados ali, há quanto tempo o mais antigo espera, e leva direto para a lista. Na lista, agora dá para marcar vários leads de uma vez e mandar todos para outro funil, atribuir a um vendedor ou marcar como perdidos.**
+
+### Added
+
+- **Aviso de depósito na entrada** — acima do limite configurado em Funis (padrão 50), a coluna de entrada troca de modo: mostra a contagem real, há quantos dias o lead mais antigo está lá, e um botão que abre a lista já filtrada por aquela etapa. Arrastar um lead de volta para ela continua funcionando.
+- **Selecionar vários leads na lista** — uma caixa por linha, e `Shift` + clique marca uma faixa inteira. A caixa do cabeçalho marca os leads que estão à vista, nunca todos de uma vez.
+- **Ações em lote** — com leads selecionados aparece uma barra com **Adicionar ao funil**, **Atribuir vendedor** e **Marcar perdido**.
+- **Aviso de resultado parcial** — se parte do lote falhar, a mensagem diz quantos foram e quantos não, em vez de um "pronto" que esconderia o problema.
+
+### Notes
+
+- **No funil de triagem, adicionar não move.** O lead entra no outro funil e **continua** na triagem até alguém tirá-lo de lá — a barra avisa isso, para ninguém estranhar que a linha não sumiu.
+- **Trocar de funil, de filtro ou de busca limpa a seleção**, para que uma ação em lote nunca alcance um lead que saiu da tela.
+- **Distribuir em lote ainda não está pronto** — o botão aparece desabilitado, com explicação. Ele depende da fila de rodízio, que tem regras próprias de horário e departamento.
+- Nenhuma migration nesta versão.
+
+## [0.162.1] — Blueprint · 2026-08-06
+
+### Fixed
+
+- **A tela de Funis não aparecia para ninguém** — a versão anterior registrou a permissão "Funis" na lista do editor de papéis, mas não a concedeu a nenhum papel. Como é a concessão que decide quem pode abrir a tela, nem o dono conseguia chegar nela. Dono e gestor passam a tê-la.
+
+## [0.162.0] — Blueprint · 2026-08-06
+
+**Existe uma tela para administrar os funis. Em Configurações → Atendimento → Funis, dá para renomear um funil, trocar ícone e cor, reordenar e editar as etapas, escolher quem enxerga cada um e arquivar o que não se usa mais. Até agora só era possível criar funil por um atalho na página de Leads — editar não era possível em lugar nenhum.**
+
+### Added
+
+- **Tela de Funis** — lista à esquerda, três abas à direita: Etapas, Acesso e Geral. Trocar de funil com alterações não salvas pergunta antes de descartar.
+- **Etapas** — arraste pela alça à esquerda para reordenar, nome, cor entre as nove identidades do sistema e tipo (Entrada, Aberta, Ganho, Perda). Cada linha mostra quantos leads estão naquela etapa.
+- **Excluir etapa pede para onde vão os leads** — se a etapa tem leads, a tela pergunta o destino antes de excluir, e move todos. Etapas de entrada, ganho e perda são obrigatórias e não podem ser excluídas; o funil também precisa de ao menos uma etapa aberta.
+- **Acesso com prévia** — o topo mostra quantos vendedores enxergam o funil e recalcula a cada clique. Há um atalho "Todos da loja" que libera para todo vendedor, e ele soma com as marcações individuais. Se ninguém sobrar, a tela avisa e o botão passa a dizer "Salvar sem acesso" — pode ser proposital, mas não por acidente.
+- **Visão geral de acesso** — uma tabela de quem enxerga qual funil, só para conferir. Clicar num funil leva à aba Acesso dele.
+- **Arquivar funil** — ele sai do seletor da página de Leads mas continua em relatórios e auditoria, e os leads ficam onde estão. A lista avisa quantos leads ativos estão em funis arquivados.
+
+### Changed
+
+- **A tela "Pipeline de leads" passou a dizer o que ela é.** O aviso "a edição visual estará disponível na Fase 2" era uma promessa parada de outro projeto e foi lida por muita gente como se fosse sobre os funis. Agora o texto explica que aquele é o pipeline legado da loja, que ele ainda alimenta os modais de conversão e de perda, o menu da conversa e o filtro de estágio na visão de todos os funis — e leva para a tela de Funis.
+
+### Notes
+
+- **O funil de triagem não tem aba Acesso e não pode ser arquivado.** Ele recebe todo lead novo e é para onde um lead volta ao sair de outro funil: restringi-lo trancaria a operação.
+- **Esta versão traz uma migration** que precisa ser aplicada em produção para a permissão "Funis" aparecer no editor de papéis. Sem ela a tela funciona para donos e gestores, mas a permissão não é editável.
+
+## [0.161.0] — Lanyard · 2026-08-06
+
+**Durante o atendimento, o painel da direita agora mostra em quais funis aquele lead está e em que etapa em cada um — e deixa você mudar a etapa ou colocar o lead em outro funil sem sair da conversa. Mudou de etapa por engano? O aviso que aparece traz um "Desfazer".**
+
+### Added
+
+- **Bloco "Funis" na ficha da conversa** — logo abaixo do nome do contato, antes dos dados. Uma linha por funil, com a etapa de cada um num seletor. É a primeira coisa acionável de quem está respondendo uma mensagem.
+- **Atalho para colocar o lead em outro funil** — o botão `+` ao lado de "Funis" lista só os funis em que ele ainda não está. O lead entra na etapa inicial daquele funil e já aparece no quadro de Leads.
+- **Desfazer ao mudar a etapa** — o aviso de confirmação fica 6 segundos com um botão que volta atrás. Mudar de etapa é comum e reversível, e um pedido de confirmação a cada vez faria você parar de mudar.
+- **Tirar o lead de um funil** — no menu de três pontos da linha, com confirmação. Se for a única participação dele, o aviso explica que o lead volta para a triagem e não fica sem funil nenhum.
+- **Aviso de funil sem acesso** — se o lead estiver em algum funil que você não acessa, aparece "+N funis que você não acessa". Sem essa linha a lista pareceria incompleta sem explicação; com os nomes, mostraria a estrutura comercial que o controle de acesso existe para separar.
+
+### Changed
+
+- **A etiqueta de etapa saiu do topo da ficha** — ela nomeava uma etapa do pipeline único da loja, que com vários funis responde por um só. O bloco novo diz a etapa em cada funil onde o lead realmente está.
+- **"Dados do lead" agora abre e fecha** — vem fechado. Quem atende precisa de funil, etapa e status na hora; dono e data de criação são consulta ocasional, e o espaço foi para o bloco de funis.
+
+### Fixed
+
+- **Cores fixas nos selos de convertido e perdido da ficha** — usavam verde e vermelho travados no código, que em alguns temas ficavam ilegíveis. Passaram a usar as cores oficiais de aviso do sistema, que se ajustam a cada tema.
+
+## [0.160.0] — Trellis · 2026-08-06
+
+**O quadro de Leads virou o quadro do funil. As colunas agora são as etapas do funil que você abriu — não mais as etapas fixas da loja — e o valor de cada card é o daquela oportunidade, não o do lead. O cabeçalho de cada coluna troca a média de dias pela soma dos valores e por quantos estão atrasados, com um clique que filtra só eles. O card encolheu de sete informações para quatro e cabem mais que o dobro na tela; o que saiu está a um instante de mouse parado em cima. E dá para mover um lead sem tocar no mouse.**
+
+### Added
+
+- **Cada funil tem o seu quadro** — as colunas passam a ser as etapas do funil aberto. Mover um card altera **só a participação daquele funil**: o mesmo lead pode estar em negociação num funil e recém-chegado noutro, e um não mexe no outro.
+- **Soma dos valores e atrasados no topo da coluna** — no lugar de "N leads · Média X dias" aparecem quanto vale a etapa inteira e quantos leads estão com a próxima ação vencida. O número de atrasados é clicável e filtra o quadro só neles. A média de dias continua lá, ao passar o mouse sobre a contagem.
+- **Mover um lead pelo teclado** — antes só existia arrastando com o mouse. Agora: `Tab` até o card, `Espaço` para pegar, setas para escolher a etapa, `Espaço` para soltar, `Esc` para desistir. Cada passo é anunciado para quem usa leitor de tela. Há também um menu "Mover para…" no próprio card, no botão de três pontos.
+- **Ordenar cada coluna do seu jeito** — Mais antigos, Mais recentes, Próxima ação, Maior valor ou Parados há mais tempo. A escolha é gravada por etapa e volta do jeito que você deixou. Na etapa de entrada o padrão passa a ser **mais antigos primeiro** — o lead esquecido era o último de novecentos, justamente o que ninguém rolava até o fim para ver.
+- **Recolher uma coluna** — vira uma faixa fina com o nome de lado, e continua aceitando cards soltos nela.
+- **Ver em quais outros funis o lead está** — um marcador discreto no card, com a contagem. Passando o mouse aparecem os nomes, e clicando num deles você vai para aquele quadro com o lead destacado. Conta apenas os funis que você acessa.
+
+### Changed
+
+- **Card menor** — saíram a foto do lead, o telefone, a origem, o nome do vendedor e a etiqueta de próxima ação quando ela não é urgente. Ficaram o nome, a temperatura, o valor da oportunidade e o atraso quando existe. Cabem cerca de nove por coluna, contra quatro antes. Tudo que saiu aparece ao parar o mouse sobre o card, junto com há quantos dias ele está naquela etapa.
+- **A coluna carrega 40 cards por vez** — com um botão para carregar os próximos. A coluna "Novo" chegava a montar novecentos cards de uma vez.
+- **O filtro "Estágio" fala a língua do funil aberto** — as opções passam a ser as etapas dele, e escolher uma deixa no quadro só as colunas escolhidas.
+- **Um funil sem nenhum lead mostra as colunas dele** — antes a tela dizia apenas "nenhum lead encontrado" e escondia o quadro, o que deixava um funil recém-criado sem lugar nenhum para receber o primeiro lead.
+
+### Fixed
+
+- **O selo Convertido/Perdido dizia a mesma coisa em todos os funis** — ele lia a situação do lead, e não a da participação. Um lead ganho num funil aparecia como convertido em todos. Agora cada quadro mostra a situação daquele funil.
+- **Soltar na última coluna dependia de um identificador fixo no código** — passa a olhar o tipo da etapa, que todo funil tem.
+
+## [0.159.2] — Heartbeat · 2026-08-06
+
+### Fixed
+
+- **Não era possível criar um funil novo** — o botão "Novo funil" falhava sempre, com a mensagem "Não foi possível criar o funil". Pior: o funil chegava a ser gravado sem nenhuma etapa e ficava lá, invisível e inutilizável, segurando o nome — de modo que tentar de novo com o mesmo nome falhava por nome repetido. Agora o funil e suas quatro etapas iniciais são criados como uma coisa só: ou entram os dois, ou não entra nada.
+- **A mensagem de erro ao criar um funil dizia sempre a mesma coisa** — qualquer falha virava "Não foi possível criar o funil", e o motivo real só aparecia no console do navegador. Nome já usado agora é informado como tal, e a causa real passa a ser registrada.
+- **Janela "Novo funil" sem descrição para leitores de tela** — quem usa leitor de tela ouvia só o título. A janela ganhou uma linha explicando com quais etapas o funil nasce.
+
+## [0.159.1] — Heartbeat · 2026-08-06
+
+### Fixed
+
+- **Trocar a forma de exibir os funis deixava a página de Leads sem navegação** — ao escolher outra opção em "Exibição dos funis" (barra lateral, seletor no cabeçalho ou abas), a opção antiga sumia e a nova não aparecia. Só voltava ao recarregar a página. Agora a troca acontece na hora, e também acompanha entre abas do navegador abertas na mesma tela.
+
+## [0.159.0] — Heartbeat · 2026-08-05
+
+**Uma leva de correções no que a tela mostra logo depois que você entra. Vários menus sumiam até a página ser recarregada — acabou. Quando outra pessoa entrava no mesmo navegador, as telas mostravam por um instante o que a anterior tinha carregado — também acabou. E os sinais de conexão do WhatsApp voltaram a dizer a verdade: o ícone no topo e o aviso de número desconectado ignoravam por completo os números ligados pelo servidor WAHA, que agora ainda são conferidos sozinhos a cada 30 segundos. Junto vêm a nova tela de entrada e uma rodada de ajustes de contraste nas cores de aviso.**
+
+### Added
+
+- **Conferência automática dos números ligados pelo servidor WAHA** — enquanto a tela de WhatsApp está aberta, esses números passam a ser verificados sozinhos a cada 30 segundos. Antes, o estado deles só mudava quando o próprio servidor avisava; se esse aviso se perdesse, o selo do cartão seguia mostrando informação velha até alguém recarregar a página. Os demais tipos de número já tinham essa conferência.
+- **Aviso de conversas paradas pode ser dispensado** — o alerta de conversas críticas sem resposta ganhou um "X" para fechar, como o aviso de WhatsApp desconectado já tinha. Ele reaparece ao recarregar a página, de modo que um acúmulo crítico nunca fica silenciado de vez.
+
+### Changed
+
+- **Tela de entrada redesenhada** — o login ganhou um layout de pôster, com painel da marca animado, os selos das três submarcas e um botão para mostrar ou ocultar a senha. A tela fica sempre no tema escuro, independentemente da preferência do aparelho.
+- **"Online agora" no lugar de uma data** — na lista de Usuários, quem está conectado no momento aparece como "Online agora", em vez de uma data e hora que pareceria antiga.
+- **Cores de aviso padronizadas em mais telas** — Metas, Orçamentos, Pedidos, Indicadores, Carteira, Positivação e Curva ABC passaram a usar as cores oficiais de aviso do sistema, que se ajustam sozinhas a cada tema e aos modos claro e escuro. Antes cada tela trazia sua própria cor fixa, que em alguns temas ficava ilegível.
+
+### Fixed
+
+- **Vários menus sumiam logo depois de entrar** — Atendimento, Clientes, Leads, Veículos, todo o grupo Comercial, Metas e Indicadores desapareciam do menu assim que você fazia login, e só voltavam se a página fosse recarregada. O seletor de loja ficava escondido pelo mesmo motivo. As permissões passaram a ser carregadas para a pessoa que entrou, e não uma única vez na abertura do aplicativo.
+- **Telas mostravam por um instante os dados de quem usou o navegador antes** — ao trocar de usuário na mesma aba, o que a pessoa anterior tinha carregado continuava em memória e aparecia enquanto os dados novos não chegavam. Essa memória passa a ser descartada quando a sessão troca de dono. Nenhum dado ficava acessível além do permitido: o que aparecia já tinha sido carregado pela pessoa anterior, na sessão dela.
+- **Números do servidor WAHA ficavam de fora do aviso de conexão** — o ícone de WhatsApp no topo da tela e o aviso vermelho de "desconectado" não enxergavam esses números: um deles podia cair sem que o ícone mudasse de cor nem o aviso aparecesse. Agora todos os tipos de número entram nesse sinal.
+- **Cada pessoa só via a si mesma como online** — o indicador de quem está online colocava cada aba do navegador em um grupo isolado, então duas pessoas conectadas ao mesmo tempo não apareciam uma para a outra, nem na tela de Usuários nem na bolinha da conversa.
+
+## [0.158.0] — Wayfinder · 2026-08-05
+
+**A página de Leads passou a trabalhar com vários funis: dá para trocar de funil, e cada pessoa escolhe como quer fazer isso — por uma barra lateral, por um seletor no topo ou por abas. O funil aberto fica no endereço da página, então dá para mandar o link do quadro para alguém e ele abre exatamente onde você estava. Também é possível criar um funil novo direto da tela, e ver todos os leads de uma vez com a indicação de em quais funis cada um está.**
+
+### Added
+
+- **Troca de funil na página de Leads** — o quadro e a lista passam a mostrar só os leads do funil escolhido, com a filtragem feita no servidor.
+- **Três formas de navegar entre funis, à sua escolha** — barra lateral, seletor no cabeçalho ou abas. A escolha fica salva no navegador e pode ser trocada no próprio seletor ou em Configurações → Aparência. Em telas estreitas a exibição se adapta sozinha, e volta ao que você escolheu quando a janela cresce.
+- **O funil aberto vai no endereço da página** — atualizar a página mantém o funil, e o link pode ser compartilhado. Se o link apontar para um funil que a pessoa não acessa, o sistema avisa e abre o funil padrão.
+- **"Todos os funis"** — visão consolidada em lista, com uma coluna mostrando em quais funis cada lead está. Leads em funis sem acesso aparecem com um cadeado, sem revelar o nome do funil.
+- **Criar funil pela própria tela** — nome, ícone e identidade de cor. O funil já nasce com as etapas de entrada, andamento, ganho e perda.
+- **Atalhos de teclado** — `[` e `]` trocam de funil; `/` foca a busca.
+
+### Changed
+
+- **Cabeçalho da página de Leads padronizado** — vidro fosco, busca que cresce ao focar com atalho `/` e `Esc`, e linha de progresso de rolagem, como nas demais telas de lista.
+- **Os botões "Mostrar perdidos" e "Mostrar convertidos"** deixaram de parecer filtros aplicados. Eles ampliam a lista em vez de restringi-la, e agora têm aparência própria.
+
+### Fixed
+
+- **A faixa de métricas mostrava sempre 0,0% · 0 dias · —** e ocupava espaço fixo no topo do quadro. Os números eram calculados sobre leads convertidos que o próprio filtro da tela já havia removido. As três métricas foram para um botão "Métricas" no cabeçalho, agora com valores reais e a indicação de sobre o que são calculadas.
+
+## [0.157.0] — Manifold · 2026-08-05
+
+**A base para trabalhar com vários funis de venda ao mesmo tempo — um funil por linha de produto, com acesso por vendedor. Nesta versão a mudança é toda por baixo: um lead já pode pertencer a mais de um funil no banco de dados, com etapa e valor próprios em cada um. A tela de Leads continua igual, e é a próxima entrega. O que dá para ver agora é o texto: cores de alerta e nomes de etapa que estavam ilegíveis passaram a ter contraste adequado.**
+
+### Added
+
+- **Modelo de múltiplos funis** — a base de dados passa a suportar um lead participando de vários funis simultaneamente, cada um com sua própria etapa, valor estimado e desfecho. Os leads existentes foram migrados para um funil `Geral` de triagem, e todo lead novo entra nele automaticamente.
+- **Controle de acesso por funil** — a estrutura para restringir quais vendedores enxergam cada linha de produto. Dono e Gestor continuam vendo tudo. O funil filtra o quadro, nunca esconde um lead do próprio dono.
+- **Identidade visual por funil** — nove identidades de cor que os funis poderão ocupar, calibradas para os quatro temas nos modos claro e escuro.
+
+### Fixed
+
+- **Textos ilegíveis nas cores de alerta** — os quatro níveis de aviso (informação, sucesso, atenção e crítico) não tinham contraste suficiente como texto no modo claro, e ficavam apagados sobre o fundo dos selos. Foram escurecidos até atingirem o mínimo exigido de acessibilidade, mantendo a mesma cor de origem.
+- **Nome da etapa quase invisível no modo escuro** — a cor da etapa vinha solta do banco e era aplicada diretamente ao texto na lista e na ficha do lead, rendendo cerca de 2,5:1 de contraste no cinza padrão. O nome da etapa passou a usar a cor normal de texto, e a cor da etapa ficou restrita a bordas e marcadores.
+
+## [0.156.0] — Aegis · 2026-08-05
+
+**A página "Meu perfil" foi refeita e ganhou tudo o que faltava para cada pessoa cuidar da própria conta: foto, troca de senha, encerrar o acesso em todos os dispositivos e uma verificação em duas etapas opcional. O Gestor também voltou a enxergar os menus e as configurações que estavam sumidos.**
+
+### Added
+
+- **Página "Meu perfil" redesenhada** — a tela deixou de ser um formulário simples e virou um painel: um cabeçalho com sua foto, seu papel, sua loja, desde quando você está na equipe e o último acesso, seguido dos blocos de contato, segurança, dispositivos e ações delicadas. Uma barra aparece no rodapé assim que você altera algo, avisando que há mudanças não salvas.
+- **Foto de perfil** — agora é possível enviar sua foto (JPG ou PNG, até 2 MB) clicando no avatar. Antes só existiam as iniciais.
+- **Trocar a senha pela própria plataforma** — sem precisar do link por e-mail: informe a senha atual, escolha a nova e pronto. Um medidor mostra na hora se a senha escolhida está fraca ou forte, e você continua conectado no aparelho em que está.
+- **Sair de todos os dispositivos** — encerra o acesso em todos os aparelhos de uma vez, inclusive o atual, útil quando você perde um celular ou esquece a conta aberta em outro computador.
+- **Verificação em duas etapas (2FA) opcional** — quem quiser pode exigir, além da senha, um código de 6 dígitos gerado por um aplicativo autenticador (Google Authenticator, Authy, 1Password). A ativação é feita no seu perfil, escaneando um QR Code. É opcional: quem não ativar continua entrando exatamente como antes.
+- **Remover a verificação em duas etapas de alguém (dono)** — se uma pessoa perder o celular e ficar sem conseguir entrar, o dono remove a verificação dela na tela de Usuários e a conta volta a pedir só a senha. Toda remoção fica registrada na auditoria.
+
+### Fixed
+
+- **Gestor não via vários menus** — itens do menu lateral que o papel de Gestor deveria enxergar estavam faltando. Voltaram.
+- **Gestor não conseguia abrir as Configurações** — a área de configurações estava inacessível para o papel de Gestor.
+
+### Security
+
+- **Fichas de clientes apareciam para quem não deveria vê-las** — a leitura de clientes não estava respeitando o filtro por número de atendimento, então uma ficha podia ficar visível para quem não tinha acesso àquele número. O filtro passou a valer também nessa leitura.
+
+## [0.155.0] — Weld · 2026-07-24
+
+**Converter um lead em cliente virou um fluxo completo: o CNPJ é preenchido com os dados da Receita, o atendente responsável pela conversa também pode converter e, se aquele CNPJ/CPF já estiver na base, o sistema avisa e oferece vincular ao cliente existente em vez de criar uma ficha duplicada. Junto vem uma leva grande de correções de integridade — listas que paravam em 1.000 registros, conversas que se partiam em duas e transferências de carteira que não se concretizavam.**
+
+### Added
+
+- **Conversão de lead com dados da Receita Federal** — ao converter um lead em empresa (B2B), basta informar o CNPJ: razão social, nome fantasia e endereço vêm preenchidos automaticamente da Receita, com aviso quando a situação cadastral não está ativa. O formulário virou um assistente de dois passos (CNPJ → contato), mais curto e direto.
+- **Vincular o lead a um cliente que já existe** — em vez de sempre criar uma ficha nova, é possível apontar o lead para um cliente já cadastrado. O botão "Converter em cliente" ganhou um menu ao lado para ir direto a essa opção.
+- **Aviso de cliente já cadastrado** — ao digitar um CNPJ/CPF que já pertence a um cliente da loja, o sistema avisa na hora, mostra de quem é a carteira e oferece vincular, impedindo a criação de uma ficha duplicada. O aviso funciona mesmo quando o cliente pertence a outro vendedor.
+- **Atendente responsável pode converter o lead** — quem está atendendo a conversa passa a ver e usar o botão "Converter em cliente", mesmo que o lead esteja na carteira de outro vendedor. O cliente criado fica com quem converteu.
+- **Edição dos dados cadastrais na ficha do cliente** — os dados cadastrais passaram a ser editáveis no próprio cartão da ficha, sem abrir outra tela, com um botão "Buscar na Receita" que atualiza os dados da empresa a partir do CNPJ.
+- **Envio de vídeo no Atendimento** — vídeos enviados pelo composer chegam reproduzíveis na conversa, e o limite de anexos subiu para 64 MB.
+- **Conversa continua depois de encerrada** — quando o cliente volta a falar logo após um atendimento encerrado, a mensagem passa a ser anexada à mesma conversa em vez de abrir uma nova, mantendo o histórico junto.
+
+### Changed
+
+- **Contatos aparecem apenas na ficha de detalhe do cliente** — a lista de contatos saiu dos cartões resumidos e ficou concentrada na ficha, reduzindo repetição de informação.
+
+### Fixed
+
+- **Converter lead em cliente falhava com erro genérico** — a conversão vinha falhando para todos os perfis, inclusive o dono: o cliente era criado, mas o lead nunca era marcado como convertido, deixando fichas duplicadas para trás. Corrigido.
+- **Listas paravam em 1.000 registros** — catálogo, clientes, pedidos, orçamentos, metas, despesas e outras telas mostravam no máximo 1.000 itens, silenciosamente. Agora carregam a base completa (o catálogo voltou a exibir os 2.778 produtos).
+- **Conversas duplicadas e partidas ao meio** — o mesmo contato podia acabar com duas conversas abertas no mesmo número, dividindo o histórico. Foram adicionadas travas contra a duplicação e o histórico já partido foi reunificado.
+- **Avisos do sistema não apareciam** — as mensagens de confirmação e erro (salvou, falhou, enviado) simplesmente não eram exibidas em nenhuma tela. Voltaram a aparecer, agora no canto inferior direito.
+- **Mensagens em branco no Atendimento (WhatsApp)** — envelopes sem conteúdo deixaram de virar balões vazios na conversa.
+- **Transferência de carteira falhava** — transferir clientes entre vendedores dava erro e, mesmo quando registrava, não movia os clientes de fato. Agora conclui e move.
+- **Histórico e Auditoria da carteira não refletiam a realidade** — a aba Auditoria ficava sempre vazia e a data de encerramento mostrava a data de criação da transferência.
+- **Metas com status, gráficos e histórico parados** — a atualização automática de status e os gráficos de evolução das metas não funcionavam.
+- **Busca do Atendimento trazia conversas vazias** — resultados com conversas arquivadas sem conteúdo foram removidos da busca.
+- **Banner de aviso escondia o campo de mensagem** — com avisos ativos no topo, o campo de digitação do Atendimento podia ficar fora da tela.
+- **Limpar e-mail ou endereço do cliente não salvava** — apagar o conteúdo desses campos era silenciosamente ignorado.
+
 ## [0.154.0] — Dossier · 2026-07-21
 
 **O atendimento a leads ficou muito mais completo: a página e a ficha lateral do lead viraram um dossiê rico — dados, histórico, notas e tags — com edição no próprio lugar, e a conversa de um lead agora pode ser gerenciada (status, colaboradores, tags) direto da ficha. Some-se a isso uma Central de Sons para os alertas do sistema e correções no WhatsApp.**

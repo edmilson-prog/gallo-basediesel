@@ -79,15 +79,34 @@
   --gallo-info-medium: #3b82f6;
   --gallo-info-dark: #1d4ed8;
 
-  /* Severidade — escala dedicada (constante nos 4 temas; tratamento tonal) */
-  --gallo-sev-info: #2563eb;
-  --gallo-sev-success: #16a34a;
-  --gallo-sev-warning: #d97706;
-  --gallo-sev-critical: #dc2626;
+  /* Severidade — escala dedicada (constante nos 4 temas; tratamento tonal).
+     Light-mode values darkened vs. their surface-calibrated siblings so the
+     SAME primitive also clears WCAG 1.4.3 (4.5:1) when used as TEXT — both
+     as solid text on --card and as text over its own bg-severity tint wash
+     (the /15 opacity utility). Dark-mode values below (in .dark) already
+     clear 4.5:1 and are untouched. */
+  --gallo-sev-info: #1658ea;
+  --gallo-sev-success: #107636;
+  --gallo-sev-warning: #9b5504;
+  --gallo-sev-critical: #c31f1f;
+
+  /* Identidade de funil — escala dedicada (constante nos 4 temas; tratamento
+     tonal, mesmo padrão da severidade). Slot 0 é o neutro, reservado ao funil
+     de triagem. Usada SEMPRE em superfície não-textual (3:1), nunca como cor
+     de texto que precise passar AA. */
+  --gallo-funnel-0: #71717a;
+  --gallo-funnel-1: #c8262c;
+  --gallo-funnel-2: #b45309;
+  --gallo-funnel-3: #1e7a3c;
+  --gallo-funnel-4: #475569;
+  --gallo-funnel-5: #7c3aed;
+  --gallo-funnel-6: #0f766e;
+  --gallo-funnel-7: #c2410c;
+  --gallo-funnel-8: #a21caf;
 
   /* Tipografia */
   --font-display: "Saira Condensed", "Inter", system-ui, -apple-system, sans-serif;
-  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-body: "Barlow", "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
 }
 
@@ -148,6 +167,16 @@
   --color-severity-success: var(--gallo-sev-success);
   --color-severity-warning: var(--gallo-sev-warning);
   --color-severity-critical: var(--gallo-sev-critical);
+
+  --color-funnel-0: var(--gallo-funnel-0);
+  --color-funnel-1: var(--gallo-funnel-1);
+  --color-funnel-2: var(--gallo-funnel-2);
+  --color-funnel-3: var(--gallo-funnel-3);
+  --color-funnel-4: var(--gallo-funnel-4);
+  --color-funnel-5: var(--gallo-funnel-5);
+  --color-funnel-6: var(--gallo-funnel-6);
+  --color-funnel-7: var(--gallo-funnel-7);
+  --color-funnel-8: var(--gallo-funnel-8);
 
   --font-sans: var(--font-body);
   --font-display: var(--font-display);
@@ -210,6 +239,17 @@
   --gallo-sev-success: #22c55e;
   --gallo-sev-warning: #f59e0b;
   --gallo-sev-critical: #f87171;
+
+  /* Identidade de funil — variante dark (paridade 3:1 sobre bg escuro) */
+  --gallo-funnel-0: #a1a1aa;
+  --gallo-funnel-1: #f87171;
+  --gallo-funnel-2: #fbbf24;
+  --gallo-funnel-3: #4ade80;
+  --gallo-funnel-4: #94a3b8;
+  --gallo-funnel-5: #a78bfa;
+  --gallo-funnel-6: #2dd4bf;
+  --gallo-funnel-7: #fb923c;
+  --gallo-funnel-8: #e879f9;
 
   --background: var(--gallo-black-tech);
   --foreground: var(--gallo-neutral-50);

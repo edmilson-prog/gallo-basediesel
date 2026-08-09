@@ -110,11 +110,11 @@ export function AccountQuoteDetailPage({ quoteId }: IAccountQuoteDetailPageProps
             {S.quoteDetailAccept}
           </Button>
         ) : isAccepted ? (
-          <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+          <p className="rounded-md border border-severity-success/30 bg-severity-success/10 px-3 py-2 text-xs text-severity-success">
             {S.quoteDetailAlreadyAccepted}
           </p>
         ) : isExpired ? (
-          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+          <p className="rounded-md border border-severity-warning/30 bg-severity-warning/10 px-3 py-2 text-xs text-severity-warning">
             {S.quoteDetailExpired}
           </p>
         ) : null}

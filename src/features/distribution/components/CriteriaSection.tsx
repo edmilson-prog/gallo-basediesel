@@ -122,7 +122,7 @@ export function CriteriaSection({ settings, saving, onChange }: ICriteriaSection
       </header>
 
       {onlyFallbackLeft && (
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+        <div className="rounded-md border border-severity-warning/30 bg-severity-warning/10 px-3 py-2 text-xs text-severity-warning">
           ⚠️ Você desligou todos os critérios anteriores — todas as conversas cairão direto no
           fallback.
         </div>
@@ -175,7 +175,7 @@ export function CriteriaSection({ settings, saving, onChange }: ICriteriaSection
                       {meta.disclaimer && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="cursor-help text-amber-500">
+                            <span className="cursor-help text-severity-warning">
                               <Icon icon="mdi:alert-circle-outline" size={14} />
                             </span>
                           </TooltipTrigger>

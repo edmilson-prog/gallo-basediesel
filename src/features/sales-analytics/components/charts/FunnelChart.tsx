@@ -48,12 +48,12 @@ export function FunnelChart({ stages, bottleneckIndex, isLoading }: IFunnelChart
           <p className="text-xs text-muted-foreground">{S.funnelSubtitle}</p>
         </div>
         {bottleneckIndex !== null ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+          <span className="inline-flex items-center gap-1 rounded-full bg-severity-warning/10 px-2 py-0.5 text-xs font-medium text-severity-warning">
             <Icon icon="mdi:alert-circle-outline" size={14} />
             {S.funnelBottleneck}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+          <span className="inline-flex items-center gap-1 rounded-full bg-severity-success/10 px-2 py-0.5 text-xs font-medium text-severity-success">
             <Icon icon="mdi:check-circle-outline" size={14} />
             {S.funnelHealthy}
           </span>
@@ -84,7 +84,9 @@ export function FunnelChart({ stages, bottleneckIndex, isLoading }: IFunnelChart
                   <div
                     className={cn(
                       "h-full rounded-md transition-all duration-300",
-                      isBottleneck ? "bg-amber-500/30 ring-2 ring-amber-500/70" : "bg-primary/30",
+                      isBottleneck
+                        ? "bg-severity-warning/30 ring-2 ring-severity-warning/70"
+                        : "bg-primary/30",
                     )}
                     style={{ width: `${widthPct}%` }}
                   />

@@ -58,6 +58,19 @@ reset role;
 -- ---------------------------------------------------------------------------
 -- Principal: LUCAS (seller_internal, non-staff) — own carteira + pool only.
 -- ---------------------------------------------------------------------------
+-- "Should see" assertions test that RLS does not HIDE what belongs to the
+-- principal — they are not a statement about the dataset having rows. Against a
+-- database where the table happens to be empty (`orders` is empty in
+-- production) a bare `count(*) = 0` check fails for a reason that has nothing
+-- to do with RLS. Capture the privileged count first and only demand
+-- visibility when there is in fact something to see.
+select set_config(
+  'rls_regression.orders_lucas',
+  (select count(*)::text from public.orders
+    where seller_id = '5a6400ed-5aec-4bf1-b641-31635f15c887'),
+  true
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
@@ -90,7 +103,8 @@ begin
           )) <> 0 then
     raise exception 'lucas: must not see other sellers'' customers without an accessible conversation (cross-leak)';
   end if;
-  if (select count(*) from public.orders) = 0 then
+  if coalesce(current_setting('rls_regression.orders_lucas', true), '0')::int > 0
+     and (select count(*) from public.orders) = 0 then
     raise exception 'lucas: should see his own orders';
   end if;
   if (select count(*) from public.orders where seller_id <> lucas) <> 0 then
@@ -115,12 +129,18 @@ begin
   if (select count(*) from public.carteira_transfers) <> 0 then
     raise exception 'lucas: must see 0 carteira_transfers (#43 staff only)';
   end if;
+  -- Same 2-gate rule the customers assertion above already uses: media hanging
+  -- off a conversation the seller can ACCESS (own instance / pool / as a
+  -- participant) is legitimate — not only media of conversations assigned to
+  -- him. This predicate predates Turnstile (v0.110.0) and still matched on
+  -- assigned_seller_id alone, flagging 115 legitimately-accessible rows in
+  -- production; every one of them satisfied can_access_conversation.
   if (select count(*) from public.media_assets m
         where not (
           (m.customer_id is not null
              and m.customer_id in (select id from public.customers where seller_id = lucas))
           or (m.conversation_id is not null
-             and m.conversation_id in (select id from public.conversations where assigned_seller_id = lucas))
+             and public.can_access_conversation(m.conversation_id))
         )) <> 0 then
     raise exception 'lucas: must only see media tied to his own customers/conversations (#43)';
   end if;
@@ -1562,8 +1582,14 @@ begin
   begin
     perform public.claim_conversation_rescue(v_rescue_id);
     raise exception 'claim_conversation_rescue: claiming an already-claimed rescue should fail';
-  exception when others then
-    if sqlstate <> 'P0004' then raise; end if; -- expected: P0004
+  -- The rejection must be named explicitly: claim_conversation_rescue raises
+  -- 'already claimed' with errcode P0004, which Postgres maps to
+  -- ASSERT_FAILURE — and `when others` deliberately does NOT catch that (nor
+  -- QUERY_CANCELED). Caught by `when others`, the expected rejection escaped
+  -- and failed the whole run. A P0001 from the line above still propagates,
+  -- so a claim that wrongly SUCCEEDS is still reported.
+  exception
+    when sqlstate 'P0004' then null; -- expected: already claimed
   end;
 end $$;
 reset role;
@@ -1690,6 +1716,546 @@ do $$
 begin
   if (select count(*) from public.lead_notes where lead_id = current_setting('rls_regression.lead_note_lead', true)::uuid) <> 0 then
     raise exception 'lead_notes: cross-store seller must not see the note';
+  end if;
+end $$;
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- Multi-funnel model for leads (spec 2026-07-23-leads-multi-funil-design.md).
+-- Schema/RLS/RPCs per supabase/migrations/20260723120000_lead_funnels_schema.sql,
+-- 20260723121000_lead_funnels_rls.sql, 20260723123000_lead_funnels_rpcs.sql.
+-- These four migrations are VERSIONED but NOT YET APPLIED to the target
+-- database (see the plan's rollout note) — every case below is guarded
+-- behind test.funnels_ready and is a clean skip until they ship, mirroring
+-- the "Bloco A1" / restore_pending_contact not-yet-applied guards above.
+-- ---------------------------------------------------------------------------
+reset role;
+
+select set_config(
+  'test.funnels_ready',
+  case when to_regprocedure('public.accessible_lead_funnel_ids(uuid)') is not null then 'true' else '' end,
+  true
+);
+
+-- lead_funnel_entries visibility mirrors leads exactly (store scope + own-row
+-- OR is_staff) — a non-staff seller must never read another seller's
+-- membership.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  lucas uuid := '5a6400ed-5aec-4bf1-b641-31635f15c887';
+begin
+  if current_setting('test.funnels_ready', true) is distinct from 'true' then
+    return; -- multi-funnel migrations not yet applied in prod; pula
+  end if;
+  if (select count(*) from public.lead_funnel_entries) = 0 then
+    raise notice 'lead_funnel_entries: lucas has no visible memberships in fixtures — cross-leak check is vacuous';
+  end if;
+  -- lead_funnel_entries_select deliberately carries the same third branch as
+  -- leads_select (public.seller_handles_lead) — a seller assigned to the
+  -- lead's conversation legitimately reads its memberships regardless of who
+  -- owns the lead. Exclude those rows, exactly like the customers cross-leak
+  -- check above (lines ~84-92): the case must still fail if a genuinely
+  -- unreachable row (no ownership AND no accessible conversation) is visible.
+  if (select count(*) from public.lead_funnel_entries e
+        where e.seller_id is distinct from lucas
+          and not public.seller_handles_lead(e.lead_id)) <> 0 then
+    raise exception 'lead_funnel_entries: lucas must not read another seller''s membership without an accessible conversation (cross-leak)';
+  end if;
+end $$;
+
+reset role;
+
+-- accessible_lead_funnel_ids: the default funnel is reachable by everyone,
+-- with no explicit lead_funnel_access grant (the backfill guarantees exactly
+-- one default funnel per store).
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+begin
+  if current_setting('test.funnels_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if (select count(*)
+        from public.accessible_lead_funnel_ids('00000000-0000-0000-0000-000000000001') a
+        join public.lead_funnels f on f.id = a.funnel_id
+       where f.is_default) <> 1 then
+    raise exception 'accessible_lead_funnel_ids: the default funnel must be reachable with no explicit grant';
+  end if;
+end $$;
+
+reset role;
+
+-- Arrange (superuser, rolled back): a lead owned by lucas, with a membership
+-- in a funnel that is neither default, nor open_to_store, nor explicitly
+-- granted to him. This funnel filters the BOARD (accessible_lead_funnel_ids),
+-- never the lead's own existence — without this a seller's own lead would
+-- vanish with no explanation the moment it lands in a funnel he can't open.
+do $$
+declare
+  v_lead uuid := gen_random_uuid();
+  v_funnel uuid;
+  v_stage uuid;
+begin
+  if current_setting('test.funnels_ready', true) is distinct from 'true' then
+    return;
+  end if;
+
+  insert into public.leads (id, store_id, seller_id, name, phone, stage, temperature, origin, conversations, tags)
+  values (v_lead, '00000000-0000-0000-0000-000000000001', '5a6400ed-5aec-4bf1-b641-31635f15c887',
+          'RLS Fixture — lead em funil restrito', '+5555999992222',
+          '{"id":"stage-novo","name":"Novo","color":"#5b6b7a","order":1}'::jsonb, 'frio', 'whatsapp', '{}', '{}');
+
+  insert into public.lead_funnels (store_id, name, is_default, open_to_store, position)
+  values ('00000000-0000-0000-0000-000000000001', 'RLS Fixture — funil restrito', false, false, 99)
+  returning id into v_funnel;
+
+  insert into public.lead_funnel_stages (funnel_id, name, position, kind)
+  values (v_funnel, 'Entrada', 0, 'entrada') returning id into v_stage;
+  insert into public.lead_funnel_stages (funnel_id, name, position, kind)
+  values (v_funnel, 'Convertido', 1, 'ganho');
+  insert into public.lead_funnel_stages (funnel_id, name, position, kind)
+  values (v_funnel, 'Perdido', 2, 'perda');
+
+  insert into public.lead_funnel_entries (lead_id, funnel_id, stage_id)
+  values (v_lead, v_funnel, v_stage);
+
+  perform set_config('rls_regression.funnel_restricted_lead', v_lead::text, true);
+  perform set_config('rls_regression.funnel_restricted_id', v_funnel::text, true);
+  perform set_config('rls_regression.funnel_restricted_stage', v_stage::text, true);
+end $$;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  v_lead uuid := nullif(current_setting('rls_regression.funnel_restricted_lead', true), '')::uuid;
+  v_funnel uuid := nullif(current_setting('rls_regression.funnel_restricted_id', true), '')::uuid;
+begin
+  if current_setting('test.funnels_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if v_lead is null then
+    raise notice 'skipped: restricted-funnel fixture was not created';
+    return;
+  end if;
+
+  -- Sanity: confirm the funnel really is inaccessible to lucas (no default,
+  -- no open_to_store, no explicit grant) — otherwise the assertion below
+  -- would pass vacuously for the wrong reason.
+  if exists (
+    select 1 from public.accessible_lead_funnel_ids('00000000-0000-0000-0000-000000000001') a
+     where a.funnel_id = v_funnel
+  ) then
+    raise exception 'lead_funnel_entries fixture: restricted funnel unexpectedly accessible to lucas';
+  end if;
+
+  -- The load-bearing invariant: lucas still reads his OWN membership even
+  -- though the funnel it lives in is closed to him.
+  if (select count(*) from public.lead_funnel_entries where lead_id = v_lead and funnel_id = v_funnel) <> 1 then
+    raise exception 'lead_funnel_entries: lucas must still read his own membership in a funnel he cannot open';
+  end if;
+end $$;
+
+reset role;
+
+-- Composite FK: a membership cannot reference a stage from another funnel.
+-- Reuses the restricted-funnel fixture arranged above (its stage) against the
+-- store's default funnel — a pairing that cannot exist in lead_funnel_stages.
+do $$
+declare
+  v_lead uuid := nullif(current_setting('rls_regression.funnel_restricted_lead', true), '')::uuid;
+  restricted_stage uuid := nullif(current_setting('rls_regression.funnel_restricted_stage', true), '')::uuid;
+  default_funnel uuid;
+  blocked boolean := false;
+begin
+  if current_setting('test.funnels_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if v_lead is null or restricted_stage is null then
+    raise notice 'skipped: restricted-funnel fixture was not created';
+    return;
+  end if;
+
+  select f.id into default_funnel from public.lead_funnels f
+   where f.store_id = '00000000-0000-0000-0000-000000000001' and f.is_default limit 1;
+  if default_funnel is null then
+    raise notice 'skipped: default funnel not backfilled yet';
+    return;
+  end if;
+
+  -- v_lead already got a membership in default_funnel from
+  -- leads_assign_default_funnel_membership (20260723124000) when it was
+  -- inserted above — remove it first so this attempt actually reaches the
+  -- composite FK instead of colliding with lead_funnel_entries_unique
+  -- (lead_id, funnel_id) before the FK is ever checked.
+  delete from public.lead_funnel_entries where lead_id = v_lead and funnel_id = default_funnel;
+
+  begin
+    insert into public.lead_funnel_entries (lead_id, funnel_id, stage_id)
+    values (v_lead, default_funnel, restricted_stage);
+    raise exception 'lead_funnel_entries: composite FK did not reject a stage from another funnel';
+  exception
+    when foreign_key_violation then
+      raise notice 'ok: composite FK rejected the cross-funnel stage';
+  end;
+end $$;
+
+-- Cleanup (superuser): remove the restricted-funnel fixture used by both
+-- checks above (belt-and-suspenders; the whole script rolls back anyway).
+do $$
+declare
+  v_lead uuid := nullif(current_setting('rls_regression.funnel_restricted_lead', true), '')::uuid;
+  v_funnel uuid := nullif(current_setting('rls_regression.funnel_restricted_id', true), '')::uuid;
+begin
+  if current_setting('test.funnels_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if v_lead is null then
+    return;
+  end if;
+  delete from public.lead_funnels where id = v_funnel; -- cascades stages + entries
+  delete from public.leads where id = v_lead;
+end $$;
+
+-- Arrange (superuser, rolled back): two leads for the derive-trigger test —
+-- one owned by the store owner (lucas has no claim on it), one owned by
+-- lucas himself.
+do $$
+declare
+  v_victim uuid := gen_random_uuid();
+  v_own uuid := gen_random_uuid();
+begin
+  if current_setting('test.funnels_ready', true) is distinct from 'true' then
+    return;
+  end if;
+
+  insert into public.leads (id, store_id, seller_id, name, phone, stage, temperature, origin, conversations, tags)
+  values
+    (v_victim, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
+     'RLS Fixture — lead alheio (forge test)', '+5555999993333',
+     '{"id":"stage-novo","name":"Novo","color":"#5b6b7a","order":1}'::jsonb, 'frio', 'whatsapp', '{}', '{}'),
+    (v_own, '00000000-0000-0000-0000-000000000001', '5a6400ed-5aec-4bf1-b641-31635f15c887',
+     'RLS Fixture — lead do lucas (forge test)', '+5555999994444',
+     '{"id":"stage-novo","name":"Novo","color":"#5b6b7a","order":1}'::jsonb, 'frio', 'whatsapp', '{}', '{}');
+
+  perform set_config('rls_regression.funnel_forge_victim_lead', v_victim::text, true);
+  perform set_config('rls_regression.funnel_forge_own_lead', v_own::text, true);
+end $$;
+
+-- Derive trigger makes seller_id unforgeable: store_id/seller_id are always
+-- overwritten from the lead itself (before-insert trigger), and the with
+-- check re-evaluates AFTER that overwrite — so a forged value cannot buy a
+-- non-staff caller access to someone else's lead; it fails the check outright
+-- rather than landing and merely staying invisible. Mirrors the exact wording
+-- of the design comment in 20260723121000_lead_funnels_rls.sql: "the with
+-- check is evaluated against unforgeable values — a forged membership fails
+-- it rather than passing."
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}',
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  lucas uuid := '5a6400ed-5aec-4bf1-b641-31635f15c887';
+  victim_lead uuid := nullif(current_setting('rls_regression.funnel_forge_victim_lead', true), '')::uuid;
+  own_lead uuid := nullif(current_setting('rls_regression.funnel_forge_own_lead', true), '')::uuid;
+  target_funnel uuid;
+  target_stage uuid;
+  blocked boolean := false;
+  new_entry uuid;
+  landed_owner uuid;
+begin
+  if current_setting('test.funnels_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if victim_lead is null or own_lead is null then
+    raise notice 'skipped: forge-test lead fixtures were not created';
+    return;
+  end if;
+
+  select f.id into target_funnel from public.lead_funnels f
+   where f.store_id = '00000000-0000-0000-0000-000000000001' and f.is_default limit 1;
+  select s.id into target_stage from public.lead_funnel_stages s
+   where s.funnel_id = target_funnel and s.kind = 'entrada' limit 1;
+  if target_funnel is null or target_stage is null then
+    raise notice 'skipped: default funnel not backfilled yet';
+    return;
+  end if;
+
+  -- (a) Forge seller_id = himself over a lead lucas does NOT own: the trigger
+  -- re-derives seller_id to the real owner, which then fails the with check
+  -- for a non-staff caller — insert rejected outright.
+  begin
+    insert into public.lead_funnel_entries (lead_id, funnel_id, stage_id, seller_id)
+    values (victim_lead, target_funnel, target_stage, lucas);
+  exception when insufficient_privilege then
+    blocked := true;
+  end;
+  if not blocked then
+    raise exception 'lead_funnel_entries: forging seller_id over another seller''s lead should be rejected';
+  end if;
+
+  -- (b) Forge seller_id = someone else over lucas's OWN lead: the trigger
+  -- re-derives the real (his own) owner regardless of what was submitted —
+  -- the forged value never survives.
+  -- own_lead already got its own membership in target_funnel (the default
+  -- funnel) from leads_assign_default_funnel_membership when it was inserted
+  -- above. Lucas owns that membership (seller_id = lucas), so he can remove
+  -- it under RLS — do so first, otherwise this INSERT would collide with
+  -- lead_funnel_entries_unique before ever reaching the derive trigger we're
+  -- testing here.
+  delete from public.lead_funnel_entries where lead_id = own_lead and funnel_id = target_funnel;
+
+  insert into public.lead_funnel_entries (lead_id, funnel_id, stage_id, seller_id)
+  values (own_lead, target_funnel, target_stage, '57706ecc-01b5-4a96-b403-0359a4bb767f')
+  returning id into new_entry;
+
+  select seller_id into landed_owner from public.lead_funnel_entries where id = new_entry;
+  if landed_owner is distinct from lucas then
+    raise exception 'derive trigger failed: forged entry landed on % instead of the real owner %', landed_owner, lucas;
+  end if;
+end $$;
+
+reset role;
+
+-- Cleanup (superuser): remove both forge-test leads (cascades any entries).
+do $$
+declare
+  v1 uuid := nullif(current_setting('rls_regression.funnel_forge_victim_lead', true), '')::uuid;
+  v2 uuid := nullif(current_setting('rls_regression.funnel_forge_own_lead', true), '')::uuid;
+begin
+  if current_setting('test.funnels_ready', true) is distinct from 'true' then
+    return;
+  end if;
+  if v1 is null and v2 is null then
+    return;
+  end if;
+  delete from public.leads where id in (v1, v2);
+end $$;
+
+-- Sync trigger: changing a lead's owner propagates to every membership.
+-- Self-contained fixture (superuser, rolled back): a fresh lead owned by
+-- lucas with one membership in the default funnel.
+do $$
+declare
+  v_lead uuid := gen_random_uuid();
+  default_funnel uuid;
+  membership_count int;
+  mismatched int;
+begin
+  if current_setting('test.funnels_ready', true) is distinct from 'true' then
+    return;
+  end if;
+
+  select f.id into default_funnel from public.lead_funnels f
+   where f.store_id = '00000000-0000-0000-0000-000000000001' and f.is_default limit 1;
+  if default_funnel is null then
+    raise notice 'skipped: default funnel not backfilled yet';
+    return;
+  end if;
+
+  -- No explicit lead_funnel_entries insert: leads_assign_default_funnel_
+  -- membership (20260723124000) already gives v_lead a membership in
+  -- default_funnel the instant it's inserted below. Inserting a second row
+  -- for the same (lead_id, funnel_id) would collide with
+  -- lead_funnel_entries_unique.
+  insert into public.leads (id, store_id, seller_id, name, phone, stage, temperature, origin, conversations, tags)
+  values (v_lead, '00000000-0000-0000-0000-000000000001', '5a6400ed-5aec-4bf1-b641-31635f15c887',
+          'RLS Fixture — lead sync trigger', '+5555999995555',
+          '{"id":"stage-novo","name":"Novo","color":"#5b6b7a","order":1}'::jsonb, 'frio', 'whatsapp', '{}', '{}');
+
+  -- Guard against a vacuous pass below: if the trigger somehow created no
+  -- membership, `mismatched` would stay 0 for the wrong reason and the
+  -- assertion after the update would pass without testing anything.
+  select count(*) into membership_count
+    from public.lead_funnel_entries where lead_id = v_lead and funnel_id = default_funnel;
+  if membership_count = 0 then
+    raise exception 'sync trigger fixture: v_lead got no default-funnel membership from the trigger';
+  end if;
+
+  update public.leads set seller_id = '57706ecc-01b5-4a96-b403-0359a4bb767f' where id = v_lead;
+
+  select count(*) into mismatched
+    from public.lead_funnel_entries
+   where lead_id = v_lead and seller_id is distinct from '57706ecc-01b5-4a96-b403-0359a4bb767f'::uuid;
+  if mismatched > 0 then
+    raise exception 'sync trigger left % membership(s) on the old owner', mismatched;
+  end if;
+
+  -- Cleanup (belt-and-suspenders; the whole script rolls back anyway).
+  delete from public.leads where id = v_lead; -- cascades the membership
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- convert_lead_mark (2026-07-24): the assigned attendant of a lead-anchored
+-- conversation converts a lead he does NOT own. Exercises both halves that
+-- broke in production: the RPC's authorization (seller_handles_lead) and the
+-- AFTER UPDATE re-anchor trigger, which compared conversations.lead_id (TEXT)
+-- against leads.id (UUID) and raised 42883 on EVERY conversion — surfacing to
+-- the client as a misleading HTTP 404.
+-- ---------------------------------------------------------------------------
+reset role;
+do $$
+declare
+  v_lead     uuid := gen_random_uuid();
+  v_customer uuid := gen_random_uuid();
+  v_conv     uuid := gen_random_uuid();
+begin
+  -- `reset role` does NOT clear request.jwt.claims — set_config(..., true) is
+  -- transaction-local and survives it. Inserting a conversation while the
+  -- previous block's forged claims are still in place makes
+  -- conversation_activity_capture stamp actor_id = that seller, and the
+  -- fixtures above use ids that do not exist in `sellers`, so the
+  -- conversation_activity_actor_id_fkey blows up. Clear them: with no seller
+  -- the trigger records the row as actor_kind 'system' (actor_id null).
+  perform set_config('request.jwt.claims', '', true);
+
+  -- Destination customer + a lead owned by OWNER (not lucas)
+  insert into public.customers (id, store_id, seller_id, type, phone, status, razao_social, nome_fantasia, cnpj)
+  values (v_customer, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
+          'B2B', '+5555999992222', 'ativo', 'RLS Fixture — convert target', 'RLS Fixture', '00000000000191');
+
+  insert into public.leads (id, store_id, seller_id, name, phone, stage, temperature, origin, conversations, tags)
+  values (v_lead, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
+          'RLS Fixture — convert lead', '+5555999992222',
+          '{"id":"stage-novo","name":"Novo","color":"#5b6b7a","order":1}'::jsonb, 'frio', 'whatsapp', '{}', '{}');
+
+  -- Lead-anchored conversation ASSIGNED to lucas → makes him the attendant
+  insert into public.conversations (id, store_id, lead_id, assigned_seller_id, channel, status, last_message_at)
+  values (v_conv, '00000000-0000-0000-0000-000000000001', v_lead::text,
+          '5a6400ed-5aec-4bf1-b641-31635f15c887', 'whatsapp', 'em_andamento', now());
+
+  perform set_config('rls_regression.convert_lead', v_lead::text, true);
+  perform set_config('rls_regression.convert_customer', v_customer::text, true);
+  perform set_config('rls_regression.convert_conv', v_conv::text, true);
+end $$;
+
+-- lucas (non-staff, NOT the lead owner, but the assigned attendant) converts
+select set_config('request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}', true);
+set local role authenticated;
+do $$
+begin
+  perform public.convert_lead_mark(
+    current_setting('rls_regression.convert_lead', true)::uuid,
+    current_setting('rls_regression.convert_customer', true)::uuid,
+    '{"id":"stage-ganho","name":"Ganho","color":"#22c55e","order":6}'::jsonb
+  );
+end $$;
+reset role;
+
+do $$
+begin
+  if (select converted_to_customer_id from public.leads
+       where id = current_setting('rls_regression.convert_lead', true)::uuid)
+     is distinct from current_setting('rls_regression.convert_customer', true)::uuid then
+    raise exception 'convert_lead_mark: assigned attendant should mark the lead as converted';
+  end if;
+  -- the re-anchor trigger must have moved the conversation onto the customer
+  if (select customer_id from public.conversations
+       where id = current_setting('rls_regression.convert_conv', true)::uuid)
+     is distinct from current_setting('rls_regression.convert_customer', true)::uuid then
+    raise exception 'convert_lead_mark: re-anchor trigger should repoint the conversation to the customer';
+  end if;
+  if (select lead_id from public.conversations
+       where id = current_setting('rls_regression.convert_conv', true)::uuid) is not null then
+    raise exception 'convert_lead_mark: re-anchored conversation should drop lead_id';
+  end if;
+end $$;
+
+-- negative: a seller who is neither staff, owner nor attendant must be refused
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000aa","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"00000000-0000-0000-0000-0000000000bb","store_id":"00000000-0000-0000-0000-000000000001"}}', true);
+set local role authenticated;
+do $$
+declare v_refused boolean := false;
+begin
+  begin
+    perform public.convert_lead_mark(
+      current_setting('rls_regression.convert_lead', true)::uuid,
+      current_setting('rls_regression.convert_customer', true)::uuid,
+      '{"id":"stage-ganho","name":"Ganho","color":"#22c55e","order":6}'::jsonb
+    );
+  exception when insufficient_privilege then
+    v_refused := true;
+  end;
+  if not v_refused then
+    raise exception 'convert_lead_mark: unrelated seller must NOT be able to convert';
+  end if;
+end $$;
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- find_customers_by_document (2026-07-24): the duplicate guard must see a
+-- customer owned by ANOTHER seller — that is its whole reason to exist, since
+-- customers_select hides those rows from a non-staff caller and the lead
+-- conversion would otherwise mint a second ficha for the same CNPJ. It must
+-- still respect the store boundary.
+-- ---------------------------------------------------------------------------
+reset role;
+do $$
+declare v_customer uuid := gen_random_uuid();
+begin
+  -- Same reason as the block above: drop the previous principal's forged
+  -- claims before writing fixtures.
+  perform set_config('request.jwt.claims', '', true);
+
+  -- owned by OWNER, so lucas cannot see it through customers_select
+  insert into public.customers (id, store_id, seller_id, type, phone, status, razao_social, nome_fantasia, cnpj)
+  values (v_customer, '00000000-0000-0000-0000-000000000001', '57706ecc-01b5-4a96-b403-0359a4bb767f',
+          'B2B', '+5555999993333', 'ativo', 'RLS Fixture — dup guard', 'RLS Fixture Dup', '11444777000161');
+  perform set_config('rls_regression.dup_customer', v_customer::text, true);
+end $$;
+
+select set_config('request.jwt.claims',
+  '{"sub":"154c3c64-15c0-41ec-824c-9fbfc3cc9ac4","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"5a6400ed-5aec-4bf1-b641-31635f15c887","store_id":"00000000-0000-0000-0000-000000000001"}}', true);
+set local role authenticated;
+do $$
+begin
+  -- baseline: the per-carteira policy really does hide it from lucas
+  if (select count(*) from public.customers
+       where id = current_setting('rls_regression.dup_customer', true)::uuid) <> 0 then
+    raise exception 'dup guard: fixture should be invisible to lucas via customers_select';
+  end if;
+  -- masked input must still match the digits-only stored value
+  if (select count(*) from public.find_customers_by_document('11.444.777/0001-61')) <> 1 then
+    raise exception 'dup guard: lucas should find another seller''s customer by document';
+  end if;
+  -- blank/garbage input must not return the whole store
+  if (select count(*) from public.find_customers_by_document('   ')) <> 0 then
+    raise exception 'dup guard: blank document must return nothing';
+  end if;
+end $$;
+reset role;
+
+-- negative: a seller scoped to another store must not see the match
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000aa","role":"authenticated","app_metadata":{"role":"seller_internal","seller_id":"00000000-0000-0000-0000-0000000000bb","store_id":"00000000-0000-0000-0000-000000000002"}}', true);
+set local role authenticated;
+do $$
+begin
+  if (select count(*) from public.find_customers_by_document('11444777000161')) <> 0 then
+    raise exception 'dup guard: cross-store leak';
   end if;
 end $$;
 reset role;

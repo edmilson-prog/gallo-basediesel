@@ -1,8 +1,10 @@
 import type { IDataProviders } from "./contracts";
 
 import { mockCustomersProvider } from "./impl/mock/customers";
+import { mockContactsProvider } from "./impl/mock/contacts";
 import { mockVehiclesProvider } from "./impl/mock/vehicles";
 import { mockLeadsProvider } from "./impl/mock/leads";
+import { mockLeadFunnelsProvider } from "./impl/mock/leadFunnels";
 import { mockConversationsProvider } from "./impl/mock/conversations";
 import { mockMessagesProvider } from "./impl/mock/messages";
 import { mockPartsProvider } from "./impl/mock/parts";
@@ -52,10 +54,13 @@ import { mockConversationTagsProvider } from "./impl/mock/conversationTags";
 import { mockConversationParticipantsProvider } from "./impl/mock/conversationParticipants";
 import { mockSdrPilotSettingsProvider } from "./impl/mock/sdrPilotSettings";
 import { mockConversationRescuesProvider } from "./impl/mock/conversationRescues";
+import { mockPixKeyProvider } from "./impl/mock/pixKey";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
+import { supabaseContactsProvider } from "./impl/supabase/contacts";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
 import { supabaseLeadsProvider } from "./impl/supabase/leads";
+import { supabaseLeadFunnelsProvider } from "./impl/supabase/leadFunnels";
 import { supabaseConversationsProvider } from "./impl/supabase/conversations";
 import { supabaseMessagesProvider } from "./impl/supabase/messages";
 import { supabasePartsProvider } from "./impl/supabase/parts";
@@ -105,6 +110,7 @@ import { supabaseConversationTagsProvider } from "./impl/supabase/conversationTa
 import { supabaseConversationParticipantsProvider } from "./impl/supabase/conversationParticipants";
 import { supabaseSdrPilotSettingsProvider } from "./impl/supabase/sdrPilotSettings";
 import { supabaseConversationRescuesProvider } from "./impl/supabase/conversationRescues";
+import { supabasePixKeyProvider } from "./impl/supabase/pixKey";
 
 import {
   DATA_SOURCE_OVERRIDE_KEY,
@@ -140,8 +146,10 @@ if (import.meta.env.DEV) {
 
 const mockProviders: IDataProviders = {
   customers: mockCustomersProvider,
+  contacts: mockContactsProvider,
   vehicles: mockVehiclesProvider,
   leads: mockLeadsProvider,
+  leadFunnels: mockLeadFunnelsProvider,
   conversations: mockConversationsProvider,
   messages: mockMessagesProvider,
   parts: mockPartsProvider,
@@ -191,12 +199,15 @@ const mockProviders: IDataProviders = {
   conversationParticipants: mockConversationParticipantsProvider,
   sdrPilotSettings: mockSdrPilotSettingsProvider,
   conversationRescues: mockConversationRescuesProvider,
+  pixKey: mockPixKeyProvider,
 };
 
 const supabaseProviders: IDataProviders = {
   customers: supabaseCustomersProvider,
+  contacts: supabaseContactsProvider,
   vehicles: supabaseVehiclesProvider,
   leads: supabaseLeadsProvider,
+  leadFunnels: supabaseLeadFunnelsProvider,
   conversations: supabaseConversationsProvider,
   messages: supabaseMessagesProvider,
   parts: supabasePartsProvider,
@@ -246,6 +257,7 @@ const supabaseProviders: IDataProviders = {
   conversationParticipants: supabaseConversationParticipantsProvider,
   sdrPilotSettings: supabaseSdrPilotSettingsProvider,
   conversationRescues: supabaseConversationRescuesProvider,
+  pixKey: supabasePixKeyProvider,
 };
 
 /**

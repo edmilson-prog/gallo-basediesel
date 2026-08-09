@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { CopilotSettingsProvider } from "@/features/copilot";
 import { AuthProvider } from "@/features/auth/AuthProvider";
+import { SessionCacheReset } from "@/features/auth/SessionCacheReset";
 import { MultistoreProvider } from "@/features/multistore";
 import { RbacHydrator } from "@/features/rbac";
 import { isChunkLoadError, ChunkErrorScreen } from "@/features/version-update";
@@ -84,9 +85,16 @@ function RootComponent() {
       <ThemeProvider>
         <CopilotSettingsProvider>
           <DataProvidersProvider>
-            <RbacHydrator />
             <NotificationProvidersProvider>
               <AuthProvider>
+                {/*
+                  Must sit UNDER <AuthProvider>: the persisted RBAC matrix is
+                  readable by `authenticated` only, so hydrating it from here at
+                  boot (above the provider, on the login screen) loaded an empty
+                  matrix that hid every permission-gated menu item until reload.
+                */}
+                <RbacHydrator />
+                <SessionCacheReset />
                 <MultistoreProvider>
                   <Outlet />
                   {/*

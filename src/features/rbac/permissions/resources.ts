@@ -11,8 +11,13 @@
  */
 export const RESOURCES = [
   "customer",
+  "contact",
   "vehicle",
   "lead",
+  // Funnel ADMINISTRATION — creating, renaming, editing stages, granting
+  // access, archiving. Distinct from reaching a funnel, which is governed by
+  // `lead_funnel_access` and is not an RBAC concern.
+  "funnel",
   "conversation",
   "message",
   "part",

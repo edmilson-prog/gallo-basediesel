@@ -61,6 +61,7 @@ import { Route as AppClientesRouteImport } from './routes/app.clientes'
 import { Route as AppCatalogoRouteImport } from './routes/app.catalogo'
 import { Route as AppCarteiraRouteImport } from './routes/app.carteira'
 import { Route as AppAtendimentoRouteImport } from './routes/app.atendimento'
+import { Route as AppAgendaRouteImport } from './routes/app.agenda'
 import { Route as PwaCarteiraIndexRouteImport } from './routes/pwa.carteira.index'
 import { Route as PwaAgendaIndexRouteImport } from './routes/pwa.agenda.index'
 import { Route as PortalSolicitacoesIndexRouteImport } from './routes/portal.solicitacoes.index'
@@ -128,6 +129,7 @@ import { Route as AppConfiguracoesSessaoRouteImport } from './routes/app.configu
 import { Route as AppConfiguracoesRodizioRouteImport } from './routes/app.configuracoes.rodizio'
 import { Route as AppConfiguracoesRespostasRapidasRouteImport } from './routes/app.configuracoes.respostas-rapidas'
 import { Route as AppConfiguracoesPortalClienteRouteImport } from './routes/app.configuracoes.portal-cliente'
+import { Route as AppConfiguracoesPixRouteImport } from './routes/app.configuracoes.pix'
 import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
 import { Route as AppConfiguracoesPapeisRouteImport } from './routes/app.configuracoes.papeis'
 import { Route as AppConfiguracoesNotificacoesRouteImport } from './routes/app.configuracoes.notificacoes'
@@ -192,6 +194,7 @@ import { Route as AppConfiguracoesAtendimentoPipelineRouteImport } from './route
 import { Route as AppConfiguracoesAtendimentoMotivosPerdaRouteImport } from './routes/app.configuracoes.atendimento.motivos-perda'
 import { Route as AppConfiguracoesAtendimentoLifecycleRouteImport } from './routes/app.configuracoes.atendimento.lifecycle'
 import { Route as AppConfiguracoesAtendimentoHorarioComercialRouteImport } from './routes/app.configuracoes.atendimento.horario-comercial'
+import { Route as AppConfiguracoesAtendimentoFunisRouteImport } from './routes/app.configuracoes.atendimento.funis'
 import { Route as AppConfiguracoesAtendimentoContinuidadeRouteImport } from './routes/app.configuracoes.atendimento.continuidade'
 import { Route as AppConfiguracoesAtendimentoAlertasOciosidadeRouteImport } from './routes/app.configuracoes.atendimento.alertas-ociosidade'
 import { Route as AppKitsModelIdKitNovoRouteImport } from './routes/app.kits.$modelId.kit.novo'
@@ -455,6 +458,11 @@ const AppCarteiraRoute = AppCarteiraRouteImport.update({
 const AppAtendimentoRoute = AppAtendimentoRouteImport.update({
   id: '/atendimento',
   path: '/atendimento',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAgendaRoute = AppAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
   getParentRoute: () => AppRoute,
 } as any)
 const PwaCarteiraIndexRoute = PwaCarteiraIndexRouteImport.update({
@@ -801,6 +809,11 @@ const AppConfiguracoesPortalClienteRoute =
     path: '/configuracoes/portal-cliente',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesPixRoute = AppConfiguracoesPixRouteImport.update({
+  id: '/configuracoes/pix',
+  path: '/configuracoes/pix',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConfiguracoesPerfilRoute = AppConfiguracoesPerfilRouteImport.update({
   id: '/configuracoes/perfil',
   path: '/configuracoes/perfil',
@@ -1161,6 +1174,12 @@ const AppConfiguracoesAtendimentoHorarioComercialRoute =
     path: '/configuracoes/atendimento/horario-comercial',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesAtendimentoFunisRoute =
+  AppConfiguracoesAtendimentoFunisRouteImport.update({
+    id: '/configuracoes/atendimento/funis',
+    path: '/configuracoes/atendimento/funis',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesAtendimentoContinuidadeRoute =
   AppConfiguracoesAtendimentoContinuidadeRouteImport.update({
     id: '/configuracoes/atendimento/continuidade',
@@ -1195,6 +1214,7 @@ export interface FileRoutesByFullPath {
   '/portal': typeof PortalRouteWithChildren
   '/pwa': typeof PwaRouteWithChildren
   '/sem-permissao': typeof SemPermissaoRoute
+  '/app/agenda': typeof AppAgendaRoute
   '/app/atendimento': typeof AppAtendimentoRouteWithChildren
   '/app/carteira': typeof AppCarteiraRoute
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
@@ -1268,6 +1288,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
+  '/app/configuracoes/pix': typeof AppConfiguracoesPixRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/respostas-rapidas': typeof AppConfiguracoesRespostasRapidasRoute
   '/app/configuracoes/rodizio': typeof AppConfiguracoesRodizioRoute
@@ -1337,6 +1358,7 @@ export interface FileRoutesByFullPath {
   '/pwa/carteira/': typeof PwaCarteiraIndexRoute
   '/app/configuracoes/atendimento/alertas-ociosidade': typeof AppConfiguracoesAtendimentoAlertasOciosidadeRoute
   '/app/configuracoes/atendimento/continuidade': typeof AppConfiguracoesAtendimentoContinuidadeRoute
+  '/app/configuracoes/atendimento/funis': typeof AppConfiguracoesAtendimentoFunisRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
@@ -1381,6 +1403,7 @@ export interface FileRoutesByTo {
   '/design-system': typeof DesignSystemRoute
   '/erro': typeof ErroRoute
   '/sem-permissao': typeof SemPermissaoRoute
+  '/app/agenda': typeof AppAgendaRoute
   '/app/carteira': typeof AppCarteiraRoute
   '/app/inicio': typeof AppInicioRoute
   '/app/insights': typeof AppInsightsRoute
@@ -1440,6 +1463,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
+  '/app/configuracoes/pix': typeof AppConfiguracoesPixRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/respostas-rapidas': typeof AppConfiguracoesRespostasRapidasRoute
   '/app/configuracoes/rodizio': typeof AppConfiguracoesRodizioRoute
@@ -1502,6 +1526,7 @@ export interface FileRoutesByTo {
   '/pwa/carteira': typeof PwaCarteiraIndexRoute
   '/app/configuracoes/atendimento/alertas-ociosidade': typeof AppConfiguracoesAtendimentoAlertasOciosidadeRoute
   '/app/configuracoes/atendimento/continuidade': typeof AppConfiguracoesAtendimentoContinuidadeRoute
+  '/app/configuracoes/atendimento/funis': typeof AppConfiguracoesAtendimentoFunisRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
@@ -1550,6 +1575,7 @@ export interface FileRoutesById {
   '/portal': typeof PortalRouteWithChildren
   '/pwa': typeof PwaRouteWithChildren
   '/sem-permissao': typeof SemPermissaoRoute
+  '/app/agenda': typeof AppAgendaRoute
   '/app/atendimento': typeof AppAtendimentoRouteWithChildren
   '/app/carteira': typeof AppCarteiraRoute
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
@@ -1623,6 +1649,7 @@ export interface FileRoutesById {
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
+  '/app/configuracoes/pix': typeof AppConfiguracoesPixRoute
   '/app/configuracoes/portal-cliente': typeof AppConfiguracoesPortalClienteRoute
   '/app/configuracoes/respostas-rapidas': typeof AppConfiguracoesRespostasRapidasRoute
   '/app/configuracoes/rodizio': typeof AppConfiguracoesRodizioRoute
@@ -1692,6 +1719,7 @@ export interface FileRoutesById {
   '/pwa/carteira/': typeof PwaCarteiraIndexRoute
   '/app/configuracoes/atendimento/alertas-ociosidade': typeof AppConfiguracoesAtendimentoAlertasOciosidadeRoute
   '/app/configuracoes/atendimento/continuidade': typeof AppConfiguracoesAtendimentoContinuidadeRoute
+  '/app/configuracoes/atendimento/funis': typeof AppConfiguracoesAtendimentoFunisRoute
   '/app/configuracoes/atendimento/horario-comercial': typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   '/app/configuracoes/atendimento/lifecycle': typeof AppConfiguracoesAtendimentoLifecycleRoute
   '/app/configuracoes/atendimento/motivos-perda': typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
@@ -1741,6 +1769,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/pwa'
     | '/sem-permissao'
+    | '/app/agenda'
     | '/app/atendimento'
     | '/app/carteira'
     | '/app/catalogo'
@@ -1814,6 +1843,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
+    | '/app/configuracoes/pix'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/respostas-rapidas'
     | '/app/configuracoes/rodizio'
@@ -1883,6 +1913,7 @@ export interface FileRouteTypes {
     | '/pwa/carteira/'
     | '/app/configuracoes/atendimento/alertas-ociosidade'
     | '/app/configuracoes/atendimento/continuidade'
+    | '/app/configuracoes/atendimento/funis'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
     | '/app/configuracoes/atendimento/motivos-perda'
@@ -1927,6 +1958,7 @@ export interface FileRouteTypes {
     | '/design-system'
     | '/erro'
     | '/sem-permissao'
+    | '/app/agenda'
     | '/app/carteira'
     | '/app/inicio'
     | '/app/insights'
@@ -1986,6 +2018,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
+    | '/app/configuracoes/pix'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/respostas-rapidas'
     | '/app/configuracoes/rodizio'
@@ -2048,6 +2081,7 @@ export interface FileRouteTypes {
     | '/pwa/carteira'
     | '/app/configuracoes/atendimento/alertas-ociosidade'
     | '/app/configuracoes/atendimento/continuidade'
+    | '/app/configuracoes/atendimento/funis'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
     | '/app/configuracoes/atendimento/motivos-perda'
@@ -2095,6 +2129,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/pwa'
     | '/sem-permissao'
+    | '/app/agenda'
     | '/app/atendimento'
     | '/app/carteira'
     | '/app/catalogo'
@@ -2168,6 +2203,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
+    | '/app/configuracoes/pix'
     | '/app/configuracoes/portal-cliente'
     | '/app/configuracoes/respostas-rapidas'
     | '/app/configuracoes/rodizio'
@@ -2237,6 +2273,7 @@ export interface FileRouteTypes {
     | '/pwa/carteira/'
     | '/app/configuracoes/atendimento/alertas-ociosidade'
     | '/app/configuracoes/atendimento/continuidade'
+    | '/app/configuracoes/atendimento/funis'
     | '/app/configuracoes/atendimento/horario-comercial'
     | '/app/configuracoes/atendimento/lifecycle'
     | '/app/configuracoes/atendimento/motivos-perda'
@@ -2651,6 +2688,13 @@ declare module '@tanstack/react-router' {
       path: '/atendimento'
       fullPath: '/app/atendimento'
       preLoaderRoute: typeof AppAtendimentoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/agenda': {
+      id: '/app/agenda'
+      path: '/agenda'
+      fullPath: '/app/agenda'
+      preLoaderRoute: typeof AppAgendaRouteImport
       parentRoute: typeof AppRoute
     }
     '/pwa/carteira/': {
@@ -3122,6 +3166,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesPortalClienteRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/pix': {
+      id: '/app/configuracoes/pix'
+      path: '/configuracoes/pix'
+      fullPath: '/app/configuracoes/pix'
+      preLoaderRoute: typeof AppConfiguracoesPixRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/perfil': {
       id: '/app/configuracoes/perfil'
       path: '/configuracoes/perfil'
@@ -3570,6 +3621,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesAtendimentoHorarioComercialRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/atendimento/funis': {
+      id: '/app/configuracoes/atendimento/funis'
+      path: '/configuracoes/atendimento/funis'
+      fullPath: '/app/configuracoes/atendimento/funis'
+      preLoaderRoute: typeof AppConfiguracoesAtendimentoFunisRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/atendimento/continuidade': {
       id: '/app/configuracoes/atendimento/continuidade'
       path: '/configuracoes/atendimento/continuidade'
@@ -3865,6 +3923,7 @@ const AppGestaoRankingRouteWithChildren =
   AppGestaoRankingRoute._addFileChildren(AppGestaoRankingRouteChildren)
 
 interface AppRouteChildren {
+  AppAgendaRoute: typeof AppAgendaRoute
   AppAtendimentoRoute: typeof AppAtendimentoRouteWithChildren
   AppCarteiraRoute: typeof AppCarteiraRoute
   AppCatalogoRoute: typeof AppCatalogoRouteWithChildren
@@ -3904,6 +3963,7 @@ interface AppRouteChildren {
   AppConfiguracoesNotificacoesRoute: typeof AppConfiguracoesNotificacoesRoute
   AppConfiguracoesPapeisRoute: typeof AppConfiguracoesPapeisRoute
   AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
+  AppConfiguracoesPixRoute: typeof AppConfiguracoesPixRoute
   AppConfiguracoesPortalClienteRoute: typeof AppConfiguracoesPortalClienteRoute
   AppConfiguracoesRespostasRapidasRoute: typeof AppConfiguracoesRespostasRapidasRoute
   AppConfiguracoesRodizioRoute: typeof AppConfiguracoesRodizioRoute
@@ -3936,6 +3996,7 @@ interface AppRouteChildren {
   AppGestaoIndexRoute: typeof AppGestaoIndexRoute
   AppConfiguracoesAtendimentoAlertasOciosidadeRoute: typeof AppConfiguracoesAtendimentoAlertasOciosidadeRoute
   AppConfiguracoesAtendimentoContinuidadeRoute: typeof AppConfiguracoesAtendimentoContinuidadeRoute
+  AppConfiguracoesAtendimentoFunisRoute: typeof AppConfiguracoesAtendimentoFunisRoute
   AppConfiguracoesAtendimentoHorarioComercialRoute: typeof AppConfiguracoesAtendimentoHorarioComercialRoute
   AppConfiguracoesAtendimentoLifecycleRoute: typeof AppConfiguracoesAtendimentoLifecycleRoute
   AppConfiguracoesAtendimentoMotivosPerdaRoute: typeof AppConfiguracoesAtendimentoMotivosPerdaRoute
@@ -3951,6 +4012,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAgendaRoute: AppAgendaRoute,
   AppAtendimentoRoute: AppAtendimentoRouteWithChildren,
   AppCarteiraRoute: AppCarteiraRoute,
   AppCatalogoRoute: AppCatalogoRouteWithChildren,
@@ -3992,6 +4054,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesNotificacoesRoute: AppConfiguracoesNotificacoesRoute,
   AppConfiguracoesPapeisRoute: AppConfiguracoesPapeisRoute,
   AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,
+  AppConfiguracoesPixRoute: AppConfiguracoesPixRoute,
   AppConfiguracoesPortalClienteRoute: AppConfiguracoesPortalClienteRoute,
   AppConfiguracoesRespostasRapidasRoute: AppConfiguracoesRespostasRapidasRoute,
   AppConfiguracoesRodizioRoute: AppConfiguracoesRodizioRoute,
@@ -4028,6 +4091,7 @@ const AppRouteChildren: AppRouteChildren = {
     AppConfiguracoesAtendimentoAlertasOciosidadeRoute,
   AppConfiguracoesAtendimentoContinuidadeRoute:
     AppConfiguracoesAtendimentoContinuidadeRoute,
+  AppConfiguracoesAtendimentoFunisRoute: AppConfiguracoesAtendimentoFunisRoute,
   AppConfiguracoesAtendimentoHorarioComercialRoute:
     AppConfiguracoesAtendimentoHorarioComercialRoute,
   AppConfiguracoesAtendimentoLifecycleRoute:

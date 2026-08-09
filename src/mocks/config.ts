@@ -44,7 +44,8 @@ export type MockEntityName =
   | "quickReplies"
   | "trackableLinks"
   | "assetCombos"
-  | "scheduledSends";
+  | "scheduledSends"
+  | "pixKeys";
 
 /** Default seed for deterministic dataset generation. Changing this regenerates everything. */
 export const DEFAULT_SEED = 42;
@@ -95,6 +96,7 @@ export const VOLUMES: Record<MockEntityName, number> = {
   trackableLinks: 10,
   assetCombos: 5,
   scheduledSends: 0,
+  pixKeys: 2,
 };
 
 /** Minimum simulated latency (ms) per API call. */

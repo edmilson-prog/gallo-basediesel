@@ -28,9 +28,9 @@ const SEVERITY_LABEL: Record<BadgeTier, string> = {
 };
 
 const SEVERITY_BADGE: Record<BadgeTier, string> = {
-  critical: "bg-red-500/15 text-red-600 dark:text-red-400",
-  high: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
-  medium: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+  critical: "bg-severity-critical/15 text-severity-critical",
+  high: "bg-severity-warning/15 text-severity-warning",
+  medium: "bg-severity-info/15 text-severity-info",
 };
 
 const SEVERITY_ICON: Record<BadgeTier, string> = {
@@ -88,7 +88,7 @@ export function ActiveAlertsList() {
         </div>
       ) : alerts.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 py-6 text-center">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-severity-success/15 text-severity-success">
             <Icon icon="mdi:check-circle-outline" size={22} />
           </span>
           <p className="text-sm text-muted-foreground">{MANAGER_DASHBOARD_STRINGS.alertsEmpty}</p>

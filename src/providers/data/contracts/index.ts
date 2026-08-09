@@ -6,8 +6,10 @@
  */
 
 import type { ICustomersProvider } from "./customers";
+import type { IContactsProvider } from "./contacts";
 import type { IVehiclesProvider } from "./vehicles";
 import type { ILeadsProvider } from "./leads";
+import type { ILeadFunnelsProvider } from "./leadFunnels";
 import type { IConversationsProvider } from "./conversations";
 import type { IMessagesProvider } from "./messages";
 import type { IPartsProvider } from "./parts";
@@ -57,11 +59,27 @@ import type { IConversationTagsProvider } from "./conversationTags";
 import type { IConversationParticipantsProvider } from "./conversationParticipants";
 import type { ISdrPilotSettingsProvider } from "./sdrPilotSettings";
 import type { IConversationRescuesProvider } from "./conversationRescues";
+import type { IPixKeyProvider } from "./pixKey";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 export { FETCH_ALL_PAGE_SIZE } from "./_shared";
 
-export type { ICustomersProvider, IListCustomersParams, IConvertPendingContactInput } from "./customers";
+export type {
+  ICustomersProvider,
+  IListCustomersParams,
+  IConvertPendingContactInput,
+  ICustomerDocumentMatch,
+  IWalletStats,
+  IWalletStatsParams,
+  IWalletSellerStats,
+} from "./customers";
+export { WALLET_STALE_DAYS } from "./customers";
+export type {
+  IContactsProvider,
+  IListContactsParams,
+  ContactsOrderBy,
+  ContactRecencyBucket,
+} from "./contacts";
 export type {
   IVehiclesProvider,
   IListVehiclesParams,
@@ -70,6 +88,7 @@ export type {
   VehiclesOrderDir,
 } from "./vehicles";
 export type { ILeadsProvider, IListLeadsParams } from "./leads";
+export type { ILeadFunnelsProvider } from "./leadFunnels";
 export type {
   IConversationsProvider,
   IListConversationsParams,
@@ -176,11 +195,7 @@ export type {
   ICreateGoServerInput,
   IGoServerPatch,
 } from "./whatsappGoServers";
-export type {
-  IWahaServersProvider,
-  ICreateWahaServerInput,
-  IWahaServerPatch,
-} from "./wahaServers";
+export type { IWahaServersProvider, ICreateWahaServerInput, IWahaServerPatch } from "./wahaServers";
 export type {
   IWhatsAppOpenWaServersProvider,
   ICreateOpenWaServerInput,
@@ -188,6 +203,7 @@ export type {
 } from "./whatsappOpenWaServers";
 export type { ISdrPilotSettingsProvider } from "./sdrPilotSettings";
 export type { IConversationRescuesProvider } from "./conversationRescues";
+export type { IPixKeyProvider } from "./pixKey";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -196,8 +212,10 @@ export type { IConversationRescuesProvider } from "./conversationRescues";
  */
 export interface IDataProviders {
   customers: ICustomersProvider;
+  contacts: IContactsProvider;
   vehicles: IVehiclesProvider;
   leads: ILeadsProvider;
+  leadFunnels: ILeadFunnelsProvider;
   conversations: IConversationsProvider;
   messages: IMessagesProvider;
   parts: IPartsProvider;
@@ -247,4 +265,5 @@ export interface IDataProviders {
   conversationParticipants: IConversationParticipantsProvider;
   sdrPilotSettings: ISdrPilotSettingsProvider;
   conversationRescues: IConversationRescuesProvider;
+  pixKey: IPixKeyProvider;
 }

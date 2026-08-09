@@ -340,7 +340,11 @@ function ConversationListItemInner({
           </div>
         )}
 
-        <div className="mt-1.5 flex items-center gap-1.5">
+        {/* The badge strip has no wrap and its chips never shrink: without
+            `overflow-hidden` a busy row (channel + temperature + tags + queue +
+            assignee) overflows the 320px column and gives the whole list a
+            horizontal scrollbar. */}
+        <div className="mt-1.5 flex items-center gap-1.5 overflow-hidden">
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
@@ -406,7 +410,7 @@ function ConversationListItemInner({
           {isQueuedConversation(conversation) && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="inline-flex items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded bg-severity-warning/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-severity-warning">
                   <Icon icon="mdi:timer-sand" size={11} />
                   Em fila
                 </span>

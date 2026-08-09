@@ -63,13 +63,9 @@ export function QuoteBanners({
   return (
     <div className="space-y-3">
       {showSdr && (
-        <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
-          <Icon
-            icon="mdi:robot-outline"
-            size={18}
-            className="text-emerald-600 dark:text-emerald-300"
-          />
-          <span className="flex-1 text-emerald-700 dark:text-emerald-200">
+        <div className="flex items-center gap-2 rounded-md border border-severity-info/30 bg-severity-info/5 p-3 text-sm">
+          <Icon icon="mdi:robot-outline" size={18} className="text-severity-info" />
+          <span className="flex-1 text-severity-info">
             Criado pelo agente SDR durante a conversa do cliente.
           </span>
           {quote.conversationId && (
@@ -80,24 +76,18 @@ export function QuoteBanners({
         </div>
       )}
       {showApproval && (
-        <div className="flex flex-col gap-3 rounded-md border border-orange-500/30 bg-orange-500/5 p-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 rounded-md border border-severity-warning/30 bg-severity-warning/5 p-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-2 text-sm">
-            <Icon
-              icon="mdi:shield-alert-outline"
-              size={18}
-              className="text-orange-600 dark:text-orange-300"
-            />
+            <Icon icon="mdi:shield-alert-outline" size={18} className="text-severity-warning" />
             <div>
-              <p className="font-medium text-orange-700 dark:text-orange-200">
-                Aguardando aprovação do gestor
-              </p>
+              <p className="font-medium text-severity-warning">Aguardando aprovação do gestor</p>
               {quote.discountReason && (
-                <p className="text-xs text-orange-700/80 dark:text-orange-200/80">
+                <p className="text-xs text-severity-warning/80">
                   Justificativa: {quote.discountReason}
                 </p>
               )}
               {quote.rejectedReason && (
-                <p className="text-xs text-rose-600 dark:text-rose-300">
+                <p className="text-xs text-severity-critical">
                   Rejeitado anteriormente: {quote.rejectedReason}
                 </p>
               )}

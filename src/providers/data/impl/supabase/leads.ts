@@ -3,6 +3,7 @@ import type {
   ILead,
   ILeadNote,
   ILeadStage,
+  LeadNextActionKind,
   LeadOrigin,
   LeadTemperature,
   Money,
@@ -39,6 +40,8 @@ interface LeadRow {
   origin: LeadOrigin;
   estimated_value: number | null;
   next_action_at: string | null;
+  /** Absent from the row until migration 20260808120000 is applied. */
+  next_action_kind?: LeadNextActionKind | null;
   loss_reason: string | null;
   loss_notes: string | null;
   converted_to_customer_id: string | null;
@@ -53,6 +56,35 @@ const COLUMNS =
   "id, store_id, seller_id, name, phone, email, avatar_url, stage, temperature, origin, " +
   "estimated_value, next_action_at, loss_reason, loss_notes, converted_to_customer_id, " +
   "conversations, tags, created_at, updated_at";
+
+/**
+ * `next_action_kind` arrives with migration 20260808120000, and in this project
+ * merging the PR does NOT apply the migration. Naming the column in a `select`
+ * before it exists answers 42703 and takes the whole screen down with it, so it
+ * is requested separately and the module demotes itself on the first refusal —
+ * for the rest of the session, and only for the two call sites that need it.
+ *
+ * The list and the board never read it, which is why they stay on the fixed set
+ * above: the one query that must not break is the one loading a thousand rows.
+ */
+let kindColumnAvailable = true;
+
+/** Column list for the lead DETAIL, which is the only reader of the kind. */
+function detailColumns(): string {
+  return kindColumnAvailable ? `${COLUMNS}, next_action_kind` : COLUMNS;
+}
+
+/**
+ * True — and demotes the module — only for "column does not exist". Every other
+ * failure has to surface: swallowing them here would turn a permission error
+ * into a silently kind-less lead.
+ */
+function isMissingKindColumn(error: { code?: string; message?: string } | null): boolean {
+  if (!error || !kindColumnAvailable) return false;
+  if (error.code !== "42703" || !(error.message ?? "").includes("next_action_kind")) return false;
+  kindColumnAvailable = false;
+  return true;
+}
 
 function rowToLead(row: LeadRow): ILead {
   return {
@@ -70,6 +102,7 @@ function rowToLead(row: LeadRow): ILead {
     origin: row.origin,
     estimatedValue: row.estimated_value ?? undefined,
     nextActionAt: row.next_action_at ?? undefined,
+    nextActionKind: row.next_action_kind ?? undefined,
     lossReason: row.loss_reason ?? undefined,
     lossNotes: row.loss_notes ?? undefined,
     convertedToCustomerId: row.converted_to_customer_id ?? undefined,
@@ -102,6 +135,10 @@ export function leadPatchToRow(patch: Partial<ILead>): Record<string, unknown> {
   if (patch.origin !== undefined) row.origin = patch.origin;
   if ("estimatedValue" in patch) row.estimated_value = patch.estimatedValue ?? null;
   if ("nextActionAt" in patch) row.next_action_at = patch.nextActionAt ?? null;
+  // Dropped entirely while the column is missing, so a write that carries the
+  // kind still applies its date instead of failing whole.
+  if ("nextActionKind" in patch && kindColumnAvailable)
+    row.next_action_kind = patch.nextActionKind ?? null;
   if (patch.lossReason !== undefined) row.loss_reason = patch.lossReason;
   if (patch.lossNotes !== undefined) row.loss_notes = patch.lossNotes;
   if (patch.convertedToCustomerId !== undefined)
@@ -169,15 +206,33 @@ export function buildLeadSearchOr(search: string): string | null {
 export const supabaseLeadsProvider: ILeadsProvider = {
   async list(params: IListLeadsParams = {}): Promise<IPaginatedResult<ILead>> {
     const buildQuery = () => {
-      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      // Funnel scope is expressed as an INNER join on the membership table —
+      // only leads that HAVE an entry in that funnel survive. `lead_id, funnel_id`
+      // carries a unique index (see 20260723120000_lead_funnels_schema.sql), so
+      // this never fans a lead out into duplicate rows or corrupts `count: "exact"`.
+      const hasFunnelScope = params.funnelId !== undefined;
+      let query = getSupabaseClient()
+        .from(TABLE)
+        .select(
+          hasFunnelScope ? `${COLUMNS}, lead_funnel_entries!inner(funnel_id, stage_id)` : COLUMNS,
+          { count: "exact" },
+        );
       if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
       if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
+      // The legacy embedded pipeline stage (`stage->>id`) — independent of
+      // `funnelId`/`funnelStageId` below, which address a different id
+      // namespace (`lead_funnel_entries.stage_id`). Both can apply at once.
       if (params.stageId !== undefined) query = query.eq("stage->>id", params.stageId);
       if (params.temperature !== undefined) query = query.eq("temperature", params.temperature);
       if (params.excludeLost) query = query.is("loss_reason", null);
       if (params.search) {
         const orExpr = buildLeadSearchOr(params.search);
         if (orExpr) query = query.or(orExpr);
+      }
+      if (params.funnelId !== undefined) {
+        query = query.eq("lead_funnel_entries.funnel_id", params.funnelId);
+        if (params.funnelStageId !== undefined)
+          query = query.eq("lead_funnel_entries.stage_id", params.funnelStageId);
       }
       return query;
     };
@@ -208,11 +263,13 @@ export const supabaseLeadsProvider: ILeadsProvider = {
   },
 
   async get(id: ID): Promise<ILead> {
-    const { data, error } = await getSupabaseClient()
-      .from(TABLE)
-      .select(COLUMNS)
-      .eq("id", id)
-      .single();
+    const read = () =>
+      getSupabaseClient().from(TABLE).select(detailColumns()).eq("id", id).single();
+    // The session's first detail read is what discovers whether the migration
+    // has run. `detailColumns()` is re-evaluated inside the closure, so the
+    // retry goes out already demoted.
+    let { data, error } = await read();
+    if (isMissingKindColumn(error)) ({ data, error } = await read());
     if (error) throw new Error(`[supabase] leads.get(${id}) failed: ${error.message}`);
     return rowToLead(data as unknown as LeadRow);
   },
@@ -268,12 +325,18 @@ export const supabaseLeadsProvider: ILeadsProvider = {
   },
 
   async update(id: ID, patch: Partial<ILead>): Promise<ILead> {
-    const { data, error } = await getSupabaseClient()
-      .from(TABLE)
-      .update({ ...leadPatchToRow(patch), updated_at: new Date().toISOString() })
-      .eq("id", id)
-      .select(COLUMNS)
-      .single();
+    const write = () =>
+      getSupabaseClient()
+        .from(TABLE)
+        .update({ ...leadPatchToRow(patch), updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select(detailColumns())
+        .single();
+    // Same demotion as `get`: both the patch and the returning column list are
+    // rebuilt by the closure, so the retry writes the date without the kind
+    // rather than losing the whole edit.
+    let { data, error } = await write();
+    if (isMissingKindColumn(error)) ({ data, error } = await write());
     if (error) throw new Error(`[supabase] leads.update(${id}) failed: ${error.message}`);
     return rowToLead(data as unknown as LeadRow);
   },

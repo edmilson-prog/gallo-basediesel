@@ -21,6 +21,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { formatBRL, formatDateBR, formatPhone } from "@/shared/utils/format";
+import { FicheFunnelsBlock } from "@/features/funnels/components/FicheFunnelsBlock";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useSellersProvider } from "@/providers/data";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useAuth } from "@/features/auth/useAuth";
@@ -121,7 +123,7 @@ export function LeadProfileFiche({
   return (
     <aside
       className={cn(
-        "hidden h-full shrink-0 transition-[width] duration-200 ease-in-out xl:block",
+        "hidden h-full shrink-0 transition-[width] duration-200 ease-in-out min-[1440px]:block",
         open ? "w-[360px]" : "w-0 overflow-hidden",
       )}
       aria-hidden={!open}
@@ -189,13 +191,19 @@ function LeadProfileBody({
   // (seller_handles_lead grants direct reads for ASSIGNED conversations only —
   // the pool variant was reverted for per-row perf in 20260619170000).
   const isLeadOwner = !!lead?.sellerId && lead.sellerId === mySellerId;
-  const isAssignee = !!conversation.assignedSellerId && conversation.assignedSellerId === mySellerId;
+  const isAssignee =
+    !!conversation.assignedSellerId && conversation.assignedSellerId === mySellerId;
   const canOpenLeadPage = canViewLeadStore || (canViewLeadOwn && (isLeadOwner || isAssignee));
   // Conversion is now backed by the gated `convert_lead_mark` RPC, so the
   // assigned attendant of the conversation can convert too — not just staff or
   // the lead's owner. The customer belongs to whoever converts, so its INSERT
   // already passes the customers RLS; only the lead UPDATE needs the RPC.
   const canConvert = canConvertLead({ canEditLeadStore, canEditLeadOwn, isLeadOwner, isAssignee });
+  // Same composition as converting, and deliberately so: moving a lead between
+  // stages of a funnel is an edit on the lead, and inventing a second access
+  // rule here would be a second thing to keep in sync with the RLS.
+  const canEditFunnels = canEditLeadStore || (canEditLeadOwn && (isLeadOwner || isAssignee));
+  const [dataOpen, setDataOpen] = useState(false);
 
   const ownerId: ID | null = lead?.sellerId ?? null;
   const ownerQuery = useQuery({
@@ -256,14 +264,11 @@ function LeadProfileBody({
 
         {lead && (
           <>
-            {/* State badges */}
+            {/* State badges. The stage chip that used to open this row is gone:
+                it named a stage of the store's single legacy pipeline, which
+                with N funnels answers for one of them. The block below says
+                the stage in each funnel the lead is actually in. */}
             <div className="mb-3 flex flex-wrap gap-1.5">
-              <span
-                className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium"
-                style={{ borderColor: lead.stage.color, color: lead.stage.color }}
-              >
-                {lead.stage.name}
-              </span>
               {tempMeta && (
                 <span
                   className={cn(
@@ -287,62 +292,90 @@ function LeadProfileBody({
                 </span>
               )}
               {converted && (
-                <span className="inline-flex items-center gap-1 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                <span className="inline-flex items-center gap-1 rounded bg-severity-success/15 px-1.5 py-0.5 text-[10px] font-medium text-severity-success">
                   <Icon icon="mdi:check-decagram" size={11} aria-hidden />
                   {COPY.stateConverted}
                 </span>
               )}
               {lost && (
-                <span className="inline-flex items-center gap-1 rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:text-red-300">
+                <span className="inline-flex items-center gap-1 rounded bg-severity-critical/15 px-1.5 py-0.5 text-[10px] font-medium text-severity-critical">
                   <Icon icon="mdi:close-octagon-outline" size={11} aria-hidden />
                   {COPY.stateLost}
                 </span>
               )}
             </div>
 
-            {/* Data rows */}
-            <dl className="space-y-2 text-xs">
-              <FicheRow label={COPY.owner}>
-                {ownerId
-                  ? (ownerQuery.data?.fullName ?? "—")
-                  : (
+            {/* The funnels this lead is in, and the stage in each. It sits
+                above the data because it is the first actionable thing for
+                somebody answering a message (spec 8). */}
+            <FicheFunnelsBlock
+              leadId={lead.id}
+              conversationId={conversation.id}
+              storeId={lead.storeId}
+              canEdit={canEditFunnels}
+            />
+
+            {/* Data rows. Collapsed by default: whoever is attending needs
+                funnel, stage and status; "criado em" is an occasional lookup,
+                and the block above costs ~35px per participation that has to
+                come from somewhere. */}
+            <Collapsible open={dataOpen} onOpenChange={setDataOpen}>
+              <CollapsibleTrigger className="mb-1.5 inline-flex items-center gap-1 rounded text-[10px] font-semibold uppercase tracking-wide text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <Icon
+                  icon="mdi:chevron-right"
+                  size={12}
+                  aria-hidden
+                  className={cn("transition-transform", dataOpen && "rotate-90")}
+                />
+                {COPY.sectionData}
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <dl className="space-y-2 text-xs">
+                  <FicheRow label={COPY.owner}>
+                    {ownerId ? (
+                      (ownerQuery.data?.fullName ?? "—")
+                    ) : (
                       <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                         <Icon icon="mdi:account-clock-outline" size={11} aria-hidden />
                         {COPY.ownerQueue}
                       </span>
                     )}
-              </FicheRow>
-              <FicheRow label={COPY.createdAt}>{formatDateBR(lead.createdAt)}</FicheRow>
-              {lead.estimatedValue !== undefined && (
-                <FicheRow label={COPY.estimatedValue}>{formatBRL(lead.estimatedValue)}</FicheRow>
-              )}
-              {nextAction && (
-                <FicheRow label={COPY.nextAction}>
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium",
-                      nextAction.tone,
-                    )}
-                  >
-                    {nextAction.label}
-                  </span>
-                </FicheRow>
-              )}
-              {lead.tags.length > 0 && (
-                <FicheRow label={COPY.tags}>
-                  <span className="flex flex-wrap gap-1">
-                    {lead.tags.map((tag) => (
+                  </FicheRow>
+                  <FicheRow label={COPY.createdAt}>{formatDateBR(lead.createdAt)}</FicheRow>
+                  {lead.estimatedValue !== undefined && (
+                    <FicheRow label={COPY.estimatedValue}>
+                      {formatBRL(lead.estimatedValue)}
+                    </FicheRow>
+                  )}
+                  {nextAction && (
+                    <FicheRow label={COPY.nextAction}>
                       <span
-                        key={tag}
-                        className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                        className={cn(
+                          "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium",
+                          nextAction.tone,
+                        )}
                       >
-                        {tag}
+                        {nextAction.label}
                       </span>
-                    ))}
-                  </span>
-                </FicheRow>
-              )}
-            </dl>
+                    </FicheRow>
+                  )}
+                  {lead.tags.length > 0 && (
+                    <FicheRow label={COPY.tags}>
+                      <span className="flex flex-wrap gap-1">
+                        {lead.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </span>
+                    </FicheRow>
+                  )}
+                </dl>
+              </CollapsibleContent>
+            </Collapsible>
           </>
         )}
 

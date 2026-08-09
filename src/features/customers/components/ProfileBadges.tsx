@@ -73,7 +73,7 @@ export function ProfileBadges({ customer, preConversionSlot, className }: IProfi
         className={cn(
           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
           positivated
-            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+            ? "bg-severity-success/15 text-severity-success border border-severity-success/30"
             : "bg-muted text-muted-foreground border border-border",
         )}
         title={

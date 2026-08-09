@@ -269,7 +269,7 @@ export function ShippingConfigPage() {
       />
 
       {!canEdit && (
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+        <div className="rounded-md border border-severity-info/30 bg-severity-info/5 px-4 py-3 text-sm text-severity-info">
           <div className="flex items-center gap-2">
             <Icon icon="mdi:eye-outline" className="size-4" />
             <span>
@@ -281,7 +281,7 @@ export function ShippingConfigPage() {
       )}
 
       {!hasActiveRules && draft.strategy !== "to_negotiate_default" && (
-        <div className="rounded-md border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+        <div className="rounded-md border border-severity-critical/30 bg-severity-critical/5 px-4 py-3 text-sm text-severity-critical">
           <div className="flex items-center gap-2">
             <Icon icon="mdi:alert-outline" className="size-4" />
             <span>
@@ -418,7 +418,7 @@ function StrategySection({
         </div>
 
         {strategy === "preliminary_by_weight" && (
-          <div className="rounded-md border border-blue-500/30 bg-blue-500/5 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
+          <div className="rounded-md border border-severity-info/30 bg-severity-info/5 px-3 py-2 text-xs text-severity-info">
             <Icon icon="mdi:information-outline" className="mr-1 inline size-3.5" />O cálculo por
             peso depende do campo <code className="font-mono">weightKg</code> em cada peça do
             catálogo. Itens sem peso são tratados como 0kg.
@@ -825,7 +825,7 @@ function SimulatorSection({ config }: { config: IShippingConfig }) {
               <Icon
                 icon={result.isToNegotiate ? "mdi:handshake-outline" : "mdi:truck-check-outline"}
                 className={`mt-0.5 size-5 ${
-                  result.isToNegotiate ? "text-amber-600" : "text-emerald-600"
+                  result.isToNegotiate ? "text-severity-warning" : "text-severity-success"
                 }`}
               />
               <div className="flex-1">
@@ -1010,7 +1010,7 @@ function MelhorEnvioSection({ config, onChange, disabled, isOwner }: IMelhorEnvi
             </div>
           )}
           {isOwner && status && !status.hasCredentials && (
-            <p className="mt-2 text-xs text-amber-600 dark:text-amber-300">
+            <p className="mt-2 text-xs text-severity-warning">
               <Icon icon="mdi:alert-outline" className="mr-1 inline size-3.5" />
               Credenciais ausentes — cadastre client_id, client_secret e redirect URI em{" "}
               <a href="/app/configuracoes/chaves" className="underline">
@@ -1067,7 +1067,7 @@ function MelhorEnvioSection({ config, onChange, disabled, isOwner }: IMelhorEnvi
               disabled={disabled}
             />
             {config.enabled && config.originZip.trim().length === 0 && (
-              <p className="text-[11px] text-amber-600 dark:text-amber-300">
+              <p className="text-[11px] text-severity-warning">
                 <Icon icon="mdi:alert-outline" className="mr-1 inline size-3" />
                 Informe o CEP de origem — sem ele a cotação cai direto no fallback por região.
               </p>

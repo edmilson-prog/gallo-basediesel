@@ -60,9 +60,9 @@ export function OrderHero({ order, agg, onViewQuote }: IOrderHeroProps) {
 export function OrderBanners({ order }: { order: IOrder }) {
   if (!order.canceledAt) return null;
   return (
-    <div className="flex items-start gap-2 rounded-md border border-rose-500/30 bg-rose-500/5 p-3 text-sm">
-      <Icon icon="mdi:close-circle-outline" size={18} className="mt-0.5 text-rose-600" />
-      <div className="flex-1 text-rose-700 dark:text-rose-200">
+    <div className="flex items-start gap-2 rounded-md border border-severity-critical/30 bg-severity-critical/5 p-3 text-sm">
+      <Icon icon="mdi:close-circle-outline" size={18} className="mt-0.5 text-severity-critical" />
+      <div className="flex-1 text-severity-critical">
         <p className="font-medium">Pedido cancelado</p>
         {order.cancelReason && <p className="text-xs">Motivo: {order.cancelReason}</p>}
         <p className="text-[11px] opacity-80">{formatDateTimeBR(order.canceledAt)}</p>
@@ -141,7 +141,7 @@ export function OrderActions({
         <Button
           size="sm"
           variant="outline"
-          className="text-rose-600 hover:bg-rose-500/10"
+          className="text-severity-critical hover:bg-severity-critical/10"
           onClick={onCancel}
         >
           <Icon icon="mdi:close-circle-outline" size={14} /> Cancelar pedido
@@ -413,7 +413,7 @@ export function OrderCommissionBlock({
               </div>
             )}
           </dl>
-          <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-200">
+          <div className="mt-3 flex items-start gap-2 rounded-md border border-severity-warning/30 bg-severity-warning/5 p-3 text-xs text-severity-warning">
             <Icon icon="mdi:alert-outline" size={14} className="mt-0.5" />
             <p>
               Pedido ainda não confirmado como pago — após pagamento, a comissão definitiva

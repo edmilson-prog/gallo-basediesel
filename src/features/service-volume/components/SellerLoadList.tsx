@@ -23,16 +23,16 @@ const AVAILABILITY_LABEL: Record<SellerAvailability, string> = {
 };
 
 const AVAILABILITY_DOT: Record<SellerAvailability, string> = {
-  online: "bg-emerald-500",
-  ausente: "bg-amber-400",
-  ocupado: "bg-red-500",
+  online: "bg-severity-success",
+  ausente: "bg-severity-warning",
+  ocupado: "bg-severity-critical",
   offline: "bg-muted-foreground/40",
 };
 
 const BAND_FILL: Record<ISellerLoadEntry["band"], string> = {
-  normal: "bg-emerald-500",
-  warning: "bg-amber-400",
-  critical: "bg-red-500",
+  normal: "bg-severity-success",
+  warning: "bg-severity-warning",
+  critical: "bg-severity-critical",
 };
 
 function getInitials(name: string): string {
@@ -120,8 +120,8 @@ export function SellerLoadList({
                     <span
                       className={cn(
                         "shrink-0 text-xs font-semibold tabular-nums",
-                        band === "critical" && "text-red-600 dark:text-red-400",
-                        band === "warning" && "text-amber-600 dark:text-amber-400",
+                        band === "critical" && "text-severity-critical",
+                        band === "warning" && "text-severity-warning",
                         band === "normal" && "text-muted-foreground",
                       )}
                     >

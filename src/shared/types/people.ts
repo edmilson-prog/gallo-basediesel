@@ -85,6 +85,11 @@ export interface ISeller {
   attendantName?: string;
   email: string;
   phone?: string;
+  /**
+   * Public URL of the profile photo (bucket `avatars`, PRD-106). `null`/absent
+   * ⇒ the UI falls back to the initials avatar.
+   */
+  avatarUrl?: string | null;
   type: SellerType;
   availability: SellerAvailability;
   /** Divisions the seller is authorized to operate on. On the MVP always `['parts']`. */

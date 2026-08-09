@@ -29,10 +29,10 @@ const STATUS_HEX: Record<CustomerStatus, string> = {
 };
 
 const STATUS_DOT: Record<CustomerStatus, string> = {
-  ativo: "bg-emerald-500",
-  dormente: "bg-amber-500",
-  recuperacao: "bg-blue-500",
-  perdido: "bg-slate-400",
+  ativo: "bg-severity-success",
+  dormente: "bg-severity-warning",
+  recuperacao: "bg-severity-info",
+  perdido: "bg-severity-critical",
 };
 
 export function CarteiraHealthDonut({ data, isLoading, onSliceClick }: ICarteiraHealthDonutProps) {

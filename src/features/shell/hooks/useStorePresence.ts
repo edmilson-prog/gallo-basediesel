@@ -27,7 +27,7 @@ export function usePresenceTracker(): void {
     const topic = channelTopic(currentStoreId);
     const entry = acquirePresenceChannel(topic);
 
-    const announce = () => void entry.channel.track({ sellerId });
+    const announce = () => entry.track({ sellerId });
     entry.joinListeners.add(announce);
     // Late attach: the shared channel may already be joined (e.g. a reader
     // acquired it first) — the join fanout already happened, announce now.
@@ -37,7 +37,7 @@ export function usePresenceTracker(): void {
       entry.joinListeners.delete(announce);
       // Stop broadcasting this seller even if a reader keeps the channel
       // alive — prevents a ghost "online" after logout/store switch.
-      if (entry.joined) void entry.channel.untrack();
+      entry.untrack();
       releasePresenceChannel(topic);
     };
   }, [sellerId, currentStoreId]);
@@ -55,7 +55,7 @@ export function useStorePresence(storeId: string): Set<string> | null {
     const sync = () => {
       // Presence keys are server-assigned UUIDs (see presenceChannel.ts header
       // note 2) — read the seller ids from the tracked payload values instead.
-      const state = entry.channel.presenceState<{ sellerId?: string }>();
+      const state = entry.presenceState<{ sellerId?: string }>();
       const ids = Object.values(state)
         .flat()
         .map((presence) => presence.sellerId)

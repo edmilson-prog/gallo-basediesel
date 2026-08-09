@@ -56,9 +56,9 @@ export function CopilotDetailPanel({ answer }: ICopilotDetailPanelProps) {
     : "flat";
   const deltaClasses =
     direction === "up"
-      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+      ? "bg-severity-success/10 text-severity-success"
       : direction === "down"
-        ? "bg-red-500/10 text-red-600 dark:text-red-400"
+        ? "bg-severity-critical/10 text-severity-critical"
         : "bg-muted text-muted-foreground";
   const deltaIcon =
     direction === "up"

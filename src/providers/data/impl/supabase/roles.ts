@@ -10,6 +10,7 @@ import type {
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { buildRoleSeed } from "@/features/rbac/permissions/seed";
 import { auditLog } from "@/features/rbac";
+import { isAssignableBaseRole } from "@/features/rbac/utils/assignableRoles";
 import type { ICreateRoleInput, IRolesProvider } from "../../contracts/roles";
 
 /**
@@ -190,11 +191,39 @@ export const supabaseRolesProvider: IRolesProvider = {
     return created;
   },
 
-  async updateMeta(id: ID, patch: { name?: string; description?: string }): Promise<IRole> {
+  async updateMeta(
+    id: ID,
+    patch: { name?: string; description?: string; baseRole?: RoleName },
+  ): Promise<IRole> {
     const before = await this.get(id);
     const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (patch.name !== undefined) row.name = patch.name;
     if (patch.description !== undefined) row.description = patch.description;
+
+    if (patch.baseRole !== undefined && patch.baseRole !== before.baseRole) {
+      // System roles ARE their base role — renaming that would desync the whole
+      // enforcement chain (JWT claim, RLS, the static fallback matrix).
+      if (before.isSystem) {
+        throw new Error("O papel-base de um papel de sistema não pode ser alterado.");
+      }
+      if (!isAssignableBaseRole(patch.baseRole)) {
+        throw new Error(
+          `"${patch.baseRole}" não pode ser papel-base: a atribuição seria recusada pelo servidor.`,
+        );
+      }
+      // The base role is copied into `profiles.role` at assignment time, so
+      // changing it now would leave current holders on the old base — matrix and
+      // RLS would disagree. Blocked while anyone still holds the role.
+      const assignedCount = await countRoleUsage(id);
+      if (assignedCount > 0) {
+        throw new Error(
+          `Não é possível trocar o papel-base: ${assignedCount} usuário(s) ainda usam este papel. ` +
+            `Mova essas pessoas para outro papel antes.`,
+        );
+      }
+      row.base_role = patch.baseRole;
+    }
+
     const { error } = await getSupabaseClient().from(ROLES_TABLE).update(row).eq("id", id);
     if (error) throw new Error(`[supabase] roles.updateMeta(${id}) failed: ${error.message}`);
 

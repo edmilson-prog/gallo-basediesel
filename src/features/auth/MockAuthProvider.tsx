@@ -99,6 +99,17 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
     [applySession],
   );
 
+  // Two-factor lives entirely in Supabase Auth; the mock backend has no real
+  // credential to protect, so the gate is permanently closed-off here.
+  const completeMfaChallenge = useCallback(
+    async (): Promise<IAuthResult> => ({
+      ok: false,
+      error: "A verificação em duas etapas exige a autenticação real (modo Produção).",
+    }),
+    [],
+  );
+  const cancelMfaChallenge = useCallback(() => undefined, []);
+
   const signOut = useCallback(() => {
     const previous = currentUser;
     persistUserId(null);
@@ -134,10 +145,22 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
       sessionExpired: false,
       signIn,
       signInWithPassword,
+      mfaPending: false,
+      completeMfaChallenge,
+      cancelMfaChallenge,
       signOut,
       hasRole,
     }),
-    [currentUser, isHydrating, signIn, signInWithPassword, signOut, hasRole],
+    [
+      currentUser,
+      isHydrating,
+      signIn,
+      signInWithPassword,
+      completeMfaChallenge,
+      cancelMfaChallenge,
+      signOut,
+      hasRole,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

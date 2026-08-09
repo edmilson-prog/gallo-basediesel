@@ -73,7 +73,7 @@ export function SdrDashboardHeader({
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant={sdrEnabled ? "default" : "secondary"} className="gap-1 px-2 py-1 text-xs">
           <span
-            className={`h-2 w-2 rounded-full ${sdrEnabled ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/50"}`}
+            className={`h-2 w-2 rounded-full ${sdrEnabled ? "bg-severity-success animate-pulse" : "bg-muted-foreground/50"}`}
             aria-hidden="true"
           />
           {sdrEnabled ? "SDR Ativo" : "SDR Pausado"}

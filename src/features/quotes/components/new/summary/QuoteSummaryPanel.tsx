@@ -144,8 +144,8 @@ function ApprovalBlock({
 }: Pick<IQuoteSummaryPanelProps, "needsJustification" | "discountReason" | "onDiscountReason">) {
   if (!needsJustification) return null;
   return (
-    <div className="rounded-md border border-orange-500/30 bg-orange-500/5 p-3" role="alert">
-      <p className="text-xs font-medium text-orange-600 dark:text-orange-300">
+    <div className="rounded-md border border-severity-warning/30 bg-severity-warning/5 p-3" role="alert">
+      <p className="text-xs font-medium text-severity-warning">
         <Icon icon="mdi:shield-alert-outline" size={14} className="mr-1 inline" />
         Desconto acima do limite — requer aprovação do gestor
       </p>
@@ -175,7 +175,7 @@ function DiscountMeter({
     <div className="space-y-1">
       <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className={`h-full rounded-full ${over ? "bg-orange-500" : "bg-primary"}`}
+          className={`h-full rounded-full ${over ? "bg-severity-warning" : "bg-primary"}`}
           style={{ width: `${fillPct}%` }}
         />
         <span
@@ -185,7 +185,7 @@ function DiscountMeter({
         />
       </div>
       <p
-        className={`text-xs ${over ? "text-orange-600 dark:text-orange-300" : "text-muted-foreground"}`}
+        className={`text-xs ${over ? "text-severity-warning" : "text-muted-foreground"}`}
       >
         {(discountPct * 100).toFixed(1)}% de desconto · limite {(thresholdPct * 100).toFixed(0)}%
       </p>

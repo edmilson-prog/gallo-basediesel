@@ -214,7 +214,7 @@ export function SdrTemplatesTab({
   return (
     <div className="space-y-4">
       {!canEdit && (
-        <div className="rounded-md border border-amber-200/40 bg-amber-50/50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/30 dark:bg-amber-500/10 dark:text-amber-100">
+        <div className="rounded-md border border-severity-info/30 bg-severity-info/10 px-4 py-3 text-sm text-severity-info">
           <span className="inline-flex items-center gap-2">
             <Icon icon="mdi:shield-lock-outline" size={14} />
             Edição requer permissão de Owner. Você está visualizando os templates em modo leitura.

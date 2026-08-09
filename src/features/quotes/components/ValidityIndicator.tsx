@@ -16,7 +16,7 @@ export function ValidityIndicator({
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1 text-xs font-medium text-rose-600 dark:text-rose-300",
+          "inline-flex items-center gap-1 text-xs font-medium text-severity-critical",
           className,
         )}
       >
@@ -30,10 +30,10 @@ export function ValidityIndicator({
 
   const colorClass =
     bucket === "critical"
-      ? "text-rose-600 dark:text-rose-300"
+      ? "text-severity-critical"
       : bucket === "warning"
-        ? "text-orange-600 dark:text-orange-300"
-        : "text-emerald-600 dark:text-emerald-300";
+        ? "text-severity-warning"
+        : "text-severity-success";
 
   return (
     <span

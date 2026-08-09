@@ -196,7 +196,7 @@ export function ProfileMenu({ customer, onMutated, onEditData }: IProfileMenuPro
               {canDelete && customer.status !== "perdido" && (
                 <DropdownMenuItem
                   onSelect={() => setBlockOpen(true)}
-                  className="text-rose-600 focus:bg-rose-500/10 focus:text-rose-700 dark:text-rose-400 dark:focus:text-rose-300"
+                  className="text-destructive focus:bg-destructive/10 focus:text-destructive"
                 >
                   <Icon icon="mdi:account-cancel-outline" size={14} />
                   {CUSTOMER_STRINGS.menu.blockCustomer}
@@ -257,7 +257,7 @@ export function ProfileMenu({ customer, onMutated, onEditData }: IProfileMenuPro
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBlock}
-              className="bg-rose-600 text-white hover:bg-rose-700"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
               {CUSTOMER_STRINGS.menu.blockConfirmCta}
             </AlertDialogAction>

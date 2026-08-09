@@ -40,9 +40,9 @@ export function CloseDecisionModal({
             <button
               type="button"
               onClick={() => onConverted(lead)}
-              className="flex w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition hover:border-emerald-500/50 hover:bg-emerald-500/5"
+              className="flex w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition hover:border-severity-success/50 hover:bg-severity-success/5"
             >
-              <div className="grid h-9 w-9 place-items-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-severity-success/15 text-severity-success">
                 <Icon icon="mdi:check-decagram" size={18} />
               </div>
               <div className="min-w-0">
@@ -55,9 +55,9 @@ export function CloseDecisionModal({
             <button
               type="button"
               onClick={() => onLost(lead)}
-              className="flex w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition hover:border-red-500/50 hover:bg-red-500/5"
+              className="flex w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition hover:border-severity-critical/50 hover:bg-severity-critical/5"
             >
-              <div className="grid h-9 w-9 place-items-center rounded-full bg-red-500/15 text-red-700 dark:text-red-300">
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-severity-critical/15 text-severity-critical">
                 <Icon icon="mdi:close-octagon" size={18} />
               </div>
               <div className="min-w-0">

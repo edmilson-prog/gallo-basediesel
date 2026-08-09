@@ -10,10 +10,9 @@ export interface IExecutiveAlertsBannerProps {
 }
 
 const SEVERITY_CLASS: Record<ICockpitAlert["severity"], string> = {
-  info: "border-sky-500/50 bg-sky-50 text-sky-900 dark:bg-sky-500/10 dark:text-sky-100",
-  warning:
-    "border-amber-500/60 bg-amber-50 text-amber-900 dark:bg-amber-500/10 dark:text-amber-100",
-  danger: "border-red-500/60 bg-red-50 text-red-900 dark:bg-red-500/10 dark:text-red-100",
+  info: "border-severity-info/50 bg-severity-info/10 text-severity-info",
+  warning: "border-severity-warning/60 bg-severity-warning/10 text-severity-warning",
+  danger: "border-severity-critical/60 bg-severity-critical/10 text-severity-critical",
 };
 
 const SEVERITY_ICON: Record<ICockpitAlert["severity"], string> = {

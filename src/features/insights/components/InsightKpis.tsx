@@ -49,14 +49,14 @@ function KpiCard({
   const accent = {
     default: "bg-primary/10 text-primary",
     critical: "bg-destructive/15 text-destructive",
-    warning: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
-    success: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+    warning: "bg-severity-warning/15 text-severity-warning",
+    success: "bg-severity-success/15 text-severity-success",
   }[tone];
   const valueClass = {
     default: "text-foreground",
     critical: "text-destructive",
-    warning: "text-amber-700 dark:text-amber-400",
-    success: "text-emerald-700 dark:text-emerald-400",
+    warning: "text-severity-warning",
+    success: "text-severity-success",
   }[tone];
   return (
     <Card className="flex items-start gap-3 p-4">

@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getActiveDataSource } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
-import { hasPermission } from "@/features/rbac/utils/hasPermission";
+import { hasPermission, type IRoleBearer } from "@/features/rbac/utils/hasPermission";
+import { useRbacVersion } from "@/features/rbac/hooks/useRbacVersion";
 import type { ResourceName } from "@/features/rbac/permissions/resources";
 
-interface ISettingsItem {
+export interface ISettingsItem {
   label: string;
   icon: string;
   to: string;
@@ -23,12 +24,12 @@ interface ISettingsItem {
   demoOnly?: boolean;
 }
 
-interface ISettingsGroup {
+export interface ISettingsGroup {
   label: string;
   items: ISettingsItem[];
 }
 
-const SETTINGS_GROUPS: ISettingsGroup[] = [
+export const SETTINGS_GROUPS: ISettingsGroup[] = [
   {
     label: "Pessoal",
     items: [
@@ -71,7 +72,7 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Usuários",
         icon: "mdi:account-group-outline",
         to: "/app/configuracoes/usuarios",
-        roles: ["Owner"],
+        roles: ["Owner", "Gestor"],
       },
       {
         label: "Departamentos",
@@ -109,6 +110,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner", "Gestor"],
       },
       {
+        label: "Funis",
+        icon: "mdi:filter-variant",
+        to: "/app/configuracoes/atendimento/funis",
+        permission: { resource: "funnel", action: "view" },
+      },
+      {
         label: "Pipeline de leads",
         icon: "mdi:view-column-outline",
         to: "/app/configuracoes/atendimento/pipeline",
@@ -142,25 +149,25 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Alertas de ociosidade",
         icon: "mdi:timer-alert-outline",
         to: "/app/configuracoes/atendimento/alertas-ociosidade",
-        roles: ["Owner"],
+        permission: { resource: "settings", action: "edit" },
       },
       {
         label: "Resgate de conversas",
         icon: "mdi:account-switch-outline",
         to: "/app/configuracoes/atendimento/resgate-conversas",
-        roles: ["Owner"],
+        permission: { resource: "settings", action: "edit" },
       },
       {
         label: "Continuidade de conversas",
         icon: "mdi:history",
         to: "/app/configuracoes/atendimento/continuidade",
-        roles: ["Owner"],
+        permission: { resource: "settings", action: "edit" },
       },
       {
         label: "Sons de notificação",
         icon: "mdi:music-note-outline",
         to: "/app/configuracoes/sons",
-        roles: ["Owner"],
+        permission: { resource: "settings", action: "edit" },
       },
       {
         label: "Cadastro de veículos",
@@ -192,6 +199,12 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         roles: ["Owner", "Gestor", "Vendedor", "SDR"],
       },
       {
+        label: "Chaves PIX",
+        icon: "mdi:qrcode",
+        to: "/app/configuracoes/pix",
+        roles: ["Owner", "Gestor"],
+      },
+      {
         label: "Mídias (retenção)",
         icon: "mdi:database-clock-outline",
         to: "/app/configuracoes/midias",
@@ -212,13 +225,13 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Templates de mensagem",
         icon: "mdi:message-text-outline",
         to: "/app/configuracoes/sdr/templates",
-        roles: ["Owner"],
+        permission: { resource: "settings", action: "edit" },
       },
       {
         label: "Orçamento automático",
         icon: "mdi:file-document-edit-outline",
         to: "/app/configuracoes/sdr/orcamento",
-        roles: ["Owner"],
+        roles: ["Owner", "Gestor"],
       },
     ],
   },
@@ -259,14 +272,14 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Gamificação",
         icon: "mdi:trophy-outline",
         to: "/app/configuracoes/gamificacao",
-        roles: ["Owner"],
+        roles: ["Owner", "Gestor"],
         upcoming: true,
       },
       {
         label: "Comissões",
         icon: "mdi:cash-multiple",
         to: "/app/configuracoes/comissoes",
-        roles: ["Owner"],
+        roles: ["Owner", "Gestor"],
       },
       {
         label: "Financeiro / DRE",
@@ -278,37 +291,37 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Estoque (análise)",
         icon: "mdi:warehouse",
         to: "/app/configuracoes/estoque-analise",
-        roles: ["Owner"],
+        permission: { resource: "inventory", action: "edit" },
       },
       {
         label: "Insights",
         icon: "mdi:brain",
         to: "/app/configuracoes/insights",
-        roles: ["Owner"],
+        permission: { resource: "settings", action: "edit" },
       },
       {
         label: "Forecast",
         icon: "mdi:chart-bell-curve-cumulative",
         to: "/app/configuracoes/forecast",
-        roles: ["Owner"],
+        roles: ["Owner", "Gestor"],
       },
       {
         label: "Vitrine pública",
         icon: "mdi:storefront-outline",
         to: "/app/storefront-admin",
-        roles: ["Owner"],
+        permission: { resource: "storefront_admin", action: "view" },
       },
       {
         label: "Integração E-commerce",
         icon: "mdi:cart-arrow-down",
         to: "/app/configuracoes/ecommerce-integracao",
-        roles: ["Owner"],
+        permission: { resource: "ecommerce_integration", action: "edit" },
       },
       {
         label: "Divisões",
         icon: "mdi:shape-outline",
         to: "/app/configuracoes/divisoes",
-        roles: ["Owner"],
+        roles: ["Owner", "Gestor"],
         upcoming: true,
       },
       {
@@ -344,22 +357,47 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
   },
 ];
 
+/**
+ * Decides whether a settings entry is visible — the same hybrid gate the main
+ * sidebar uses (see `isNavItemVisible`): a `permission` item is matrix-driven,
+ * so the Role Editor and custom roles govern it; otherwise the `roles`
+ * allowlist applies. No gate ⇒ hidden (fail-closed).
+ *
+ * Exported so the visibility contract is unit-testable without mounting the
+ * layout — each entry here must mirror the `requireAuth` guard of the route it
+ * points at, or the screen becomes reachable-but-unnavigable (or the reverse).
+ */
+export function isSettingsItemVisible(
+  item: ISettingsItem,
+  user: IRoleBearer | null,
+  userRole: RoleName | null,
+  isDemo: boolean,
+): boolean {
+  if (item.demoOnly && !isDemo) return false;
+  if (item.permission) {
+    return hasPermission(user, item.permission.resource, item.permission.action);
+  }
+  if (item.roles && userRole) return item.roles.includes(userRole);
+  return false;
+}
+
 function useVisibleGroups() {
   const { currentUser, userRole } = useAuth();
+  // The persisted matrix is fetched after sign-in (RLS), so it can land after
+  // this memo first runs — recompute when it does.
+  const rbacVersion = useRbacVersion();
   return useMemo(() => {
     const isDemo = getActiveDataSource() === "mock";
     return SETTINGS_GROUPS.map((group) => ({
       ...group,
-      items: group.items.filter((item) => {
-        if (item.demoOnly && !isDemo) return false;
-        if (item.permission) {
-          return hasPermission(currentUser, item.permission.resource, item.permission.action);
-        }
-        if (item.roles && userRole) return item.roles.includes(userRole);
-        return false;
-      }),
+      items: group.items.filter((item) =>
+        isSettingsItemVisible(item, currentUser, userRole, isDemo),
+      ),
     })).filter((group) => group.items.length > 0);
-  }, [currentUser, userRole]);
+    // `rbacVersion` looks unused to the linter — it is the invalidation token
+    // for the module-level cache `hasPermission()` reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, userRole, rbacVersion]);
 }
 
 interface ISidebarContentProps {

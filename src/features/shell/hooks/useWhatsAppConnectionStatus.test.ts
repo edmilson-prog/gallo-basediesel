@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { IWhatsAppAccount } from "@/shared/types";
-import { buildDisconnectBannerCopy, deriveConnectionSignals } from "./useWhatsAppConnectionStatus";
+import {
+  buildDisconnectBannerCopy,
+  deriveConnectionSignals,
+  mergeConnectionAccounts,
+} from "./useWhatsAppConnectionStatus";
 
 describe("buildDisconnectBannerCopy", () => {
   it("names the account when a single one is down", () => {
@@ -48,7 +52,32 @@ function makeAccount(overrides: Partial<IWhatsAppAccount> = {}): IWhatsAppAccoun
 
 const NEVER_SESSION_MUTED = () => false;
 
+describe("mergeConnectionAccounts", () => {
+  it("combines the shared engine-family list with the isolated WAHA list", () => {
+    const family = [makeAccount({ id: "evo-1", provider: "evolution" })];
+    const waha = [makeAccount({ id: "waha-1", provider: "waha" })];
+    expect(mergeConnectionAccounts(family, waha)).toEqual([...family, ...waha]);
+  });
+
+  it("still works when one of the lists is empty", () => {
+    const family = [makeAccount({ id: "evo-1", provider: "evolution" })];
+    expect(mergeConnectionAccounts(family, [])).toEqual(family);
+    expect(mergeConnectionAccounts([], family)).toEqual(family);
+  });
+});
+
 describe("deriveConnectionSignals", () => {
+  it("counts a disconnected WAHA account the same as any other provider", () => {
+    // WAHA is excluded from whatsappAccountsProvider.list() (its rows have a
+    // shape ~12 other consumers don't handle), so the shell's own query merges
+    // list() with listWaha() before this function ever sees the accounts —
+    // this only guards that the signal derivation itself has no provider gate.
+    const down = makeAccount({ id: "waha-down", provider: "waha", status: "disconnected" });
+    const signals = deriveConnectionSignals([down], NEVER_SESSION_MUTED);
+    expect(signals.disconnected).toEqual([down]);
+    expect(signals.alerting).toEqual([down]);
+  });
+
   it("counts a connected account as healthy with no alerts", () => {
     const signals = deriveConnectionSignals(
       [makeAccount({ status: "connected" })],

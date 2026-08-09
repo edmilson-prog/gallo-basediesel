@@ -119,8 +119,8 @@ export function EditGoalModal({ goal, open, onOpenChange, actorId, onSaved }: IE
           </div>
 
           {requiresConfirmation && (
-            <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
-              <p className="mb-2 flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+            <div className="rounded-md border border-severity-warning/40 bg-severity-warning/5 p-3">
+              <p className="mb-2 flex items-center gap-1 text-xs font-semibold text-severity-warning">
                 <Icon icon="mdi:alert-circle-outline" size={14} />
                 {S.targetChangeWarningTitle}
               </p>

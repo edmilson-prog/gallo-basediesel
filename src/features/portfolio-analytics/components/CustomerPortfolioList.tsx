@@ -25,10 +25,10 @@ export interface ICustomerPortfolioListProps {
 }
 
 const STATUS_STYLE: Record<CustomerStatus, string> = {
-  ativo: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
-  recuperacao: "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
-  dormente: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
-  perdido: "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300",
+  ativo: "bg-severity-success/10 text-severity-success",
+  recuperacao: "bg-severity-info/10 text-severity-info",
+  dormente: "bg-severity-warning/10 text-severity-warning",
+  perdido: "bg-severity-critical/10 text-severity-critical",
 };
 
 const STATUS_LABEL: Record<CustomerStatus, string> = {
