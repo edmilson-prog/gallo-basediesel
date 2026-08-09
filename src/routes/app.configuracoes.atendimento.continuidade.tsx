@@ -5,7 +5,7 @@ import { EchoContinuitySettingsPage } from "@/features/admin-settings";
 
 export const Route = createFileRoute("/app/configuracoes/atendimento/continuidade")({
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, undefined, { resource: "settings", action: "edit" }),
+    requireAuth(location.pathname, undefined, { resource: "settings_automation", action: "edit" }),
   component: () => (
     <SettingsLayout>
       <EchoContinuitySettingsPage />

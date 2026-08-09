@@ -5,7 +5,7 @@ import { SessionSettingsPage } from "@/features/admin-settings/pages/SessionSett
 
 export const Route = createFileRoute("/app/configuracoes/sessao")({
   beforeLoad: ({ location }) => {
-    requireAuth(location.pathname, ["Owner"]);
+    requireAuth(location.pathname, undefined, { resource: "settings_system", action: "edit" });
   },
   component: () => (
     <SettingsLayout>

@@ -82,6 +82,15 @@ const RESOURCE_LABELS: Record<ResourceName, string> = {
   // Role administration & monitoring (PRD-211 Task 16).
   manage_roles: "Gerir papéis",
   monitor: "Monitoramento",
+  // Settings areas lifted out of hardcoded role allowlists — keep these labels
+  // in sync with 20260809130238_rbac_settings_resources.sql.
+  settings_users: "Usuários",
+  settings_whatsapp: "WhatsApp & Templates",
+  settings_api_keys: "Chaves & API",
+  settings_ai: "Inteligência artificial",
+  settings_sdr: "Agente SDR",
+  settings_automation: "Automações de atendimento",
+  settings_system: "Sistema & Sessão",
 };
 
 /** Editorial grouping of resources into UI areas (PRD-211). */
@@ -133,6 +142,13 @@ const RESOURCE_GROUPS: Record<ResourceName, string> = {
   role: "Configuração",
   manage_roles: "Configuração",
   monitor: "Configuração",
+  settings_users: "Configuração",
+  settings_whatsapp: "Configuração",
+  settings_api_keys: "Configuração",
+  settings_ai: "Configuração",
+  settings_sdr: "Configuração",
+  settings_automation: "Configuração",
+  settings_system: "Configuração",
 };
 
 /**

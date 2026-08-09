@@ -4,7 +4,7 @@ import { requireAuth } from "@/features/auth/guards";
 import { IntegrationKeysPage } from "@/features/admin-settings";
 
 export const Route = createFileRoute("/app/configuracoes/chaves")({
-  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner"]),
+  beforeLoad: ({ location }) => requireAuth(location.pathname, undefined, { resource: "settings_api_keys", action: "view" }),
   component: () => (
     <SettingsLayout>
       <IntegrationKeysPage />

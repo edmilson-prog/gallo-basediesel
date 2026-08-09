@@ -4,8 +4,10 @@ import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useTheme } from "@/hooks/useTheme";
 import { THEMES } from "@/config/themes";
 import { FunnelLayoutPreferenceCard } from "@/features/funnels/components/FunnelLayoutPreferenceCard";
+import { requireAuth } from "@/features/auth/guards";
 
 export const Route = createFileRoute("/app/configuracoes/aparencia")({
+  beforeLoad: ({ location }) => requireAuth(location.pathname),
   component: AppearancePage,
 });
 

@@ -24,7 +24,7 @@ export const Route = createFileRoute("/app/configuracoes/frete/callback")({
     error: typeof search.error === "string" ? search.error : undefined,
   }),
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner"], { resource: "settings", action: "edit" }),
+    requireAuth(location.pathname, undefined, { resource: "settings", action: "edit" }),
   component: MelhorEnvioCallback,
 });
 

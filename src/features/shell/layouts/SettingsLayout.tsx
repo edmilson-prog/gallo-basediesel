@@ -29,6 +29,17 @@ export interface ISettingsGroup {
   items: ISettingsItem[];
 }
 
+/**
+ * Roles that can actually reach /app — mirrors the guard in `src/routes/app.tsx`.
+ *
+ * Personal settings (profile, appearance, tours, notifications, copilot, about)
+ * belong to every staff member, so they gate on this list instead of an RBAC
+ * resource. Listing SDR/VendedorExterno/Financeiro here would be dead code: the
+ * /app guard turns them away before any settings screen renders. Widening access
+ * is a product decision that starts in `app.tsx`, not here.
+ */
+const STAFF_ROLES: RoleName[] = ["Owner", "Gestor", "Vendedor"];
+
 export const SETTINGS_GROUPS: ISettingsGroup[] = [
   {
     label: "Pessoal",
@@ -37,31 +48,31 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Perfil",
         icon: "mdi:account-circle-outline",
         to: "/app/configuracoes/perfil",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+        roles: STAFF_ROLES,
       },
       {
         label: "Aparência",
         icon: "mdi:palette-outline",
         to: "/app/configuracoes/aparencia",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+        roles: STAFF_ROLES,
       },
       {
         label: "Tours & Ajuda",
         icon: "mdi:help-circle-outline",
         to: "/app/configuracoes/tours",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+        roles: STAFF_ROLES,
       },
       {
         label: "Notificações",
         icon: "mdi:bell-outline",
         to: "/app/configuracoes/notificacoes",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+        roles: STAFF_ROLES,
       },
       {
         label: "Copiloto",
         icon: "mdi:lightbulb-on-outline",
         to: "/app/configuracoes/copiloto",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno"],
+        roles: STAFF_ROLES,
       },
     ],
   },
@@ -72,7 +83,7 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Usuários",
         icon: "mdi:account-group-outline",
         to: "/app/configuracoes/usuarios",
-        roles: ["Owner", "Gestor"],
+        permission: { resource: "settings_users", action: "view" },
       },
       {
         label: "Departamentos",
@@ -107,7 +118,7 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Templates WhatsApp",
         icon: "mdi:message-text-clock-outline",
         to: "/app/configuracoes/templates-whatsapp",
-        roles: ["Owner", "Gestor"],
+        permission: { resource: "settings_whatsapp", action: "view" },
       },
       {
         label: "Funis",
@@ -149,25 +160,25 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Alertas de ociosidade",
         icon: "mdi:timer-alert-outline",
         to: "/app/configuracoes/atendimento/alertas-ociosidade",
-        permission: { resource: "settings", action: "edit" },
+        permission: { resource: "settings_automation", action: "edit" },
       },
       {
         label: "Resgate de conversas",
         icon: "mdi:account-switch-outline",
         to: "/app/configuracoes/atendimento/resgate-conversas",
-        permission: { resource: "settings", action: "edit" },
+        permission: { resource: "settings_automation", action: "edit" },
       },
       {
         label: "Continuidade de conversas",
         icon: "mdi:history",
         to: "/app/configuracoes/atendimento/continuidade",
-        permission: { resource: "settings", action: "edit" },
+        permission: { resource: "settings_automation", action: "edit" },
       },
       {
         label: "Sons de notificação",
         icon: "mdi:music-note-outline",
         to: "/app/configuracoes/sons",
-        permission: { resource: "settings", action: "edit" },
+        permission: { resource: "settings_automation", action: "edit" },
       },
       {
         label: "Cadastro de veículos",
@@ -190,25 +201,25 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Biblioteca de ativos",
         icon: "mdi:bookshelf",
         to: "/app/configuracoes/biblioteca",
-        roles: ["Owner", "Gestor"],
+        permission: { resource: "asset_library", action: "view" },
       },
       {
         label: "Respostas rápidas",
         icon: "mdi:message-flash-outline",
         to: "/app/configuracoes/respostas-rapidas",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR"],
+        permission: { resource: "quick_reply", action: "view" },
       },
       {
         label: "Chaves PIX",
         icon: "mdi:qrcode",
         to: "/app/configuracoes/pix",
-        roles: ["Owner", "Gestor"],
+        permission: { resource: "settings", action: "edit" },
       },
       {
         label: "Mídias (retenção)",
         icon: "mdi:database-clock-outline",
         to: "/app/configuracoes/midias",
-        roles: ["Owner", "Gestor"],
+        permission: { resource: "media", action: "edit" },
       },
     ],
   },
@@ -219,19 +230,19 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Simulador",
         icon: "mdi:robot-happy-outline",
         to: "/app/configuracoes/sdr/simulador",
-        roles: ["Owner", "Gestor"],
+        permission: { resource: "settings_sdr", action: "view" },
       },
       {
         label: "Templates de mensagem",
         icon: "mdi:message-text-outline",
         to: "/app/configuracoes/sdr/templates",
-        permission: { resource: "settings", action: "edit" },
+        permission: { resource: "settings_sdr", action: "edit" },
       },
       {
         label: "Orçamento automático",
         icon: "mdi:file-document-edit-outline",
         to: "/app/configuracoes/sdr/orcamento",
-        roles: ["Owner", "Gestor"],
+        permission: { resource: "settings_sdr", action: "edit" },
       },
     ],
   },
@@ -242,19 +253,19 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Inteligência artificial",
         icon: "mdi:robot-happy-outline",
         to: "/app/configuracoes/ia",
-        roles: ["Owner"],
+        permission: { resource: "settings_ai", action: "edit" },
       },
       {
         label: "WhatsApp",
         icon: "mdi:whatsapp",
         to: "/app/configuracoes/whatsapp",
-        roles: ["Owner"],
+        permission: { resource: "settings_whatsapp", action: "edit" },
       },
       {
         label: "Chaves & API",
         icon: "mdi:key-variant",
         to: "/app/configuracoes/chaves",
-        roles: ["Owner"],
+        permission: { resource: "settings_api_keys", action: "view" },
       },
       {
         label: "Portal do cliente",
@@ -279,13 +290,16 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Comissões",
         icon: "mdi:cash-multiple",
         to: "/app/configuracoes/comissoes",
-        roles: ["Owner", "Gestor"],
+        // Deliberately the `settings` umbrella, not `commission`: this screen
+        // configures payout rules, and granting `commission:edit` would leak
+        // into money-touching checks elsewhere. Reproduces Owner+Gestor exactly.
+        permission: { resource: "settings", action: "edit" },
       },
       {
         label: "Financeiro / DRE",
         icon: "mdi:file-chart-outline",
         to: "/app/configuracoes/financeiro",
-        roles: ["Owner", "Financeiro"],
+        permission: { resource: "dre", action: "edit" },
       },
       {
         label: "Estoque (análise)",
@@ -303,7 +317,7 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Forecast",
         icon: "mdi:chart-bell-curve-cumulative",
         to: "/app/configuracoes/forecast",
-        roles: ["Owner", "Gestor"],
+        permission: { resource: "settings", action: "edit" },
       },
       {
         label: "Vitrine pública",
@@ -334,13 +348,13 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Ambiente & Dados",
         icon: "mdi:swap-horizontal-circle-outline",
         to: "/app/configuracoes/ambiente",
-        roles: ["Owner"],
+        permission: { resource: "settings_system", action: "edit" },
       },
       {
         label: "Segurança da sessão",
         icon: "mdi:timer-lock-outline",
         to: "/app/configuracoes/sessao",
-        roles: ["Owner"],
+        permission: { resource: "settings_system", action: "edit" },
       },
     ],
   },
@@ -351,7 +365,7 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Sobre",
         icon: "mdi:information-outline",
         to: "/app/configuracoes/sobre",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+        roles: STAFF_ROLES,
       },
     ],
   },
