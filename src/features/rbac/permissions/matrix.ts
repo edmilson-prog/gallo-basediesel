@@ -78,6 +78,14 @@ const OWNER_ENTRIES: ScopedActions[] = [
   // Role administration & monitoring (PRD-211 Task 16) — Owner only.
   p("manage_roles", CRUD, "all"),
   p("monitor", ["view"], "all"),
+  // Settings areas lifted out of hardcoded role allowlists.
+  p("settings_users", ["view", "edit"], "all"),
+  p("settings_whatsapp", ["view", "edit"], "all"),
+  p("settings_api_keys", ["view", "edit"], "all"),
+  p("settings_ai", ["view", "edit"], "all"),
+  p("settings_sdr", ["view", "edit"], "all"),
+  p("settings_automation", ["view", "edit"], "all"),
+  p("settings_system", ["view", "edit"], "all"),
 ];
 
 const GESTOR_ENTRIES: ScopedActions[] = [
@@ -105,11 +113,12 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   // the Gestor's job. Assigning platform roles stays Owner-only (see the Edge).
   p("seller", ["view", "edit"], "store"),
   p("store", ["view"], "own"),
-  // The `settings` umbrella governs the operational settings screens
-  // (Distribuição, Ciclo de vida, Horário comercial, Cadastro de veículos, Sons,
-  // Alertas/Resgate/Continuidade de conversas, Frete, Insights, templates SDR).
-  // Those routes used to also carry a hardcoded `["Owner"]` ceiling, which made
-  // the grant inert — the ceiling was removed so the matrix actually governs them.
+  // The `settings` umbrella governs the operational settings screens that have
+  // no domain resource of their own: Distribuição, Pipeline de leads, Motivos de
+  // perda, Tags, Ciclo de vida, Horário comercial, Cadastro de veículos, Frete,
+  // Insights, Comissões, Forecast, Chaves PIX e Curva ABC.
+  // Conversation automations moved to `settings_automation` and the SDR agent
+  // screens to `settings_sdr`, so this umbrella stops growing without bound.
   p("settings", ["view", "edit"], "store"),
   p("audit_log", ["view"], "store"),
   p("media", ["view", "edit", "delete"], "store"),
@@ -132,6 +141,15 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("quick_reply", CRUD, "store"),
   p("trackable_link", CRUD, "store"),
   p("scheduled_send", CRUD, "store"),
+  // Settings areas: these grants reproduce exactly the access the Gestor already
+  // had through the hardcoded allowlists they replace — no widening.
+  p("settings_users", ["view", "edit"], "store"),
+  // `view` only: Templates WhatsApp was Owner+Gestor, the accounts screen
+  // (which requires `edit`) was Owner-only.
+  p("settings_whatsapp", ["view"], "store"),
+  p("settings_sdr", ["view", "edit"], "store"),
+  p("settings_automation", ["view", "edit"], "store"),
+  // Not granted (Owner-only today): settings_api_keys, settings_ai, settings_system.
 ];
 
 const VENDEDOR_ENTRIES: ScopedActions[] = [

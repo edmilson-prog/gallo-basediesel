@@ -5,10 +5,7 @@ import { FinancialConfigPage } from "@/features/dre";
 
 export const Route = createFileRoute("/app/configuracoes/financeiro")({
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner", "Financeiro"], {
-      resource: "dre",
-      action: "edit",
-    }),
+    requireAuth(location.pathname, undefined, { resource: "dre", action: "edit" }),
   component: () => (
     <SettingsLayout>
       <FinancialConfigPage />

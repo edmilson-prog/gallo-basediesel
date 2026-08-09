@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SettingsLayout } from "@/features/shell/layouts";
 import { CopilotPlacementField } from "@/features/copilot";
 import { COPILOT_STRINGS } from "@/features/copilot/i18n/pt-BR";
+import { requireAuth } from "@/features/auth/guards";
 
 export const Route = createFileRoute("/app/configuracoes/copiloto")({
+  beforeLoad: ({ location }) => requireAuth(location.pathname),
   component: CopilotSettingsPage,
 });
 

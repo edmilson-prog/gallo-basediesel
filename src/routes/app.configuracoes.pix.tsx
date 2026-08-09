@@ -4,7 +4,7 @@ import { requireAuth } from "@/features/auth/guards";
 import { PixKeysPage } from "@/features/pix";
 
 export const Route = createFileRoute("/app/configuracoes/pix")({
-  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner", "Gestor"]),
+  beforeLoad: ({ location }) => requireAuth(location.pathname, undefined, { resource: "settings", action: "edit" }),
   component: () => (
     <SettingsLayout>
       <PixKeysPage />

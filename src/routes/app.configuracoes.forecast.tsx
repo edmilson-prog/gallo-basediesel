@@ -4,7 +4,7 @@ import { requireAuth } from "@/features/auth/guards";
 import { ForecastConfigPage } from "@/features/sales-forecast/pages/ForecastConfigPage";
 
 export const Route = createFileRoute("/app/configuracoes/forecast")({
-  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner", "Gestor"]),
+  beforeLoad: ({ location }) => requireAuth(location.pathname, undefined, { resource: "settings", action: "edit" }),
   component: () => (
     <SettingsLayout>
       <ForecastConfigPage />
