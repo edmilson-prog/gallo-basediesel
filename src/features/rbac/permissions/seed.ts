@@ -83,7 +83,7 @@ const RESOURCE_LABELS: Record<ResourceName, string> = {
   manage_roles: "Gerir papéis",
   monitor: "Monitoramento",
   // Settings areas lifted out of hardcoded role allowlists — keep these labels
-  // in sync with 20260809120000_rbac_settings_resources.sql.
+  // in sync with 20260809130238_rbac_settings_resources.sql.
   settings_users: "Usuários",
   settings_whatsapp: "WhatsApp & Templates",
   settings_api_keys: "Chaves & API",
