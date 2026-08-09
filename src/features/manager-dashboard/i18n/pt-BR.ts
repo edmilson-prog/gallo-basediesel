@@ -83,12 +83,6 @@ export const MANAGER_DASHBOARD_STRINGS = {
   settingsSaved: "Configurações salvas",
   settingsSaveError: "Não foi possível salvar as configurações.",
 
-  // No access placeholder
-  noAccessTitle: "Painel não disponível para o seu papel",
-  noAccessDescription:
-    "Vendedores acompanham o atendimento pela Central. Para ver métricas operacionais, peça acesso ao gestor da loja.",
-  noAccessCta: "Ir para a Central de Atendimento",
-
   // Errors
   errorLoading: "Erro ao carregar este indicador.",
   errorRetry: "Tentar novamente",

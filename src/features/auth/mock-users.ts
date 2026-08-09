@@ -117,7 +117,8 @@ export const MOCK_USERS: IMockUserProfile[] = [
     storeLabel: "GALLO Matriz",
     avatarInitials: "LC",
     description: "Vendedor interno — Central de Atendimento e carteira.",
-    defaultRedirect: "/app/atendimento",
+    // Matches `defaultRedirectForRole("Vendedor")` — the personal dashboard.
+    defaultRedirect: "/app/inicio",
     storeId: MATRIZ_STORE_ID,
     accessibleStoreIds: [MATRIZ_STORE_ID],
     sellerId: "seller-carlos-santos", // legacy stable id — maps to Lucas Costa in seedSellers.ts
@@ -131,7 +132,8 @@ export const MOCK_USERS: IMockUserProfile[] = [
     storeLabel: "GALLO Matriz",
     avatarInitials: "CB",
     description: "Vendedor interno — Central de Atendimento e carteira.",
-    defaultRedirect: "/app/atendimento",
+    // Matches `defaultRedirectForRole("Vendedor")` — the personal dashboard.
+    defaultRedirect: "/app/inicio",
     storeId: MATRIZ_STORE_ID,
     accessibleStoreIds: [MATRIZ_STORE_ID],
     sellerId: "seller-rafael-lima", // legacy stable id — maps to Cauan Bulegon in seedSellers.ts
@@ -145,7 +147,8 @@ export const MOCK_USERS: IMockUserProfile[] = [
     storeLabel: "GALLO Matriz",
     avatarInitials: "RS",
     description: "Vendedor interno — Central de Atendimento e carteira.",
-    defaultRedirect: "/app/atendimento",
+    // Matches `defaultRedirectForRole("Vendedor")` — the personal dashboard.
+    defaultRedirect: "/app/inicio",
     storeId: MATRIZ_STORE_ID,
     accessibleStoreIds: [MATRIZ_STORE_ID],
     sellerId: "seller-ramon-schimidt",

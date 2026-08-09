@@ -206,8 +206,11 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         label: "Ranking",
         icon: "mdi:trophy",
         to: ROUTES.GESTAO_RANKING,
-        // Mirrors requireAuth on /app/gestao/ranking.
-        roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
+        // Mirrors requireAuth on /app/gestao/ranking — "Vendedor" removed from
+        // both (issue #421): the ranking is scored client-side from store-wide
+        // orders/customers, which per-seller RLS truncates to the caller's own
+        // rows, so a non-staff viewer always read "#1".
+        roles: ["Owner", "Gestor", "Financeiro"],
       },
       {
         label: "Positivação",
@@ -400,11 +403,8 @@ export const BOTTOM_NAV: Record<"Owner" | "Gestor" | "Vendedor", INavItem[]> = {
       to: ROUTES.APP_CLIENTES,
       roles: ["Vendedor"],
     },
-    {
-      label: "Ranking",
-      icon: "mdi:trophy",
-      to: ROUTES.GESTAO_RANKING,
-      roles: ["Vendedor"],
-    },
+    // "Ranking" removed from the Vendedor bottom nav (issue #421) — the route
+    // no longer admits this role, so the entry would only lead to
+    // /sem-permissao.
   ],
 };

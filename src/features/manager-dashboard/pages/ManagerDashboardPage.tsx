@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";
 import { DashboardLayout } from "@/features/shell/layouts";
-import { EmptyState } from "@/features/shell/components/EmptyState";
+import { SellerDashboardPage } from "@/features/seller-dashboard";
 import { Icon } from "@/components/Icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
@@ -64,17 +64,7 @@ export function ManagerDashboardPage() {
   const activeTab = canViewVolume ? volume.state.tab : "operacao";
 
   if (userRole === "Vendedor") {
-    return (
-      <DashboardLayout>
-        <EmptyState
-          icon="mdi:shield-lock-outline"
-          title={MANAGER_DASHBOARD_STRINGS.noAccessTitle}
-          description={MANAGER_DASHBOARD_STRINGS.noAccessDescription}
-          actionLabel={MANAGER_DASHBOARD_STRINGS.noAccessCta}
-          actionTo="/app/atendimento"
-        />
-      </DashboardLayout>
-    );
+    return <SellerDashboardPage />;
   }
 
   return (
