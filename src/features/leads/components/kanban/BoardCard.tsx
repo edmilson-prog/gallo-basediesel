@@ -80,6 +80,12 @@ export function BoardCard({
 
   const temperature = TEMPERATURE_META[lead.temperature];
   const nextAction = getNextActionInfo(lead.nextActionAt);
+  // Days in THIS funnel's stage, from the participation — not the lead's
+  // `updatedAt`, which any edit anywhere resets.
+  const daysHere = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(entry.enteredStageAt).getTime()) / 86_400_000),
+  );
   const urgentClass =
     nextAction.urgency === "overdue"
       ? URGENT_TEXT.overdue
@@ -175,18 +181,48 @@ export function BoardCard({
       </div>
 
       <div className="flex items-center gap-2 pl-3.5 text-[11px]">
-        <span className="tabular-nums text-muted-foreground">
+        <span
+          className={cn(
+            "tabular-nums",
+            entry.estimatedValue !== undefined
+              ? "font-medium text-muted-foreground"
+              : "text-muted-foreground/60",
+          )}
+        >
+          {/*
+            "Valor não informado" spent two lines saying nothing. A null is a
+            null: the dash reads as fast and costs one character.
+          */}
           {entry.estimatedValue !== undefined
             ? formatBRLCompact(entry.estimatedValue)
-            : LEADS_STRINGS.card.noValue}
+            : LEADS_STRINGS.card.noValueShort}
         </span>
         {urgentClass && (
-          <span className={cn("inline-flex items-center gap-0.5", urgentClass)}>
+          <span
+            className={cn("inline-flex items-center gap-0.5 font-semibold tabular-nums", urgentClass)}
+            // "Atrasada há 58 dias" wrapped onto a second line and doubled the
+            // card's height — on nearly every card, because nearly every card
+            // is late. The token says the same thing in three characters; the
+            // sentence survives in the title and in the hover card.
+            title={
+              nextAction.urgency === "overdue"
+                ? LEADS_STRINGS.card.overdueTitle(nextAction.diffDays)
+                : nextAction.label
+            }
+          >
             <Icon icon="mdi:calendar-alert" size={11} aria-hidden />
-            {nextAction.label}
+            {nextAction.urgency === "overdue"
+              ? LEADS_STRINGS.card.overdueShort(nextAction.diffDays)
+              : nextAction.label}
           </span>
         )}
-        {indicator && <span className="ml-auto">{indicator}</span>}
+        <span
+          className="ml-auto tabular-nums text-muted-foreground/60"
+          title={LEADS_STRINGS.card.daysHereTitle(daysHere)}
+        >
+          {LEADS_STRINGS.card.daysHere(daysHere)}
+        </span>
+        {indicator}
       </div>
     </div>
   );

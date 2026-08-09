@@ -154,6 +154,11 @@ export const COPY = {
     removedToDefault: (funil: string) =>
       `Lead tirado do funil ${funil} e devolvido para a triagem.`,
     removeError: "Não foi possível tirar o lead do funil.",
+    // O valor é da PARTICIPAÇÃO: um lead em dois funis são duas receitas, e
+    // repetir o valor do lead em cada uma inflaria o forecast.
+    valueSaved: (funil: string) => `${funil}: valor estimado salvo.`,
+    valueCleared: (funil: string) => `${funil}: valor removido.`,
+    valueError: "Não foi possível salvar o valor.",
   },
   otherFunnels: {
     ariaLabel: (n: number) =>

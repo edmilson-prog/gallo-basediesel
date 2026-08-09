@@ -5,7 +5,10 @@ import { LEADS_STRINGS } from "../i18n/pt-BR";
 export interface ITemperatureMeta {
   label: string;
   icon: string;
+  /** Chip: soft background + matching text. */
   tone: string;
+  /** Text colour alone, for a value that carries no chip of its own. */
+  text: string;
   dot: string;
 }
 
@@ -14,18 +17,21 @@ export const TEMPERATURE_META: Record<LeadTemperature, ITemperatureMeta> = {
     label: LEADS_STRINGS.temperature.frio,
     icon: "mdi:snowflake",
     tone: "bg-severity-info/15 text-severity-info",
+    text: "text-severity-info",
     dot: "bg-severity-info",
   },
   morno: {
     label: LEADS_STRINGS.temperature.morno,
     icon: "mdi:weather-partly-cloudy",
     tone: "bg-severity-warning/15 text-severity-warning",
+    text: "text-severity-warning",
     dot: "bg-severity-warning",
   },
   quente: {
     label: LEADS_STRINGS.temperature.quente,
     icon: "mdi:fire",
     tone: "bg-severity-critical/15 text-severity-critical",
+    text: "text-severity-critical",
     dot: "bg-severity-critical",
   },
 };

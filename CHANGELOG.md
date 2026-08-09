@@ -4,6 +4,46 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.168.0] — Sightline · 2026-08-08
+
+**O quadro de leads mostrava seis colunas do mesmo tamanho e escondia a única coisa que interessa: de cada dez leads ativos, quase dez nunca saíram da entrada. Agora a tela diz isso na primeira linha, a entrada virou uma faixa larga com a saída em destaque, e a lista parou de só listar — dá para decidir sem sair dela. Do outro lado, a ficha do lead deixou de responder "que campos existem" e passou a responder "o que eu faço com este lead agora".**
+
+### Added
+
+- **Leitura do funil no topo do quadro** — uma barra proporcional com o tamanho real de cada etapa e, ao lado, a frase que faltava: quantos leads estão ativos, qual a fatia que nunca saiu da entrada, quantos estão de fato em trabalho e quantos estão atrasados. O número de atrasados é clicável e filtra o quadro.
+- **Convertido e Perdido viraram placar** — saíram do quadro e viraram dois blocos de leitura ao lado da barra. São desfechos, não etapas de trabalho: ninguém arrasta um card para lá para decidir alguma coisa, e como colunas ocupavam um terço da tela. Clicar em um deles abre a lista já filtrada.
+- **Faixa de triagem da entrada** — quando a entrada acumula, ela deixa de ser uma coluna estreita e vira uma faixa no alto do quadro, com há quanto tempo o lead mais antigo está parado e o botão de triar em lista em destaque. Continua aceitando cards arrastados de volta.
+- **Modo triagem na lista** — liga sozinho quando você chega pela faixa. Cada linha ganha as quatro decisões da triagem: atribuir vendedor, mover de etapa, abrir a conversa e marcar como perdido, sem abrir o lead.
+- **Bloco "Agora" na ficha do lead** — no lugar da linha apagada que dizia "Sem próxima ação", um bloco que mostra há quanto tempo o cliente escreveu sem resposta e oferece as quatro saídas em um clique: ligar agora, enviar orçamento, retomar contato ou agendar visita. Com uma ação marcada, ele vira contador e fica vermelho quando atrasa.
+- **A próxima ação agora guarda o que é, não só quando** — antes ficava registrada só a data, e o que tinha sido combinado dependia de quem lembrava da conversa.
+- **Os funis do lead na ficha** — cada funil em que o lead está vira uma linha com a trilha de etapas, e mover é clicar na etapa de destino. Cada um tem o seu próprio valor, editável ali mesmo, e o total soma os funis em vez de repetir um número só.
+- **Linha do tempo única** — conversas, notas e histórico deixaram de ser três abas separadas e viraram um fio só, filtrável, com o campo de nota no topo. Acima dele, a conversa real do WhatsApp: o que o cliente pediu, que antes não aparecia em lugar nenhum da ficha.
+- **Telefone com botões na ficha do lead** — copiar, abrir no WhatsApp e ligar. O WhatsApp abre a conversa que já existe no Atendimento em vez de começar outra do zero.
+- **Aviso na tela para mensagem recebida** (Configurações → Sons de notificação) — dá para ligar ou desligar, escolher se o texto da mensagem aparece e por quanto tempo o aviso fica na tela, de 3 a 30 segundos. É independente do som: a loja pode ficar com um sem o outro.
+
+### Changed
+
+- **Card do quadro parou de quebrar linha** — "Atrasada há 58 dias" ocupava duas linhas e dobrava a altura do card, em quase todos, porque quase todos estão atrasados. Virou `58d`. "Valor não informado" virou um traço. A sobra virou o tempo que o lead está parado naquela etapa.
+- **Vermelho agora ordena em vez de alarmar** — os atrasados sobem para o topo da coluna, sob um separador que diz quantos são e serve de filtro. Escolher uma ordenação no menu da coluna desliga o agrupamento.
+- **Filtros dizem o que está filtrando** — a pílula mostra o valor aplicado em vez de repetir o nome do filtro, o X limpa ali mesmo, e o "limpar" só aparece quando há algo para limpar.
+- **Lista de leads mais enxuta** — de onze para sete colunas. A temperatura virou o ponto colorido ao lado do nome, o telefone entrou na mesma célula, e a origem e a data de criação passaram para o texto que aparece ao passar o mouse.
+- **Etapa, valor e tempo do lead vêm do funil certo** — a lista mostrava um número só, herdado de quando existia um pipeline único. Um lead em dois funis tem duas etapas e dois valores, e agora é isso que aparece.
+- **Dados do lead editáveis no lugar** — acabou o botão "Editar" que trocava metade da tela por formulário e a barra de salvar no rodapé. Cada campo é clicado e alterado onde está. Campo vazio deixou de ser um traço e virou convite: "adicionar e-mail".
+- **Fonte do texto trocada para Barlow** — é a fonte da marca; o sistema vinha usando outra.
+
+### Fixed
+
+- **Agenda: ações que pareciam funcionar e não faziam nada** — o "…" do card abria um aviso de depuração com o código da ação. Agora é um menu de verdade, com abrir contato, vincular ou desvincular do cliente, adicionar etiqueta, transferir responsável e marcar opt-out.
+- **Agenda: adicionar etiqueta a partir do contato** — a ação lia a seleção da lista, então quando saía da ficha do próprio contato rodava sem ninguém selecionado e terminava em silêncio.
+- **Agenda: primeira etiqueta** — como nenhum dos 5.411 contatos tinha etiqueta, a lista de opções vinha vazia e o botão nunca habilitava: não havia como criar a primeira. Agora dá para escrever a etiqueta, com as já usadas oferecidas como sugestão.
+- **Agenda: filtrar e transferir por responsável** — só apareciam os responsáveis dos contatos carregados na tela. Agora vêm todos os vendedores ativos da loja.
+- **Agenda: "Iniciar conversa" e "Ligar"** — a conversa agora abre no Atendimento com o telefone na busca, e aparece mesmo quando pertence a outro atendente. O "Ligar" também copia o número, porque em computador sem aplicativo de telefone o clique não fazia nada.
+
+### Notes
+
+- **Converter um lead não encerra os funis dele.** Um lead convertido continua na etapa em que estava em cada funil, e por isso continua somando no previsto. A tela de conversão agora mostra essas oportunidades e avisa que elas seguem abertas, para você fechar ou tirar cada uma. Mudar isso automaticamente altera o que "converter" significa em todos os relatórios, então fica para uma decisão à parte.
+- **A conversa na ficha do lead é somente leitura.** Para responder, o botão leva ao Atendimento, que é onde ficam a janela de 24 horas, os modelos de mensagem e o histórico completo.
+
 ## [0.167.0] — Tender · 2026-08-07
 
 **Mandar a chave PIX para o cliente era digitar de novo, em toda conversa, um CNPJ de catorze dígitos. Um dígito errado e o dinheiro vai para a conta de outra pessoa, sem volta. Agora a chave fica cadastrada e vai por atalho — e vai do jeito que o cliente consegue usar: sozinha numa mensagem, para ele segurar o dedo e copiar limpo.**

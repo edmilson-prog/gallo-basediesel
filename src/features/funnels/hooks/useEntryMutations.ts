@@ -10,7 +10,14 @@ import { COPY } from "../i18n/pt-BR";
 const UNDO_MS = 6000;
 
 export interface IUseEntryMutationsInput {
-  conversationId: ID;
+  /**
+   * Query key of the participations list the CALLING screen reads. The
+   * conversation fiche reads them gated by the conversation, the lead detail
+   * reads them by lead id — same writes, different cache to refresh, and a
+   * hook hard-wired to one of the two is how the second screen ends up with a
+   * near-identical copy that drifts.
+   */
+  entriesQueryKey: readonly unknown[];
   storeId: ID | null | undefined;
 }
 
@@ -18,6 +25,8 @@ export interface IUseEntryMutationsResult {
   moveStage: (entry: ILeadFunnelEntry, stageId: ID, funnelName: string, stageName: string) => void;
   addToFunnel: (leadId: ID, funnelId: ID, funnelName: string) => void;
   removeFrom: (entry: ILeadFunnelEntry, funnelName: string) => void;
+  /** The per-funnel estimated value — a lead in two funnels has two revenues. */
+  setValue: (entry: ILeadFunnelEntry, value: number | undefined, funnelName: string) => void;
   /** The participation with a write in flight — the row spins and disables. */
   pendingEntryId: ID | null;
 }
@@ -31,24 +40,25 @@ export interface IUseEntryMutationsResult {
  * keeps its AlertDialog, which lives in the row.
  */
 export function useEntryMutations({
-  conversationId,
+  entriesQueryKey,
   storeId,
 }: IUseEntryMutationsInput): IUseEntryMutationsResult {
   const provider = useLeadFunnelsProvider();
   const queryClient = useQueryClient();
   const [pendingEntryId, setPendingEntryId] = useState<ID | null>(null);
 
+  // Depend on the key's contents, not its identity: an array literal at the
+  // call site is a new object on every render and would rebuild every callback.
+  const keyId = JSON.stringify(entriesQueryKey);
   const invalidate = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: ["lead-funnel-entries-via-conversation", conversationId],
-      }),
+      queryClient.invalidateQueries({ queryKey: JSON.parse(keyId) as unknown[] }),
       // The Leads page shares these — a lead added here must appear there.
       queryClient.invalidateQueries({ queryKey: ["lead-funnel-counts", storeId] }),
       queryClient.invalidateQueries({ queryKey: ["lead-funnel-entries"] }),
       queryClient.invalidateQueries({ queryKey: ["lead-funnel-board-summary"] }),
     ]);
-  }, [queryClient, conversationId, storeId]);
+  }, [queryClient, keyId, storeId]);
 
   const moveStage = useCallback(
     (entry: ILeadFunnelEntry, stageId: ID, funnelName: string, stageName: string) => {
@@ -153,5 +163,34 @@ export function useEntryMutations({
     [provider, invalidate],
   );
 
-  return { moveStage, addToFunnel, removeFrom, pendingEntryId };
+  const setValue = useCallback(
+    (entry: ILeadFunnelEntry, value: number | undefined, funnelName: string) => {
+      setPendingEntryId(entry.id);
+      void (async () => {
+        try {
+          await provider.updateEntry(entry.id, { estimatedValue: value });
+          auditLog({
+            action: "lead_funnel_entry.value_changed",
+            resource: "lead",
+            resourceId: entry.leadId,
+            before: { estimatedValue: entry.estimatedValue },
+            after: { estimatedValue: value },
+          });
+          await invalidate();
+          toast.success(
+            value === undefined
+              ? COPY.fiche.valueCleared(funnelName)
+              : COPY.fiche.valueSaved(funnelName),
+          );
+        } catch {
+          toast.error(COPY.fiche.valueError);
+        } finally {
+          setPendingEntryId(null);
+        }
+      })();
+    },
+    [provider, invalidate],
+  );
+
+  return { moveStage, addToFunnel, removeFrom, setValue, pendingEntryId };
 }

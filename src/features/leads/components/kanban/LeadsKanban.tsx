@@ -1,6 +1,4 @@
 import { useCallback, useMemo, useState } from "react";
-import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
   DragOverlay,
@@ -20,21 +18,33 @@ import type {
   ILeadFunnelStage,
   ISeller,
 } from "@/shared/types";
-import { auditLog } from "@/features/rbac/utils/auditLog";
-import { useLeadFunnelsProvider } from "@/providers/data/hooks/useLeadFunnelsProvider";
 import { bucketLeadsByStage, type IBoardCard } from "@/features/funnels/engine/boardBuckets";
+import { resolveColumnStats } from "@/features/funnels/engine/columnStats";
+import { resolveTriageMode } from "@/features/funnels/engine/triageMode";
 import type { ILeadFunnelChip } from "@/features/funnels/hooks/useLeadFunnelChips";
+import { useMoveLeadStage } from "../../hooks/useMoveLeadStage";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 import { BoardCard } from "./BoardCard";
 import { boardKeyboardCoordinates } from "./boardKeyboardCoordinates";
 import { KanbanColumn } from "./KanbanColumn";
+import { TriageBand } from "./TriageBand";
 
 const NO_CHIPS: ILeadFunnelChip[] = [];
 
 export interface ILeadsKanbanProps {
   leads: ILead[];
-  /** The active funnel's stages — never the store's legacy pipeline. */
+  /**
+   * The active funnel's stages — never the store's legacy pipeline. ALL of
+   * them, terminal ones included: they are move targets and drop targets even
+   * though they no longer own a column.
+   */
   stages: ILeadFunnelStage[];
+  /**
+   * The subset that actually gets a column. Convertido and Perdido are read on
+   * the readout strip above the board instead: they are outcomes, not stages of
+   * work, and as columns they took a third of the width for leads nobody drags.
+   */
+  columnStages: ILeadFunnelStage[];
   entriesByLead: Map<ID, ILeadFunnelEntry>;
   summaryByStage: Map<ID, IFunnelBoardSummary>;
   funnelId: ID;
@@ -58,6 +68,7 @@ export interface ILeadsKanbanProps {
 export function LeadsKanban({
   leads,
   stages,
+  columnStages,
   entriesByLead,
   summaryByStage,
   funnelId,
@@ -72,8 +83,6 @@ export function LeadsKanban({
   entryThreshold,
   onTriageInList,
 }: ILeadsKanbanProps) {
-  const provider = useLeadFunnelsProvider();
-  const queryClient = useQueryClient();
   const [dragging, setDragging] = useState<IBoardCard | null>(null);
 
   const buckets = useMemo(
@@ -93,6 +102,44 @@ export function LeadsKanban({
     return map;
   }, [stages]);
 
+  // Whether the entry stage has stopped being a column. Decided here rather
+  // than inside the column, because the answer changes what the BOARD renders:
+  // a band above it and one fewer column, not a different body in the same
+  // 288px. A funnel need not have an entry stage at all.
+  const entryStage = useMemo(() => columnStages.find((s) => s.kind === "entrada"), [columnStages]);
+
+  const triage = useMemo(() => {
+    if (!entryStage) return null;
+    const cards = buckets.get(entryStage.id) ?? [];
+    // The REAL total, from the server aggregate — the panel exists to say
+    // "903" precisely when the column itself has loaded forty.
+    const { count } = resolveColumnStats({
+      cards,
+      summary: summaryByStage.get(entryStage.id),
+      now: new Date(),
+    });
+    // The oldest among the LOADED cards: `getBoardSummary` does not carry it,
+    // and one extra query for one line of text is a bad trade.
+    let oldestEnteredAt: string | undefined;
+    for (const c of cards) {
+      if (!oldestEnteredAt || c.entry.enteredStageAt < oldestEnteredAt)
+        oldestEnteredAt = c.entry.enteredStageAt;
+    }
+    const view = resolveTriageMode({
+      kind: "entrada",
+      count,
+      threshold: entryThreshold,
+      oldestEnteredAt,
+      now: new Date(),
+    });
+    return view.active ? view : null;
+  }, [entryStage, buckets, summaryByStage, entryThreshold]);
+
+  const renderedColumns = useMemo(
+    () => (triage && entryStage ? columnStages.filter((s) => s.id !== entryStage.id) : columnStages),
+    [triage, entryStage, columnStages],
+  );
+
   const sensors = useSensors(
     // distance 6: `cursor-grab` is always on and a click competes with a drag.
     // Opening the lead's page on click requires a micro-movement not to become
@@ -105,40 +152,19 @@ export function LeadsKanban({
     useSensor(KeyboardSensor, { coordinateGetter: boardKeyboardCoordinates }),
   );
 
-  /** One move, whether it came from the pointer, the keyboard or the menu. */
+  /**
+   * One move, whether it came from the pointer, the keyboard or the menu — and
+   * the same one the list's triage actions run, so the two cannot drift.
+   */
+  const moveStage = useMoveLeadStage({
+    funnelId,
+    onRequestClose,
+    onMoved: onLeadMoved,
+  });
   const move = useCallback(
-    async (card: IBoardCard, target: ILeadFunnelStage) => {
-      if (card.entry.stageId === target.id) return;
-
-      // No longer compares against CLOSING_STAGE_ID, a constant in the code:
-      // the stage's own `kind` carries the meaning, and every funnel has one.
-      if (target.kind === "ganho" || target.kind === "perda") {
-        onRequestClose(card.lead);
-        return;
-      }
-
-      try {
-        // moveEntry, not leads.update: with N:N the board alters ONLY this
-        // funnel's participation. The lead's other funnels are untouched.
-        await provider.moveEntry(card.entry.id, target.id);
-        auditLog({
-          action: "lead_funnel_entry.stage_changed",
-          resource: "lead",
-          resourceId: card.lead.id,
-          before: { stageId: card.entry.stageId },
-          after: { stageId: target.id },
-        });
-        toast.success(LEADS_STRINGS.toasts.moved(target.name));
-        onLeadMoved(card.lead, target);
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["lead-funnel-entries", funnelId] }),
-          queryClient.invalidateQueries({ queryKey: ["lead-funnel-board-summary", funnelId] }),
-        ]);
-      } catch {
-        toast.error(LEADS_STRINGS.toasts.moveError);
-      }
-    },
-    [provider, queryClient, funnelId, onLeadMoved, onRequestClose],
+    (card: IBoardCard, target: ILeadFunnelStage) =>
+      moveStage({ lead: card.lead, entry: card.entry, target }),
+    [moveStage],
   );
 
   const announcements: Announcements = useMemo(
@@ -200,26 +226,33 @@ export function LeadsKanban({
       onDragEnd={handleDragEnd}
       onDragCancel={() => setDragging(null)}
     >
-      <div className="flex h-full min-h-0 gap-3 overflow-x-auto p-3">
-        {stages.map((stage) => (
-          <KanbanColumn
-            key={stage.id}
-            stage={stage}
-            stages={stages}
-            cards={buckets.get(stage.id) ?? []}
-            summary={summaryByStage.get(stage.id)}
-            sellersById={sellersById}
-            showSeller={showSeller}
-            chipsByLead={chipsByLead}
-            funnelId={funnelId}
-            highlightLeadId={highlightLeadId}
-            onGoToFunnel={onGoToFunnel}
-            onFilterOverdue={onFilterOverdue}
-            onMove={handleMoveById}
-            entryThreshold={entryThreshold}
-            onTriageInList={onTriageInList}
+      <div className="flex h-full min-h-0 flex-col p-3">
+        {triage && entryStage && (
+          <TriageBand
+            stage={entryStage}
+            view={triage}
+            onTriageInList={() => onTriageInList(entryStage.id)}
           />
-        ))}
+        )}
+        <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto">
+          {renderedColumns.map((stage) => (
+            <KanbanColumn
+              key={stage.id}
+              stage={stage}
+              stages={stages}
+              cards={buckets.get(stage.id) ?? []}
+              summary={summaryByStage.get(stage.id)}
+              sellersById={sellersById}
+              showSeller={showSeller}
+              chipsByLead={chipsByLead}
+              funnelId={funnelId}
+              highlightLeadId={highlightLeadId}
+              onGoToFunnel={onGoToFunnel}
+              onFilterOverdue={onFilterOverdue}
+              onMove={handleMoveById}
+            />
+          ))}
+        </div>
       </div>
 
       {/* A floating copy at 1.02 with a shadow. The original stays where it is,

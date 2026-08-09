@@ -19,6 +19,11 @@ export const LEADS_STRINGS = {
   filters: {
     title: "Filtros",
     clear: "Limpar filtros",
+    // A pílula passa a mostrar o valor aplicado, então o "limpar" ao lado dela
+    // já sabe sobre quantos filtros age — e some quando não há nenhum.
+    clearCount: (n: number) => `limpar ${n}`,
+    remove: (label: string) => `Remover o filtro ${label}`,
+    more: (n: number) => `+${n}`,
     stage: "Estágio",
     temperature: "Temperatura",
     origin: "Origem",
@@ -78,14 +83,47 @@ export const LEADS_STRINGS = {
       none: "Sem próxima ação",
     },
     noValue: "Valor não informado",
+    // O card do quadro usa as formas curtas: "Atrasada há 58 dias" quebrava em
+    // duas linhas e dobrava a altura — em quase todos, porque quase todos estão
+    // atrasados. O texto longo continua vivo na lista e no hover.
+    noValueShort: "—",
+    overdueShort: (days: number) => `${days}d`,
+    overdueTitle: (days: number) =>
+      `Próxima ação atrasada há ${days} ${days === 1 ? "dia" : "dias"}`,
+    daysHere: (days: number) => `${days}d aqui`,
+    daysHereTitle: (days: number) => `${days} ${days === 1 ? "dia" : "dias"} nesta etapa`,
     daysInStage: (n: number) => `${n} ${n === 1 ? "dia" : "dias"} no estágio`,
     converted: "Convertido",
     lost: "Perdido",
     ariaLabel: (name: string, stage: string, temperature: string) =>
       `Lead ${name}, etapa ${stage}, temperatura ${temperature}`,
   },
+  /**
+   * Faixa de leitura do funil: a forma do pipeline numa barra, e a frase que o
+   * quadro não diz. Convertido e Perdido saem das colunas e viram placar — são
+   * desfechos, não etapas de trabalho.
+   */
+  readout: {
+    activeLeads: (n: number) => `${n.toLocaleString("pt-BR")}`,
+    activeLabel: (n: number) => (n === 1 ? "lead ativo" : "leads ativos"),
+    stuckAtEntry: (pct: number) => `${pct}% nunca saiu da entrada`,
+    inWork: (n: number) => `${n.toLocaleString("pt-BR")}`,
+    inWorkLabel: "em trabalho",
+    overdue: (n: number) => `${n.toLocaleString("pt-BR")} ${n === 1 ? "atrasado" : "atrasados"}`,
+    overdueHint: "Filtrar só os leads com próxima ação atrasada",
+    segmentTitle: (stage: string, sum: string) => `${stage} — ${sum}`,
+    segmentAria: (stage: string, count: number) =>
+      `Filtrar pela etapa ${stage}, ${count} ${count === 1 ? "lead" : "leads"}`,
+    outcomeAria: (stage: string) => `Ver os leads da etapa ${stage}`,
+    neverWon: "nenhum, desde sempre",
+    archived: "arquivo — fora do quadro",
+    emptyStages: "Este funil ainda não tem etapas de trabalho.",
+  },
   kanban: {
     columnCount: (n: number) => `${n} ${n === 1 ? "lead" : "leads"}`,
+    /** Separadores dentro da coluna: o vermelho ordena em vez de alarmar. */
+    overdueGroup: (n: number) => `${n} ${n === 1 ? "atrasado" : "atrasados"}`,
+    onTimeGroup: "Em dia",
     averageDays: (days: number) =>
       `Média ${days.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${days === 1 ? "dia" : "dias"}`,
     emptyColumn: "Sem leads",
@@ -131,6 +169,16 @@ export const LEADS_STRINGS = {
       distribute: "Distribuir",
       distributeSoon: "A distribuição em lote usa a fila de rodízio e ainda não está pronta.",
       dropHint: "Solte para devolver à triagem",
+      // A faixa larga que substitui a coluna de entrada: ninguém arrasta mil e
+      // quinhentos cards, e o painel de 288px não cabia a idade nem a saída.
+      bandTitle: (stage: string, n: number) =>
+        `${stage} · ${n.toLocaleString("pt-BR")} ${n === 1 ? "lead parado" : "leads parados"}`,
+      bandOldest: (days: number) =>
+        days === 0
+          ? "O mais antigo chegou hoje."
+          : `O mais antigo está aqui há ${days} ${days === 1 ? "dia" : "dias"}.`,
+      bandBody: "Triar em lista decide um a um e vai muito mais rápido que arrastar.",
+      bandDropHint: "Solte para devolver este lead à triagem",
     },
     dnd: {
       grabbed: (lead: string) => `Pegou o lead ${lead}. Use as setas para mover e espaço para soltar.`,
@@ -149,9 +197,32 @@ export const LEADS_STRINGS = {
     },
   },
   list: {
+    /**
+     * "Triar em lista é mais rápido que arrastar um a um" era a promessa — e a
+     * lista que abria era uma tabela somente-leitura. O modo triagem põe as
+     * ações de decisão na própria linha.
+     */
+    triage: {
+      toggle: "Modo triagem",
+      on: "Modo triagem: decida linha a linha",
+      off: "Modo triagem desligado",
+      summary: (n: number) => `${n.toLocaleString("pt-BR")} ${n === 1 ? "lead" : "leads"}`,
+      sortedByOverdue: "ordenados por atraso",
+      actions: {
+        assign: "Atribuir vendedor",
+        move: "Mover de etapa",
+        conversation: "Abrir conversa",
+        noConversation: "Este lead ainda não tem conversa",
+        discard: "Marcar como perdido",
+      },
+    },
     columns: {
       selectVisible: "Selecionar os leads visíveis",
       name: "Nome",
+      lead: "Lead",
+      funnelStage: "Etapa",
+      inStage: "Parado (d)",
+      actions: "Ações",
       phone: "Telefone",
       stage: "Estágio",
       temperature: "Temperatura",
@@ -207,6 +278,118 @@ export const LEADS_STRINGS = {
     viewCustomer: "Abrir ficha do cliente",
     lossReason: "Motivo da perda",
     lossNotes: "Observações da perda",
+
+    /** O telefone deixa de ser texto e vira o botão que sempre foi. */
+    phone: {
+      copy: "Copiar número",
+      copied: "Número copiado.",
+      copyError: "Não foi possível copiar o número.",
+      whatsapp: "Abrir no WhatsApp",
+      call: "Ligar",
+    },
+
+    /** Estado editável no header — é o que muda com mais frequência. */
+    state: {
+      temperature: "Temperatura",
+      seller: "Responsável",
+      sellerQueue: "Sem responsável",
+      sellerQueueHint: "fila",
+      createdRelative: (rel: string) => `Criado ${rel}`,
+      temperatureSaved: (label: string) => `Temperatura: ${label}.`,
+      sellerSaved: (name: string) => `Responsável: ${name}.`,
+      saveError: "Não foi possível salvar a alteração.",
+    },
+
+    /**
+     * Bloco "Agora": no lugar da linha muda "Próxima ação · Sem próxima ação",
+     * diz por que o lead está parado e oferece as saídas em um clique.
+     */
+    now: {
+      title: "Nenhuma próxima ação marcada",
+      waitingReply: (rel: string) =>
+        `O contato escreveu ${rel} e ninguém respondeu. Escolha o que vem agora.`,
+      waitingNoConversation: (rel: string) =>
+        `O lead entrou ${rel} e ninguém marcou o próximo passo. Escolha o que vem agora.`,
+      mark: "Marcar ação",
+      cancel: "cancelar",
+      done: "Concluir",
+      remove: "Remover",
+      markedBy: (who: string, when: string) => `Marcada por ${who} · ${when}`,
+      markedUnknown: (when: string) => `Marcada para ${when}`,
+      kinds: {
+        ligar: "Ligar agora",
+        orcamento: "Enviar orçamento",
+        retomar: "Retomar contato",
+        visita: "Agendar visita",
+      },
+      when: {
+        today: "hoje",
+        tomorrow: "amanhã",
+        thisWeek: "esta semana",
+      },
+      saved: (label: string, when: string) => `Próxima ação: ${label} — ${when}.`,
+      completed: "Ação concluída — marque a próxima.",
+      removed: "Próxima ação removida.",
+      saveError: "Não foi possível salvar a próxima ação.",
+    },
+
+    /**
+     * Um lead está em VÁRIOS funis, cada um com etapa, valor e desfecho
+     * próprios (`lead_funnel_entries`). A tela mostrava um estágio só.
+     */
+    funnels: {
+      title: "Funis",
+      add: "Funil",
+      addTitle: "Adicionar a outro funil",
+      remove: "Remover do funil",
+      daysInStage: (n: number) => `${n} ${n === 1 ? "dia" : "dias"} na etapa`,
+      addValue: "valor",
+      valueLabel: (funnel: string) => `Valor estimado em ${funnel}`,
+      valueSaved: (funnel: string, value: string) => `${funnel}: ${value}.`,
+      valueCleared: (funnel: string) => `${funnel}: valor removido.`,
+      valueError: "Não foi possível salvar o valor.",
+      invalidValue: "Valor inválido.",
+      currentStage: "Etapa atual",
+      moveTo: (stage: string) => `Mover para ${stage}`,
+      triageBadge: "Triagem",
+      note: "Cada funil é uma oportunidade separada: etapa, valor e desfecho contam sozinhos no forecast.",
+      empty: "Este lead não está em nenhum funil.",
+    },
+
+    /** As três abas rasas contavam a mesma história em pedaços. */
+    timeline: {
+      title: "Linha do tempo",
+      filters: {
+        all: "Tudo",
+        conversation: "Conversas",
+        note: "Notas",
+        history: "Histórico",
+      },
+      composerPlaceholder: "Escrever uma nota interna…",
+      composerAction: "Nota",
+      /** Título de um item de nota no fio (singular do filtro "Notas"). */
+      noteTitle: "Nota",
+      noteSaved: "Nota registrada.",
+      empty: "Nada registrado neste filtro.",
+      by: (who: string) => `por ${who}`,
+      conversationTitle: (n: number) =>
+        `${n} ${n === 1 ? "mensagem" : "mensagens"} no WhatsApp`,
+      leadCreated: "Lead criado",
+      leadCreatedSub: (origin: string) => `Origem ${origin}`,
+    },
+
+    conversation: {
+      title: "Conversa",
+      open: "Abrir no Atendimento",
+      empty: "Sem conversa vinculada a este lead.",
+      loading: "Carregando a conversa…",
+      more: (n: number) => `+${n} ${n === 1 ? "mensagem anterior" : "mensagens anteriores"}`,
+      /** O envio vive no Atendimento — aqui a conversa é leitura. */
+      replyHint: "Responder pelo Atendimento",
+      system: "mensagem do sistema",
+      media: "anexo",
+    },
+
     tabs: {
       conversations: "Conversas",
       notes: "Notas",
@@ -234,6 +417,22 @@ export const LEADS_STRINGS = {
       tags: "Tags",
     },
     groups: { commercial: "Comercial", contact: "Contato", management: "Gestão" },
+    /**
+     * Edição no lugar, campo a campo. Campo vazio deixa de ser um travessão e
+     * vira convite — some o modo "Editar" global com barra de salvar.
+     */
+    inline: {
+      hint: "clique para editar",
+      edit: (field: string) => `Editar ${field}`,
+      addEmail: "adicionar e-mail",
+      leadAge: "Idade do lead",
+      leadAgeValue: (days: number) =>
+        days === 0 ? "hoje" : `${days} ${days === 1 ? "dia" : "dias"}`,
+      since: (date: string) => `· desde ${date}`,
+      saved: (field: string) => `${field} salvo.`,
+      cleared: (field: string) => `${field} removido.`,
+      saveError: "Não foi possível salvar a alteração.",
+    },
     inStageFor: "No estágio há",
     noTags: "Sem tags",
     addTag: "Adicionar tag",
@@ -272,6 +471,22 @@ export const LEADS_STRINGS = {
     linkError: "Lead criado, mas não foi possível vinculá-lo à conversa.",
   },
   convertModal: {
+    /**
+     * Um lead em dois funis são duas oportunidades. A conversão grava
+     * `converted_to_customer_id` e o estágio legado — `convert_lead_mark` não
+     * mexe em `lead_funnel_entries` —, então as participações continuam onde
+     * estavam. Dizer isso na hora da decisão é mais honesto que deixar
+     * descobrir no quadro uma semana depois.
+     */
+    opportunities: {
+      body: (n: number) =>
+        n === 1
+          ? "Este lead tem 1 oportunidade aberta em funil:"
+          : `Este lead tem ${n} oportunidades abertas em funis:`,
+      hint: "Elas continuam abertas depois da conversão — feche ou remova cada uma para não inflar o forecast.",
+      noValue: "sem valor",
+      total: (value: string) => `Total em aberto: ${value}`,
+    },
     title: "Converter lead em cliente",
     description: "Confirme os dados para criar a ficha do cliente.",
     descriptionLink: "Selecione o cliente já cadastrado para vincular a este lead.",
