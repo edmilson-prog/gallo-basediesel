@@ -67,33 +67,21 @@ export function QuoteItemsTable({
 
   return (
     <div
-      className={`flex flex-col border-t border-border ${grow ? "min-h-0 flex-1" : ""}`}
-      role="table"
+      className={`flex flex-col border-t border-border ${grow ? "lg:min-h-0 lg:flex-1" : ""}`}
       aria-label="Itens do orçamento"
     >
       <div
-        role="row"
         className={`grid ${COLS} gap-2.5 border-b border-border bg-muted/40 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground`}
       >
-        <span role="columnheader">Peça</span>
-        <span role="columnheader" className="text-right">
-          Qtd
-        </span>
-        <span role="columnheader" className="text-right">
-          Unitário
-        </span>
-        <span role="columnheader" className="text-right">
-          Desconto
-        </span>
-        <span role="columnheader" className="text-right">
-          Subtotal
-        </span>
-        <span role="columnheader" className="sr-only">
-          Ações
-        </span>
+        <span>Peça</span>
+        <span className="text-right">Qtd</span>
+        <span className="text-right">Unitário</span>
+        <span className="text-right">Desconto</span>
+        <span className="text-right">Subtotal</span>
+        <span className="sr-only">Ações</span>
       </div>
 
-      <div className={`${grow ? "min-h-0 flex-1 overflow-y-auto" : ""}`}>
+      <div className={grow ? "lg:min-h-0 lg:flex-1 lg:overflow-y-auto" : ""}>
         {items.length === 0 ? (
           <div className="m-3 flex items-center gap-3 rounded-lg border border-dashed border-border p-4">
             <Icon icon="mdi:barcode-scan" size={20} className="shrink-0 text-muted-foreground" />
@@ -116,12 +104,11 @@ export function QuoteItemsTable({
               return (
                 <Fragment key={it.id}>
                   <div
-                    role="row"
                     className={`grid ${COLS} items-center gap-2.5 border-b border-border px-3 ${rowPadY} transition-colors duration-300 motion-reduce:transition-none ${
                       flashId === it.id ? "bg-primary/15" : "hover:bg-muted/30"
                     }`}
                   >
-                    <div role="cell" className="min-w-0">
+                    <div className="min-w-0">
                       <p className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
                         <span className="truncate">{it.partName}</span>
                         {part &&
@@ -177,10 +164,7 @@ export function QuoteItemsTable({
                       )}
                     </div>
 
-                    <div
-                      role="cell"
-                      className="flex items-center justify-self-end overflow-hidden rounded-md border border-border"
-                    >
+                    <div className="flex items-center justify-self-end overflow-hidden rounded-md border border-border">
                       <button
                         type="button"
                         onClick={() => onPatch(it.id, { quantity: Math.max(1, it.quantity - 1) })}
@@ -207,7 +191,7 @@ export function QuoteItemsTable({
                       </button>
                     </div>
 
-                    <div role="cell">
+                    <div>
                       <InlineCell
                         value={formatDecimalBR(it.unitPrice)}
                         onCommit={(raw) => onPatch(it.id, { unitPrice: parseDecimalBR(raw) })}
@@ -216,7 +200,7 @@ export function QuoteItemsTable({
                       />
                     </div>
 
-                    <div role="cell">
+                    <div>
                       <InlineCell
                         value={formatDecimalBR(it.discount)}
                         onCommit={(raw) =>
@@ -230,7 +214,7 @@ export function QuoteItemsTable({
                       />
                     </div>
 
-                    <div role="cell" className="text-right">
+                    <div className="text-right">
                       <p className="text-[15px] font-semibold leading-tight tabular-nums text-foreground">
                         {moneyFormatter.format(it.total)}
                       </p>
@@ -241,7 +225,7 @@ export function QuoteItemsTable({
                       )}
                     </div>
 
-                    <div role="cell" className="justify-self-end">
+                    <div className="justify-self-end">
                       <button
                         type="button"
                         onClick={() => onRemove(it.id)}

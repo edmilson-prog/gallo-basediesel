@@ -115,7 +115,6 @@ export function ContinuousAdder({
       {open && (
         <div
           id="continuous-adder-results"
-          role="listbox"
           className="absolute inset-x-0 top-[calc(100%+6px)] z-50 max-h-[26rem] overflow-y-auto rounded-md border border-border bg-popover shadow-lg"
         >
           {hasQuery ? (
@@ -139,20 +138,22 @@ export function ContinuousAdder({
                 )}
               </div>
             ) : (
-              results.map((p, i) => (
-                <div
-                  key={p.id}
-                  role="option"
-                  aria-selected={i === activeIndex}
-                  className={i === activeIndex ? "bg-muted/60" : ""}
-                >
-                  <ItemResultRow
-                    part={p}
-                    inQuoteQty={inQuoteQtyByPart.get(p.id) ?? 0}
-                    onAdd={onAddPart}
-                  />
-                </div>
-              ))
+              <div role="listbox" aria-label="Peças encontradas">
+                {results.map((p, i) => (
+                  <div
+                    key={p.id}
+                    role="option"
+                    aria-selected={i === activeIndex}
+                    className={i === activeIndex ? "bg-muted/60" : ""}
+                  >
+                    <ItemResultRow
+                      part={p}
+                      inQuoteQty={inQuoteQtyByPart.get(p.id) ?? 0}
+                      onAdd={onAddPart}
+                    />
+                  </div>
+                ))}
+              </div>
             )
           ) : (
             <div className="p-2">

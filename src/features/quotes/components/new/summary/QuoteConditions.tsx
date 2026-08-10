@@ -21,10 +21,17 @@ const PAYMENT_OPTIONS: ReadonlyArray<{ value: QuotePaymentMethod; label: string 
 
 const VALIDITY_SHORTCUTS = [7, 15, 30];
 
+/**
+ * `YYYY-MM-DD`, `days` from today, in the browser's own timezone — an
+ * `<input type="date">` holds a local calendar date. Going through
+ * `toISOString()` would shift the result a day forward every evening in
+ * Brazil (UTC-3), turning "+7 dias" into +8.
+ */
 function isoDatePlusDays(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 export interface IQuoteConditionsProps {

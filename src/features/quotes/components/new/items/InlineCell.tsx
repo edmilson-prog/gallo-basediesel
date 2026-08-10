@@ -51,6 +51,12 @@ export function InlineCell({
         }}
         onBlur={() => {
           setFocused(false);
+          // An emptied cell is an abandoned edit, not a zero: committing it
+          // would silently wipe a unit price. Typing an explicit 0 still works.
+          if (!draft.trim()) {
+            setDraft(value);
+            return;
+          }
           onCommit(draft);
         }}
         onKeyDown={(e) => {
