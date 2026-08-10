@@ -96,6 +96,21 @@ interface ICustomerBase {
   /** Percentage POINTS (0..100), unlike {@link abcShare} which is a 0..1 fraction — divide by 100 before pairing with `formatPercent`. */
   dintecPctReceita?: number;
   /**
+   * Credit limit as imported from the DINTEC ERP (`CLIENTE.CREDITO`). Read-only
+   * snapshot — the editable platform value is {@link creditLimit}, which is
+   * seeded from this field. Absent for customers never imported from DINTEC.
+   */
+  dintecCreditLimit?: Money;
+  /**
+   * Credit limit granted by the platform, in BRL. Takes precedence over
+   * {@link dintecCreditLimit}. `0` is a meaningful value (credit explicitly
+   * blocked) and is NOT the same as absent (no limit ever defined).
+   *
+   * The consumed portion is never stored: it is derived from orders with an
+   * open payment status — see `features/customers/engine/customerCredit.ts`.
+   */
+  creditLimit?: Money;
+  /**
    * Demo-only count of overdue receivable titles (contas a receber vencidas).
    * No real billing module exists yet (Fase 2 do produto). Absent on most
    * customers; surfaced read-only on the quote editor when present.
