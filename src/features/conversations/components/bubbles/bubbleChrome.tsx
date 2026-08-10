@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { formatTime, isReprocessable, statusVisual } from "../../utils/messageDisplay";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 import { ReceiveTimesDisclosure } from "./ReceiveTimesDisclosure";
+import { BubbleActionsMenu } from "./BubbleActionsMenu";
+import { QuotedPreview } from "./QuotedPreview";
 
 export interface IBubbleChromeProps {
   message: IMessage;
@@ -16,6 +18,14 @@ export interface IBubbleChromeProps {
   footer?: ReactNode;
   /** Hide the inner padding wrapper — used by media bubbles that fill the body. */
   unpadded?: boolean;
+  /** Nome do contato — autor da citação quando ela é do cliente. */
+  contactName?: string;
+  /** Inicia uma resposta citando esta mensagem. Ausente = ação indisponível. */
+  onReply?: () => void;
+  /** Leva até a mensagem citada. Ausente = citação não clicável. */
+  onJumpToQuoted?: () => void;
+  /** Destaque temporário — a bolha acabou de ser alvo de um pulo. */
+  flash?: boolean;
 }
 
 /**
@@ -30,6 +40,10 @@ export function BubbleChrome({
   onRetry,
   footer,
   unpadded = false,
+  contactName,
+  onReply,
+  onJumpToQuoted,
+  flash = false,
 }: IBubbleChromeProps) {
   const isOut = message.direction === "out";
   const isSdr = message.authorType === "sdr";
@@ -55,13 +69,27 @@ export function BubbleChrome({
   return (
     <div className={cn("flex w-full flex-col gap-0.5", align)}>
       <div
+        data-message-id={message.id}
         className={cn(
-          "relative max-w-[78%] rounded-2xl text-sm shadow-sm",
+          "group/bubble relative max-w-[78%] rounded-2xl text-sm shadow-sm",
           bubbleColor,
           failedColor,
           unpadded ? "overflow-hidden" : "px-3 py-2",
+          flash && "ring-2 ring-primary/60",
         )}
       >
+        <BubbleActionsMenu message={message} onReply={onReply} />
+        {message.replyTo && (
+          // Bolhas de mídia são `unpadded` (o conteúdo encosta na borda), então
+          // a citação precisa do próprio respiro para não colar nas laterais.
+          <div className={unpadded ? "px-2 pt-2" : undefined}>
+            <QuotedPreview
+              reply={message.replyTo}
+              contactName={contactName}
+              onJump={message.replyTo.messageId ? onJumpToQuoted : undefined}
+            />
+          </div>
+        )}
         {children}
 
         {isOut ? (

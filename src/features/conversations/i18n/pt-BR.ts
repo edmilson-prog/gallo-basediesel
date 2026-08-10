@@ -315,6 +315,28 @@ export const CONVERSATION_STRINGS = {
   templateBadge: "Template",
   retry: "Tentar novamente",
   reprocess: "Reprocessar",
+
+  // Responder (citar) mensagem
+  reply: {
+    action: "Responder",
+    copyText: "Copiar texto",
+    copied: "Texto copiado",
+    bubbleActions: "Ações da mensagem",
+    composerTitle: "Respondendo a",
+    cancel: "Cancelar resposta",
+    you: "Você",
+    contactFallback: "Cliente",
+    media: {
+      image: "Foto",
+      audio: "Áudio",
+      video: "Vídeo",
+      document: "Documento",
+      location: "Localização",
+      contact: "Contato",
+      generic: "Mensagem",
+    },
+  },
+
   download: "Baixar",
   close: "Fechar",
   downloadImage: "Baixar imagem",
