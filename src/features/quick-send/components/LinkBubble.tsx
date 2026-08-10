@@ -1,6 +1,9 @@
 import type { IMessage, ITrackableLink } from "@/shared/types";
 import { Icon } from "@/components/Icon";
-import { BubbleChrome } from "@/features/conversations/components/bubbles/bubbleChrome";
+import {
+  BubbleChrome,
+  type IBubbleProps,
+} from "@/features/conversations/components/bubbles/bubbleChrome";
 import { TRACKABLE_LINK_MARKER, type ILinkPayload } from "../engine/trackableLink";
 import { LinkOpenIndicator } from "./LinkOpenIndicator";
 import { QUICK_SEND_STRINGS } from "../i18n/pt-BR";
@@ -21,11 +24,9 @@ export function decodeLinkMarker(text: string): ILinkPayload | null {
   }
 }
 
-export interface ILinkBubbleProps {
-  message: IMessage;
+export interface ILinkBubbleProps extends IBubbleProps {
   /** Live link record (for opens/lastOpenedAt); resolved by linkId. */
   link?: ITrackableLink | null;
-  onRetry?: () => void;
 }
 
 /**
@@ -35,12 +36,12 @@ export interface ILinkBubbleProps {
  * the ambient LinkOpenIndicator. Degrades to a plain link row when the marker
  * can't be decoded.
  */
-export function LinkBubble({ message, link, onRetry }: ILinkBubbleProps) {
+export function LinkBubble({ message, link, onRetry, ...extras }: ILinkBubbleProps) {
   const s = QUICK_SEND_STRINGS.link;
   const payload = decodeLinkMarker(message.text);
 
   return (
-    <BubbleChrome message={message} onRetry={onRetry}>
+    <BubbleChrome message={message} onRetry={onRetry} {...extras}>
       <div className="flex items-start gap-2">
         <Icon
           icon="mdi:link-variant"

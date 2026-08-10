@@ -10,14 +10,15 @@ import { ReceiveTimesDisclosure } from "./ReceiveTimesDisclosure";
 import { BubbleActionsMenu } from "./BubbleActionsMenu";
 import { QuotedPreview } from "./QuotedPreview";
 
-export interface IBubbleChromeProps {
-  message: IMessage;
-  children: ReactNode;
-  onRetry?: () => void;
-  /** Extra trailing element below the bubble (e.g. caption). */
-  footer?: ReactNode;
-  /** Hide the inner padding wrapper — used by media bubbles that fill the body. */
-  unpadded?: boolean;
+/**
+ * Extras que a lista repassa por TODA bolha até o chrome (citação, menu de
+ * ações, destaque do pulo).
+ *
+ * Existem como um objeto só de propósito: cada sub-bolha apenas espalha
+ * `{...extras}` no seu `<BubbleChrome>`, então acrescentar um extra no futuro
+ * não obriga a tocar nos onze componentes de bolha de novo.
+ */
+export interface IBubbleExtras {
   /** Nome do contato — autor da citação quando ela é do cliente. */
   contactName?: string;
   /** Inicia uma resposta citando esta mensagem. Ausente = ação indisponível. */
@@ -26,6 +27,22 @@ export interface IBubbleChromeProps {
   onJumpToQuoted?: () => void;
   /** Destaque temporário — a bolha acabou de ser alvo de um pulo. */
   flash?: boolean;
+}
+
+/** Props comuns a toda sub-bolha (`TextBubble`, `ImageBubble`, …). */
+export interface IBubbleProps extends IBubbleExtras {
+  message: IMessage;
+  onRetry?: () => void;
+}
+
+export interface IBubbleChromeProps extends IBubbleExtras {
+  message: IMessage;
+  children: ReactNode;
+  onRetry?: () => void;
+  /** Extra trailing element below the bubble (e.g. caption). */
+  footer?: ReactNode;
+  /** Hide the inner padding wrapper — used by media bubbles that fill the body. */
+  unpadded?: boolean;
 }
 
 /**

@@ -1,7 +1,7 @@
 import type { IMessage } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { coordStr, decodeLocation } from "@/providers/whatsapp/contentFormat";
-import { BubbleChrome } from "./bubbleChrome";
+import { BubbleChrome, type IBubbleProps } from "./bubbleChrome";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 
 /**
@@ -11,7 +11,7 @@ import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
  * links out to Google Maps. A location carries no binary media, so there is
  * nothing to sign or download here.
  */
-export function LocationBubble({ message, onRetry }: { message: IMessage; onRetry?: () => void }) {
+export function LocationBubble({ message, onRetry, ...extras }: IBubbleProps) {
   const { name, lat, lng } = decodeLocation(message.text);
   const hasCoords = typeof lat === "number" && typeof lng === "number";
   // coordStr (not `${lat}`) so sub-1e-6 coords don't render as `5e-7` in the
@@ -20,7 +20,7 @@ export function LocationBubble({ message, onRetry }: { message: IMessage; onRetr
   const mapHref = coords ? `https://www.google.com/maps?q=${coords}` : null;
 
   return (
-    <BubbleChrome message={message} onRetry={onRetry}>
+    <BubbleChrome message={message} onRetry={onRetry} {...extras}>
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
           <Icon icon="mdi:map-marker" size={22} />

@@ -3,7 +3,7 @@ import type { IMessage } from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { decodeContact } from "@/providers/whatsapp/contentFormat";
-import { BubbleChrome } from "./bubbleChrome";
+import { BubbleChrome, type IBubbleProps } from "./bubbleChrome";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 import { useConversationContext } from "../../hooks/ConversationContext";
 import { formatBrPhoneDisplay, normalizeBrPhone } from "../../engine/phoneBR";
@@ -25,7 +25,7 @@ function initialsFromName(name: string | undefined): string | undefined {
  * Fixed-width content (independent of the shared `max-w-[78%]` chrome) so two
  * contact cards side by side render at the same size regardless of name length.
  */
-export function ContactBubble({ message, onRetry }: { message: IMessage; onRetry?: () => void }) {
+export function ContactBubble({ message, onRetry, ...extras }: IBubbleProps) {
   const { name, phone } = decodeContact(message.text);
   const initials = initialsFromName(name);
   const { openContactConversation } = useConversationContext();
@@ -45,7 +45,7 @@ export function ContactBubble({ message, onRetry }: { message: IMessage; onRetry
   };
 
   return (
-    <BubbleChrome message={message} onRetry={onRetry}>
+    <BubbleChrome message={message} onRetry={onRetry} {...extras}>
       <div className="w-[268px] max-w-full">
         <p className="mb-1.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-primary">
           <Icon icon="mdi:card-account-phone-outline" size={12} />

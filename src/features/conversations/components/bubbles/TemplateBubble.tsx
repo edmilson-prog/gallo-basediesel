@@ -1,6 +1,6 @@
 import type { IMessage } from "@/shared/types";
 import { Icon } from "@/components/Icon";
-import { BubbleChrome } from "./bubbleChrome";
+import { BubbleChrome, type IBubbleProps } from "./bubbleChrome";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 
 const TEMPLATE_PREFIX_REGEX = /^\[template\]\s*/i;
@@ -24,10 +24,10 @@ function parseTemplate(text: string): IParsed {
   return { body, quickReplies };
 }
 
-export function TemplateBubble({ message, onRetry }: { message: IMessage; onRetry?: () => void }) {
+export function TemplateBubble({ message, onRetry, ...extras }: IBubbleProps) {
   const parsed = parseTemplate(message.text);
   return (
-    <BubbleChrome message={message} onRetry={onRetry}>
+    <BubbleChrome message={message} onRetry={onRetry} {...extras}>
       <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
         <Icon icon="mdi:certificate-outline" size={12} />
         <span>{CONVERSATION_STRINGS.templateBadge}</span>
