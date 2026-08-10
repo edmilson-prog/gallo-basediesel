@@ -18,7 +18,13 @@
  * this parser (they update `whatsapp_accounts.status`, not a message row).
  */
 
-import type { IInboundMessage, InboundContentType, IOutboundEcho, IAdReferral } from "../types";
+import type {
+  IInboundMessage,
+  IInboundReplyRef,
+  InboundContentType,
+  IOutboundEcho,
+  IAdReferral,
+} from "../types";
 import { encodeContact, encodeLocation, nameFromVCard, phoneFromVCard } from "../contentFormat";
 
 const NON_INDIVIDUAL_JID = /@(g\.us|broadcast|newsletter)$/;
@@ -305,6 +311,28 @@ export function extractWahaAdReferral(payload: IWahaMessagePayload): IAdReferral
 }
 
 /**
+ * Normalizes the quoted message WAHA attaches as `replyTo`.
+ *
+ * Deliberately silent for a Status comment: there the quote points at a status
+ * update that lives OUTSIDE any conversation — it is never a message in the
+ * thread, and its media is already pulled in as this message's own media (see
+ * extractContent). Emitting a quote for it would render a citation that can
+ * never resolve to anything.
+ */
+export function extractWahaReplyRef(payload: IWahaMessagePayload): IInboundReplyRef | undefined {
+  if (isWahaStatusReply(payload)) return undefined;
+  const quoted = payload.replyTo;
+  if (!quoted?.id) return undefined;
+  const mimetype = quoted.media?.mimetype;
+  const mediaType = quoted.hasMedia && mimetype ? contentTypeFromMimetype(mimetype) : undefined;
+  return {
+    providerMessageId: quoted.id,
+    text: quoted.body?.trim() || undefined,
+    ...(mediaType ? { mediaType } : {}),
+  };
+}
+
+/**
  * whatsmeow kinds that are pure protocol bookkeeping — they never carry user
  * content, and any media they refer to always arrives in its own envelope
  * (verified against production captures: an `albumMessage`'s sibling media was
@@ -388,6 +416,7 @@ export function parseWahaMessageEvent(
       text: content.text,
       mediaId: content.mediaId,
       mediaFilename: content.mediaFilename,
+      replyTo: extractWahaReplyRef(payload),
       timestamp,
       rawPayload,
     };
@@ -409,6 +438,7 @@ export function parseWahaMessageEvent(
     mediaId: content.mediaId,
     mediaFilename: content.mediaFilename,
     adReferral: extractWahaAdReferral(payload),
+    replyTo: extractWahaReplyRef(payload),
     timestamp,
     rawPayload,
   };

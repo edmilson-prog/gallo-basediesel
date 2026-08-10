@@ -143,6 +143,20 @@ export interface IAdReferral {
   mediaUrl?: string;
 }
 
+/**
+ * Mensagem citada, como veio no payload do provider — ainda NÃO resolvida
+ * contra o nosso histórico. No WAHA `providerMessageId` é o id CRU (só o
+ * hash); quem resolve para a nossa mensagem é o webhook, por casamento de
+ * sufixo (ver waha/replyRef.ts).
+ */
+export interface IInboundReplyRef {
+  providerMessageId: string;
+  /** Corpo da mensagem citada, quando o provider o envia. */
+  text?: string;
+  /** Tipo de mídia da mensagem citada, derivado do mimetype quando presente. */
+  mediaType?: InboundContentType;
+}
+
 export interface IInboundMessage {
   type: "message";
   providerMessageId: string;
@@ -174,6 +188,8 @@ export interface IInboundMessage {
   senderName?: string;
   /** Set only on the message that carried a WhatsApp ad/post referral. */
   adReferral?: IAdReferral;
+  /** Set when this message quotes another one in the same chat. */
+  replyTo?: IInboundReplyRef;
   timestamp: ISO8601;
   /** Original provider payload, kept verbatim for audit (PRD-110). */
   rawPayload: unknown;
@@ -212,6 +228,8 @@ export interface IOutboundEcho {
   mediaId?: string;
   mediaCaption?: string;
   mediaFilename?: string;
+  /** Set when this message quotes another one in the same chat. */
+  replyTo?: IInboundReplyRef;
   timestamp: ISO8601;
   rawPayload: unknown;
 }
