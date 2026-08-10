@@ -14,19 +14,6 @@ import type {
   IVehicleModelKit,
   QuotePaymentMethod,
 } from "@/shared/types";
-import { Icon } from "@/components/Icon";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
@@ -51,12 +38,14 @@ import { useShippingQuote } from "../../hooks/useShippingQuote";
 import { quoteLayoutClasses } from "../../utils/layoutClasses";
 import { useQuoteEditorPrefs } from "../../hooks/useQuoteEditorPrefs";
 import { QuoteActionBar } from "./layout/QuoteActionBar";
+import { QuoteDraftBanner } from "./layout/QuoteDraftBanner";
 import { CustomerChip } from "./customer/CustomerChip";
-import { ItemAdder } from "./items/ItemAdder";
-import { KitPicker } from "./items/KitPicker";
-import { QuoteItemsTable } from "./items/QuoteItemsTable";
+import { QuoteItemsPanel } from "./items/QuoteItemsPanel";
 import { FreeItemDialog } from "./items/FreeItemDialog";
 import { QuoteSummaryPanel } from "./summary/QuoteSummaryPanel";
+import { QuoteConditions } from "./summary/QuoteConditions";
+import { QuoteNotes } from "./summary/QuoteNotes";
+import { QuoteSendBar } from "./summary/QuoteSendBar";
 
 function addDays(d: Date, days: number): Date {
   const out = new Date(d);
@@ -311,8 +300,8 @@ export function QuoteEditor() {
       }),
     );
   };
-  const handleAddPart = (part: IPart) => {
-    const result = addOrIncrementItem(items, part);
+  const handleAddPart = (part: IPart, quantity = 1) => {
+    const result = addOrIncrementItem(items, part, quantity);
     setItems(result.items);
     setHighlightId(result.affectedId);
   };
@@ -377,6 +366,21 @@ export function QuoteEditor() {
 
   // --- Validation ---
   const canSubmit = customer !== null && items.length > 0 && !justificationMissing;
+  /** What is still missing, written out for the send bar. */
+  const blocker = !customer
+    ? items.length === 0
+      ? "Selecione o cliente e adicione ao menos um item."
+      : "Selecione o cliente para salvar."
+    : items.length === 0
+      ? "Adicione ao menos um item."
+      : justificationMissing
+        ? `Justifique o desconto acima de ${(thresholdPct * 100).toFixed(0)}% para salvar.`
+        : null;
+
+  // Margin actually earned: the line margins less the global discount, which
+  // comes off the seller's own take rather than out of the lines.
+  const netMargin = round2(aggregates.totalMargin - totals.discount);
+  const netMarginPct = totals.subtotal > 0 ? netMargin / totals.subtotal : 0;
 
   // --- Shipping ---
   const handleCalcShipping = () => {
@@ -470,6 +474,53 @@ export function QuoteEditor() {
     }
   };
 
+  const summaryProps = {
+    itemCount: items.length,
+    unitCount: items.reduce((sum, it) => sum + it.quantity, 0),
+    subtotal: totals.subtotal,
+    discountInput,
+    onDiscountInput: setDiscountInput,
+    discountPct,
+    thresholdPct,
+    shipping,
+    onShipping: handleManualShipping,
+    onCalcShipping: handleCalcShipping,
+    discountTotal: totals.discount,
+    shippingTotal: totals.shipping,
+    total: totals.total,
+    needsJustification,
+    discountReason,
+    onDiscountReason: setDiscountReason,
+    totalWeightKg: aggregates.totalWeightKg,
+    totalMargin: netMargin,
+    marginPct: netMarginPct,
+    showMargin: isManagerOrOwner,
+    quote: meEnabled
+      ? {
+          enabled: true,
+          loading: autoShipping.loading,
+          source: quoteResult?.source,
+          options: quoteResult?.source === "melhor_envio" ? quoteResult.options : [],
+          selectedServiceId: effectiveOption?.serviceId ?? null,
+          freeShippingApplied: quoteResult?.freeShippingApplied,
+          onSelectOption: handleSelectShippingOption,
+        }
+      : undefined,
+  };
+
+  const conditions = (variant: "rail" | "card") => (
+    <QuoteConditions
+      variant={variant}
+      paymentMethod={paymentMethod}
+      onPaymentMethod={setPaymentMethod}
+      paymentTerms={paymentTerms}
+      onPaymentTerms={setPaymentTerms}
+      validUntil={validUntil}
+      onValidUntil={setValidUntil}
+      defaultValidityDays={validityDaysDefault}
+    />
+  );
+
   return (
     <div className={classes.root}>
       <QuoteActionBar
@@ -483,20 +534,15 @@ export function QuoteEditor() {
         needsApproval={needsJustification}
         onSaveDraft={() => void handleSave(false)}
         onSaveSend={() => void handleSave(true)}
+        savedAt={savedAt}
       />
 
-      {draftOffer && items.length === 0 && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
-          <p className="text-xs text-foreground">
-            <Icon icon="mdi:history" size={14} className="mr-1 inline" />
-            Há um rascunho não salvo de {new Date(draftOffer.savedAt).toLocaleString("pt-BR")}.
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
+      <div className={classes.grid}>
+        <main className={classes.body}>
+          {draftOffer && items.length === 0 && (
+            <QuoteDraftBanner
+              savedAt={draftOffer.savedAt}
+              onRestore={() => {
                 setItems(draftOffer.items);
                 setDiscountInput(draftOffer.discountInput);
                 setShipping(draftOffer.shipping);
@@ -511,188 +557,88 @@ export function QuoteEditor() {
                 setDraftOffer(null);
                 toast.success("Rascunho restaurado.");
               }}
-            >
-              Restaurar
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
+              onDiscard={() => {
                 clearDraft();
                 setDraftOffer(null);
               }}
-            >
-              Descartar
-            </Button>
-          </div>
-        </div>
-      )}
-      {savedAt && (
-        <p className="mb-2 text-right text-[11px] text-muted-foreground">
-          <Icon icon="mdi:content-save-check-outline" size={12} className="mr-1 inline" />
-          Rascunho salvo às{" "}
-          {new Date(savedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-        </p>
-      )}
-
-      <div className={classes.grid}>
-        <div className={classes.body}>
-          {/* Cliente */}
-          <Card className="p-4">
-            <SectionTitle icon="mdi:account-outline" title="Cliente" />
-            <CustomerChip
-              customer={customer}
-              onChange={setCustomer}
-              sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
-              vehicles={vehicles}
             />
-          </Card>
+          )}
 
-          {/* Items */}
-          <Card className="p-4">
-            <SectionTitle icon="mdi:format-list-bulleted" title="Itens" />
-            <div className="mb-2 flex items-center justify-end">
-              <KitPicker kits={kits} onPickKit={setKitToApply} />
-            </div>
-            <ItemAdder
-              key={customer?.id ?? "none"}
-              mode={prefs.addMode}
-              onModeChange={prefs.setAddMode}
-              vehicles={vehicles}
-              orders={orders}
-              inQuoteQtyByPart={inQuoteQtyByPart}
-              onAddPart={handleAddPart}
-              onAddFreeItemClick={() => setFreeOpen(true)}
-            />
-            {suggestedKit && !suggestionDismissed && !hasFilterItem && (
-              <div className="mt-4">
+          <CustomerChip
+            customer={customer}
+            onChange={setCustomer}
+            sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
+            vehicles={vehicles}
+          />
+
+          <QuoteItemsPanel
+            adderResetKey={customer?.id ?? "none"}
+            items={items}
+            subtotal={totals.subtotal}
+            mode={prefs.addMode}
+            onModeChange={prefs.setAddMode}
+            density={prefs.density}
+            grow={classes.itemsGrow}
+            vehicles={vehicles}
+            orders={orders}
+            inQuoteQtyByPart={inQuoteQtyByPart}
+            onAddPart={handleAddPart}
+            onAddFreeItemClick={() => setFreeOpen(true)}
+            kits={kits}
+            onPickKit={setKitToApply}
+            kitBanner={
+              suggestedKit && !suggestionDismissed && !hasFilterItem ? (
                 <KitSuggestionBanner
                   kit={suggestedKit}
                   vehicleLabel={`${suggestionVehicle!.brand} ${suggestionVehicle!.model}`}
                   onApply={() => setKitToApply(suggestedKit)}
                   onDismiss={() => setSuggestionDismissed(true)}
                 />
-              </div>
-            )}
-
-            <div className="mt-6">
-              <div className="mb-3 flex items-center gap-3" aria-hidden="true">
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Orçamento
-                </span>
-                <span className="h-px flex-1 bg-border" />
-              </div>
-              <QuoteItemsTable
-                items={items}
-                subtotal={totals.subtotal}
-                onPatch={handleItemPatch}
-                onRemove={handleRemoveItem}
-                highlightId={highlightId}
-                partsById={partsById}
-                allParts={allParts}
-                showMargin={isManagerOrOwner}
-                onSwapEquivalent={handleSwapEquivalent}
-                density={prefs.density}
-              />
-            </div>
-          </Card>
-
-          {/* Condições de pagamento */}
-          <Card className="p-4">
-            <SectionTitle icon="mdi:credit-card-outline" title="Condições de pagamento" />
-            <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <Label>Forma de pagamento</Label>
-                <Select
-                  value={paymentMethod}
-                  onValueChange={(v) => setPaymentMethod(v as QuotePaymentMethod)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pix">PIX</SelectItem>
-                    <SelectItem value="boleto">Boleto</SelectItem>
-                    <SelectItem value="cartao">Cartão</SelectItem>
-                    <SelectItem value="prazo">Prazo</SelectItem>
-                    <SelectItem value="outro">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="terms">Prazo</Label>
-                <Input
-                  id="terms"
-                  value={paymentTerms}
-                  onChange={(e) => setPaymentTerms(e.target.value)}
-                  placeholder="ex.: 30/60/90 dias"
-                />
-              </div>
-              <div>
-                <Label htmlFor="valid">Válido até</Label>
-                <Input
-                  id="valid"
-                  type="date"
-                  value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
-                />
-              </div>
-            </div>
-          </Card>
-
-          {/* Notas internas */}
-          <Card className="p-4">
-            <SectionTitle icon="mdi:note-text-outline" title="Notas internas" />
-            <Textarea
-              rows={3}
-              placeholder="Observações internas (não enviadas ao cliente)"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </Card>
-        </div>
-
-        {/* Resumo */}
-        <div className={classes.summary}>
-          <QuoteSummaryPanel
-            itemCount={items.length}
-            unitCount={items.reduce((sum, it) => sum + it.quantity, 0)}
-            subtotal={totals.subtotal}
-            discountInput={discountInput}
-            onDiscountInput={setDiscountInput}
-            discountPct={discountPct}
-            thresholdPct={thresholdPct}
-            shipping={shipping}
-            onShipping={handleManualShipping}
-            onCalcShipping={handleCalcShipping}
-            discountTotal={totals.discount}
-            shippingTotal={totals.shipping}
-            total={totals.total}
-            needsJustification={needsJustification}
-            discountReason={discountReason}
-            onDiscountReason={setDiscountReason}
-            compact={classes.summaryAsFooterBar}
-            totalWeightKg={aggregates.totalWeightKg}
-            totalMargin={aggregates.totalMargin}
-            marginPct={aggregates.marginPct}
-            showMargin={isManagerOrOwner}
-            quote={
-              meEnabled
-                ? {
-                    enabled: true,
-                    loading: autoShipping.loading,
-                    source: quoteResult?.source,
-                    options: quoteResult?.source === "melhor_envio" ? quoteResult.options : [],
-                    selectedServiceId: effectiveOption?.serviceId ?? null,
-                    freeShippingApplied: quoteResult?.freeShippingApplied,
-                    onSelectOption: handleSelectShippingOption,
-                  }
-                : undefined
+              ) : null
             }
+            onPatch={handleItemPatch}
+            onRemove={handleRemoveItem}
+            onSwapEquivalent={handleSwapEquivalent}
+            highlightId={highlightId}
+            partsById={partsById}
+            allParts={allParts}
+            showMargin={isManagerOrOwner}
           />
-        </div>
+
+          {!classes.summaryAsRail && (
+            <>
+              {conditions("card")}
+              <QuoteNotes variant="card" notes={notes} onNotes={setNotes} />
+              {!classes.summaryAsFooterBar && (
+                <QuoteSummaryPanel {...summaryProps} variant="card" />
+              )}
+            </>
+          )}
+        </main>
+
+        {classes.summaryAsRail && (
+          <aside className={classes.summary}>
+            <div className="min-h-0 flex-1 lg:overflow-y-auto">
+              <QuoteSummaryPanel {...summaryProps} variant="rail" />
+              {conditions("rail")}
+              <QuoteNotes variant="rail" notes={notes} onNotes={setNotes} />
+            </div>
+            <QuoteSendBar
+              canSubmit={canSubmit}
+              submitting={submitting}
+              needsApproval={needsJustification}
+              blocker={blocker}
+              onSaveSend={() => void handleSave(true)}
+            />
+          </aside>
+        )}
       </div>
+
+      {classes.summaryAsFooterBar && (
+        <div className={classes.summary}>
+          <QuoteSummaryPanel {...summaryProps} variant="bar" />
+        </div>
+      )}
 
       <FreeItemDialog
         open={freeOpen}
@@ -708,15 +654,6 @@ export function QuoteEditor() {
         }}
         onConfirm={handleApplyKit}
       />
-    </div>
-  );
-}
-
-function SectionTitle({ icon, title }: { icon: string; title: string }) {
-  return (
-    <div className="mb-3 flex items-center gap-2">
-      <Icon icon={icon} size={16} className="text-muted-foreground" />
-      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
     </div>
   );
 }
