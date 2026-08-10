@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { getActiveDataSource } from "@/providers/data";
-import { BubbleChrome } from "./bubbleChrome";
+import { BubbleChrome, type IBubbleProps } from "./bubbleChrome";
 import { fakeAudioSeconds, formatDuration } from "../../utils/messageDisplay";
 import {
   PLAYBACK_RATE_STORAGE_KEY,
@@ -42,15 +42,16 @@ function generateWave(seed: string): number[] {
  * Demonstração (`mock`): keeps a cosmetic animated waveform — mock "audio"
  * assets are placeholder images, not real audio, so there is nothing to play.
  */
-export function AudioBubble({ message, onRetry }: { message: IMessage; onRetry?: () => void }) {
+export function AudioBubble({ message, onRetry, ...extras }: IBubbleProps) {
   const isDemo = getActiveDataSource() === "mock";
   // In demo mode there is no real file to sign — skip the query entirely.
   const { data: url, isLoading } = useResolvedMediaUrl(isDemo ? undefined : message.mediaUrl);
 
-  if (isDemo) return <SimulatedAudioPlayer message={message} onRetry={onRetry} />;
-  if (url) return <RealAudioPlayer url={url} message={message} onRetry={onRetry} />;
-  if (isLoading && message.mediaUrl) return <AudioStub message={message} onRetry={onRetry} loading />;
-  return <AudioStub message={message} onRetry={onRetry} />;
+  if (isDemo) return <SimulatedAudioPlayer message={message} onRetry={onRetry} {...extras} />;
+  if (url) return <RealAudioPlayer url={url} message={message} onRetry={onRetry} {...extras} />;
+  if (isLoading && message.mediaUrl)
+    return <AudioStub message={message} onRetry={onRetry} loading {...extras} />;
+  return <AudioStub message={message} onRetry={onRetry} {...extras} />;
 }
 
 /**
@@ -154,11 +155,8 @@ function RealAudioPlayer({
   url,
   message,
   onRetry,
-}: {
-  url: string;
-  message: IMessage;
-  onRetry?: () => void;
-}) {
+  ...extras
+}: IBubbleProps & { url: string }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
@@ -218,7 +216,7 @@ function RealAudioPlayer({
   if (errored) return <AudioStub message={message} onRetry={onRetry} />;
 
   return (
-    <BubbleChrome message={message} onRetry={onRetry}>
+    <BubbleChrome message={message} onRetry={onRetry} {...extras}>
       <audio
         ref={audioRef}
         src={url}
@@ -307,7 +305,7 @@ function TranscriptionCaption({ message }: { message: IMessage }) {
 }
 
 /** Cosmetic waveform animation used in demonstração (no real bytes to play). */
-function SimulatedAudioPlayer({ message, onRetry }: { message: IMessage; onRetry?: () => void }) {
+function SimulatedAudioPlayer({ message, onRetry, ...extras }: IBubbleProps) {
   const totalSeconds = fakeAudioSeconds(message);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -339,7 +337,7 @@ function SimulatedAudioPlayer({ message, onRetry }: { message: IMessage; onRetry
   const heard = message.direction === "out" && message.status === "read";
 
   return (
-    <BubbleChrome message={message} onRetry={onRetry}>
+    <BubbleChrome message={message} onRetry={onRetry} {...extras}>
       <div className="flex items-center gap-2.5">
         <PlayPauseButton
           playing={playing}
@@ -363,13 +361,10 @@ function AudioStub({
   message,
   onRetry,
   loading = false,
-}: {
-  message: IMessage;
-  onRetry?: () => void;
-  loading?: boolean;
-}) {
+  ...extras
+}: IBubbleProps & { loading?: boolean }) {
   return (
-    <BubbleChrome message={message} onRetry={onRetry}>
+    <BubbleChrome message={message} onRetry={onRetry} {...extras}>
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon
           icon={loading ? "mdi:loading" : "mdi:microphone-off"}

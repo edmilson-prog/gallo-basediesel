@@ -27,6 +27,7 @@ import { useRealtimeMessages } from "../hooks/useRealtimeMessages";
 import { useRealtimeConversationParticipants } from "../hooks/useRealtimeConversationParticipants";
 import { useConversationPresenceTracker } from "../hooks/useConversationPresence";
 import { ConversationProvider } from "../hooks/ConversationContext";
+import { ReplyDraftProvider } from "../hooks/useReplyDraft";
 import { CopilotStrip, CopilotCard, CopilotFicheTab, useCopilotPanel } from "@/features/copilot";
 import { useMediaGallery, useConversationMedia, useEnsureInboundMedia } from "@/features/media";
 import { ConversationMediaPanel } from "../components/media/ConversationMediaPanel";
@@ -237,6 +238,7 @@ export function ConversationPage() {
         <ConversationProvider
           value={{ messages, openContactConversation: setContactDialogTarget }}
         >
+          <ReplyDraftProvider>
           <div className="flex h-full min-h-0 w-full overflow-hidden bg-background">
             {/* `min-w-0` is load-bearing: without it this column keeps its
                 min-content width (the header's rigid action row alone asks for
@@ -289,7 +291,11 @@ export function ConversationPage() {
               )}
 
               <div className="min-h-0 flex-1">
-                <MessageList conversation={conversation} whatsappAccount={whatsappAccount} />
+                <MessageList
+                  conversation={conversation}
+                  whatsappAccount={whatsappAccount}
+                  contactName={contact?.name}
+                />
               </div>
 
               <MetaWindowIndicator
@@ -407,6 +413,7 @@ export function ConversationPage() {
               />
             )}
           </div>
+          </ReplyDraftProvider>
         </ConversationProvider>
       </QuickSendBusProvider>
     </TooltipProvider>

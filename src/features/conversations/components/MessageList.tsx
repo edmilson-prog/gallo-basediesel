@@ -21,21 +21,29 @@ import { useTypingSimulation } from "../hooks/useTypingSimulation";
 import { useConversationContext } from "../hooks/ConversationContext";
 import { SEND_ERROR_MESSAGES, useMessageSend } from "../hooks/useMessageSend";
 import { useSeedSignedMediaUrls } from "../hooks/useSeedSignedMediaUrls";
+import { useReplyDraft } from "../hooks/useReplyDraft";
 
 export interface IMessageListProps {
   conversation: IConversation;
   whatsappAccount?: IWhatsAppAccount | null;
+  /** Nome do contato — autor da citação quando ela é do cliente. */
+  contactName?: string;
 }
 
 const SCROLL_BOTTOM_THRESHOLD = 80;
 
-export function MessageList({ conversation, whatsappAccount = null }: IMessageListProps) {
+export function MessageList({
+  conversation,
+  whatsappAccount = null,
+  contactName,
+}: IMessageListProps) {
   const { messages: msg } = useConversationContext();
   const { messages, isLoading, hasMore, loadMore, isLoadingMore, retry, isPlaceholder } = msg;
   // Batch-sign all media of the loaded thread in one request and seed the
   // per-bubble cache, so images/audio/docs render without N separate signs.
   useSeedSignedMediaUrls(messages.map((m) => m.mediaUrl));
   const sendHook = useMessageSend(conversation, whatsappAccount);
+  const replyDraft = useReplyDraft();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const lastIdRef = useRef<string | null>(null);
@@ -54,6 +62,7 @@ export function MessageList({ conversation, whatsappAccount = null }: IMessageLi
   const [consultMode, setConsultMode] = useState<NotesConsultMode>("index");
   const [consultState, setConsultState] = useState(DEFAULT_NOTES_CONSULT);
   const [flashNoteId, setFlashNoteId] = useState<string | null>(null);
+  const [flashMessageId, setFlashMessageId] = useState<string | null>(null);
   const [highlightCursor, setHighlightCursor] = useState(0);
 
   const matched = useMemo(
@@ -137,6 +146,29 @@ export function MessageList({ conversation, whatsappAccount = null }: IMessageLi
     const t = setTimeout(() => setFlashNoteId(null), 1600);
     return () => clearTimeout(t);
   }, [flashNoteId]);
+
+  /**
+   * Rola até a mensagem citada e a destaca por um instante.
+   *
+   * Silencioso quando ela não está carregada: a thread pagina, e a original
+   * pode estar muitas páginas acima. Buscar páginas até encontrá-la mexeria na
+   * paginação do Atendimento e poderia disparar várias buscas numa conversa de
+   * milhares de mensagens.
+   */
+  const jumpToMessage = useCallback((messageId: string) => {
+    const el = containerRef.current?.querySelector<HTMLElement>(
+      `[data-message-id="${messageId}"]`,
+    );
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setFlashMessageId(messageId);
+  }, []);
+
+  useEffect(() => {
+    if (!flashMessageId) return;
+    const t = setTimeout(() => setFlashMessageId(null), 1600);
+    return () => clearTimeout(t);
+  }, [flashMessageId]);
 
   const goToMatch = useCallback(
     (index: number) => {
@@ -273,11 +305,16 @@ export function MessageList({ conversation, whatsappAccount = null }: IMessageLi
               />
             );
           }
+          const quotedId = row.message.replyTo?.messageId;
           return (
             <MessageBubble
               key={row.id}
               message={row.message}
+              contactName={contactName}
               onRetry={() => handleRetry(row.message)}
+              onReply={replyDraft ? () => replyDraft.startReply(row.message) : undefined}
+              onJumpToQuoted={quotedId ? () => jumpToMessage(quotedId) : undefined}
+              flash={flashMessageId === row.message.id}
             />
           );
         })}

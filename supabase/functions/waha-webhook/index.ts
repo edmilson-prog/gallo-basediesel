@@ -56,6 +56,7 @@ import {
   resolveEchoContinuityWindowHours,
 } from "../_shared/whatsapp/echoContinuity.ts";
 import { phoneDigitsMatchBr } from "../_shared/whatsapp/phoneBr.ts";
+import { resolveReplyRef } from "../_shared/replyRef.ts";
 import { logWebhookDelivery } from "../_shared/webhookDeliveryLog.ts";
 import { runInBackground } from "../_shared/backgroundTask.ts";
 import { transcribeMessageAudio } from "../_shared/ai/transcribeAudio.ts";
@@ -1030,6 +1031,11 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Quote resolution runs BEFORE the insert so the row lands complete — a
+      // follow-up UPDATE would race the Realtime event and make the bubble
+      // flicker from un-quoted to quoted.
+      const echoReplyTo = await resolveReplyRef(admin, echoConversationId, parsed.replyTo);
+
       const echoMessageId = crypto.randomUUID();
       const { error: echoMessageErr } = await admin.from("messages").insert({
         id: echoMessageId,
@@ -1050,6 +1056,7 @@ Deno.serve(async (req) => {
         sent_at: parsed.timestamp,
         provider_message_id: parsed.providerMessageId,
         webhook_event_ids: [eventKey],
+        reply_to: echoReplyTo,
       });
       if (echoMessageErr) {
         // 503 (not the old silent 200): the conversation may already exist but
@@ -1311,6 +1318,10 @@ Deno.serve(async (req) => {
     }
 
     // ===== Message insert (Correction 3) — NO media_url at insert time ========
+    // Quote resolution runs BEFORE the insert so the row lands complete (see
+    // the echo path above for why a follow-up UPDATE would be worse).
+    const inboundReplyTo = await resolveReplyRef(admin, conversationId, parsed.replyTo);
+
     const messageId = crypto.randomUUID();
     const { error: messageErr } = await admin.from("messages").insert({
       id: messageId,
@@ -1338,6 +1349,7 @@ Deno.serve(async (req) => {
       sent_at: parsed.timestamp,
       provider_message_id: parsed.providerMessageId,
       webhook_event_ids: [eventKey],
+      reply_to: inboundReplyTo,
     });
     if (messageErr) {
       // 503 (not the old log-and-continue-200): WAHA redelivers and the event

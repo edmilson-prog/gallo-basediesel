@@ -2,15 +2,15 @@
 import type { IMessage } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
-import { BubbleChrome } from "@/features/conversations/components/bubbles/bubbleChrome";
+import {
+  BubbleChrome,
+  type IBubbleProps,
+} from "@/features/conversations/components/bubbles/bubbleChrome";
 import { TextBubble } from "@/features/conversations/components/bubbles/TextBubble";
 import { decodeProductCard, priceLabel, hasImage } from "../engine/productCardPayload";
 import { QUICK_SEND_STRINGS } from "../i18n/pt-BR";
 
-export interface IProductCardBubbleProps {
-  message: IMessage;
-  onRetry?: () => void;
-}
+export type IProductCardBubbleProps = IBubbleProps;
 
 const SEVERITY_CLASS: Record<"ok" | "warning" | "critical", string> = {
   ok: "text-severity-success",
@@ -19,15 +19,15 @@ const SEVERITY_CLASS: Record<"ok" | "warning" | "critical", string> = {
 };
 
 /** Rich product card bubble; degrades gracefully and falls back to text on parse fail (D-7). */
-export function ProductCardBubble({ message, onRetry }: IProductCardBubbleProps) {
+export function ProductCardBubble({ message, onRetry, ...extras }: IProductCardBubbleProps) {
   const snapshot = decodeProductCard(message.text);
   if (!snapshot) {
     // Parse failed → degrade to a plain text bubble (RNF / risk mitigation §10).
-    return <TextBubble message={message} onRetry={onRetry} />;
+    return <TextBubble message={message} onRetry={onRetry} {...extras} />;
   }
 
   return (
-    <BubbleChrome message={message} onRetry={onRetry} unpadded>
+    <BubbleChrome message={message} onRetry={onRetry} unpadded {...extras}>
       <div className="w-64">
         <div className="flex aspect-video items-center justify-center bg-muted text-muted-foreground">
           {hasImage(snapshot) ? (

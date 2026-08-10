@@ -43,6 +43,8 @@ import { NotesButton } from "./notes/NotesButton";
 import { InlineNoteComposer } from "./notes/InlineNoteComposer";
 import { OriginChip } from "./OriginChip";
 import { AssignToReplyBanner } from "./AssignToReplyBanner";
+import { ReplyComposerBar } from "./ReplyComposerBar";
+import { useReplyDraft } from "../hooks/useReplyDraft";
 import { InstanceLockedBanner } from "./InstanceLockedBanner";
 import { deriveInstanceLock } from "../engine/instanceLock";
 import { inferAttachmentKind } from "../engine/attachmentKind";
@@ -231,6 +233,7 @@ export function MessageInput(props: IMessageInputProps) {
   const { messages } = useConversationContext();
   const window = useMetaWindow(conversation, whatsappAccount);
   const sendHook = useMessageSend(conversation, whatsappAccount);
+  const replyDraft = useReplyDraft();
   const selfAssign = useSelfAssign(conversation, { onDone: onAssigned });
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [internalValue, setInternalValue] = useState("");
@@ -727,8 +730,13 @@ export function MessageInput(props: IMessageInputProps) {
       return;
     }
     setValue("");
+    const replyTo = replyDraft?.target?.ref;
     try {
-      await sendHook.send({ text });
+      await sendHook.send({ text, ...(replyTo ? { replyTo } : {}) });
+      // Limpa só depois do envio bem-sucedido: se ele falhar (janela de 24h,
+      // número inválido), o alvo continua ali e o atendente reenvia sem ter
+      // que citar de novo.
+      replyDraft?.clear();
       onSent?.();
     } catch (err) {
       // Supabase source already toasts per error code inside the hook; the
@@ -788,6 +796,12 @@ export function MessageInput(props: IMessageInputProps) {
   };
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Antes do bloco do menu de barra para não roubar o Escape dele.
+    if (e.key === "Escape" && replyDraft?.target && !slashOpen) {
+      e.preventDefault();
+      replyDraft.clear();
+      return;
+    }
     if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
       e.preventDefault();
       setPickerOpen(true);
@@ -958,6 +972,13 @@ export function MessageInput(props: IMessageInputProps) {
           </div>
           <Icon icon="mdi:loading" size={16} className="shrink-0 animate-spin text-primary" />
         </div>
+      )}
+      {replyDraft?.target && (
+        <ReplyComposerBar
+          target={replyDraft.target}
+          contactName={contactName ?? undefined}
+          onCancel={replyDraft.clear}
+        />
       )}
       <div className="flex items-end gap-2 px-3 py-2">
         {recorder.status !== "idle" ? (
