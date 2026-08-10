@@ -169,6 +169,7 @@ export type {
   IConversationMessageMatch,
   IConversationTag,
   IMessage,
+  IMessageReplyRef,
   IWhatsAppAccount,
   IWhatsAppCapabilities,
   IWhatsAppProviderConfig,
