@@ -4,6 +4,28 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.170.0] — Slate · 2026-08-10
+
+**Montar um orçamento era descer uma página de blocos: o cliente num, os itens em outro, e as decisões que fecham a venda — desconto, frete, condições, notas internas — espalhadas em mais dois blocos lá embaixo, com o total fora de vista bem na hora de decidir. Agora a tela é um documento de trabalho: o cliente virou uma faixa de uma linha com o que pesa na hora de dar desconto, os itens ocupam a mesa inteira, e tudo que fecha a venda ficou numa coluna à direita, com o total sempre visível e o botão de enviar fixo embaixo.**
+
+### Added
+
+- **Colar uma lista de peças de uma vez** — no modo Rápido, cole um item por linha no formato `código; quantidade` e todos entram no orçamento juntos. Aceita tanto o código da loja quanto o do fabricante, soma o que estiver repetido e avisa quais códigos não encontrou. Feito para quando o cliente manda a lista escrita.
+- **Catálogo em grade dentro da própria tela** — o modo Catálogo deixou de abrir uma gaveta lateral e passou a mostrar as peças em cartões filtráveis por categoria, com preço e estoque à vista. Um clique adiciona, e o que já está no orçamento fica marcado.
+- **Menu Exibição** — os quatro ícones sem rótulo do topo viraram um menu com nome. Continuam ali as mesmas escolhas: as três formas de dispor a página (duas colunas, largura cheia, barra no rodapé) e a densidade da tabela.
+- **O que falta para enviar, escrito** — em vez de um botão apagado sem explicação, o rodapé diz o que impede: escolher o cliente, adicionar ao menos um item ou justificar o desconto acima do limite.
+
+### Changed
+
+- **Tela de novo orçamento refeita** — o cliente virou uma faixa de uma linha com nome, documento, endereço e os fatos que pesam na hora de dar desconto: limite de crédito, títulos vencidos, desconto de contrato, prazo e última compra, com os veículos da frota ao lado. Os itens passaram a ocupar toda a altura restante, com o cabeçalho da tabela parado no lugar e a lista rolando por dentro; quantidade, preço e desconto são editáveis na própria linha, e o valor cheio aparece riscado quando há desconto. Desconto, frete, condições de pagamento e notas internas saíram do fim da página para a coluna da direita.
+- **A busca de peças foi para onde a ação começa** — o seletor de modo saiu do canto direito e passou para a esquerda, abrindo a busca ao lado. Com o campo vazio, ele já sugere o que o cliente costuma recomprar e o que serve nos veículos dele; a tecla `/` continua levando o cursor até lá.
+
+### Fixed
+
+- **Atalhos de validade erravam um dia** — clicar "+7 dias" no fim da tarde marcava oito. Os atalhos passaram a contar pelo calendário de quem está usando o sistema.
+- **Apagar o preço de um item zerava o valor** — limpar o campo e clicar fora gravava zero em silêncio. Agora o campo volta ao valor anterior; para zerar de fato, basta digitar zero.
+- **Margem do orçamento aparecia maior do que era** — o desconto dado sobre o total não era abatido da margem exibida, o que fazia a venda parecer mais lucrativa do que de fato estava.
+
 ## [0.169.0] — Reprise · 2026-08-10
 
 **O vendedor entrava no sistema e caía numa tela que não era dele. Agora ele abre no próprio posto: quanto vendeu, quanto falta para a meta, quem está esperando resposta e em que horas do dia o movimento acontece. Do outro lado, a conversa parou de perder o fio — dá para responder citando a mensagem exata, e a citação que o cliente faz, que antes sumia, agora aparece na tela. E a ficha do cliente deixou de gastar a primeira tela com blocos vazios: telefone, documento e endereço estão à vista, e o que não está preenchido é dito em vez de virar um zero.**
