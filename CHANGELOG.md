@@ -4,6 +4,30 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.169.0] — Reprise · 2026-08-10
+
+**O vendedor entrava no sistema e caía numa tela que não era dele. Agora ele abre no próprio posto: quanto vendeu, quanto falta para a meta, quem está esperando resposta e em que horas do dia o movimento acontece. Do outro lado, a conversa parou de perder o fio — dá para responder citando a mensagem exata, e a citação que o cliente faz, que antes sumia, agora aparece na tela. E a ficha do cliente deixou de gastar a primeira tela com blocos vazios: telefone, documento e endereço estão à vista, e o que não está preenchido é dito em vez de virar um zero.**
+
+### Added
+
+- **Painel do vendedor na tela inicial** — quem entra como Vendedor abre direto no seu painel: saudação com o período em foco (7 ou 30 dias), os números do próprio trabalho, a meta com projeção de onde ela vai fechar no ritmo atual, a fila de quem está esperando, a posição no ranking e um gráfico das horas em que o movimento acontece. Cada cartão só aparece se o papel tiver permissão para vê-lo.
+- **Responder citando uma mensagem no Atendimento** — passe o mouse na mensagem e escolha "Responder": ela vira uma citação acima do que você está escrevendo, e o cliente recebe a resposta amarrada à mensagem certa. Também funciona ao contrário: quando o cliente responde citando algo que você mandou, a citação aparece na conversa em vez de deixar um "sim, esse mesmo" solto. Clicar na citação leva até a mensagem original. Vale para texto e para mídia, e alcança inclusive as respostas citadas que a equipe dá pelo celular.
+- **Telas de Configurações governadas pelo Editor de Papéis** — as páginas da área de Configurações deixaram de ser fixas por papel e passaram a ser marcáveis na matriz de permissões, uma a uma.
+- **Limite de crédito na ficha do cliente** — o limite que já vinha do sistema antigo passou a aparecer na ficha, ao lado de quanto dele está comprometido em pedidos ainda não pagos. Quem tem permissão pode editar o valor ali mesmo. Cliente sem limite definido não mostra o campo, em vez de exibir zero.
+
+### Changed
+
+- **Vendedor vai para o painel ao entrar** — antes o login levava para uma tela genérica que não respondia à primeira pergunta do dia: como eu estou.
+- **Ficha do cliente refeita** — a tela abria com três blocos grandes de mesma altura que, num cliente recém-cadastrado, estavam os três vazios, e com uma faixa de números repetindo "R$ 0,00" e "Sem compras". Agora o topo responde em três segundos quem é o cliente: telefone, CNPJ ou CPF, razão social, e-mail, endereço, vendedor responsável e loja, cada um com um clique para copiar. Campo em branco passa a dizer "Não informado" em vez de simplesmente não aparecer. Quem nunca comprou não vê mais um gráfico vazio ocupando espaço: vê um convite para criar o primeiro orçamento.
+- **Alertas da ficha do cliente com peso real** — vermelho ficou reservado para o que é de fato urgente, como um veículo esperando aprovação. Orçamento parado aparece em tom de atenção e cadastro incompleto em tom informativo. Quando não há nada pendente, o aviso simplesmente não aparece — antes existia um bloco destacado só para dizer "tudo em dia".
+- **Ficha do cliente com seis abas em vez de dez** — Pedidos e Orçamentos passaram a dividir a aba Comercial; Conversas, Mídias e Histórico dividem a aba Conversas; Notas e Recomendações dividem a aba Notas. Cada aba mostra quantos itens tem, a barra acompanha a rolagem da página, e a ficha abre numa aba com conteúdo: pendências quando existem, Comercial quando não. Antes ela abria sempre na aba que mais vezes estava vazia.
+
+### Fixed
+
+- **Aplicativo abria desatualizado depois de uma publicação** — o app guardava a página inicial no lugar errado do cache e continuava servindo a versão antiga. Agora a atualização chega quando deve.
+- **Números do painel do vendedor** — os totais vinham de fontes que não correspondiam ao que o vendedor de fato fez, e os períodos de 7 e 30 dias fechavam em horário de outro fuso, deslocando o dia. Também deixou de pintar de verde uma variação de zero, que dava impressão de crescimento onde não houve nenhum.
+- **Ranking fora do alcance do Vendedor** — a tela de ranking aparecia para quem não deveria administrá-la.
+
 ## [0.168.0] — Sightline · 2026-08-08
 
 **O quadro de leads mostrava seis colunas do mesmo tamanho e escondia a única coisa que interessa: de cada dez leads ativos, quase dez nunca saíram da entrada. Agora a tela diz isso na primeira linha, a entrada virou uma faixa larga com a saída em destaque, e a lista parou de só listar — dá para decidir sem sair dela. Do outro lado, a ficha do lead deixou de responder "que campos existem" e passou a responder "o que eu faço com este lead agora".**
