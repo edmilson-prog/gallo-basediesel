@@ -142,11 +142,19 @@ Nenhum primitivo `--gallo-*` e nenhum hex direto no código novo.
 
 ## Riscos aceitos
 
-1. **A migration trava o merge.** `credit_limit` entra na string `COLUMNS` do
-   `select` em `providers/data/impl/supabase/customers.ts`. Se o PR mergear antes da migration
-   ser aplicada em produção, **toda** consulta de clientes passa a devolver 400 do PostgREST —
-   não só a ficha. A ordem obrigatória é: aplicar a migration (com OK explícito do dono) →
-   depois mergear. Mergear o PR não aplica a migration.
+1. **~~A migration trava o merge.~~ RESOLVIDO em 2026-08-10.** `credit_limit` entra na string
+   `COLUMNS` do `select` em `providers/data/impl/supabase/customers.ts`, então mergear antes da
+   migration faria **toda** consulta de clientes devolver 400 do PostgREST — não só a ficha.
+   A migration `20260810150000_customers_credit_limit.sql` **foi aplicada em produção** com OK
+   explícito do dono, antes do merge. Verificado: a coluna existe, o único cliente com
+   `dintec_credit_limit` foi semeado (divergência zero) e o PostgREST aceita
+   `select=id,credit_limit` com HTTP 200 — contra 400/`42703` para uma coluna inexistente,
+   provando que o teste discrimina.
+
+   ⚠️ O arquivo foi **renomeado** de `20260810120000_` para `20260810150000_`: o PR #438
+   (responder/citar mensagem) já tinha aplicado no mesmo dia uma migration cujo arquivo usa o
+   prefixo `20260810120000_`, e dois arquivos com o mesmo timestamp disputariam a mesma
+   `version` no diretório assim que aquele PR mergeasse.
 2. **O "usado" renderiza R$ 0 para praticamente todos.** Levantamento em produção em
    2026-08-10: 1 cliente de 3.173 tem `dintec_credit_limit`; nenhum tem portal provisionado; e
    a base não tem pedidos. O dono aprovou com esse custo à vista.
