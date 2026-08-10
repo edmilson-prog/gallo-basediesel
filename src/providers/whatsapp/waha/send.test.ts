@@ -276,3 +276,37 @@ describe("toChatId country-code normalization", () => {
     expect(body.chatId).toBe("5549988184540@c.us");
   });
 });
+
+describe("reply_to (quoted reply)", () => {
+  // WAHA expects the SERIALIZED id here — the same value we persist in
+  // messages.provider_message_id.
+  it("emits reply_to on a text send when quoting", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_1@c.us_NEW" }));
+    await sendWahaText("key", fetchFn, target, {
+      toPhone: "+5511988887777",
+      text: "temos sim",
+      replyTo: "false_5511988887777@c.us_ABC",
+    });
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.reply_to).toBe("false_5511988887777@c.us_ABC");
+  });
+
+  it("omits reply_to entirely on a text send when not quoting", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_1@c.us_NEW" }));
+    await sendWahaText("key", fetchFn, target, { toPhone: "+5511988887777", text: "oi" });
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect("reply_to" in body).toBe(false);
+  });
+
+  it("emits reply_to on a media send when quoting", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { id: "true_2@c.us_NEW" }));
+    await sendWahaMedia("key", fetchFn, target, {
+      toPhone: "+5511988887777",
+      mediaType: "image",
+      mediaUrl: "https://storage.example.com/signed.jpg",
+      replyTo: "false_5511988887777@c.us_ABC",
+    });
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.reply_to).toBe("false_5511988887777@c.us_ABC");
+  });
+});

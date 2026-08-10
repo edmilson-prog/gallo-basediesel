@@ -23,6 +23,8 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
 import { bestEffortAudit } from "./audit.ts";
 import { createSecretResolver } from "./secrets.ts";
+import { truncateQuotedText } from "./whatsapp/waha/replyRef.ts";
+import type { IStoredReplyRef } from "./replyRef.ts";
 import { WhatsAppProviderError } from "./whatsapp/errors.ts";
 import { extractLidChatId, sendWahaMedia, sendWahaText } from "./whatsapp/waha/send.ts";
 import type { IWahaSessionTarget } from "./whatsapp/waha/session.ts";
@@ -188,6 +190,50 @@ async function resolveWahaTarget(
   return { baseUrl, sessionName, apiKey, toPhone: recipient.toPhone, chatId: recipient.chatId };
 }
 
+/**
+ * Loads the quoted message by OUR id and builds both halves of the quote: the
+ * snapshot persisted on the new row, and the serialized provider id WAHA needs
+ * in `reply_to`.
+ *
+ * The client sends only the uuid — never the snapshot — so a tampered payload
+ * can't fabricate a quote of a message the conversation doesn't own (the
+ * lookup is scoped to the conversation).
+ *
+ * Returns nulls when the target can't be quoted (wrong conversation, or it
+ * never reached WhatsApp so there is no provider id). The send then proceeds
+ * WITHOUT the quote instead of failing: the UI already blocks that case
+ * (canReplyTo), so this is defense-in-depth, and losing a citation is far
+ * better than losing the message.
+ */
+async function loadReplyTarget(
+  admin: SupabaseClient,
+  conversationId: string,
+  replyToMessageId: string | undefined,
+): Promise<{ snapshot: IStoredReplyRef | null; providerMessageId: string | null }> {
+  if (!replyToMessageId) return { snapshot: null, providerMessageId: null };
+
+  const { data } = await admin
+    .from("messages")
+    .select("id, provider_message_id, text, media_type, direction")
+    .eq("id", replyToMessageId)
+    .eq("conversation_id", conversationId)
+    .maybeSingle();
+
+  const providerMessageId = (data?.provider_message_id as string | null) ?? null;
+  if (!data || !providerMessageId) return { snapshot: null, providerMessageId: null };
+
+  return {
+    snapshot: {
+      messageId: data.id as string,
+      providerMessageId,
+      text: truncateQuotedText(data.text as string | null),
+      mediaType: (data.media_type as string | null) ?? undefined,
+      direction: data.direction as "in" | "out",
+    },
+    providerMessageId,
+  };
+}
+
 interface IPersistAndDispatchArgs {
   conversationId: string;
   storeId: string;
@@ -197,7 +243,12 @@ interface IPersistAndDispatchArgs {
   mediaType?: "image" | "audio" | "video" | "document" | null;
   mediaUrl?: string | null;
   fileName?: string | null;
-  send: (target: IWahaTarget) => Promise<{ providerMessageId: string }>;
+  /** Our id of the message being quoted (optional). */
+  replyToMessageId?: string;
+  send: (
+    target: IWahaTarget,
+    replyToProviderMessageId: string | null,
+  ) => Promise<{ providerMessageId: string }>;
 }
 
 async function persistAndDispatch(
@@ -205,6 +256,7 @@ async function persistAndDispatch(
   args: IPersistAndDispatchArgs,
 ): Promise<IWahaDispatchResult> {
   const target = await resolveWahaTarget(admin, args.conversationId);
+  const reply = await loadReplyTarget(admin, args.conversationId, args.replyToMessageId);
 
   const messageId = args.messageId ?? crypto.randomUUID();
   const { error: insertErr } = await admin.from("messages").insert({
@@ -218,13 +270,14 @@ async function persistAndDispatch(
     media_type: args.mediaType ?? null,
     media_url: args.mediaUrl ?? null,
     media_filename: args.fileName ?? null,
+    reply_to: reply.snapshot,
     status: "queued",
     sent_at: new Date().toISOString(),
   });
   if (insertErr) throw new Error(`Falha ao registrar a mensagem: ${insertErr.message}`);
 
   try {
-    const result = await args.send(target);
+    const result = await args.send(target, reply.providerMessageId);
     await admin
       .from("messages")
       .update({ status: "sent", provider_message_id: result.providerMessageId })
@@ -262,15 +315,17 @@ export async function dispatchWahaText(
     text: string;
     sellerId: string | null;
     messageId?: string;
+    replyToMessageId?: string;
   },
 ): Promise<IWahaDispatchResult> {
   return persistAndDispatch(admin, {
     ...input,
-    send: (target) =>
+    send: (target, replyToProviderMessageId) =>
       sendWahaText(target.apiKey, globalThis.fetch, target, {
         toPhone: target.toPhone,
         chatId: target.chatId,
         text: input.text,
+        ...(replyToProviderMessageId ? { replyTo: replyToProviderMessageId } : {}),
       }),
   });
 }
@@ -288,6 +343,7 @@ export async function dispatchWahaMedia(
     sizeBytes?: number;
     sellerId: string | null;
     messageId?: string;
+    replyToMessageId?: string;
   },
 ): Promise<IWahaDispatchResult> {
   return persistAndDispatch(admin, {
@@ -299,7 +355,8 @@ export async function dispatchWahaMedia(
     mediaType: input.mediaType,
     mediaUrl: input.mediaUrl,
     fileName: input.fileName,
-    send: (target) =>
+    replyToMessageId: input.replyToMessageId,
+    send: (target, replyToProviderMessageId) =>
       sendWahaMedia(target.apiKey, globalThis.fetch, target, {
         toPhone: target.toPhone,
         chatId: target.chatId,
@@ -308,6 +365,7 @@ export async function dispatchWahaMedia(
         filename: input.fileName,
         caption: input.caption,
         sizeBytes: input.sizeBytes,
+        ...(replyToProviderMessageId ? { replyTo: replyToProviderMessageId } : {}),
       }),
   });
 }

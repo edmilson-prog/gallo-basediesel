@@ -52,6 +52,8 @@ export async function sendWahaText(
     text: string;
     /** Verbatim chat JID (e.g. `123@lid`) — bypasses the phone→chatId derivation. */
     chatId?: string;
+    /** SERIALIZED provider id of the quoted message (`messages.provider_message_id`). */
+    replyTo?: string;
   },
 ): Promise<IWahaSendResult> {
   const response = await wahaRequest(apiKey, fetchFn, {
@@ -61,6 +63,7 @@ export async function sendWahaText(
       session: target.sessionName,
       chatId: input.chatId ?? toChatId(input.toPhone),
       text: input.text,
+      ...(input.replyTo ? { reply_to: input.replyTo } : {}),
     },
   });
   return { providerMessageId: extractMessageId(response.body) };
@@ -78,6 +81,8 @@ export interface IWahaSendMediaInput {
   filename?: string;
   /** Byte size of the file — decides whether a video goes inline or as a document. */
   sizeBytes?: number;
+  /** SERIALIZED provider id of the quoted message (`messages.provider_message_id`). */
+  replyTo?: string;
 }
 
 const MEDIA_ENDPOINTS: Record<IWahaSendMediaInput["mediaType"], string> = {
@@ -142,6 +147,7 @@ async function postWahaMedia(
       },
       ...(input.caption && !isVoice ? { caption: input.caption } : {}),
       ...(isVoice || asInlineVideo ? { convert: true } : {}),
+      ...(input.replyTo ? { reply_to: input.replyTo } : {}),
     },
   });
   return { providerMessageId: extractMessageId(response.body) };

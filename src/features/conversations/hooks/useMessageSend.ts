@@ -4,6 +4,7 @@ import type {
   ID,
   IConversation,
   IMessage,
+  IMessageReplyRef,
   IWhatsAppAccount,
   MessageMediaType,
 } from "@/shared/types";
@@ -94,6 +95,12 @@ export interface ISendOptions {
    * `*Nome:* 11222333000181` and fails.
    */
   unsigned?: boolean;
+  /**
+   * Mensagem citada por este envio. O snapshot é usado na bolha otimista; o
+   * servidor monta o seu próprio a partir de `replyTo.messageId` (fonte da
+   * verdade) e emite o `reply_to` para a WAHA.
+   */
+  replyTo?: IMessageReplyRef;
 }
 
 export interface IUseMessageSendResult {
@@ -133,6 +140,7 @@ export function useMessageSend(
       overrideInvalid,
       retryOfMessageId,
       unsigned,
+      replyTo,
     }: ISendOptions) => {
       const now = new Date().toISOString();
       // Client-generated id: the optimistic bubble and the Realtime INSERT
@@ -164,6 +172,7 @@ export function useMessageSend(
         mediaType,
         mediaUrl,
         mediaFilename: fileName,
+        replyTo,
         // Starts "queued" (🕐) and becomes "sent" (✓) on commit, then
         // delivered/read (✓✓) via Realtime — one bubble, honest lifecycle.
         status: "queued",
@@ -190,6 +199,7 @@ export function useMessageSend(
                   kind: mediaType ? "media" : "text",
                   text: optimistic.text,
                   messageId,
+                  ...(replyTo?.messageId ? { replyToMessageId: replyTo.messageId } : {}),
                   ...(mediaType
                     ? {
                         mediaUrl,
