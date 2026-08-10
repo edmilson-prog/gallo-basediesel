@@ -88,6 +88,8 @@ interface CustomerRow {
   dintec_ultima_compra: string | null;
   dintec_abc_class: ABCClass | null;
   dintec_pct_receita: number | null;
+  dintec_credit_limit: number | null;
+  credit_limit: number | null;
   overdue_titles_count: number | null;
   portal: IPortalSettings | null;
   is_guest_checkout: boolean | null;
@@ -122,7 +124,7 @@ const COLUMNS =
   "purchase_stats, abc_class, abc_share, overdue_titles_count, portal, is_guest_checkout, " +
   "has_b2b_portal, portal_contract, avatar_url, whatsapp_name, cnpj, razao_social, nome_fantasia, contact_name, cpf, " +
   "full_name, created_at, dintec_ticket_medio, dintec_ltv, dintec_frequencia, dintec_primeira_compra, " +
-  "dintec_ultima_compra, dintec_abc_class, dintec_pct_receita";
+  "dintec_ultima_compra, dintec_abc_class, dintec_pct_receita, dintec_credit_limit, credit_limit";
 const NOTE_COLUMNS = "id, customer_id, author_id, content, created_at";
 
 function rowToCustomerNote(row: CustomerNoteRow): ICustomerNote {
@@ -161,6 +163,8 @@ function rowToCustomerBase(row: CustomerRow): Omit<ICustomer, "type" | "id"> {
     dintecLastPurchaseAt: row.dintec_ultima_compra ?? undefined,
     dintecAbcClass: row.dintec_abc_class ?? undefined,
     dintecPctReceita: row.dintec_pct_receita ?? undefined,
+    dintecCreditLimit: row.dintec_credit_limit ?? undefined,
+    creditLimit: row.credit_limit ?? undefined,
     overdueTitlesCount: row.overdue_titles_count ?? undefined,
     portal: row.portal ?? undefined,
     isGuestCheckout: row.is_guest_checkout ?? undefined,
@@ -231,6 +235,10 @@ export function customerPatchToRow(patch: Partial<ICustomer>): Record<string, un
   if (patch.purchaseStats !== undefined) row.purchase_stats = patch.purchaseStats;
   if (patch.abcClass !== undefined) row.abc_class = patch.abcClass;
   if (patch.abcShare !== undefined) row.abc_share = patch.abcShare;
+  // Clearable like email/address: `{ creditLimit: undefined }` means "no limit
+  // defined" and must write null, while `0` is a real value (credit blocked).
+  // `dintecCreditLimit` is intentionally absent — the ERP snapshot is read-only.
+  if ("creditLimit" in patch) row.credit_limit = patch.creditLimit ?? null;
   if (patch.overdueTitlesCount !== undefined) row.overdue_titles_count = patch.overdueTitlesCount;
   if (patch.portal !== undefined) row.portal = patch.portal;
   if (patch.isGuestCheckout !== undefined) row.is_guest_checkout = patch.isGuestCheckout;

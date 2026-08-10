@@ -1,21 +1,18 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import type { ID } from "@/shared/types";
+import type { ICustomer, ID } from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useCustomerProfile } from "../hooks/useCustomerProfile";
+import { useCustomerHeader } from "../hooks/useCustomerHeader";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
 import { ProfileSkeleton } from "../components/ProfileSkeleton";
-import { ProfileTabs, type TabKey } from "../components/ProfileTabs";
-import { CustomerDetailHeader } from "../components/detail/CustomerDetailHeader";
-import { CustomerStatStrip } from "../components/detail/CustomerStatStrip";
-import { CustomerPurchaseEvolutionCard } from "../components/detail/CustomerPurchaseEvolutionCard";
-import { CustomerRelationshipTimeline } from "../components/detail/CustomerRelationshipTimeline";
-import {
-  CustomerPendingActionsCard,
-  type PendingTabTarget,
-} from "../components/detail/CustomerPendingActionsCard";
+import { CustomerTabs, type CustomerTabKey } from "../components/CustomerTabs";
+import { CustomerIdentityBand } from "../components/detail/CustomerIdentityBand";
+import { CustomerFactsBand } from "../components/detail/CustomerFactsBand";
+import { CustomerCommercialBand } from "../components/detail/CustomerCommercialBand";
+import { CustomerAlertsBand } from "../components/detail/CustomerAlertsBand";
 
 export interface ICustomerDetailPageProps {
   customerId: ID;
@@ -24,20 +21,6 @@ export interface ICustomerDetailPageProps {
 export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
   const { customer, isLoading, isError, notFound, refetch } = useCustomerProfile(customerId);
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabKey>("atendimento");
-  const [editSignal, setEditSignal] = useState(0);
-  const tabsRef = useRef<HTMLDivElement>(null);
-
-  const goToTab = (tab: TabKey) => {
-    setActiveTab(tab);
-    tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-  const handleNavigateTab = (target: PendingTabTarget) => goToTab(target as TabKey);
-
-  const handleEditData = () => {
-    goToTab("overview");
-    setEditSignal((n) => n + 1);
-  };
 
   if (isLoading) {
     return (
@@ -80,40 +63,95 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
     );
   }
 
+  // Split so the hooks below only ever run with a resolved customer — the
+  // guards above return before any of them mount.
+  return <CustomerDetailContent customer={customer} />;
+}
+
+function CustomerDetailContent({ customer }: { customer: ICustomer }) {
+  const navigate = useNavigate();
+  const header = useCustomerHeader(customer);
+  const [activeTab, setActiveTab] = useState<CustomerTabKey>("comercial");
+  const [editSignal, setEditSignal] = useState(0);
+  const defaultTabApplied = useRef(false);
+
+  /**
+   * The old page always opened on "Atendimento", which is the tab most often
+   * empty — the first click was always to leave it. Now the landing tab follows
+   * the data: pendings first, commercial otherwise.
+   *
+   * Applied once per customer, and only after the counts settle, so it never
+   * yanks the tab out from under someone who already clicked.
+   */
+  useEffect(() => {
+    defaultTabApplied.current = false;
+  }, [customer.id]);
+
+  useEffect(() => {
+    if (defaultTabApplied.current) return;
+    if (header.alerts.length === 0) return;
+    defaultTabApplied.current = true;
+    setActiveTab("atendimento");
+  }, [header.alerts.length]);
+
+  const goToTab = (tab: CustomerTabKey) => {
+    defaultTabApplied.current = true;
+    setActiveTab(tab);
+  };
+
+  const handleEditData = () => {
+    goToTab("cadastro");
+    setEditSignal((n) => n + 1);
+  };
+
+  const handleCreateQuote = () => {
+    const params = new URLSearchParams({ customerId: customer.id });
+    void navigate({ to: `/app/orcamentos/novo?${params.toString()}` as never });
+  };
+
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex min-h-full flex-col bg-background">
-        <CustomerDetailHeader customer={customer} onEditData={handleEditData} />
+        {/* Header bands: identity → facts → commercial → alerts. Each one is
+            only as tall as its content, and the alert band disappears entirely
+            when there is nothing pending. */}
+        <header className="shrink-0 divide-y divide-border border-b border-border bg-card">
+          <CustomerIdentityBand
+            customer={customer}
+            latestConversationId={header.latestConversationId}
+            onGoToTab={goToTab}
+            onEditData={handleEditData}
+          />
+          <CustomerFactsBand
+            customer={customer}
+            sellerName={header.sellerName}
+            storeName={header.storeName}
+          />
+          <CustomerCommercialBand
+            customer={customer}
+            credit={header.credit}
+            series={header.series}
+            hasPurchaseHistory={header.hasPurchaseHistory}
+            openQuotes={header.openQuotes}
+            onCreateQuote={handleCreateQuote}
+          />
+          {header.alerts.length > 0 && (
+            <div className="px-4 py-3 sm:px-6">
+              <CustomerAlertsBand alerts={header.alerts} onGoToTab={goToTab} />
+            </div>
+          )}
+        </header>
 
-        <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 sm:px-6">
-          <CustomerStatStrip customer={customer} />
-
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-            <CustomerPurchaseEvolutionCard customer={customer} className="order-1 lg:col-span-6" />
-            <CustomerRelationshipTimeline
-              customer={customer}
-              onSeeAllNotes={() => goToTab("notes")}
-              className="order-3 lg:order-2 lg:col-span-3"
-            />
-            <CustomerPendingActionsCard
-              customer={customer}
-              onNavigateTab={handleNavigateTab}
-              className="order-2 lg:order-3 lg:col-span-3"
-            />
-          </div>
-
-          <div ref={tabsRef} className="rounded-lg border border-border bg-card">
-            <ProfileTabs
-              customer={customer}
-              activeTab={activeTab}
-              onActiveTabChange={setActiveTab}
-              overviewVariant="page"
-              cadastraisEditable
-              cadastraisEditSignal={editSignal}
-              onCadastraisEditConsumed={() => setEditSignal(0)}
-            />
-          </div>
-        </div>
+        <CustomerTabs
+          customer={customer}
+          activeTab={activeTab}
+          onActiveTabChange={setActiveTab}
+          counts={header.counts}
+          alerts={header.alerts}
+          onGoToTab={goToTab}
+          cadastraisEditSignal={editSignal}
+          onCadastraisEditConsumed={() => setEditSignal(0)}
+        />
       </div>
     </TooltipProvider>
   );
