@@ -2,8 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { IOrder, IPart, IVehicle } from "@/shared/types";
 import { Icon } from "@/components/Icon";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useItemSearch } from "../../../hooks/useItemSearch";
 import { ItemResultRow } from "./ItemResultRow";
 import { SuggestionRails } from "./SuggestionRails";
@@ -12,20 +10,34 @@ export interface IAdderProps {
   vehicles: IVehicle[];
   orders: IOrder[];
   inQuoteQtyByPart: Map<string, number>;
-  onAddPart: (part: IPart) => void;
+  /** Adds `quantity` units (default 1) of the part to the quote. */
+  onAddPart: (part: IPart, quantity?: number) => void;
   onAddFreeItemClick: () => void;
 }
 
+export interface IContinuousAdderProps extends IAdderProps {
+  /** Owned by the items panel so the ghost "Adicionar item" row can focus it. */
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+}
+
+/**
+ * Inline search that sits next to the mode switcher, where the action starts.
+ * Results (or, with an empty query, the suggestion rails) drop below as a
+ * popover so the items table never loses its height.
+ */
 export function ContinuousAdder({
   vehicles,
   orders,
   inQuoteQtyByPart,
   onAddPart,
   onAddFreeItemClick,
-}: IAdderProps) {
+  inputRef,
+}: IContinuousAdderProps) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const ownRef = useRef<HTMLInputElement>(null);
+  const ref = inputRef ?? ownRef;
   const { results, allParts, isLoading } = useItemSearch({ enabled: true, query });
 
   const hasQuery = query.trim().length > 0;
@@ -38,22 +50,25 @@ export function ContinuousAdder({
   // Global "/" focuses the search unless the user is already typing in a field.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key !== "/") return;
+      if (e.key !== "/" || e.defaultPrevented) return;
       const el = document.activeElement;
       const tag = el?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || (el as HTMLElement)?.isContentEditable) return;
       e.preventDefault();
-      inputRef.current?.focus();
+      ref.current?.focus();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [ref]);
 
   function onInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!hasQuery || results.length === 0) {
-      if (e.key === "Escape") setQuery("");
+    if (e.key === "Escape") {
+      e.preventDefault();
+      if (hasQuery) setQuery("");
+      else e.currentTarget.blur();
       return;
     }
+    if (!hasQuery || results.length === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActiveIndex((i) => Math.min(i + 1, results.length - 1));
@@ -64,75 +79,93 @@ export function ContinuousAdder({
       e.preventDefault();
       const part = results[activeIndex];
       if (part) onAddPart(part);
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      setQuery("");
     }
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="relative flex-1">
-          <Icon
-            icon="mdi:magnify"
-            size={16}
-            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            ref={inputRef}
-            type="search"
-            className="pl-8"
-            placeholder="Buscar peça, OEM ou SKU…  ( / para focar )"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={onInputKeyDown}
-            role="combobox"
-            aria-expanded={hasQuery && results.length > 0}
-            aria-controls="continuous-adder-results"
-          />
-        </div>
-        <Button type="button" variant="outline" size="sm" onClick={onAddFreeItemClick}>
-          <Icon icon="mdi:plus-box-outline" size={16} />
-          Item avulso
-        </Button>
+    <div className="relative min-w-0 flex-1">
+      <div className="relative">
+        <Icon
+          icon="mdi:barcode-scan"
+          size={16}
+          className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-primary"
+        />
+        <input
+          ref={ref}
+          type="search"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          onKeyDown={onInputKeyDown}
+          placeholder="Buscar peça por nome, OEM ou SKU — ou bipe o código de barras"
+          role="combobox"
+          aria-expanded={open}
+          aria-controls="continuous-adder-results"
+          className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-9 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/60 motion-reduce:transition-none"
+        />
+        <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-border px-1.5 text-[11px] text-muted-foreground sm:block">
+          /
+        </kbd>
       </div>
 
-      {hasQuery ? (
+      {open && (
         <div
           id="continuous-adder-results"
           role="listbox"
-          className="max-h-80 overflow-y-auto rounded-md border border-border"
+          className="absolute inset-x-0 top-[calc(100%+6px)] z-50 max-h-[26rem] overflow-y-auto rounded-md border border-border bg-popover shadow-lg"
         >
-          {results.length === 0 ? (
-            <p className="p-4 text-center text-xs text-muted-foreground">
-              {isLoading ? "Carregando catálogo…" : "Nenhuma peça encontrada."}
-            </p>
-          ) : (
-            results.map((p, i) => (
-              <div
-                key={p.id}
-                role="option"
-                aria-selected={i === activeIndex}
-                className={i === activeIndex ? "bg-muted/60" : ""}
-              >
-                <ItemResultRow
-                  part={p}
-                  inQuoteQty={inQuoteQtyByPart.get(p.id) ?? 0}
-                  onAdd={onAddPart}
-                />
+          {hasQuery ? (
+            results.length === 0 ? (
+              <div className="flex items-center gap-2 p-3">
+                <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+                  {isLoading ? "Carregando catálogo…" : `Nenhuma peça para “${query.trim()}”.`}
+                </p>
+                {!isLoading && (
+                  <button
+                    type="button"
+                    onMouseDown={() => {
+                      onAddFreeItemClick();
+                      setQuery("");
+                    }}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-foreground hover:bg-muted"
+                  >
+                    <Icon icon="mdi:plus" size={14} />
+                    Criar item avulso
+                  </button>
+                )}
               </div>
-            ))
+            ) : (
+              results.map((p, i) => (
+                <div
+                  key={p.id}
+                  role="option"
+                  aria-selected={i === activeIndex}
+                  className={i === activeIndex ? "bg-muted/60" : ""}
+                >
+                  <ItemResultRow
+                    part={p}
+                    inQuoteQty={inQuoteQtyByPart.get(p.id) ?? 0}
+                    onAdd={onAddPart}
+                  />
+                </div>
+              ))
+            )
+          ) : (
+            <div className="p-2">
+              <SuggestionRails
+                allParts={allParts}
+                vehicles={vehicles}
+                orders={orders}
+                inQuoteQtyByPart={inQuoteQtyByPart}
+                onAdd={onAddPart}
+              />
+            </div>
           )}
         </div>
-      ) : (
-        <SuggestionRails
-          allParts={allParts}
-          vehicles={vehicles}
-          orders={orders}
-          inQuoteQtyByPart={inQuoteQtyByPart}
-          onAdd={onAddPart}
-        />
       )}
     </div>
   );

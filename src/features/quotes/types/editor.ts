@@ -25,10 +25,27 @@ export const QUOTE_LAYOUT_OPTIONS: ReadonlyArray<{
   value: QuoteLayout;
   label: string;
   icon: string;
+  /** One-line description shown under the label in the display menu. */
+  hint: string;
 }> = [
-  { value: "twoCol", label: "2 colunas", icon: "mdi:view-split-vertical" },
-  { value: "full", label: "Largura cheia", icon: "mdi:view-sequential" },
-  { value: "footerBar", label: "Barra no rodapé", icon: "mdi:dock-bottom" },
+  {
+    value: "twoCol",
+    label: "Duas colunas",
+    icon: "mdi:view-split-vertical",
+    hint: "resumo no trilho à direita",
+  },
+  {
+    value: "full",
+    label: "Largura cheia",
+    icon: "mdi:view-sequential",
+    hint: "resumo ao final da página",
+  },
+  {
+    value: "footerBar",
+    label: "Barra no rodapé",
+    icon: "mdi:dock-bottom",
+    hint: "resumo fixo embaixo",
+  },
 ];
 
 export const QUOTE_ADD_MODE_OPTIONS: ReadonlyArray<{

@@ -1,64 +1,67 @@
 // src/features/quotes/components/new/items/QuickAddBar.tsx
 import { useState } from "react";
-import type { IOrder, IPart, IVehicle } from "@/shared/types";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Icon } from "@/components/Icon";
 import { useItemSearch } from "../../../hooks/useItemSearch";
+import { parseBulkPasteLines, resolveBulkPaste } from "../../../utils/bulkPaste";
+import type { IAdderProps } from "./ContinuousAdder";
 
-const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const PLACEHOLDER = "GP-0445120212; 2\n0445020150; 1\nGP-FS20020; 4";
 
-export interface IAdderProps {
-  vehicles: IVehicle[];
-  orders: IOrder[];
-  inQuoteQtyByPart: Map<string, number>;
-  onAddPart: (part: IPart) => void;
-  onAddFreeItemClick: () => void;
-}
+/**
+ * Bulk entry: paste one part per line as `SKU or OEM; quantity`. Built for the
+ * counter workflow where the customer sends a written list.
+ */
+export function QuickAddBar({ onAddPart }: IAdderProps) {
+  const [value, setValue] = useState("");
+  const { allParts } = useItemSearch({ enabled: true, query: "" });
 
-export function QuickAddBar({ inQuoteQtyByPart, onAddPart }: IAdderProps) {
-  const [query, setQuery] = useState("");
-  const { results } = useItemSearch({ enabled: true, query });
+  const add = () => {
+    const parsed = parseBulkPasteLines(value);
+    if (parsed.length === 0) {
+      toast.error("Cole ao menos uma linha no formato SKU; quantidade.");
+      return;
+    }
+    const { matched, unmatched } = resolveBulkPaste(parsed, allParts);
+    if (matched.length === 0) {
+      toast.error("Nenhum código reconhecido.");
+      return;
+    }
+    for (const { part, quantity } of matched) onAddPart(part, quantity);
+    setValue("");
+    const label = matched.length === 1 ? "item adicionado" : "itens adicionados";
+    if (unmatched.length > 0) {
+      toast.warning(`${matched.length} ${label}. Não encontrados: ${unmatched.join(", ")}.`);
+    } else {
+      toast.success(`${matched.length} ${label}.`);
+    }
+  };
 
   return (
-    <Command shouldFilter={false} className="rounded-md border border-border">
-      <CommandInput
-        value={query}
-        onValueChange={setQuery}
-        placeholder="Digite e pressione Enter para adicionar (OEM, SKU, nome)…"
+    <div className="space-y-2.5">
+      <p className="text-xs text-muted-foreground">
+        Cole uma lista — um item por linha, no formato{" "}
+        <b className="font-semibold text-foreground">SKU ou OEM; quantidade</b>.
+      </p>
+      <Textarea
+        rows={5}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={PLACEHOLDER}
+        aria-label="Lista de peças para adicionar"
+        className="font-mono text-xs leading-relaxed"
       />
-      <CommandList>
-        <CommandEmpty>Nenhuma peça encontrada.</CommandEmpty>
-        <CommandGroup>
-          {results.map((p) => (
-            <CommandItem
-              key={p.id}
-              value={p.id}
-              onSelect={() => {
-                onAddPart(p);
-                setQuery("");
-              }}
-              className="flex justify-between gap-2"
-            >
-              <span className="truncate">
-                {p.name} <span className="text-xs text-muted-foreground">· {p.sku}</span>
-                {(inQuoteQtyByPart.get(p.id) ?? 0) > 0 && (
-                  <Icon icon="mdi:check" size={12} className="ml-1 inline text-primary" />
-                )}
-              </span>
-              <span className="tabular-nums text-muted-foreground">
-                {moneyFormatter.format(p.unitPrice)}
-              </span>
-            </CommandItem>
-          ))}
-        </CommandGroup>
-      </CommandList>
-    </Command>
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={add}>
+          <Icon icon="mdi:playlist-plus" size={16} />
+          Adicionar lista
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setValue("")}>
+          Limpar
+        </Button>
+      </div>
+    </div>
   );
 }

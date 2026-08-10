@@ -17,9 +17,9 @@ export function KitPicker({ kits, onPickKit }: IKitPickerProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="sm">
-          <Icon icon="mdi:air-filter" size={16} />
-          Aplicar kit
+        <Button type="button" variant="ghost" size="sm">
+          <Icon icon="mdi:air-filter" size={15} />
+          Kits
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
