@@ -859,6 +859,13 @@ function enrichCustomersForProfile(
         creditLimit: enabled && c.type === "B2B" ? round(ctx.int(5_000, 80_000)) : undefined,
       };
     }
+
+    // Platform credit limit — only for B2B customers that already buy, mirroring
+    // the real base, where the figure comes from the DINTEC import and most
+    // customers have none at all.
+    if (c.type === "B2B" && c.lastPurchaseAt && ctx.bool(0.4)) {
+      c.creditLimit = round(ctx.int(10_000, 120_000));
+    }
   }
 }
 
