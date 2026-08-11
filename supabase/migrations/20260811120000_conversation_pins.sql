@@ -29,6 +29,11 @@ create index if not exists conversation_pins_seller_created_idx
 
 alter table public.conversation_pins enable row level security;
 
+-- Idempotent re-apply: policies have no `if not exists`, so drop first.
+drop policy if exists "conversation_pins_select" on public.conversation_pins;
+drop policy if exists "conversation_pins_insert" on public.conversation_pins;
+drop policy if exists "conversation_pins_delete" on public.conversation_pins;
+
 -- SELECT/INSERT: own pins only, within the active store.
 create policy "conversation_pins_select"
   on public.conversation_pins for select to authenticated
