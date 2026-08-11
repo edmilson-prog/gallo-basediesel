@@ -18,7 +18,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { formatBRL, formatDateBR, formatPhone } from "@/shared/utils/format";
 import { FicheFunnelsBlock } from "@/features/funnels/components/FicheFunnelsBlock";
@@ -102,6 +108,7 @@ export function LeadProfileFiche({
         <SheetContent side="right" className="w-full max-w-sm overflow-hidden p-0 sm:max-w-md">
           <SheetHeader className="sr-only">
             <SheetTitle>{COPY.title}</SheetTitle>
+            <SheetDescription>{COPY.sheetDescription}</SheetDescription>
           </SheetHeader>
           <LeadProfileBody
             lead={lead}

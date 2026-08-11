@@ -1,5 +1,11 @@
 import type { ID } from "@/shared/types";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useConversationMessageMedia } from "../../hooks/useConversationMessageMedia";
 import { MessageMediaGallery } from "./MessageMediaGallery";
 
@@ -22,6 +28,9 @@ export function ConversationMediaPanel({ conversationId, open, onOpenChange }: I
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
         <SheetHeader className="border-b border-border px-4 py-3">
           <SheetTitle className="text-sm font-semibold">Mídias</SheetTitle>
+          <SheetDescription className="sr-only">
+            Imagens, áudios, vídeos e documentos trocados nesta conversa.
+          </SheetDescription>
         </SheetHeader>
         <MessageMediaGallery {...media} />
       </SheetContent>
