@@ -37,6 +37,7 @@ export type {
   IWhatsAppAccountRef,
   IManagerDashboardSettings,
   IIdleAlertsSettings,
+  IInboxPinsSettings,
   IConversationRescueSettings,
   ICommissionSettings,
   IEcommerceIntegrationSettings,
