@@ -121,6 +121,16 @@ export const INBOX_STRINGS = {
   sdrBadgeTooltip: "Esta conversa está sendo atendida pelo agente SDR",
   collaboratingBadge: "Colaborando",
   newBadge: "Novo!",
+
+  /** Contact summary card shown on row hover (spec 2026-08-11). */
+  summaryCard: {
+    qualifierCustomer: "Cliente",
+    qualifierLead: "Lead",
+    lastMessageLabel: "Último recado",
+    /** The last-message RPC is RLS-gated, so `lastMessage` arrives null here. */
+    previewUnavailable: "Prévia indisponível — a conversa é de outro atendente.",
+  },
+
   mediaPreview: {
     image: "📎 Foto",
     audio: "🎵 Áudio",
