@@ -1,12 +1,18 @@
 // src/features/quotes/components/new/items/QuoteItemsPanel.tsx
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { ID, IPart, IQuoteItem, IVehicleModelKit, IOrder, IVehicle } from "@/shared/types";
+import type { IApplyKitSelection } from "@/features/model-kits";
 import type { QuoteAddMode, QuoteDensity } from "../../../types/editor";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
+import { parseDecimalBR } from "../../../utils/numberInput";
+import type { IRankedKit } from "../../../utils/kitRanking";
 import { ItemAdder } from "./ItemAdder";
-import { KitPicker } from "./KitPicker";
+import { KitSheet } from "./KitSheet";
 import { QuoteItemsTable } from "./QuoteItemsTable";
+import type { IFreeItemDraft } from "./FreeItemDraftRow";
+
+const EMPTY_DRAFT: IFreeItemDraft = { name: "", unitPrice: "0", quantity: 1 };
 
 export interface IQuoteItemsPanelProps {
   items: IQuoteItem[];
@@ -21,16 +27,20 @@ export interface IQuoteItemsPanelProps {
   orders: IOrder[];
   inQuoteQtyByPart: Map<string, number>;
   onAddPart: (part: IPart, quantity?: number) => void;
-  onAddFreeItemClick: () => void;
+  /** Commits an off-catalog line built in the draft row. */
+  onAddFreeItem: (input: { name: string; unitPrice: number; quantity: number }) => void;
   /** Remounts the adder when it changes — clears the search on customer swap. */
   adderResetKey?: string;
 
-  kits: IVehicleModelKit[];
-  onPickKit: (kit: IVehicleModelKit) => void;
-  /** True while the kit list is still loading (keeps the picker honest). */
+  /** Store kits ranked by the customer's fleet. */
+  rankedKits: IRankedKit[];
   kitsLoading?: boolean;
-  /** Automatic kit suggestion, rendered between the adder and the table. */
+  onApplyKit: (kit: IVehicleModelKit, selection: IApplyKitSelection[]) => void;
+  /** Automatic kit suggestion, rendered when the sheet is closed. */
   kitBanner?: React.ReactNode;
+  /** Kit to open the sheet on — set by the suggestion banner. */
+  openKitId?: ID | null;
+  onOpenKitIdChange: (id: ID | null | undefined) => void;
 
   onPatch: (id: ID, patch: Partial<IQuoteItem>) => void;
   onRemove: (id: ID) => void;
@@ -43,8 +53,8 @@ export interface IQuoteItemsPanelProps {
 
 /**
  * The items card — the editor's work surface. Header with the running count,
- * the adder bar, the kit suggestion and the table, which owns whatever height
- * is left over.
+ * the adder bar, the kit sheet or its suggestion, and the table, which owns
+ * whatever height is left over.
  */
 export function QuoteItemsPanel({
   items,
@@ -57,12 +67,14 @@ export function QuoteItemsPanel({
   orders,
   inQuoteQtyByPart,
   onAddPart,
-  onAddFreeItemClick,
+  onAddFreeItem,
   adderResetKey,
-  kits,
-  onPickKit,
+  rankedKits,
   kitsLoading,
+  onApplyKit,
   kitBanner,
+  openKitId,
+  onOpenKitIdChange,
   onPatch,
   onRemove,
   onSwapEquivalent,
@@ -72,11 +84,28 @@ export function QuoteItemsPanel({
   showMargin,
 }: IQuoteItemsPanelProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [freeDraft, setFreeDraft] = useState<IFreeItemDraft | null>(null);
   const unitCount = items.reduce((sum, it) => sum + it.quantity, 0);
+  // `undefined` = closed; `null` = open on the first kit; an id = open on that kit.
+  const sheetOpen = openKitId !== undefined;
 
   const focusSearch = () => {
     onModeChange("continuous");
     setTimeout(() => searchInputRef.current?.focus(), 20);
+  };
+
+  /** Opening a draft closes the kit sheet — one decision surface at a time. */
+  const startFreeDraft = (name = "") => {
+    onOpenKitIdChange(undefined);
+    setFreeDraft({ ...EMPTY_DRAFT, name });
+  };
+
+  const commitFreeDraft = () => {
+    if (!freeDraft) return;
+    const unitPrice = parseDecimalBR(freeDraft.unitPrice);
+    if (!freeDraft.name.trim() || unitPrice <= 0) return;
+    onAddFreeItem({ name: freeDraft.name, unitPrice, quantity: freeDraft.quantity });
+    setFreeDraft(null);
   };
 
   return (
@@ -96,11 +125,25 @@ export function QuoteItemsPanel({
           <span className="text-[11px] tabular-nums text-muted-foreground">
             {items.length} {items.length === 1 ? "item" : "itens"} · {unitCount} un
           </span>
-          <Button type="button" variant="ghost" size="sm" onClick={onAddFreeItemClick}>
+          <Button type="button" variant="ghost" size="sm" onClick={() => startFreeDraft()}>
             <Icon icon="mdi:plus-box-outline" size={15} />
             Item avulso
           </Button>
-          <KitPicker kits={kits} onPickKit={onPickKit} loading={kitsLoading} />
+          <Button
+            type="button"
+            variant={sheetOpen ? "secondary" : "ghost"}
+            size="sm"
+            aria-expanded={sheetOpen}
+            onClick={() => onOpenKitIdChange(sheetOpen ? undefined : null)}
+          >
+            <Icon icon="mdi:air-filter" size={15} />
+            Kits
+            {rankedKits.length > 0 && (
+              <span className="ml-0.5 rounded bg-muted px-1 text-[10px] font-semibold tabular-nums text-muted-foreground">
+                {rankedKits.length}
+              </span>
+            )}
+          </Button>
         </div>
       </header>
 
@@ -114,11 +157,25 @@ export function QuoteItemsPanel({
           orders={orders}
           inQuoteQtyByPart={inQuoteQtyByPart}
           onAddPart={onAddPart}
-          onAddFreeItemClick={onAddFreeItemClick}
+          onAddFreeItemClick={startFreeDraft}
         />
       </div>
 
-      {kitBanner && <div className="shrink-0 px-3 pt-3">{kitBanner}</div>}
+      {sheetOpen && (
+        <div className="shrink-0 px-3 pt-3">
+          <KitSheet
+            ranked={rankedKits}
+            initialKitId={openKitId ?? null}
+            partsById={partsById}
+            inQuoteQtyByPart={inQuoteQtyByPart}
+            loading={kitsLoading}
+            onApply={onApplyKit}
+            onClose={() => onOpenKitIdChange(undefined)}
+          />
+        </div>
+      )}
+
+      {!sheetOpen && kitBanner && <div className="shrink-0 px-3 pt-3">{kitBanner}</div>}
 
       <div className={`mt-3 flex flex-col ${grow ? "lg:min-h-0 lg:flex-1" : ""}`}>
         <QuoteItemsTable
@@ -134,6 +191,11 @@ export function QuoteItemsPanel({
           density={density}
           onFocusSearch={focusSearch}
           grow={grow}
+          freeDraft={freeDraft}
+          onFreeDraft={setFreeDraft}
+          onCommitFreeDraft={commitFreeDraft}
+          onCancelFreeDraft={() => setFreeDraft(null)}
+          onStartFreeDraft={() => startFreeDraft()}
         />
       </div>
     </section>

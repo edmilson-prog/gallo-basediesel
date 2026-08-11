@@ -62,8 +62,14 @@ export function ItemResultRow({
       </div>
       <div className="flex items-center gap-3">
         <div className="text-right">
-          <p className="text-sm font-semibold tabular-nums">
-            {moneyFormatter.format(part.unitPrice)}
+          {/* A catalogued part with no price still sells — it just cannot be
+              priced yet, so say so instead of showing a convincing R$ 0,00. */}
+          <p
+            className={`text-sm font-semibold tabular-nums ${
+              part.unitPrice > 0 ? "" : "text-muted-foreground"
+            }`}
+          >
+            {part.unitPrice > 0 ? moneyFormatter.format(part.unitPrice) : "sem preço"}
           </p>
           {inQuoteQty > 0 && (
             <p className="text-[10px] text-primary">
