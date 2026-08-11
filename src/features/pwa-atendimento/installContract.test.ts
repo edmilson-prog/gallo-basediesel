@@ -69,6 +69,37 @@ describe.each(Object.entries(manifests))("manifest %s", (href, manifest) => {
   });
 });
 
+describe("atendimento icons", () => {
+  const manifest = manifests["/atendimento.webmanifest"] as IManifest;
+  const purposes = (manifest.icons ?? []).map((icon) => icon.purpose);
+
+  it("ships a dedicated maskable set, not one image wearing both hats", () => {
+    // Android crops a maskable icon to a circle of 80% diameter. Artwork drawn
+    // to fill the square loses its edges there, so "any maskable" on a single
+    // file is always wrong for one of the two.
+    expect(purposes).toContain("any");
+    expect(purposes).toContain("maskable");
+    expect(purposes).not.toContain("any maskable");
+  });
+
+  it("uses its own artwork, not the seller app's", () => {
+    const sellerIcons = new Set(
+      (manifests["/manifest.webmanifest"]?.icons ?? []).map((icon) => icon.src),
+    );
+    for (const icon of manifest.icons ?? []) {
+      expect(sellerIcons.has(icon.src)).toBe(false);
+    }
+  });
+
+  it("keeps the notification assets the service worker points at", () => {
+    const sw = read("public/sw.js");
+    for (const asset of ["/atendimento-icon-192.png", "/atendimento-badge-96.png"]) {
+      expect(sw).toContain(asset);
+      expect(() => read("public" + asset)).not.toThrow();
+    }
+  });
+});
+
 describe("the two apps on this origin", () => {
   it("do not overlap, so the browser can tell them apart", () => {
     const [a = "", b = ""] = Object.values(manifests).map((manifest) => manifest.scope ?? "");
@@ -78,7 +109,7 @@ describe("the two apps on this origin", () => {
 });
 
 describe("index.html", () => {
-  const idsUsedByScript = ["app-manifest", "app-theme-color", "app-ios-title"];
+  const idsUsedByScript = ["app-manifest", "app-theme-color", "app-ios-title", "app-apple-icon"];
   const scriptStart = html.indexOf("Pick the manifest for the app being opened");
 
   it("carries the head script that picks the manifest", () => {
@@ -103,6 +134,12 @@ describe("index.html", () => {
     const script = html.slice(scriptStart, html.indexOf("</script>", scriptStart));
     expect(script).toContain('"/atendimento"');
     expect(script).toContain('"/atendimento.webmanifest"');
+  });
+
+  it("swaps the iOS icon, which ignores the manifest and reads this link", () => {
+    const script = html.slice(scriptStart, html.indexOf("</script>", scriptStart));
+    expect(script).toContain("/atendimento-apple-touch-icon.png");
+    expect(() => read("public/atendimento-apple-touch-icon.png")).not.toThrow();
   });
 
   it("applies the atendimento theme colour declared in its manifest", () => {

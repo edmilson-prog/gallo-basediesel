@@ -3,6 +3,7 @@ import { useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/features/auth/useAuth";
 import { PwaPushPrompt } from "./PwaPushPrompt";
 import { PwaHeadsUp } from "./PwaHeadsUp";
+import { PwaUpdateBar } from "./PwaUpdateBar";
 import { PwaNotifySheet } from "./sheets/PwaNotifySheet";
 import { useNotificationPrefs, type IPwaNotifyPrefs } from "../hooks/useNotificationPrefs";
 import { useHeadsUpNotice } from "../hooks/useHeadsUpNotice";
@@ -73,6 +74,12 @@ export function PwaNotificationsProvider({ children }: { children: ReactNode }) 
     <Ctx.Provider value={value}>
       {children}
       <PwaHeadsUp notice={headsUp.notice} onDismiss={headsUp.dismiss} />
+      {/* Shares the top slot with the heads-up band. An incoming message is
+          transient and time-sensitive, so it wins; the update band is still
+          mounted (the watcher keeps its state) and comes back on dismissal.
+          Kept out of login and the install screen, whose editorial layouts own
+          the whole viewport — it reappears the moment the app proper opens. */}
+      <PwaUpdateBar hidden={!inApp || Boolean(headsUp.notice)} />
       <PwaPushPrompt
         open={push.offering}
         onAllow={() => void push.allow()}

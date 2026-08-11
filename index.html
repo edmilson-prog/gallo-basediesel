@@ -44,7 +44,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="GALLO Vendedor" id="app-ios-title" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" id="app-apple-icon" />
 
     <script>
       // Pick the manifest for the app being opened, before the first paint.
@@ -64,6 +64,12 @@
           document.getElementById("app-manifest").setAttribute("href", "/atendimento.webmanifest");
           document.getElementById("app-theme-color").setAttribute("content", "#141011");
           document.getElementById("app-ios-title").setAttribute("content", "GALLO Atendimento");
+          // iOS ignores the manifest icons for "Add to Home Screen" and reads
+          // this link instead, so the shortcut would otherwise wear the seller
+          // app's green icon.
+          document
+            .getElementById("app-apple-icon")
+            .setAttribute("href", "/atendimento-apple-touch-icon.png");
         } catch (e) {
           // The seller defaults stay in place: the app still works, it just is
           // not installable from /atendimento. Say so out loud — silence here

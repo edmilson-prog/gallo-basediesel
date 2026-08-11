@@ -122,8 +122,10 @@ self.addEventListener("fetch", (event) => {
  */
 
 const PUSH_DEFAULT_TITLE = "GALLO Atendimento";
-const PUSH_ICON = "/android-chrome-192x192.png";
-const PUSH_BADGE = "/favicon-32x32.png";
+const PUSH_ICON = "/atendimento-icon-192.png";
+// A badge is drawn as a silhouette from the alpha channel: a full-colour image
+// comes out as a solid blob, which is why this one is white-on-transparent.
+const PUSH_BADGE = "/atendimento-badge-96.png";
 const PUSH_FALLBACK_URL = "/atendimento";
 
 function readPushPayload(event) {
