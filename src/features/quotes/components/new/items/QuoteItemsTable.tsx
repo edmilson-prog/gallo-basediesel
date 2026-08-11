@@ -3,15 +3,18 @@ import { Fragment, useEffect, useState } from "react";
 import type { QuoteDensity } from "../../../types/editor";
 import type { ID, IPart, IQuoteItem } from "@/shared/types";
 import { Icon } from "@/components/Icon";
+import { Button } from "@/components/ui/button";
 import { stockBadge, lineMarginValue } from "../../../utils/quoteItemDisplay";
 import { formatDecimalBR, parseDecimalBR } from "../../../utils/numberInput";
+import { FREE_ITEM_PART_ID } from "../../../utils/quoteItemOps";
 import { InlineCell } from "./InlineCell";
 import { EquivalentsPanel } from "./EquivalentsPanel";
+import { FreeItemDraftRow, type IFreeItemDraft } from "./FreeItemDraftRow";
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 /** Peça | Qtd | Unitário | Desconto | Subtotal | remover */
-const COLS = "grid-cols-[minmax(12rem,1fr)_5.75rem_7rem_6.5rem_7.5rem_2rem]";
+export const QUOTE_ITEM_COLS = "grid-cols-[minmax(12rem,1fr)_5.75rem_7rem_6.5rem_7.5rem_2rem]";
 
 export interface IQuoteItemsTableProps {
   items: IQuoteItem[];
@@ -33,6 +36,13 @@ export interface IQuoteItemsTableProps {
   onFocusSearch: () => void;
   /** When true the table owns the remaining height and scrolls internally. */
   grow: boolean;
+  /** Off-catalog line being drafted at the foot of the table, if any. */
+  freeDraft: IFreeItemDraft | null;
+  onFreeDraft: (draft: IFreeItemDraft) => void;
+  onCommitFreeDraft: () => void;
+  onCancelFreeDraft: () => void;
+  /** Opens a blank draft row. */
+  onStartFreeDraft: () => void;
 }
 
 /**
@@ -52,6 +62,11 @@ export function QuoteItemsTable({
   density,
   onFocusSearch,
   grow,
+  freeDraft,
+  onFreeDraft,
+  onCommitFreeDraft,
+  onCancelFreeDraft,
+  onStartFreeDraft,
 }: IQuoteItemsTableProps) {
   const compact = density === "compact";
   const rowPadY = compact ? "py-1" : "py-2";
@@ -71,7 +86,7 @@ export function QuoteItemsTable({
       aria-label="Itens do orçamento"
     >
       <div
-        className={`grid ${COLS} gap-2.5 border-b border-border bg-muted/40 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground`}
+        className={`grid ${QUOTE_ITEM_COLS} gap-2.5 border-b border-border bg-muted/40 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground`}
       >
         <span>Peça</span>
         <span className="text-right">Qtd</span>
@@ -82,21 +97,26 @@ export function QuoteItemsTable({
       </div>
 
       <div className={grow ? "lg:min-h-0 lg:flex-1 lg:overflow-y-auto" : ""}>
-        {items.length === 0 ? (
-          <div className="m-3 flex items-center gap-3 rounded-lg border border-dashed border-border p-4">
+        {items.length === 0 && !freeDraft ? (
+          <div className="m-3 flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-border p-4">
             <Icon icon="mdi:barcode-scan" size={20} className="shrink-0 text-muted-foreground" />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-foreground">Nenhum item adicionado ainda</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Busque acima, bipe o código de barras ou tecle{" "}
-                <b className="font-semibold text-foreground">/</b> para focar a busca.
+                Busque acima, tecle <b className="font-semibold text-foreground">/</b>, aplique um
+                kit ou lance um item avulso.
               </p>
             </div>
+            <Button type="button" variant="outline" size="sm" onClick={onStartFreeDraft}>
+              <Icon icon="mdi:plus-box-outline" size={15} />
+              Item avulso
+            </Button>
           </div>
         ) : (
           <>
             {items.map((it) => {
-              const part = partsById.get(it.partId);
+              const isFree = it.partId === FREE_ITEM_PART_ID;
+              const part = isFree ? undefined : partsById.get(it.partId);
               const stock = part ? stockBadge(part) : null;
               const hasEquivalents = (part?.equivalentPartIds.length ?? 0) > 0;
               const isExpanded = expandedId === it.id;
@@ -104,13 +124,18 @@ export function QuoteItemsTable({
               return (
                 <Fragment key={it.id}>
                   <div
-                    className={`grid ${COLS} items-center gap-2.5 border-b border-border px-3 ${rowPadY} transition-colors duration-300 motion-reduce:transition-none ${
+                    className={`grid ${QUOTE_ITEM_COLS} items-center gap-2.5 border-b border-border px-3 ${rowPadY} transition-colors duration-300 motion-reduce:transition-none ${
                       flashId === it.id ? "bg-primary/15" : "hover:bg-muted/30"
                     }`}
                   >
                     <div className="min-w-0">
                       <p className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
                         <span className="truncate">{it.partName}</span>
+                        {isFree && (
+                          <span className="shrink-0 rounded border border-primary/30 bg-primary/10 px-1 text-[10px] font-semibold uppercase text-primary">
+                            Avulso
+                          </span>
+                        )}
                         {part &&
                           (part.isOriginal ? (
                             <span className="shrink-0 rounded border border-primary/30 bg-primary/10 px-1 text-[10px] font-semibold text-primary">
@@ -123,7 +148,9 @@ export function QuoteItemsTable({
                           ))}
                       </p>
                       <p className="truncate text-[11px] text-muted-foreground">
-                        {part ? (
+                        {isFree ? (
+                          <>sem cadastro</>
+                        ) : part ? (
                           <>
                             OEM {part.oemCodes[0] ?? "—"} · {part.brand} · SKU {it.partSku}
                           </>
@@ -141,11 +168,18 @@ export function QuoteItemsTable({
                               {stock.label}
                             </span>
                           )}
-                          {showMargin && part && (
-                            <span className="text-[11px] text-muted-foreground">
-                              margem {moneyFormatter.format(lineMarginValue(it, part))}
-                            </span>
-                          )}
+                          {showMargin &&
+                            (isFree ? (
+                              <span className="text-[11px] text-muted-foreground">
+                                margem — sem custo cadastrado
+                              </span>
+                            ) : (
+                              part && (
+                                <span className="text-[11px] text-muted-foreground">
+                                  margem {moneyFormatter.format(lineMarginValue(it, part))}
+                                </span>
+                              )
+                            ))}
                           {hasEquivalents && (
                             <button
                               type="button"
@@ -253,17 +287,40 @@ export function QuoteItemsTable({
               );
             })}
 
-            <button
-              type="button"
-              onClick={onFocusSearch}
-              className="flex w-full items-center gap-2 border-b border-border px-3 py-2.5 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground motion-reduce:transition-none"
-            >
-              <Icon icon="mdi:plus" size={14} />
-              Adicionar item
-              <kbd className="rounded border border-border px-1.5 text-[11px]">/</kbd>
-            </button>
+            {freeDraft && (
+              <FreeItemDraftRow
+                draft={freeDraft}
+                onDraft={onFreeDraft}
+                onCommit={onCommitFreeDraft}
+                onCancel={onCancelFreeDraft}
+                density={density}
+                colsClassName={QUOTE_ITEM_COLS}
+              />
+            )}
 
-            <div className={`grid ${COLS} gap-2.5 bg-muted/30 px-3 py-2`}>
+            {!freeDraft && (
+              <div className="flex items-stretch border-b border-border">
+                <button
+                  type="button"
+                  onClick={onFocusSearch}
+                  className="flex flex-1 items-center gap-2 px-3 py-2.5 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground motion-reduce:transition-none"
+                >
+                  <Icon icon="mdi:plus" size={14} />
+                  Adicionar item
+                  <kbd className="rounded border border-border px-1.5 text-[11px]">/</kbd>
+                </button>
+                <button
+                  type="button"
+                  onClick={onStartFreeDraft}
+                  className="flex items-center gap-1.5 border-l border-border px-3 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground motion-reduce:transition-none"
+                >
+                  <Icon icon="mdi:plus-box-outline" size={14} />
+                  avulso
+                </button>
+              </div>
+            )}
+
+            <div className={`grid ${QUOTE_ITEM_COLS} gap-2.5 bg-muted/30 px-3 py-2`}>
               <span className="col-span-4 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Subtotal dos itens
               </span>

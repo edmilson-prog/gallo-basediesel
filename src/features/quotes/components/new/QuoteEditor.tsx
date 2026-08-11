@@ -25,11 +25,10 @@ import { auditLog } from "@/features/rbac/utils/auditLog";
 import { calculateShipping } from "@/features/shipping/api/calculate";
 import { recalculateQuote, requiresDiscountApproval, round2 } from "../../utils/quoteTotals";
 import { composePaymentCondition, generateQuoteNumber } from "../../utils/quoteNumber";
-import { addOrIncrementItem, swapItemPart } from "../../utils/quoteItemOps";
+import { addOrIncrementItem, buildFreeItem, swapItemPart } from "../../utils/quoteItemOps";
 import { quoteAggregates } from "../../utils/quoteItemDisplay";
 import { useModelKits } from "@/features/model-kits/hooks/useModelKits";
-import { findKitsForVehicle } from "@/features/model-kits/utils/modelKitMatching";
-import { ApplyKitDialog, KitSuggestionBanner } from "@/features/model-kits";
+import { KitSuggestionBanner } from "@/features/model-kits";
 import { recordAuditLogSync } from "@/providers/data";
 import { readCurrentUserSync } from "@/features/auth/guards";
 import { usePartsIndex } from "../../hooks/usePartsIndex";
@@ -37,11 +36,11 @@ import { useQuoteDraft } from "../../hooks/useQuoteDraft";
 import { useShippingQuote } from "../../hooks/useShippingQuote";
 import { quoteLayoutClasses } from "../../utils/layoutClasses";
 import { useQuoteEditorPrefs } from "../../hooks/useQuoteEditorPrefs";
+import { pickSuggestedKit, rankKitsByFleet } from "../../utils/kitRanking";
 import { QuoteActionBar } from "./layout/QuoteActionBar";
 import { QuoteDraftBanner } from "./layout/QuoteDraftBanner";
 import { CustomerChip } from "./customer/CustomerChip";
 import { QuoteItemsPanel } from "./items/QuoteItemsPanel";
-import { FreeItemDialog } from "./items/FreeItemDialog";
 import { QuoteSummaryPanel } from "./summary/QuoteSummaryPanel";
 import { QuoteConditions } from "./summary/QuoteConditions";
 import { QuoteNotes } from "./summary/QuoteNotes";
@@ -93,8 +92,8 @@ export function QuoteEditor() {
   const [customer, setCustomer] = useState<ICustomer | null>(null);
   const [items, setItems] = useState<IQuoteItem[]>([]);
   const [appliedKitIds, setAppliedKitIds] = useState<ID[]>([]);
-  const [kitToApply, setKitToApply] = useState<IVehicleModelKit | null>(null);
-  const [freeOpen, setFreeOpen] = useState(false);
+  // `undefined` = sheet closed; `null` = open on the first kit; an id = that kit.
+  const [openKitId, setOpenKitId] = useState<ID | null | undefined>(undefined);
   const [highlightId, setHighlightId] = useState<ID | null>(null);
   const [discountInput, setDiscountInput] = useState<string>("0");
   const [discountReason, setDiscountReason] = useState("");
@@ -242,15 +241,18 @@ export function QuoteEditor() {
   // --- Kit auto-suggestion (PRD-035) ---
   const [suggestionDismissed, setSuggestionDismissed] = useState(false);
 
+  // Store kits ordered by the customer's fleet — drives both the sheet's list
+  // and the unprompted suggestion.
+  const rankedKits = useMemo(() => rankKitsByFleet(kits, vehicles), [kits, vehicles]);
+
   // --- applyKitId from URL (RF-014) ---
-  // Guard ref ensures we only pre-open the dialog once even on re-renders.
+  // Guard ref ensures we only pre-open the sheet once even on re-renders.
   const appliedFromUrlRef = useRef(false);
   useEffect(() => {
     if (!applyKitId || appliedFromUrlRef.current || kits.length === 0) return;
-    const kit = kits.find((k) => k.id === applyKitId);
-    if (kit) {
+    if (kits.some((k) => k.id === applyKitId)) {
       appliedFromUrlRef.current = true;
-      setKitToApply(kit);
+      setOpenKitId(applyKitId);
     }
   }, [applyKitId, kits]);
 
@@ -259,16 +261,12 @@ export function QuoteEditor() {
     setSuggestionDismissed(false);
   }, [customer?.id]);
 
-  // First vehicle of the customer (string-matched to kits).
-  const suggestionVehicle = vehicles[0] ?? null;
-
-  const suggestedKit = useMemo(() => {
-    if (!customer || !suggestionVehicle) return null;
-    const matched = findKitsForVehicle(suggestionVehicle, kits).filter(
-      (k) => k.status === "oficial" && k.category === "filtros",
-    );
-    return matched[0] ?? null;
-  }, [customer, suggestionVehicle, kits]);
+  const suggested = useMemo(
+    () => (customer ? pickSuggestedKit(rankedKits) : null),
+    [customer, rankedKits],
+  );
+  const suggestedKit = suggested?.kit ?? null;
+  const suggestionVehicle = suggested ? (vehicles[suggested.matchedVehicleIndex] ?? null) : null;
 
   // True when the quote already contains at least one filter part.
   const hasFilterItem = useMemo(
@@ -305,7 +303,12 @@ export function QuoteEditor() {
     setItems(result.items);
     setHighlightId(result.affectedId);
   };
-  const handleAddFreeItem = (item: IQuoteItem) => {
+  const handleAddFreeItem = (input: { name: string; unitPrice: number; quantity: number }) => {
+    const item = buildFreeItem({
+      name: input.name,
+      unitPrice: input.unitPrice,
+      quantity: input.quantity,
+    });
     setItems((prev) => [...prev, item]);
     setHighlightId(item.id);
   };
@@ -314,8 +317,10 @@ export function QuoteEditor() {
     setItems(result.items);
     setHighlightId(result.affectedId);
   };
-  const handleApplyKit = (selection: { part: IPart; quantity: number }[]) => {
-    if (!kitToApply) return;
+  const handleApplyKit = (
+    kit: IVehicleModelKit,
+    selection: { part: IPart; quantity: number }[],
+  ) => {
     const prevItems = items;
     const prevAppliedKitIds = appliedKitIds;
 
@@ -329,16 +334,17 @@ export function QuoteEditor() {
     setItems(next);
     setHighlightId(lastId);
 
-    setAppliedKitIds((prev) => (prev.includes(kitToApply.id) ? prev : [...prev, kitToApply.id]));
+    setAppliedKitIds((prev) => (prev.includes(kit.id) ? prev : [...prev, kit.id]));
 
     toast.success(
-      `${selection.length} ${selection.length === 1 ? "item adicionado" : "itens adicionados"} ao orçamento`,
+      `${selection.length} ${selection.length === 1 ? "item" : "itens"} de ${kit.name}`,
       {
         action: {
           label: "Desfazer",
           onClick: () => {
             setItems(prevItems);
             setAppliedKitIds(prevAppliedKitIds);
+            setSuggestionDismissed(false);
           },
         },
       },
@@ -349,10 +355,11 @@ export function QuoteEditor() {
       actorId: user?.id ?? "mock-user",
       action: "apply",
       resource: "modelKit",
-      resourceId: kitToApply.id,
+      resourceId: kit.id,
     });
 
-    setKitToApply(null);
+    setOpenKitId(undefined);
+    setSuggestionDismissed(true);
   };
 
   // Quantity already in the quote, summed per partId (for adder badges).
@@ -583,15 +590,18 @@ export function QuoteEditor() {
             orders={orders}
             inQuoteQtyByPart={inQuoteQtyByPart}
             onAddPart={handleAddPart}
-            onAddFreeItemClick={() => setFreeOpen(true)}
-            kits={kits}
-            onPickKit={setKitToApply}
+            onAddFreeItem={handleAddFreeItem}
+            rankedKits={rankedKits}
+            kitsLoading={modelKitsQuery.isLoading}
+            onApplyKit={handleApplyKit}
+            openKitId={openKitId}
+            onOpenKitIdChange={setOpenKitId}
             kitBanner={
-              suggestedKit && !suggestionDismissed && !hasFilterItem ? (
+              suggestedKit && suggestionVehicle && !suggestionDismissed && !hasFilterItem ? (
                 <KitSuggestionBanner
                   kit={suggestedKit}
-                  vehicleLabel={`${suggestionVehicle!.brand} ${suggestionVehicle!.model}`}
-                  onApply={() => setKitToApply(suggestedKit)}
+                  vehicleLabel={`${suggestionVehicle.brand} ${suggestionVehicle.model}`}
+                  onApply={() => setOpenKitId(suggestedKit.id)}
                   onDismiss={() => setSuggestionDismissed(true)}
                 />
               ) : null
@@ -639,21 +649,6 @@ export function QuoteEditor() {
           <QuoteSummaryPanel {...summaryProps} variant="bar" />
         </div>
       )}
-
-      <FreeItemDialog
-        open={freeOpen}
-        onClose={() => setFreeOpen(false)}
-        onAdd={handleAddFreeItem}
-      />
-
-      <ApplyKitDialog
-        kit={kitToApply}
-        partsById={partsById}
-        onOpenChange={(o) => {
-          if (!o) setKitToApply(null);
-        }}
-        onConfirm={handleApplyKit}
-      />
     </div>
   );
 }
