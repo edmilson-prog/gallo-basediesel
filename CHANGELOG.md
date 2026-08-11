@@ -4,6 +4,22 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.171.0] — Glance · 2026-08-11
+
+**Duas telas onde era preciso abrir alguma coisa para saber o que já estava ali. Na Inbox, descobrir quem era o contato e sobre o que era a conversa exigia abrir o atendimento — e abrir marca como lido; agora basta pousar o mouse na linha. No orçamento, aplicar um kit era um menu que abria uma janela por cima da tela, e lançar um item sem cadastro era outra janela: os dois viraram superfícies dentro da própria página, onde dá para ver antes de decidir.**
+
+### Added
+
+- **Resumo do contato ao passar o mouse na Inbox** — meio segundo sobre a linha e abre um cartão à direita com o que a coluna estreita precisa cortar: nome inteiro em caixa natural, telefone (que a linha não mostra), o último recado completo, todas as tags, o nome da instância por extenso e a situação escrita. Só leitura, sem abrir a conversa e sem marcar nada como lido.
+- **Kits numa folha dentro da tela de orçamento** — a lista de kits fica à esquerda e a pré-visualização do escolhido à direita, na própria página. Os kits que servem a um veículo do cliente aparecem primeiro, marcados como *no veículo*. Peças base já vêm marcadas, as opcionais ficam como sugestão, e cada peça que já está no orçamento avisa *já no orçamento*, com o total estimado somando ao vivo.
+- **Item avulso direto na tabela** — lançar algo sem cadastro deixou de abrir uma janela: aparece uma linha em branco na própria tabela, com descrição, quantidade, preço e subtotal calculando enquanto se digita. Enter adiciona, Esc cancela. Se a busca não encontrou a peça, o que foi digitado já vem escrito na descrição.
+- **Kits sempre à mão** — o botão continua na tela mesmo quando a loja ainda não cadastrou nenhum kit, explicando para que servem e levando à tela de criação quem tem permissão. Antes ele simplesmente não aparecia, e a funcionalidade ficava invisível.
+
+### Changed
+
+- **A sugestão de kit abre a folha em vez de uma janela** — o aviso de que o veículo do cliente combina com um kit agora leva à pré-visualização, onde dá para conferir peça por peça antes de aplicar. E passou a considerar qualquer kit oficial que sirva ao veículo, não só os de filtros.
+- **Peça sem preço é dita, não zerada** — na busca, no catálogo e na aplicação de kit, uma peça cadastrada sem preço aparece como "sem preço" em vez de um R$ 0,00 que parecia real, e fica fora do total estimado.
+
 ## [0.170.0] — Slate · 2026-08-10
 
 **Montar um orçamento era descer uma página de blocos: o cliente num, os itens em outro, e as decisões que fecham a venda — desconto, frete, condições, notas internas — espalhadas em mais dois blocos lá embaixo, com o total fora de vista bem na hora de decidir. Agora a tela é um documento de trabalho: o cliente virou uma faixa de uma linha com o que pesa na hora de dar desconto, os itens ocupam a mesa inteira, e tudo que fecha a venda ficou numa coluna à direita, com o total sempre visível e o botão de enviar fixo embaixo.**
