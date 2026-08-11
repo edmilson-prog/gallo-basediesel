@@ -13,8 +13,11 @@ import { AdSourceBadge } from "./AdSourceBadge";
 import { isQueuedConversation } from "@/features/inbox-alerts";
 import { Icon } from "@/components/Icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { useHoverCapable } from "@/shared/hooks/useHoverCapable";
 import { cn } from "@/lib/utils";
 import { ContactAvatar } from "./ContactAvatar";
+import { ConversationSummaryCard } from "./ConversationSummaryCard";
 import { AssigneeChip } from "./AssigneeChip";
 import { useTimeTick } from "../hooks/useTimeTick";
 import { formatRelativeTime, isFresh } from "../utils/formatRelativeTime";
@@ -33,6 +36,7 @@ import { statusVisual } from "../utils/messageDisplay";
 import { INBOX_STRINGS, CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import type { IConversationContact } from "@/shared/types";
 import { resolveConversationTags, splitVisibleTags } from "../engine/tagCatalog";
+import { canShowSummaryCard } from "../engine/summaryCardVisibility";
 import { useConversationTags } from "../hooks/useConversationTags";
 import { ConversationTagChip, TagOverflowChip } from "./tags/ConversationTagChip";
 import { useAuth } from "@/features/auth/useAuth";
@@ -181,9 +185,22 @@ function ConversationListItemInner({
     return now - created < 60_000;
   }, [escalation, now]);
   const { tags: tagCatalog } = useConversationTags();
-  const rowTags = splitVisibleTags(resolveConversationTags(conversation.tags, tagCatalog), 2);
+  // The row shows two tags and folds the rest into a "+N"; the summary card
+  // shows every one of them — so keep the full resolved list alongside.
+  const resolvedTags = useMemo(
+    () => resolveConversationTags(conversation.tags, tagCatalog),
+    [conversation.tags, tagCatalog],
+  );
+  const rowTags = splitVisibleTags(resolvedTags, 2);
 
-  return (
+  const hoverCapable = useHoverCapable();
+  const showSummary = canShowSummaryCard({
+    isSelected,
+    hoverCapable,
+    isMessageSearchResult: Boolean(conversation.matchedMessage),
+  });
+
+  const row = (
     <Link
       to="/app/atendimento/$id"
       params={{ id: conversation.id }}
@@ -440,6 +457,32 @@ function ConversationListItemInner({
         </div>
       )}
     </Link>
+  );
+
+  if (!showSummary) return row;
+
+  return (
+    <HoverCard openDelay={500} closeDelay={120}>
+      <HoverCardTrigger asChild>{row}</HoverCardTrigger>
+      <HoverCardContent
+        side="right"
+        align="start"
+        sideOffset={8}
+        collisionPadding={12}
+        // The default HoverCardContent is w-64 p-4; the card paints its own padding.
+        className="w-[304px] overflow-hidden p-0 motion-reduce:animate-none"
+      >
+        <ConversationSummaryCard
+          conversation={conversation}
+          display={display}
+          lastMessage={lastMessage}
+          originAccount={liveOriginAccount}
+          assignedSeller={assignedSeller}
+          tags={resolvedTags}
+          now={now}
+        />
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
