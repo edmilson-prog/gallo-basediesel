@@ -586,6 +586,7 @@ export function QuoteEditor() {
             onAddFreeItemClick={() => setFreeOpen(true)}
             kits={kits}
             onPickKit={setKitToApply}
+            kitsLoading={modelKitsQuery.isLoading}
             kitBanner={
               suggestedKit && !suggestionDismissed && !hasFilterItem ? (
                 <KitSuggestionBanner

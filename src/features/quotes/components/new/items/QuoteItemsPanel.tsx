@@ -27,6 +27,8 @@ export interface IQuoteItemsPanelProps {
 
   kits: IVehicleModelKit[];
   onPickKit: (kit: IVehicleModelKit) => void;
+  /** True while the kit list is still loading (keeps the picker honest). */
+  kitsLoading?: boolean;
   /** Automatic kit suggestion, rendered between the adder and the table. */
   kitBanner?: React.ReactNode;
 
@@ -59,6 +61,7 @@ export function QuoteItemsPanel({
   adderResetKey,
   kits,
   onPickKit,
+  kitsLoading,
   kitBanner,
   onPatch,
   onRemove,
@@ -97,7 +100,7 @@ export function QuoteItemsPanel({
             <Icon icon="mdi:plus-box-outline" size={15} />
             Item avulso
           </Button>
-          <KitPicker kits={kits} onPickKit={onPickKit} />
+          <KitPicker kits={kits} onPickKit={onPickKit} loading={kitsLoading} />
         </div>
       </header>
 
