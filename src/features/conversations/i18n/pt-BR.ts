@@ -41,6 +41,19 @@ export const INBOX_STRINGS = {
     emptyDescription: (term: string) => `Nenhuma conversa tem "${term}" no texto das mensagens.`,
   },
 
+  // Conversas fixadas (spec 2026-08-11)
+  pin: {
+    fix: "Fixar conversa",
+    unfix: "Desafixar conversa",
+    badgeAria: "Conversa fixada",
+    blockTitle: "Fixadas",
+    blockCount: (n: number, max: number) => `${n}/${max}`,
+    limitReached: (max: number) =>
+      `Limite de ${max} conversa${max === 1 ? "" : "s"} fixada${max === 1 ? "" : "s"} — desafixe uma para fixar outra.`,
+    limitTooltip: "Limite de conversas fixadas atingido",
+    listSeparator: "Todas as conversas",
+  },
+
   // Filters
   filtersTitle: "Filtros",
   clearAll: "Limpar tudo",
@@ -121,6 +134,16 @@ export const INBOX_STRINGS = {
   sdrBadgeTooltip: "Esta conversa está sendo atendida pelo agente SDR",
   collaboratingBadge: "Colaborando",
   newBadge: "Novo!",
+
+  /** Contact summary card shown on row hover (spec 2026-08-11). */
+  summaryCard: {
+    qualifierCustomer: "Cliente",
+    qualifierLead: "Lead",
+    lastMessageLabel: "Último recado",
+    /** The last-message RPC is RLS-gated, so `lastMessage` arrives null here. */
+    previewUnavailable: "Prévia indisponível — a conversa é de outro atendente.",
+  },
+
   mediaPreview: {
     image: "📎 Foto",
     audio: "🎵 Áudio",

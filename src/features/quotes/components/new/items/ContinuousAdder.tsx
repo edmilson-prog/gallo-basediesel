@@ -12,7 +12,8 @@ export interface IAdderProps {
   inQuoteQtyByPart: Map<string, number>;
   /** Adds `quantity` units (default 1) of the part to the quote. */
   onAddPart: (part: IPart, quantity?: number) => void;
-  onAddFreeItemClick: () => void;
+  /** Opens the off-catalog draft row, seeded with the typed term when there is one. */
+  onAddFreeItemClick: (name?: string) => void;
 }
 
 export interface IContinuousAdderProps extends IAdderProps {
@@ -127,7 +128,8 @@ export function ContinuousAdder({
                   <button
                     type="button"
                     onMouseDown={() => {
-                      onAddFreeItemClick();
+                      // The term that found nothing becomes the description.
+                      onAddFreeItemClick(query.trim());
                       setQuery("");
                     }}
                     className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-foreground hover:bg-muted"

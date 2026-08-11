@@ -271,7 +271,7 @@ export function useConversationsList(
             if (superseded()) return;
             const failure = err instanceof Error ? err : new Error(String(err));
             const hasItems = itemsRef.current.length > 0;
-            if (shouldRetryListFetch({ intent, hasItems, attempt })) {
+            if (shouldRetryListFetch({ intent, hasItems, attempt, error: failure })) {
               await new Promise((resolve) =>
                 window.setTimeout(resolve, INITIAL_LOAD_RETRY_DELAY_MS),
               );

@@ -5,7 +5,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
  * the attendant who owns that conversation (PRD-145, atendimento PWA slice).
  *
  * Called by a database trigger through `pg_net` (migration
- * 20260811103100_messages_push_trigger.sql), NOT by the browser: the WhatsApp
+ * 20260811160100_messages_push_trigger.sql), NOT by the browser: the WhatsApp
  * webhooks are already in production and this deliberately stays out of their
  * path, so a push failure can never delay or break message ingestion.
  *

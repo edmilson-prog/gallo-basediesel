@@ -1,4 +1,10 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
@@ -27,6 +33,9 @@ export function MediaViewerDialog({
       <DialogContent className="max-h-[95dvh] max-w-[96vw] overflow-hidden p-0 [&>button]:hidden">
         <DialogHeader className="sr-only">
           <DialogTitle>Visualizar mídia</DialogTitle>
+          <DialogDescription>
+            Mídia da conversa em tamanho ampliado, com opção de download.
+          </DialogDescription>
         </DialogHeader>
         {item && <ViewerBody item={item} onClose={onClose} />}
       </DialogContent>

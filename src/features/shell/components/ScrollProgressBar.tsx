@@ -63,13 +63,23 @@ export function ScrollProgressBar({ container }: IScrollProgressBarProps) {
     target.addEventListener("scroll", schedule, { passive: true });
     const resizeObserver = new ResizeObserver(schedule);
     resizeObserver.observe(target);
-    const mutationObserver = new MutationObserver(schedule);
-    mutationObserver.observe(target, { childList: true, subtree: true });
+
+    // A `subtree: true` MutationObserver fires on EVERY descendant change, and
+    // each callback reads scrollHeight/clientHeight — a forced reflow per DOM
+    // mutation. On a screen whose container never scrolls (Atendimento's <main>
+    // is overflow-hidden) that is pure waste: it produced a burst of "Forced
+    // reflow" console violations while the Inbox streamed rows in.
+    //
+    // The ResizeObserver above already catches the container growing, so the
+    // MutationObserver is only worth it where there IS overflow to track.
+    const hasOverflow = target.scrollHeight - target.clientHeight > 24;
+    const mutationObserver = hasOverflow ? new MutationObserver(schedule) : null;
+    mutationObserver?.observe(target, { childList: true, subtree: true });
 
     return () => {
       target.removeEventListener("scroll", schedule);
       resizeObserver.disconnect();
-      mutationObserver.disconnect();
+      mutationObserver?.disconnect();
       if (raf !== 0) cancelAnimationFrame(raf);
     };
   }, [pathname, container]);

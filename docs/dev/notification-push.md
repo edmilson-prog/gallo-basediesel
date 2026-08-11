@@ -9,8 +9,8 @@ pendente — este caminho foi desenhado para ser absorvido por ele, não para su
 
 | Peça                           | Onde                                                           |
 | ------------------------------ | -------------------------------------------------------------- |
-| Tabela de assinaturas          | `supabase/migrations/20260811103000_push_subscriptions.sql`    |
-| Gatilho na chegada da mensagem | `supabase/migrations/20260811103100_messages_push_trigger.sql` |
+| Tabela de assinaturas          | `supabase/migrations/20260811160000_push_subscriptions.sql`    |
+| Gatilho na chegada da mensagem | `supabase/migrations/20260811160100_messages_push_trigger.sql` |
 | Envio (VAPID + AES128GCM)      | `supabase/functions/_shared/webpush.ts`                        |
 | Função de despacho             | `supabase/functions/push-dispatch/index.ts`                    |
 | Handlers do service worker     | `public/sw.js` (`push`, `notificationclick`)                   |
@@ -53,11 +53,11 @@ Três coisas dependem do dono e **não** acontecem ao mergear o PR:
 3. **Aplicar as migrations e deployar a função**, nesta ordem:
    ```
    # 1. schema
-   supabase/migrations/20260811103000_push_subscriptions.sql
+   supabase/migrations/20260811160000_push_subscriptions.sql
    # 2. função
    npx supabase functions deploy push-dispatch
    # 3. só então o gatilho
-   supabase/migrations/20260811103100_messages_push_trigger.sql
+   supabase/migrations/20260811160100_messages_push_trigger.sql
    ```
    O gatilho é seguro fora de ordem — ele desiste em silêncio enquanto o segredo não existe
    no Vault —, mas a ordem acima evita ruído de 401 no log.

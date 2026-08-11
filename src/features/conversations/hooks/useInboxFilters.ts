@@ -56,6 +56,15 @@ const VALID_SORT = new Set<SortMode>(["lastMessage", "waiting", "abc"]);
 
 const FILTERS_STORAGE_KEY = "gallo-inbox-filters";
 
+/**
+ * The search term is NOT a filter preference — it is a one-off question.
+ * Persisting it meant that having searched once made the next visit reopen the
+ * Inbox in search mode, firing the cross-entity search RPC (by far the most
+ * expensive read on this screen) before the user typed anything. A deep link
+ * carrying `?q=` still works: restoration only runs when the URL has no params.
+ */
+const FILTERS_NOT_PERSISTED = ["q"] as const;
+
 /** URL sentinel for the explicit empty set ("Todas") so it is distinguishable
  *  from the default in the query string. */
 const ASSIGNMENT_ALL = "all";
@@ -204,15 +213,20 @@ export function useInboxFilters(currentSellerId: ID | null): {
   const navigate = useNavigate();
   const filters = useMemo(() => readState(search, currentSellerId), [search, currentSellerId]);
 
-  usePersistedListSearch(FILTERS_STORAGE_KEY, search as Record<string, unknown>, (saved) => {
-    // Same `to: "."` requirement as `apply` below — no `from`, so the $id
-    // segment (when a conversation is open) is never dropped by the restore.
-    void navigate({
-      to: ".",
-      search: () => saved as unknown as IInboxFiltersSearch,
-      replace: true,
-    });
-  });
+  usePersistedListSearch(
+    FILTERS_STORAGE_KEY,
+    search as Record<string, unknown>,
+    (saved) => {
+      // Same `to: "."` requirement as `apply` below — no `from`, so the $id
+      // segment (when a conversation is open) is never dropped by the restore.
+      void navigate({
+        to: ".",
+        search: () => saved as unknown as IInboxFiltersSearch,
+        replace: true,
+      });
+    },
+    FILTERS_NOT_PERSISTED,
+  );
 
   const apply = useCallback(
     (patch: Partial<IInboxFiltersSearch>) => {

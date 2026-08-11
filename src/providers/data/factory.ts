@@ -37,6 +37,7 @@ import { mockQuickReplyProvider } from "./impl/mock/quickReply";
 import { mockTrackableLinkProvider } from "./impl/mock/trackableLink";
 import { mockScheduledSendProvider } from "./impl/mock/scheduledSend";
 import { mockConversationNotesProvider } from "./impl/mock/conversationNotes";
+import { mockConversationPinsProvider } from "./impl/mock/conversationPins";
 import { mockStorefrontProvider } from "./impl/mock/storefront";
 import { mockSystemHealthProvider } from "./impl/mock/systemHealth";
 import { mockWebhookDeliveriesProvider } from "./impl/mock/webhookDeliveries";
@@ -93,6 +94,7 @@ import { supabaseQuickReplyProvider } from "./impl/supabase/quickReply";
 import { supabaseTrackableLinkProvider } from "./impl/supabase/trackableLink";
 import { supabaseScheduledSendProvider } from "./impl/supabase/scheduledSend";
 import { supabaseConversationNotesProvider } from "./impl/supabase/conversationNotes";
+import { supabaseConversationPinsProvider } from "./impl/supabase/conversationPins";
 import { supabaseStorefrontProvider } from "./impl/supabase/storefront";
 import { supabaseSystemHealthProvider } from "./impl/supabase/systemHealth";
 import { supabaseWebhookDeliveriesProvider } from "./impl/supabase/webhookDeliveries";
@@ -182,6 +184,7 @@ const mockProviders: IDataProviders = {
   trackableLink: mockTrackableLinkProvider,
   scheduledSend: mockScheduledSendProvider,
   conversationNotes: mockConversationNotesProvider,
+  conversationPins: mockConversationPinsProvider,
   storefront: mockStorefrontProvider,
   systemHealth: mockSystemHealthProvider,
   webhookDeliveries: mockWebhookDeliveriesProvider,
@@ -240,6 +243,7 @@ const supabaseProviders: IDataProviders = {
   trackableLink: supabaseTrackableLinkProvider,
   scheduledSend: supabaseScheduledSendProvider,
   conversationNotes: supabaseConversationNotesProvider,
+  conversationPins: supabaseConversationPinsProvider,
   storefront: supabaseStorefrontProvider,
   systemHealth: supabaseSystemHealthProvider,
   webhookDeliveries: supabaseWebhookDeliveriesProvider,

@@ -4,7 +4,7 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
-## [0.171.0] — Pocket · 2026-08-11
+## [0.173.0] — Pocket · 2026-08-11
 
 **Quem acompanha o atendimento não vive na frente do computador — vive no balcão, na oficina, na rua. Agora existe um app só de conversas, instalável no celular, em `/atendimento`: abre em tela cheia, mostra a mesma inbox de sempre, e responde. Nada de assumir, transferir, etiquetar ou anotar: isso continua no sistema grande. Aqui é só a troca de mensagens, e ela é a de verdade — a mesma conversa, o mesmo envio, a mesma regra de quem enxerga o quê.**
 
@@ -18,6 +18,38 @@ versioning follows [SemVer](https://semver.org/).
 - **Mídias da conversa** — grade com abas Tudo, Fotos, Áudios e Docs, montada a partir das próprias mensagens.
 - **Aviso de mensagem nova** — faixa no topo quando chega mensagem de outra conversa enquanto você atende, com "Abrir conversa" e "Dispensar". A permissão de notificação é pedida depois do login, nunca ao abrir, e um "agora não" compra duas semanas de silêncio.
 - **Notificação com o app fechado** — fundação de Web Push: assinatura por aparelho, envio pelo servidor com limpeza automática de aparelho que desinstalou o app, e preferências por aparelho. Depende de chave e liberação em produção para entrar no ar; conversa sem responsável não dispara aviso, por decisão de segurança.
+## [0.172.0] — Pinboard · 2026-08-11
+
+**A Inbox ordena por quem falou por último, e só isso. A conversa que importa hoje — o cliente que fecha amanhã, o orçamento parado esperando a peça chegar — afunda sozinha conforme o resto do dia vai chegando por cima. Quem precisava dela de volta ia caçar na busca. Agora cada atendente escolhe um punhado de conversas que ficam no topo e não saem de lá.**
+
+### Added
+
+- **Fixar conversa no topo da Inbox** — passe o mouse na linha e clique no alfinete, ou use o menu de três pontos dentro da conversa. Ela sobe para um bloco **Fixadas** no alto da lista e continua ali mesmo depois de dias sem mensagem, mesmo que mude de situação e mesmo quando os filtros ativos a esconderiam. Durante uma busca por texto o bloco sai da frente, para não competir com o resultado. As fixadas são suas: fixar não mexe na tela de mais ninguém.
+- **Limite de conversas fixadas** — nova tela em Configurações → Atendimento → Conversas fixadas, onde se define quantas cada atendente pode manter no topo (padrão 5, até 20). Ao atingir o limite é preciso desafixar uma para fixar outra — nada sai do topo sozinho. Se o limite for reduzido depois, quem já tiver mais continua vendo todas as suas e apenas fica impedido de fixar novas.
+
+### Fixed
+
+- **Resposta saía para um número sem WhatsApp** — depois que um contato era vinculado a um cliente já cadastrado, as respostas passavam a ser enviadas para o telefone do cadastro, que em boa parte da base é o fixo da empresa importado do ERP. A mensagem simplesmente falhava, sem dizer por quê, enquanto o mesmo texto enviado do celular do vendedor chegava normalmente. A plataforma agora responde sempre no mesmo lugar onde a conversa está acontecendo, independentemente do que esteja no cadastro.
+- **Buscar na Inbox dava erro** — procurar por nome ou telefone podia levar oito segundos e terminar sem resultado nenhum, e enquanto isso deixava o sistema pesado para os outros atendentes. A consulta foi corrigida e passou a responder em uma fração do tempo que levava antes.
+- **O erro na busca deixava tudo mais lento ainda** — quando uma consulta falhava, o sistema repetia o pedido três vezes seguidas, multiplicando a carga justamente no pior momento. Agora ele não insiste quando o problema é de sobrecarga: tenta de novo só quando há chance real de dar certo.
+- **A busca voltava sozinha ao abrir o sistema** — o texto pesquisado ficava guardado, e a Inbox reabria em modo de busca na visita seguinte sem ninguém ter digitado nada. Links compartilhados com uma busca dentro continuam funcionando.
+- **Leitores de tela não anunciavam algumas janelas** — as fichas de cliente e de lead, a galeria de mídias da conversa e o visualizador de imagens abriam sem título ou descrição para quem usa leitor de tela.
+
+## [0.171.0] — Glance · 2026-08-11
+
+**Duas telas onde era preciso abrir alguma coisa para saber o que já estava ali. Na Inbox, descobrir quem era o contato e sobre o que era a conversa exigia abrir o atendimento — e abrir marca como lido; agora basta pousar o mouse na linha. No orçamento, aplicar um kit era um menu que abria uma janela por cima da tela, e lançar um item sem cadastro era outra janela: os dois viraram superfícies dentro da própria página, onde dá para ver antes de decidir.**
+
+### Added
+
+- **Resumo do contato ao passar o mouse na Inbox** — meio segundo sobre a linha e abre um cartão à direita com o que a coluna estreita precisa cortar: nome inteiro em caixa natural, telefone (que a linha não mostra), o último recado completo, todas as tags, o nome da instância por extenso e a situação escrita. Só leitura, sem abrir a conversa e sem marcar nada como lido.
+- **Kits numa folha dentro da tela de orçamento** — a lista de kits fica à esquerda e a pré-visualização do escolhido à direita, na própria página. Os kits que servem a um veículo do cliente aparecem primeiro, marcados como *no veículo*. Peças base já vêm marcadas, as opcionais ficam como sugestão, e cada peça que já está no orçamento avisa *já no orçamento*, com o total estimado somando ao vivo.
+- **Item avulso direto na tabela** — lançar algo sem cadastro deixou de abrir uma janela: aparece uma linha em branco na própria tabela, com descrição, quantidade, preço e subtotal calculando enquanto se digita. Enter adiciona, Esc cancela. Se a busca não encontrou a peça, o que foi digitado já vem escrito na descrição.
+- **Kits sempre à mão** — o botão continua na tela mesmo quando a loja ainda não cadastrou nenhum kit, explicando para que servem e levando à tela de criação quem tem permissão. Antes ele simplesmente não aparecia, e a funcionalidade ficava invisível.
+
+### Changed
+
+- **A sugestão de kit abre a folha em vez de uma janela** — o aviso de que o veículo do cliente combina com um kit agora leva à pré-visualização, onde dá para conferir peça por peça antes de aplicar. E passou a considerar qualquer kit oficial que sirva ao veículo, não só os de filtros.
+- **Peça sem preço é dita, não zerada** — na busca, no catálogo e na aplicação de kit, uma peça cadastrada sem preço aparece como "sem preço" em vez de um R$ 0,00 que parecia real, e fica fora do total estimado.
 
 ## [0.170.0] — Slate · 2026-08-10
 

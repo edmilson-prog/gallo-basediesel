@@ -137,8 +137,12 @@ function CatalogCard({
             </span>
           )}
         </span>
-        <span className="ml-auto shrink-0 text-base font-semibold tabular-nums text-foreground">
-          {moneyFormatter.format(part.unitPrice)}
+        <span
+          className={`ml-auto shrink-0 text-base font-semibold tabular-nums ${
+            part.unitPrice > 0 ? "text-foreground" : "text-muted-foreground"
+          }`}
+        >
+          {part.unitPrice > 0 ? moneyFormatter.format(part.unitPrice) : "sem preço"}
         </span>
       </div>
     </button>

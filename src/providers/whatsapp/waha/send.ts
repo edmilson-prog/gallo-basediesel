@@ -17,15 +17,39 @@ function toChatId(phone: string): string {
 
 /**
  * Extracts the chat JID from a WAHA serialized message id
- * (`{fromMe}_{chatJid}_{hash}`) when the chat is lid-addressed
- * (`<digits>@lid` — WhatsApp privacy identifier). Returns null for
- * phone (`@c.us`) and group (`@g.us`) chats or malformed input — callers
- * treat that as "no lid address available". Used as the last-resort
- * recipient for conversations whose contact has no resolvable phone.
+ * (`{fromMe}_{chatJid}_{hash}`) — either lid-addressed (`<digits>@lid`,
+ * WhatsApp's privacy identifier) or phone-addressed (`<digits>@c.us`).
+ * Returns null for group chats (`@g.us`) and malformed input.
+ *
+ * This is the address WhatsApp itself uses for the chat, so it is the truth
+ * about WHO is on the other side — unlike the registry phone, which is a CRM
+ * field that can hold a different number entirely (2026-08-11: a conversation
+ * with a buyer's mobile was re-anchored onto his company's customer record by
+ * `reanchor_converted_lead_conversations`, whose DINTEC-imported phone is the
+ * company LANDLINE; every reply then dialled a number with no WhatsApp and
+ * came back as an opaque GOWS 500).
  */
-export function extractLidChatId(providerMessageId: string): string | null {
+export function extractChatJid(providerMessageId: string): string | null {
   const chatJid = providerMessageId.split("_")[1] ?? "";
-  return /^\d+@lid$/.test(chatJid) ? chatJid : null;
+  return /^\d+@(?:lid|c\.us)$/.test(chatJid) ? chatJid : null;
+}
+
+/**
+ * True when WAHA answered REJECTING the send — i.e. the message definitely did
+ * not go out, so re-dispatching it to a different address is safe.
+ *
+ * Deliberately narrow. `wahaRequest` only raises `WhatsAppProviderError` after
+ * the server replied with a non-2xx; a timeout/abort surfaces as a plain
+ * DOMException/Error and must NEVER be retried — WAHA keeps working after we
+ * hang up, so the message may well have been delivered (same reasoning as
+ * MEDIA_TIMEOUT_MS above). Session-level codes are excluded too: a different
+ * recipient cannot fix a bad API key, a rate limit or a missing session.
+ */
+export function isRecipientRejection(err: unknown): boolean {
+  return (
+    err instanceof WhatsAppProviderError &&
+    (err.code === "INTEGRATION_ERROR" || err.code === "CUSTOMER_INVALID_WHATSAPP")
+  );
 }
 
 function extractMessageId(body: unknown): string {

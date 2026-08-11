@@ -144,9 +144,9 @@ Defaults critical/operacional, roteiro E2E manual, notification-push.md; `_DONE`
 
 | Campo | Valor |
 |-------|-------|
-| **Status** | 🟡 PARCIAL — fatia do PWA de atendimento entregue (v0.171.0 "Pocket") |
+| **Status** | 🟡 PARCIAL — fatia do PWA de atendimento entregue (v0.173.0 "Pocket") |
 
-### O que já existe (v0.171.0)
+### O que já existe (v0.173.0)
 
 Entregue junto com o PWA de atendimento (`/atendimento`), num caminho **autocontido**, porque
 o PRD-141 (dispatch + deliveries) não existe: sem canal genérico para pendurar o push, este
@@ -155,7 +155,7 @@ recorte fala direto com a tabela e a Edge Function. Foi desenhado para o 141/171
 - **RF-001** ✅ util próprio em `supabase/functions/_shared/webpush.ts` (VAPID ES256 + RFC 8291
   aes128gcm, só WebCrypto). ⚠️ o par de chaves **ainda não foi gerado** nem guardado no Vault.
 - **RF-002** ✅ `public.push_subscriptions` + RLS dono-only
-  (`20260811103000_push_subscriptions.sql`). Subscribe/unsubscribe acontecem pelo cliente sob
+  (`20260811160000_push_subscriptions.sql`). Subscribe/unsubscribe acontecem pelo cliente sob
   RLS, não por endpoint Edge — equivalente em garantia e com menos superfície.
 - **RF-003** ✅ `supabase/functions/push-dispatch/` com limpeza em 410/404 e `NO_SUBSCRIPTION`.
   Sem tabela de deliveries (é do 141): o resultado vai para o log estruturado.
@@ -183,7 +183,7 @@ recorte fala direto com a tabela e a Edge Function. Foi desenhado para o 141/171
 | Data | Versão | Alteração |
 |------|--------|-----------|
 | 10/06/2026 | v1 | Criação inicial — Sub-lote 5b do Lote 5 (Onda 8), perfil E |
-| 11/08/2026 | v2 | Fatia do PWA de atendimento entregue (v0.171.0 "Pocket"): schema, dispatch, SW e opt-in. Roteamento genérico e fila seguem pendentes |
+| 11/08/2026 | v2 | Fatia do PWA de atendimento entregue (v0.173.0 "Pocket"): schema, dispatch, SW e opt-in. Roteamento genérico e fila seguem pendentes |
 
 ---
 

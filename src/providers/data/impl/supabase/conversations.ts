@@ -174,8 +174,13 @@ function buildSearchRpcParams(params: IListConversationsParams, page: number, pa
     // `p_search` has no SQL default (unlike the other params) — PostgREST can't
     // resolve the function overload if this key is omitted from the JSON body,
     // which happens whenever `params.search` is `undefined` (JSON.stringify drops
-    // undefined keys). Always send a string; each RPC's own length(trim(...))>0
-    // guard already treats an empty term as "no match" (0 rows).
+    // undefined keys). Always send a string.
+    //
+    // That guard is real as of migration 20260811150000 — it was NOT before, and
+    // this comment asserting it was the reason the 2026-08-11 timeout hunt first
+    // chased the wrong lead. An empty term used to match every row through the
+    // search arm; today `search_conversations` returns 0 rows for it. The
+    // caller-side check in `list` below stays as the first line of defence.
     p_search: params.search ?? "",
     p_store_id: params.storeId ?? null,
     // Search keeps the scalar `unassigned` param for non-Inbox callers. The
@@ -334,6 +339,7 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       : getSupabaseClient().from(TABLE).select(COLUMNS);
 
     if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+    if (params.ids && params.ids.length > 0) query = query.in("id", params.ids);
     if (params.assignedSellerId !== undefined)
       query = query.eq("assigned_seller_id", params.assignedSellerId);
     if (params.unassigned) query = query.is("assigned_seller_id", null);
