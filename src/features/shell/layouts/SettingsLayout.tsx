@@ -175,6 +175,12 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         permission: { resource: "settings_automation", action: "edit" },
       },
       {
+        label: "Conversas fixadas",
+        icon: "mdi:pin-outline",
+        to: "/app/configuracoes/atendimento/fixadas",
+        permission: { resource: "settings_automation", action: "edit" },
+      },
+      {
         label: "Sons de notificação",
         icon: "mdi:music-note-outline",
         to: "/app/configuracoes/sons",
