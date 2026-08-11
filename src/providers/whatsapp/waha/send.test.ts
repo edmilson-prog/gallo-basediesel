@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { extractLidChatId, sendWahaMedia, sendWahaText } from "./send";
+import { extractChatJid, isRecipientRejection, sendWahaMedia, sendWahaText } from "./send";
+import { WhatsAppProviderError } from "../errors";
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -228,25 +229,68 @@ describe("chatId override (lid-addressed chats)", () => {
   });
 });
 
-describe("extractLidChatId", () => {
+describe("extractChatJid", () => {
   it("extracts the chat JID from a lid-addressed WAHA message id", () => {
-    expect(extractLidChatId("false_34523215618230@lid_3A671E9C4C83C7AD6082")).toBe(
+    expect(extractChatJid("false_34523215618230@lid_3A671E9C4C83C7AD6082")).toBe(
       "34523215618230@lid",
     );
   });
 
-  it("returns null for a phone-addressed (c.us) id", () => {
-    expect(extractLidChatId("true_554796061632@c.us_2A8E35912FEA3E0493A7")).toBeNull();
+  it("extracts the chat JID from a phone-addressed (c.us) id", () => {
+    // The whole point of the CATTO fix: a visible-number chat is just as much a
+    // chat identity as a lid one — when the registry holds a DIFFERENT number
+    // (the company landline), the wire JID is the one that reaches the person.
+    expect(extractChatJid("true_554796061632@c.us_2A8E35912FEA3E0493A7")).toBe("554796061632@c.us");
   });
 
   it("returns null for group ids even when a participant segment is a lid", () => {
-    expect(extractLidChatId("false_120363043211@g.us_ABC_456@lid")).toBeNull();
+    expect(extractChatJid("false_120363043211@g.us_ABC_456@lid")).toBeNull();
   });
 
   it("returns null for empty or malformed input", () => {
-    expect(extractLidChatId("")).toBeNull();
-    expect(extractLidChatId("not-a-waha-id")).toBeNull();
-    expect(extractLidChatId("34523215618230@lid")).toBeNull();
+    expect(extractChatJid("")).toBeNull();
+    expect(extractChatJid("not-a-waha-id")).toBeNull();
+    expect(extractChatJid("34523215618230@lid")).toBeNull();
+  });
+});
+
+describe("isRecipientRejection", () => {
+  it("is true for INTEGRATION_ERROR — where an unreachable destination lands", () => {
+    // The CATTO failure verbatim: GOWS answered HTTP 500 for a landline JID,
+    // which mapWahaError folds into INTEGRATION_ERROR.
+    expect(
+      isRecipientRejection(
+        new WhatsAppProviderError(
+          "INTEGRATION_ERROR",
+          502,
+          "Erro WAHA não mapeado (HTTP 500): sem corpo de erro",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it("is true for CUSTOMER_INVALID_WHATSAPP", () => {
+    expect(
+      isRecipientRejection(
+        new WhatsAppProviderError("CUSTOMER_INVALID_WHATSAPP", 422, "sem WhatsApp"),
+      ),
+    ).toBe(true);
+  });
+
+  it("is false for session-level errors a different recipient cannot fix", () => {
+    expect(isRecipientRejection(new WhatsAppProviderError("UNAUTHORIZED", 401, "chave"))).toBe(
+      false,
+    );
+    expect(isRecipientRejection(new WhatsAppProviderError("RATE_LIMITED", 429, "limite"))).toBe(
+      false,
+    );
+    expect(isRecipientRejection(new WhatsAppProviderError("NOT_FOUND", 404, "sessão"))).toBe(false);
+  });
+
+  it("is false for transport failures — WAHA may have delivered before we gave up", () => {
+    // Retrying a timeout would risk sending the same message twice.
+    expect(isRecipientRejection(new DOMException("aborted", "AbortError"))).toBe(false);
+    expect(isRecipientRejection(new Error("network down"))).toBe(false);
   });
 });
 
