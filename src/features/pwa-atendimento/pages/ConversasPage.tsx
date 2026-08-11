@@ -8,11 +8,7 @@ import { PwaOfflineBar } from "../components/ui/PwaOfflineBar";
 import { PwaFilterPanel } from "../components/PwaFilterPanel";
 import { PwaConversationRow } from "../components/PwaConversationRow";
 import { PwaAccountSheet } from "../components/sheets/PwaAccountSheet";
-import {
-  usePwaConversations,
-  usePwaFilterState,
-  usePwaScope,
-} from "../hooks/usePwaConversations";
+import { usePwaConversations, usePwaFilterState, usePwaScope } from "../hooks/usePwaConversations";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useSellerNames } from "../hooks/useSellerNames";
 import { PWA_ATENDIMENTO_STRINGS as S } from "../i18n/pt-BR";
@@ -23,7 +19,8 @@ export function ConversasPage() {
   const scope = usePwaScope();
   const { filters, setFilters, resetFilters } = usePwaFilterState();
   const listParams = useMemo(
-    () => pwaFiltersToListParams(filters, { storeId: scope.storeId, currentSellerId: scope.sellerId }),
+    () =>
+      pwaFiltersToListParams(filters, { storeId: scope.storeId, currentSellerId: scope.sellerId }),
     [filters, scope.storeId, scope.sellerId],
   );
   const list = usePwaConversations(listParams);

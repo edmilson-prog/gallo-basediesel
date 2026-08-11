@@ -4,24 +4,29 @@ import { PWA_ATENDIMENTO_STRINGS as S } from "../../i18n/pt-BR";
 
 export type PwaAttachChoice = "photo" | "camera" | "document" | "product";
 
-const OPTIONS: { id: PwaAttachChoice; icon: string; label: string; hint: string; gold?: boolean }[] =
-  [
-    { id: "photo", icon: "mdi:image-outline", label: S.attach.photo, hint: S.attach.photoHint },
-    { id: "camera", icon: "mdi:camera-outline", label: S.attach.camera, hint: S.attach.cameraHint },
-    {
-      id: "document",
-      icon: "mdi:file-document-outline",
-      label: S.attach.document,
-      hint: S.attach.documentHint,
-    },
-    {
-      id: "product",
-      icon: "mdi:package-variant",
-      label: S.attach.product,
-      hint: S.attach.productHint,
-      gold: true,
-    },
-  ];
+const OPTIONS: {
+  id: PwaAttachChoice;
+  icon: string;
+  label: string;
+  hint: string;
+  gold?: boolean;
+}[] = [
+  { id: "photo", icon: "mdi:image-outline", label: S.attach.photo, hint: S.attach.photoHint },
+  { id: "camera", icon: "mdi:camera-outline", label: S.attach.camera, hint: S.attach.cameraHint },
+  {
+    id: "document",
+    icon: "mdi:file-document-outline",
+    label: S.attach.document,
+    hint: S.attach.documentHint,
+  },
+  {
+    id: "product",
+    icon: "mdi:package-variant",
+    label: S.attach.product,
+    hint: S.attach.productHint,
+    gold: true,
+  },
+];
 
 interface IPwaAttachSheetProps {
   open: boolean;

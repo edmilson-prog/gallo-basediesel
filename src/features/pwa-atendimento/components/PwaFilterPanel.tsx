@@ -14,15 +14,7 @@ const STATUS_CHOICES: ConversationStatus[] = [
 ];
 const CHANNEL_CHOICES: ConversationChannel[] = ["whatsapp", "ecommerce", "phone", "site"];
 
-function Chip({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
+function Chip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
     <button
       type="button"

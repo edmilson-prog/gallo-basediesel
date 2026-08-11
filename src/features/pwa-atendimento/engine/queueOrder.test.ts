@@ -26,7 +26,11 @@ function conversation(overrides: Partial<IConversation> = {}): IConversation {
   };
 }
 
-function entry(id: string, waitMinutes: number, overrides: Partial<IConversation> = {}): IQueueEntry {
+function entry(
+  id: string,
+  waitMinutes: number,
+  overrides: Partial<IConversation> = {},
+): IQueueEntry {
   return { conversation: conversation({ id, ...overrides }), waitMs: waitMinutes * MINUTE };
 }
 

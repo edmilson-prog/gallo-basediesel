@@ -157,9 +157,7 @@ export function LoginPage() {
               remember ? "bg-primary" : "ring-[1.5px] ring-inset ring-border"
             }`}
           >
-            {remember && (
-              <Icon icon="mdi:check" size={13} className="text-primary-foreground" />
-            )}
+            {remember && <Icon icon="mdi:check" size={13} className="text-primary-foreground" />}
           </span>
           {S.login.remember}
         </button>
@@ -191,9 +189,7 @@ export function LoginPage() {
 
       <div className="flex items-center justify-between border-t border-border pt-3.5">
         <span className="text-[11px] text-muted-foreground">{S.login.footer}</span>
-        <span className="font-mono text-[11px] text-muted-foreground/70">
-          v{__APP_VERSION__}
-        </span>
+        <span className="font-mono text-[11px] text-muted-foreground/70">v{__APP_VERSION__}</span>
       </div>
     </form>
   );

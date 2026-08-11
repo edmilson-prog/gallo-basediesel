@@ -4,6 +4,8 @@ import { useAuth } from "@/features/auth/useAuth";
 import { PwaAvatar } from "../ui/PwaAvatar";
 import { PwaButton } from "../ui/PwaButton";
 import { PwaSheet } from "../ui/PwaSheet";
+import { usePwaNotifications } from "../PwaNotificationsProvider";
+import { useInstallPrompt } from "../../hooks/useInstallPrompt";
 import { PWA_ATENDIMENTO_STRINGS as S } from "../../i18n/pt-BR";
 
 function Row({
@@ -36,23 +38,15 @@ interface IPwaAccountSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   online: boolean;
-  /** Permission state shown next to "Notificações". */
-  permission?: NotificationPermission;
-  onOpenNotifications?: () => void;
-  isInstalled?: boolean;
 }
 
 /** Account sheet behind the header avatar — identity, state and sign-out. */
-export function PwaAccountSheet({
-  open,
-  onOpenChange,
-  online,
-  permission = "default",
-  onOpenNotifications,
-  isInstalled = false,
-}: IPwaAccountSheetProps) {
+export function PwaAccountSheet({ open, onOpenChange, online }: IPwaAccountSheetProps) {
   const navigate = useNavigate();
   const { currentUser, signOut } = useAuth();
+  const notifications = usePwaNotifications();
+  const { isInstalled } = useInstallPrompt();
+  const permission = notifications.permission;
 
   const permissionLabel =
     permission === "granted"
@@ -102,7 +96,10 @@ export function PwaAccountSheet({
         icon="mdi:bell-outline"
         label={S.account.notifications}
         value={permissionLabel}
-        onClick={onOpenNotifications}
+        onClick={() => {
+          onOpenChange(false);
+          notifications.openPreferences();
+        }}
       />
       <Row
         icon="mdi:cellphone"

@@ -49,6 +49,7 @@ import { Route as LojaBuscaRouteImport } from './routes/loja.busca'
 import { Route as AuthLogoutRouteImport } from './routes/auth.logout'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthDefinirSenhaRouteImport } from './routes/auth.definir-senha'
+import { Route as AtendimentoInstalarRouteImport } from './routes/atendimento.instalar'
 import { Route as AtendimentoEsperaRouteImport } from './routes/atendimento.espera'
 import { Route as AtendimentoEntrarRouteImport } from './routes/atendimento.entrar'
 import { Route as AtendimentoConversasRouteImport } from './routes/atendimento.conversas'
@@ -407,6 +408,11 @@ const AuthDefinirSenhaRoute = AuthDefinirSenhaRouteImport.update({
   id: '/definir-senha',
   path: '/definir-senha',
   getParentRoute: () => AuthRoute,
+} as any)
+const AtendimentoInstalarRoute = AtendimentoInstalarRouteImport.update({
+  id: '/instalar',
+  path: '/instalar',
+  getParentRoute: () => AtendimentoRoute,
 } as any)
 const AtendimentoEsperaRoute = AtendimentoEsperaRouteImport.update({
   id: '/espera',
@@ -1283,6 +1289,7 @@ export interface FileRoutesByFullPath {
   '/atendimento/conversas': typeof AtendimentoConversasRoute
   '/atendimento/entrar': typeof AtendimentoEntrarRoute
   '/atendimento/espera': typeof AtendimentoEsperaRoute
+  '/atendimento/instalar': typeof AtendimentoInstalarRoute
   '/auth/definir-senha': typeof AuthDefinirSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
@@ -1471,6 +1478,7 @@ export interface FileRoutesByTo {
   '/atendimento/conversas': typeof AtendimentoConversasRoute
   '/atendimento/entrar': typeof AtendimentoEntrarRoute
   '/atendimento/espera': typeof AtendimentoEsperaRoute
+  '/atendimento/instalar': typeof AtendimentoInstalarRoute
   '/auth/definir-senha': typeof AuthDefinirSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
@@ -1658,6 +1666,7 @@ export interface FileRoutesById {
   '/atendimento/conversas': typeof AtendimentoConversasRoute
   '/atendimento/entrar': typeof AtendimentoEntrarRoute
   '/atendimento/espera': typeof AtendimentoEsperaRoute
+  '/atendimento/instalar': typeof AtendimentoInstalarRoute
   '/auth/definir-senha': typeof AuthDefinirSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
@@ -1860,6 +1869,7 @@ export interface FileRouteTypes {
     | '/atendimento/conversas'
     | '/atendimento/entrar'
     | '/atendimento/espera'
+    | '/atendimento/instalar'
     | '/auth/definir-senha'
     | '/auth/login'
     | '/auth/logout'
@@ -2048,6 +2058,7 @@ export interface FileRouteTypes {
     | '/atendimento/conversas'
     | '/atendimento/entrar'
     | '/atendimento/espera'
+    | '/atendimento/instalar'
     | '/auth/definir-senha'
     | '/auth/login'
     | '/auth/logout'
@@ -2234,6 +2245,7 @@ export interface FileRouteTypes {
     | '/atendimento/conversas'
     | '/atendimento/entrar'
     | '/atendimento/espera'
+    | '/atendimento/instalar'
     | '/auth/definir-senha'
     | '/auth/login'
     | '/auth/logout'
@@ -2700,6 +2712,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/definir-senha'
       preLoaderRoute: typeof AuthDefinirSenhaRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/atendimento/instalar': {
+      id: '/atendimento/instalar'
+      path: '/instalar'
+      fullPath: '/atendimento/instalar'
+      preLoaderRoute: typeof AtendimentoInstalarRouteImport
+      parentRoute: typeof AtendimentoRoute
     }
     '/atendimento/espera': {
       id: '/atendimento/espera'
@@ -4285,6 +4304,7 @@ interface AtendimentoRouteChildren {
   AtendimentoConversasRoute: typeof AtendimentoConversasRoute
   AtendimentoEntrarRoute: typeof AtendimentoEntrarRoute
   AtendimentoEsperaRoute: typeof AtendimentoEsperaRoute
+  AtendimentoInstalarRoute: typeof AtendimentoInstalarRoute
   AtendimentoIndexRoute: typeof AtendimentoIndexRoute
   AtendimentoConversaIdRoute: typeof AtendimentoConversaIdRouteWithChildren
 }
@@ -4293,6 +4313,7 @@ const AtendimentoRouteChildren: AtendimentoRouteChildren = {
   AtendimentoConversasRoute: AtendimentoConversasRoute,
   AtendimentoEntrarRoute: AtendimentoEntrarRoute,
   AtendimentoEsperaRoute: AtendimentoEsperaRoute,
+  AtendimentoInstalarRoute: AtendimentoInstalarRoute,
   AtendimentoIndexRoute: AtendimentoIndexRoute,
   AtendimentoConversaIdRoute: AtendimentoConversaIdRouteWithChildren,
 }

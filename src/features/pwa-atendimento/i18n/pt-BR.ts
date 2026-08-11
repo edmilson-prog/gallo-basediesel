@@ -16,8 +16,7 @@ export const PWA_ATENDIMENTO_STRINGS = {
     primary: "Adicionar à tela de início",
     secondary: "Continuar no navegador",
     installed: "App já instalado neste aparelho",
-    iosNote:
-      "No iPhone, o aviso de mensagem nova só chega com o app instalado na tela de início.",
+    iosNote: "No iPhone, o aviso de mensagem nova só chega com o app instalado na tela de início.",
   },
 
   login: {
@@ -176,8 +175,7 @@ export const PWA_ATENDIMENTO_STRINGS = {
     later: "Agora não",
     enabled: "Notificações ativadas",
     blocked: "O navegador bloqueou as notificações deste site.",
-    blockedHint:
-      "Para liberar, abra as configurações do site no navegador e permita notificações.",
+    blockedHint: "Para liberar, abra as configurações do site no navegador e permita notificações.",
     sheetTitle: "Notificações",
     stateGranted: "Permitidas neste aparelho",
     stateBlocked: "Bloqueadas — o aparelho não vai avisar",

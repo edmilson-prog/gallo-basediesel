@@ -1,10 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import type {
-  ConversationChannel,
-  ConversationStatus,
-  ID,
-  IConversation,
-} from "@/shared/types";
+import type { ConversationChannel, ConversationStatus, ID, IConversation } from "@/shared/types";
 import type { IListConversationsParams } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore";

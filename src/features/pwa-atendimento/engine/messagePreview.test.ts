@@ -39,9 +39,9 @@ describe("buildPwaPreview", () => {
   });
 
   it("keeps the prefix on outbound media", () => {
-    expect(buildPwaPreview(message({ direction: "out", mediaType: "document", text: "" })).text).toBe(
-      "Você: Documento",
-    );
+    expect(
+      buildPwaPreview(message({ direction: "out", mediaType: "document", text: "" })).text,
+    ).toBe("Você: Documento");
   });
 
   it("covers every media type", () => {

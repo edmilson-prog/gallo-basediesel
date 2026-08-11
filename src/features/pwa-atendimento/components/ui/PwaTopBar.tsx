@@ -10,13 +10,7 @@ interface IPwaTopBarProps {
 }
 
 /** Glass header of the two list screens. */
-export function PwaTopBar({
-  title,
-  subtitle,
-  online,
-  userInitials,
-  onAccount,
-}: IPwaTopBarProps) {
+export function PwaTopBar({ title, subtitle, online, userInitials, onAccount }: IPwaTopBarProps) {
   return (
     <div className="flex items-center gap-3 border-b border-border bg-background/95 px-3.5 pb-2.5 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
       <div className="min-w-0 flex-1">

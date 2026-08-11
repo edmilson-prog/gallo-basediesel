@@ -56,7 +56,11 @@ export function PwaVoiceBar({ seconds, sending, onCancel, onSend }: IPwaVoiceBar
         aria-label={S.thread.sendRecording}
         className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-primary text-primary-foreground disabled:opacity-40"
       >
-        <Icon icon={sending ? "mdi:loading" : "mdi:send"} size={18} className={sending ? "animate-spin" : undefined} />
+        <Icon
+          icon={sending ? "mdi:loading" : "mdi:send"}
+          size={18}
+          className={sending ? "animate-spin" : undefined}
+        />
       </button>
     </div>
   );

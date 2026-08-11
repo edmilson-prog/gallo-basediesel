@@ -54,7 +54,10 @@ export function PwaAudioBody({ message, outgoing }: { message: IMessage; outgoin
       setPlaying(false);
       return;
     }
-    void audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    void audio
+      .play()
+      .then(() => setPlaying(true))
+      .catch(() => setPlaying(false));
   };
 
   return (

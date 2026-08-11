@@ -1,5 +1,7 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { usePwaManifest } from "../hooks/usePwaManifest";
+import { PwaSplash, shouldShowSplash } from "./PwaSplash";
+import { PwaNotificationsProvider } from "./PwaNotificationsProvider";
 
 /**
  * Full-viewport shell of the atendimento PWA.
@@ -20,6 +22,7 @@ import { usePwaManifest } from "../hooks/usePwaManifest";
  */
 export function PwaShell({ children }: { children: ReactNode }) {
   usePwaManifest();
+  const [splashOpen, setSplashOpen] = useState(shouldShowSplash);
 
   return (
     <div
@@ -27,7 +30,8 @@ export function PwaShell({ children }: { children: ReactNode }) {
       className="dark fixed inset-0 z-50 flex flex-col overflow-hidden bg-background text-foreground"
       style={{ colorScheme: "dark" }}
     >
-      {children}
+      <PwaNotificationsProvider>{children}</PwaNotificationsProvider>
+      {splashOpen && <PwaSplash onDone={() => setSplashOpen(false)} />}
     </div>
   );
 }
