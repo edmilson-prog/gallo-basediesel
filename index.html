@@ -64,9 +64,11 @@
           document.getElementById("app-manifest").setAttribute("href", "/atendimento.webmanifest");
           document.getElementById("app-theme-color").setAttribute("content", "#141011");
           document.getElementById("app-ios-title").setAttribute("content", "GALLO Atendimento");
-        } catch (_e) {
-          // Leave the seller defaults in place — the app still works, it just
-          // is not installable from /atendimento.
+        } catch (e) {
+          // The seller defaults stay in place: the app still works, it just is
+          // not installable from /atendimento. Say so out loud — silence here
+          // costs an entire debugging round, as it already did once.
+          console.warn("[pwa] manifest swap failed", e);
         }
       })();
     </script>

@@ -4,6 +4,18 @@ const PWA_MANIFEST_HREF = "/atendimento.webmanifest";
 /** Matches `background_color`/`theme_color` in atendimento.webmanifest. */
 const PWA_THEME_COLOR = "#141011";
 
+/**
+ * The static defaults written in `index.html` — the external seller PWA's.
+ *
+ * They are restored by name rather than captured on mount: since the inline
+ * head script started choosing the manifest by pathname, a direct load of
+ * /atendimento already finds `/atendimento.webmanifest` in the document, so
+ * "put back what was there" would have put back the atendimento manifest and
+ * left the rest of the CRM declaring a manifest whose scope it is outside of.
+ */
+const DEFAULT_MANIFEST_HREF = "/manifest.webmanifest";
+const DEFAULT_THEME_COLOR = "#16a34a";
+
 function findOrCreateMeta(name: string): HTMLMetaElement {
   const existing = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
   if (existing) return existing;
@@ -33,16 +45,12 @@ export function usePwaManifest(): void {
     const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
     const themeMeta = findOrCreateMeta("theme-color");
 
-    const previousHref = link?.getAttribute("href") ?? null;
-    const previousTheme = themeMeta.getAttribute("content");
-
     link?.setAttribute("href", PWA_MANIFEST_HREF);
     themeMeta.setAttribute("content", PWA_THEME_COLOR);
 
     return () => {
-      if (link && previousHref !== null) link.setAttribute("href", previousHref);
-      if (previousTheme !== null) themeMeta.setAttribute("content", previousTheme);
-      else themeMeta.remove();
+      link?.setAttribute("href", DEFAULT_MANIFEST_HREF);
+      themeMeta.setAttribute("content", DEFAULT_THEME_COLOR);
     };
   }, []);
 }

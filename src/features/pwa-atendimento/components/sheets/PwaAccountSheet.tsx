@@ -103,23 +103,27 @@ export function PwaAccountSheet({ open, onOpenChange, online }: IPwaAccountSheet
       />
       {/* An already-signed-in user is redirected straight to the list and never
           passes the install screen, so this is the only place they can install
-          from. Chromium gets the native dialog; iOS has no such API, so it gets
-          the screen with the manual "add to home screen" steps. */}
-      <Row
-        icon="mdi:cellphone"
-        label={S.account.installed}
-        value={isInstalled ? S.account.yes : S.account.no}
-        onClick={
-          isInstalled
-            ? undefined
-            : canPrompt
+          from — which is why it reads as an action, not as a status. A row
+          saying "App instalado — Não" is a verdict the user cannot act on.
+          Chromium gets the native dialog; iOS has no such API, so it gets the
+          screen with the manual "add to home screen" steps. */}
+      {isInstalled ? (
+        <Row icon="mdi:cellphone" label={S.account.installed} value={S.account.yes} />
+      ) : (
+        <Row
+          icon="mdi:cellphone-arrow-down"
+          label={S.account.install}
+          value={canPrompt ? S.account.installAction : S.account.installHow}
+          onClick={
+            canPrompt
               ? () => void prompt()
               : () => {
                   onOpenChange(false);
                   void navigate({ to: "/atendimento/instalar" });
                 }
-        }
-      />
+          }
+        />
+      )}
     </PwaSheet>
   );
 }
