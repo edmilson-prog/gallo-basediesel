@@ -26,7 +26,12 @@ import { createSecretResolver } from "./secrets.ts";
 import { truncateQuotedText } from "./whatsapp/waha/replyRef.ts";
 import type { IStoredReplyRef } from "./replyRef.ts";
 import { WhatsAppProviderError } from "./whatsapp/errors.ts";
-import { extractLidChatId, sendWahaMedia, sendWahaText } from "./whatsapp/waha/send.ts";
+import {
+  extractChatJid,
+  isRecipientRejection,
+  sendWahaMedia,
+  sendWahaText,
+} from "./whatsapp/waha/send.ts";
 import type { IWahaSessionTarget } from "./whatsapp/waha/session.ts";
 
 export interface IWahaDispatchResult {
@@ -42,31 +47,76 @@ interface IWahaTarget extends IWahaSessionTarget {
 }
 
 export interface IWahaRecipient {
+  /**
+   * Registry phone (`customers.phone` / `leads.phone`). Used as the address
+   * when the conversation has no chat JID, and as the fallback when it has one
+   * but WAHA rejects it.
+   */
   toPhone: string;
-  /** Set only on the lid last-resort path — passed verbatim to the WAHA API. */
+  /** The chat's own JID (`@lid`/`@c.us`) — the primary address, sent verbatim. */
   chatId?: string;
 }
 
 /**
- * Resolves WHO a conversation's outbound WAHA message goes to.
+ * Reads the chat's own address off the latest inbound message of a
+ * conversation. A WAHA message id serializes as `{fromMe}_{chatJid}_{hash}`,
+ * so every inbound carries the JID WhatsApp itself uses for that chat.
  *
- * Resolution order (Funnel Frente 3 — PR #331 — made lead-only conversations
- * the norm: the webhook now creates a Lead for unknown numbers and the
- * Frente B migration relinked ~2.4k historical conversations from placeholder
- * customers to leads, so `customers(phone)` alone stopped covering most rows):
+ * INBOUND only, deliberately: an inbound is proof of who is on the other side.
+ * An outbound id would echo back whatever address WE dialled — including a
+ * wrong one — which is exactly the state this resolver exists to escape.
  *
- *   1. `customers.phone`  — conversations still linked to a real customer;
- *   2. `leads.phone`      — lead-only conversations (the webhook stores the
- *                            canonical number, lid already resolved);
- *   3. `@lid` chat JID    — last resort for contacts with no resolvable
- *                            phone at all, extracted from the latest inbound
- *                            message id (WhatsApp itself addresses these
- *                            privacy-locked chats by lid).
+ * Looks at the last few rows rather than strictly the last: `provider_message_id`
+ * is nullable (imported history) and a group JID yields no usable address.
+ */
+async function resolveChatJid(
+  admin: SupabaseClient,
+  conversationId: string,
+): Promise<string | null> {
+  const { data: inbound } = await admin
+    .from("messages")
+    .select("provider_message_id")
+    .eq("conversation_id", conversationId)
+    .eq("direction", "in")
+    .not("provider_message_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(5);
+  for (const row of (inbound ?? []) as Array<{ provider_message_id?: string | null }>) {
+    const jid = extractChatJid(String(row.provider_message_id ?? ""));
+    if (jid) return jid;
+  }
+  return null;
+}
+
+/**
+ * Resolves WHERE a conversation's outbound WAHA message goes.
  *
- * Returns null when none of the three resolves — callers raise their own
- * 422 ("Contato sem telefone cadastrado"). Shared by `waha-send`,
- * `scheduled-send-worker` (via resolveWahaTarget below) and
- * `sdr-respond/dispatch.ts` so the three paths never drift again.
+ * Resolution order:
+ *
+ *   0. the chat's own JID (`@lid`/`@c.us`) taken from the latest inbound —
+ *      WhatsApp's own address for this thread, and the only field that cannot
+ *      disagree with reality;
+ *   1. `customers.phone`  — conversations linked to a customer;
+ *   2. `leads.phone`      — lead-only conversations (Funnel Frente 3 / PR #331
+ *                            made these the norm).
+ *
+ * The registry phone used to come FIRST, which made a CRM field decide where a
+ * WhatsApp message goes. It is not an address: `conversations` stores no phone
+ * of its own, so re-anchoring a conversation onto another contact silently
+ * re-routes every future reply. That is the 2026-08-11 CATTO failure —
+ * `reanchor_converted_lead_conversations` moved a buyer's thread onto his
+ * company's customer row (whose DINTEC phone is the company LANDLINE) and
+ * nulled the `lead_id` that held his mobile; replies then dialled a number with
+ * no WhatsApp account (opaque GOWS 500) while the same text sent from the
+ * seller's own handset reached him fine, addressed by lid.
+ *
+ * Both fields are returned when both resolve: the caller dispatches to `chatId`
+ * and falls back to `toPhone` if WAHA rejects it (see persistAndDispatch).
+ *
+ * Returns null when nothing resolves — callers raise their own 422 ("Contato
+ * sem telefone cadastrado"). Shared by `waha-send`, `scheduled-send-worker`
+ * (via resolveWahaTarget below) and `sdr-respond/dispatch.ts` so the three
+ * paths never drift again.
  */
 export async function resolveWahaRecipient(
   admin: SupabaseClient,
@@ -89,31 +139,15 @@ export async function resolveWahaRecipient(
     leadId = row?.lead_id ?? null;
   }
 
-  if (customerPhone) return { toPhone: customerPhone };
-
-  if (leadId) {
-    const { data: lead } = await admin
-      .from("leads")
-      .select("phone")
-      .eq("id", leadId)
-      .maybeSingle();
-    const leadPhone = (lead?.phone as string | null) ?? null;
-    if (leadPhone) return { toPhone: leadPhone };
+  let registryPhone = customerPhone;
+  if (!registryPhone && leadId) {
+    const { data: lead } = await admin.from("leads").select("phone").eq("id", leadId).maybeSingle();
+    registryPhone = (lead?.phone as string | null) ?? null;
   }
 
-  const { data: lastLidInbound } = await admin
-    .from("messages")
-    .select("provider_message_id")
-    .eq("conversation_id", conversationId)
-    .eq("direction", "in")
-    .like("provider_message_id", "%@lid_%")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const chatId = extractLidChatId(String(lastLidInbound?.provider_message_id ?? ""));
-  if (chatId) return { toPhone: "", chatId };
-
-  return null;
+  const chatId = await resolveChatJid(admin, conversationId);
+  if (!chatId && !registryPhone) return null;
+  return { toPhone: registryPhone ?? "", chatId: chatId ?? undefined };
 }
 
 /** Resolves the WAHA session/server/recipient for a conversation. Throws VALIDATION_ERROR on any gap. */
@@ -251,6 +285,41 @@ interface IPersistAndDispatchArgs {
   ) => Promise<{ providerMessageId: string }>;
 }
 
+/**
+ * Dispatches to the chat's own JID and, only if WAHA answers REJECTING that
+ * address, retries once against the registry phone.
+ *
+ * Why the safety net: addressing by `@lid` is what WhatsApp itself does for a
+ * privacy-locked chat, but until now the lid path was never exercised by a
+ * real platform send (the fallback existed with a zero population). Making it
+ * the primary address without a retreat would bet ~70 working conversations on
+ * an untested route. The retry costs one extra call in the rare failure case
+ * and can never lose a message.
+ *
+ * Only a rejection retries — never a timeout (see isRecipientRejection): WAHA
+ * finishes the send after we hang up, so retrying a transport failure would
+ * risk delivering the same message twice.
+ */
+export async function withRecipientFallback<T>(
+  recipient: IWahaRecipient,
+  send: (address: IWahaRecipient) => Promise<T>,
+): Promise<T> {
+  try {
+    return await send(recipient);
+  } catch (err) {
+    if (!recipient.chatId || !recipient.toPhone || !isRecipientRejection(err)) throw err;
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        msg: "waha send: chat JID rejected, retrying on the registry phone",
+        chatId: recipient.chatId,
+        error: err instanceof Error ? err.message : String(err),
+      }),
+    );
+    return await send({ toPhone: recipient.toPhone, chatId: undefined });
+  }
+}
+
 async function persistAndDispatch(
   admin: SupabaseClient,
   args: IPersistAndDispatchArgs,
@@ -277,7 +346,15 @@ async function persistAndDispatch(
   if (insertErr) throw new Error(`Falha ao registrar a mensagem: ${insertErr.message}`);
 
   try {
-    const result = await args.send(target, reply.providerMessageId);
+    // Spread the address FIELD BY FIELD: `{ ...target, ...address }` would keep
+    // the rejected `chatId` on the retry, since the fallback address simply
+    // omits the key rather than setting it to undefined.
+    const result = await withRecipientFallback(target, (address) =>
+      args.send(
+        { ...target, toPhone: address.toPhone, chatId: address.chatId },
+        reply.providerMessageId,
+      ),
+    );
     await admin
       .from("messages")
       .update({ status: "sent", provider_message_id: result.providerMessageId })
