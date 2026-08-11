@@ -44,6 +44,8 @@ export interface IConversationListItemProps {
   lastMessage: IMessage | null;
   isSelected: boolean;
   isUnread: boolean;
+  /** Pinned by this attendant — shows the pin next to the timestamp. */
+  isPinned?: boolean;
   highlightTerm?: string;
   /** Render extra trailing actions inside the item (hover/focus). */
   trailing?: React.ReactNode;
@@ -114,6 +116,7 @@ function ConversationListItemInner({
   lastMessage,
   isSelected,
   isUnread,
+  isPinned,
   highlightTerm,
   trailing,
   escalation,
@@ -266,7 +269,17 @@ function ConversationListItemInner({
             {highlight(display.name, highlightTerm)}
           </span>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
-            <span className="text-xs text-muted-foreground">{relative}</span>
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              {isPinned && (
+                <Icon
+                  icon="mdi:pin"
+                  size={11}
+                  className="shrink-0"
+                  aria-label={INBOX_STRINGS.pin.badgeAria}
+                />
+              )}
+              {relative}
+            </span>
             {isQueued && waitMs >= 0 && (
               <span
                 className={cn(
