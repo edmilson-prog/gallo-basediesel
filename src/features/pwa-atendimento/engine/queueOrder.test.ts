@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { IConversation } from "@/shared/types";
-import { countQueue, isQueueEligible, sortQueue, type IQueueEntry } from "./queueOrder";
+import {
+  countQueue,
+  isQueueEligible,
+  pwaQueueListParams,
+  sortQueue,
+  type IQueueEntry,
+} from "./queueOrder";
+import { PWA_OPEN_STATUSES } from "./pwaFilters";
 
 const MINUTE = 60_000;
 
@@ -67,5 +74,21 @@ describe("isQueueEligible", () => {
   it("drops resolved and archived conversations", () => {
     expect(isQueueEligible(conversation({ status: "resolvida" }))).toBe(false);
     expect(isQueueEligible(conversation({ status: "arquivada" }))).toBe(false);
+  });
+});
+
+describe("pwaQueueListParams", () => {
+  it("asks only for pool conversations, oldest first", () => {
+    expect(pwaQueueListParams({ storeId: "store-1" })).toEqual({
+      storeId: "store-1",
+      status: PWA_OPEN_STATUSES,
+      assignmentAny: { queue: true },
+      orderBy: "lastMessageAt",
+      orderDir: "asc",
+    });
+  });
+
+  it("omits the store when none is selected", () => {
+    expect(pwaQueueListParams({ storeId: null }).storeId).toBeUndefined();
   });
 });

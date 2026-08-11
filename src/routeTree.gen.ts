@@ -16,11 +16,13 @@ import { Route as LojaRouteImport } from './routes/loja'
 import { Route as ErroRouteImport } from './routes/erro'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AtendimentoRouteImport } from './routes/atendimento'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PwaIndexRouteImport } from './routes/pwa.index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as LojaIndexRouteImport } from './routes/loja.index'
+import { Route as AtendimentoIndexRouteImport } from './routes/atendimento.index'
 import { Route as PwaOrcamentoRapidoRouteImport } from './routes/pwa.orcamento-rapido'
 import { Route as PwaLoginRouteImport } from './routes/pwa.login'
 import { Route as PwaInicioRouteImport } from './routes/pwa.inicio'
@@ -47,6 +49,9 @@ import { Route as LojaBuscaRouteImport } from './routes/loja.busca'
 import { Route as AuthLogoutRouteImport } from './routes/auth.logout'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthDefinirSenhaRouteImport } from './routes/auth.definir-senha'
+import { Route as AtendimentoEsperaRouteImport } from './routes/atendimento.espera'
+import { Route as AtendimentoEntrarRouteImport } from './routes/atendimento.entrar'
+import { Route as AtendimentoConversasRouteImport } from './routes/atendimento.conversas'
 import { Route as AppVeiculosRouteImport } from './routes/app.veiculos'
 import { Route as AppStorefrontAdminRouteImport } from './routes/app.storefront-admin'
 import { Route as AppSdrRouteImport } from './routes/app.sdr'
@@ -94,6 +99,7 @@ import { Route as LojaContaOrcamentosRouteImport } from './routes/loja.conta.orc
 import { Route as LojaContaNotificacoesRouteImport } from './routes/loja.conta.notificacoes'
 import { Route as LojaContaEnderecosRouteImport } from './routes/loja.conta.enderecos'
 import { Route as LojaCategoriaSlugRouteImport } from './routes/loja.categoria.$slug'
+import { Route as AtendimentoConversaIdRouteImport } from './routes/atendimento.conversa.$id'
 import { Route as AppVeiculosIdRouteImport } from './routes/app.veiculos.$id'
 import { Route as AppPedidosIdRouteImport } from './routes/app.pedidos.$id'
 import { Route as AppOrcamentosNovoRouteImport } from './routes/app.orcamentos.novo'
@@ -162,6 +168,7 @@ import { Route as AppCatalogoIdRouteImport } from './routes/app.catalogo.$id'
 import { Route as AppAtendimentoIdRouteImport } from './routes/app.atendimento.$id'
 import { Route as LojaContaPedidosIndexRouteImport } from './routes/loja.conta.pedidos.index'
 import { Route as LojaContaOrcamentosIndexRouteImport } from './routes/loja.conta.orcamentos.index'
+import { Route as AtendimentoConversaIdIndexRouteImport } from './routes/atendimento.conversa.$id.index'
 import { Route as AppGestaoRankingIndexRouteImport } from './routes/app.gestao.ranking.index'
 import { Route as AppGestaoMetasIndexRouteImport } from './routes/app.gestao.metas.index'
 import { Route as AppGestaoIndicadoresIndexRouteImport } from './routes/app.gestao.indicadores.index'
@@ -170,6 +177,7 @@ import { Route as AppGestaoAtendimentoAnaliseIndexRouteImport } from './routes/a
 import { Route as AppConfiguracoesStorefrontIndexRouteImport } from './routes/app.configuracoes.storefront.index'
 import { Route as LojaContaPedidosIdRouteImport } from './routes/loja.conta.pedidos.$id'
 import { Route as LojaContaOrcamentosIdRouteImport } from './routes/loja.conta.orcamentos.$id'
+import { Route as AtendimentoConversaIdMidiasRouteImport } from './routes/atendimento.conversa.$id.midias'
 import { Route as AppKitsModelIdEditarRouteImport } from './routes/app.kits.$modelId.editar'
 import { Route as AppGestaoRankingSellerIdRouteImport } from './routes/app.gestao.ranking.$sellerId'
 import { Route as AppGestaoPositivacaoSellerIdRouteImport } from './routes/app.gestao.positivacao.$sellerId'
@@ -235,6 +243,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AtendimentoRoute = AtendimentoRouteImport.update({
+  id: '/atendimento',
+  path: '/atendimento',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
@@ -259,6 +272,11 @@ const LojaIndexRoute = LojaIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => LojaRoute,
+} as any)
+const AtendimentoIndexRoute = AtendimentoIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AtendimentoRoute,
 } as any)
 const PwaOrcamentoRapidoRoute = PwaOrcamentoRapidoRouteImport.update({
   id: '/orcamento-rapido',
@@ -389,6 +407,21 @@ const AuthDefinirSenhaRoute = AuthDefinirSenhaRouteImport.update({
   id: '/definir-senha',
   path: '/definir-senha',
   getParentRoute: () => AuthRoute,
+} as any)
+const AtendimentoEsperaRoute = AtendimentoEsperaRouteImport.update({
+  id: '/espera',
+  path: '/espera',
+  getParentRoute: () => AtendimentoRoute,
+} as any)
+const AtendimentoEntrarRoute = AtendimentoEntrarRouteImport.update({
+  id: '/entrar',
+  path: '/entrar',
+  getParentRoute: () => AtendimentoRoute,
+} as any)
+const AtendimentoConversasRoute = AtendimentoConversasRouteImport.update({
+  id: '/conversas',
+  path: '/conversas',
+  getParentRoute: () => AtendimentoRoute,
 } as any)
 const AppVeiculosRoute = AppVeiculosRouteImport.update({
   id: '/veiculos',
@@ -625,6 +658,11 @@ const LojaCategoriaSlugRoute = LojaCategoriaSlugRouteImport.update({
   id: '/categoria/$slug',
   path: '/categoria/$slug',
   getParentRoute: () => LojaRoute,
+} as any)
+const AtendimentoConversaIdRoute = AtendimentoConversaIdRouteImport.update({
+  id: '/conversa/$id',
+  path: '/conversa/$id',
+  getParentRoute: () => AtendimentoRoute,
 } as any)
 const AppVeiculosIdRoute = AppVeiculosIdRouteImport.update({
   id: '/$id',
@@ -993,6 +1031,12 @@ const LojaContaOrcamentosIndexRoute =
     path: '/',
     getParentRoute: () => LojaContaOrcamentosRoute,
   } as any)
+const AtendimentoConversaIdIndexRoute =
+  AtendimentoConversaIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AtendimentoConversaIdRoute,
+  } as any)
 const AppGestaoRankingIndexRoute = AppGestaoRankingIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -1036,6 +1080,12 @@ const LojaContaOrcamentosIdRoute = LojaContaOrcamentosIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => LojaContaOrcamentosRoute,
 } as any)
+const AtendimentoConversaIdMidiasRoute =
+  AtendimentoConversaIdMidiasRouteImport.update({
+    id: '/midias',
+    path: '/midias',
+    getParentRoute: () => AtendimentoConversaIdRoute,
+  } as any)
 const AppKitsModelIdEditarRoute = AppKitsModelIdEditarRouteImport.update({
   id: '/editar',
   path: '/editar',
@@ -1207,6 +1257,7 @@ const AppKitsModelIdKitKitIdEditarRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/atendimento': typeof AtendimentoRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/design-system': typeof DesignSystemRoute
   '/erro': typeof ErroRoute
@@ -1229,6 +1280,9 @@ export interface FileRoutesByFullPath {
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
   '/app/veiculos': typeof AppVeiculosRouteWithChildren
+  '/atendimento/conversas': typeof AtendimentoConversasRoute
+  '/atendimento/entrar': typeof AtendimentoEntrarRoute
+  '/atendimento/espera': typeof AtendimentoEsperaRoute
   '/auth/definir-senha': typeof AuthDefinirSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
@@ -1255,6 +1309,7 @@ export interface FileRoutesByFullPath {
   '/pwa/inicio': typeof PwaInicioRoute
   '/pwa/login': typeof PwaLoginRoute
   '/pwa/orcamento-rapido': typeof PwaOrcamentoRapidoRoute
+  '/atendimento/': typeof AtendimentoIndexRoute
   '/loja/': typeof LojaIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/pwa/': typeof PwaIndexRoute
@@ -1324,6 +1379,7 @@ export interface FileRoutesByFullPath {
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
   '/app/pedidos/$id': typeof AppPedidosIdRoute
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
+  '/atendimento/conversa/$id': typeof AtendimentoConversaIdRouteWithChildren
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/enderecos': typeof LojaContaEnderecosRoute
   '/loja/conta/notificacoes': typeof LojaContaNotificacoesRoute
@@ -1383,6 +1439,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
   '/app/kits/$modelId/editar': typeof AppKitsModelIdEditarRoute
+  '/atendimento/conversa/$id/midias': typeof AtendimentoConversaIdMidiasRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
   '/app/configuracoes/storefront/': typeof AppConfiguracoesStorefrontIndexRoute
@@ -1391,6 +1448,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/indicadores/': typeof AppGestaoIndicadoresIndexRoute
   '/app/gestao/metas/': typeof AppGestaoMetasIndexRoute
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
+  '/atendimento/conversa/$id/': typeof AtendimentoConversaIdIndexRoute
   '/loja/conta/orcamentos/': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos/': typeof LojaContaPedidosIndexRoute
   '/app/kits/$modelId/kit/novo': typeof AppKitsModelIdKitNovoRoute
@@ -1410,6 +1468,9 @@ export interface FileRoutesByTo {
   '/app/notificacoes': typeof AppNotificacoesRoute
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
+  '/atendimento/conversas': typeof AtendimentoConversasRoute
+  '/atendimento/entrar': typeof AtendimentoEntrarRoute
+  '/atendimento/espera': typeof AtendimentoEsperaRoute
   '/auth/definir-senha': typeof AuthDefinirSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
@@ -1430,6 +1491,7 @@ export interface FileRoutesByTo {
   '/pwa/inicio': typeof PwaInicioRoute
   '/pwa/login': typeof PwaLoginRoute
   '/pwa/orcamento-rapido': typeof PwaOrcamentoRapidoRoute
+  '/atendimento': typeof AtendimentoIndexRoute
   '/loja': typeof LojaIndexRoute
   '/portal': typeof PortalIndexRoute
   '/pwa': typeof PwaIndexRoute
@@ -1551,6 +1613,7 @@ export interface FileRoutesByTo {
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
   '/app/kits/$modelId/editar': typeof AppKitsModelIdEditarRoute
+  '/atendimento/conversa/$id/midias': typeof AtendimentoConversaIdMidiasRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
   '/app/configuracoes/storefront': typeof AppConfiguracoesStorefrontIndexRoute
@@ -1559,6 +1622,7 @@ export interface FileRoutesByTo {
   '/app/gestao/indicadores': typeof AppGestaoIndicadoresIndexRoute
   '/app/gestao/metas': typeof AppGestaoMetasIndexRoute
   '/app/gestao/ranking': typeof AppGestaoRankingIndexRoute
+  '/atendimento/conversa/$id': typeof AtendimentoConversaIdIndexRoute
   '/loja/conta/orcamentos': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosIndexRoute
   '/app/kits/$modelId/kit/novo': typeof AppKitsModelIdKitNovoRoute
@@ -1568,6 +1632,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/atendimento': typeof AtendimentoRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/design-system': typeof DesignSystemRoute
   '/erro': typeof ErroRoute
@@ -1590,6 +1655,9 @@ export interface FileRoutesById {
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
   '/app/veiculos': typeof AppVeiculosRouteWithChildren
+  '/atendimento/conversas': typeof AtendimentoConversasRoute
+  '/atendimento/entrar': typeof AtendimentoEntrarRoute
+  '/atendimento/espera': typeof AtendimentoEsperaRoute
   '/auth/definir-senha': typeof AuthDefinirSenhaRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/logout': typeof AuthLogoutRoute
@@ -1616,6 +1684,7 @@ export interface FileRoutesById {
   '/pwa/inicio': typeof PwaInicioRoute
   '/pwa/login': typeof PwaLoginRoute
   '/pwa/orcamento-rapido': typeof PwaOrcamentoRapidoRoute
+  '/atendimento/': typeof AtendimentoIndexRoute
   '/loja/': typeof LojaIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/pwa/': typeof PwaIndexRoute
@@ -1685,6 +1754,7 @@ export interface FileRoutesById {
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
   '/app/pedidos/$id': typeof AppPedidosIdRoute
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
+  '/atendimento/conversa/$id': typeof AtendimentoConversaIdRouteWithChildren
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/enderecos': typeof LojaContaEnderecosRoute
   '/loja/conta/notificacoes': typeof LojaContaNotificacoesRoute
@@ -1744,6 +1814,7 @@ export interface FileRoutesById {
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
   '/app/kits/$modelId/editar': typeof AppKitsModelIdEditarRoute
+  '/atendimento/conversa/$id/midias': typeof AtendimentoConversaIdMidiasRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
   '/app/configuracoes/storefront/': typeof AppConfiguracoesStorefrontIndexRoute
@@ -1752,6 +1823,7 @@ export interface FileRoutesById {
   '/app/gestao/indicadores/': typeof AppGestaoIndicadoresIndexRoute
   '/app/gestao/metas/': typeof AppGestaoMetasIndexRoute
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
+  '/atendimento/conversa/$id/': typeof AtendimentoConversaIdIndexRoute
   '/loja/conta/orcamentos/': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos/': typeof LojaContaPedidosIndexRoute
   '/app/kits/$modelId/kit/novo': typeof AppKitsModelIdKitNovoRoute
@@ -1762,6 +1834,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/atendimento'
     | '/auth'
     | '/design-system'
     | '/erro'
@@ -1784,6 +1857,9 @@ export interface FileRouteTypes {
     | '/app/sdr'
     | '/app/storefront-admin'
     | '/app/veiculos'
+    | '/atendimento/conversas'
+    | '/atendimento/entrar'
+    | '/atendimento/espera'
     | '/auth/definir-senha'
     | '/auth/login'
     | '/auth/logout'
@@ -1810,6 +1886,7 @@ export interface FileRouteTypes {
     | '/pwa/inicio'
     | '/pwa/login'
     | '/pwa/orcamento-rapido'
+    | '/atendimento/'
     | '/loja/'
     | '/portal/'
     | '/pwa/'
@@ -1879,6 +1956,7 @@ export interface FileRouteTypes {
     | '/app/orcamentos/novo'
     | '/app/pedidos/$id'
     | '/app/veiculos/$id'
+    | '/atendimento/conversa/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/enderecos'
     | '/loja/conta/notificacoes'
@@ -1938,6 +2016,7 @@ export interface FileRouteTypes {
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
     | '/app/kits/$modelId/editar'
+    | '/atendimento/conversa/$id/midias'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
     | '/app/configuracoes/storefront/'
@@ -1946,6 +2025,7 @@ export interface FileRouteTypes {
     | '/app/gestao/indicadores/'
     | '/app/gestao/metas/'
     | '/app/gestao/ranking/'
+    | '/atendimento/conversa/$id/'
     | '/loja/conta/orcamentos/'
     | '/loja/conta/pedidos/'
     | '/app/kits/$modelId/kit/novo'
@@ -1965,6 +2045,9 @@ export interface FileRouteTypes {
     | '/app/notificacoes'
     | '/app/sdr'
     | '/app/storefront-admin'
+    | '/atendimento/conversas'
+    | '/atendimento/entrar'
+    | '/atendimento/espera'
     | '/auth/definir-senha'
     | '/auth/login'
     | '/auth/logout'
@@ -1985,6 +2068,7 @@ export interface FileRouteTypes {
     | '/pwa/inicio'
     | '/pwa/login'
     | '/pwa/orcamento-rapido'
+    | '/atendimento'
     | '/loja'
     | '/portal'
     | '/pwa'
@@ -2106,6 +2190,7 @@ export interface FileRouteTypes {
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
     | '/app/kits/$modelId/editar'
+    | '/atendimento/conversa/$id/midias'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
     | '/app/configuracoes/storefront'
@@ -2114,6 +2199,7 @@ export interface FileRouteTypes {
     | '/app/gestao/indicadores'
     | '/app/gestao/metas'
     | '/app/gestao/ranking'
+    | '/atendimento/conversa/$id'
     | '/loja/conta/orcamentos'
     | '/loja/conta/pedidos'
     | '/app/kits/$modelId/kit/novo'
@@ -2122,6 +2208,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/atendimento'
     | '/auth'
     | '/design-system'
     | '/erro'
@@ -2144,6 +2231,9 @@ export interface FileRouteTypes {
     | '/app/sdr'
     | '/app/storefront-admin'
     | '/app/veiculos'
+    | '/atendimento/conversas'
+    | '/atendimento/entrar'
+    | '/atendimento/espera'
     | '/auth/definir-senha'
     | '/auth/login'
     | '/auth/logout'
@@ -2170,6 +2260,7 @@ export interface FileRouteTypes {
     | '/pwa/inicio'
     | '/pwa/login'
     | '/pwa/orcamento-rapido'
+    | '/atendimento/'
     | '/loja/'
     | '/portal/'
     | '/pwa/'
@@ -2239,6 +2330,7 @@ export interface FileRouteTypes {
     | '/app/orcamentos/novo'
     | '/app/pedidos/$id'
     | '/app/veiculos/$id'
+    | '/atendimento/conversa/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/enderecos'
     | '/loja/conta/notificacoes'
@@ -2298,6 +2390,7 @@ export interface FileRouteTypes {
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
     | '/app/kits/$modelId/editar'
+    | '/atendimento/conversa/$id/midias'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
     | '/app/configuracoes/storefront/'
@@ -2306,6 +2399,7 @@ export interface FileRouteTypes {
     | '/app/gestao/indicadores/'
     | '/app/gestao/metas/'
     | '/app/gestao/ranking/'
+    | '/atendimento/conversa/$id/'
     | '/loja/conta/orcamentos/'
     | '/loja/conta/pedidos/'
     | '/app/kits/$modelId/kit/novo'
@@ -2315,6 +2409,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  AtendimentoRoute: typeof AtendimentoRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   DesignSystemRoute: typeof DesignSystemRoute
   ErroRoute: typeof ErroRoute
@@ -2375,6 +2470,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/atendimento': {
+      id: '/atendimento'
+      path: '/atendimento'
+      fullPath: '/atendimento'
+      preLoaderRoute: typeof AtendimentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app': {
       id: '/app'
       path: '/app'
@@ -2409,6 +2511,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/loja/'
       preLoaderRoute: typeof LojaIndexRouteImport
       parentRoute: typeof LojaRoute
+    }
+    '/atendimento/': {
+      id: '/atendimento/'
+      path: '/'
+      fullPath: '/atendimento/'
+      preLoaderRoute: typeof AtendimentoIndexRouteImport
+      parentRoute: typeof AtendimentoRoute
     }
     '/pwa/orcamento-rapido': {
       id: '/pwa/orcamento-rapido'
@@ -2591,6 +2700,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/definir-senha'
       preLoaderRoute: typeof AuthDefinirSenhaRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/atendimento/espera': {
+      id: '/atendimento/espera'
+      path: '/espera'
+      fullPath: '/atendimento/espera'
+      preLoaderRoute: typeof AtendimentoEsperaRouteImport
+      parentRoute: typeof AtendimentoRoute
+    }
+    '/atendimento/entrar': {
+      id: '/atendimento/entrar'
+      path: '/entrar'
+      fullPath: '/atendimento/entrar'
+      preLoaderRoute: typeof AtendimentoEntrarRouteImport
+      parentRoute: typeof AtendimentoRoute
+    }
+    '/atendimento/conversas': {
+      id: '/atendimento/conversas'
+      path: '/conversas'
+      fullPath: '/atendimento/conversas'
+      preLoaderRoute: typeof AtendimentoConversasRouteImport
+      parentRoute: typeof AtendimentoRoute
     }
     '/app/veiculos': {
       id: '/app/veiculos'
@@ -2920,6 +3050,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/loja/categoria/$slug'
       preLoaderRoute: typeof LojaCategoriaSlugRouteImport
       parentRoute: typeof LojaRoute
+    }
+    '/atendimento/conversa/$id': {
+      id: '/atendimento/conversa/$id'
+      path: '/conversa/$id'
+      fullPath: '/atendimento/conversa/$id'
+      preLoaderRoute: typeof AtendimentoConversaIdRouteImport
+      parentRoute: typeof AtendimentoRoute
     }
     '/app/veiculos/$id': {
       id: '/app/veiculos/$id'
@@ -3397,6 +3534,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaContaOrcamentosIndexRouteImport
       parentRoute: typeof LojaContaOrcamentosRoute
     }
+    '/atendimento/conversa/$id/': {
+      id: '/atendimento/conversa/$id/'
+      path: '/'
+      fullPath: '/atendimento/conversa/$id/'
+      preLoaderRoute: typeof AtendimentoConversaIdIndexRouteImport
+      parentRoute: typeof AtendimentoConversaIdRoute
+    }
     '/app/gestao/ranking/': {
       id: '/app/gestao/ranking/'
       path: '/'
@@ -3452,6 +3596,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/loja/conta/orcamentos/$id'
       preLoaderRoute: typeof LojaContaOrcamentosIdRouteImport
       parentRoute: typeof LojaContaOrcamentosRoute
+    }
+    '/atendimento/conversa/$id/midias': {
+      id: '/atendimento/conversa/$id/midias'
+      path: '/midias'
+      fullPath: '/atendimento/conversa/$id/midias'
+      preLoaderRoute: typeof AtendimentoConversaIdMidiasRouteImport
+      parentRoute: typeof AtendimentoConversaIdRoute
     }
     '/app/kits/$modelId/editar': {
       id: '/app/kits/$modelId/editar'
@@ -4115,6 +4266,41 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface AtendimentoConversaIdRouteChildren {
+  AtendimentoConversaIdMidiasRoute: typeof AtendimentoConversaIdMidiasRoute
+  AtendimentoConversaIdIndexRoute: typeof AtendimentoConversaIdIndexRoute
+}
+
+const AtendimentoConversaIdRouteChildren: AtendimentoConversaIdRouteChildren = {
+  AtendimentoConversaIdMidiasRoute: AtendimentoConversaIdMidiasRoute,
+  AtendimentoConversaIdIndexRoute: AtendimentoConversaIdIndexRoute,
+}
+
+const AtendimentoConversaIdRouteWithChildren =
+  AtendimentoConversaIdRoute._addFileChildren(
+    AtendimentoConversaIdRouteChildren,
+  )
+
+interface AtendimentoRouteChildren {
+  AtendimentoConversasRoute: typeof AtendimentoConversasRoute
+  AtendimentoEntrarRoute: typeof AtendimentoEntrarRoute
+  AtendimentoEsperaRoute: typeof AtendimentoEsperaRoute
+  AtendimentoIndexRoute: typeof AtendimentoIndexRoute
+  AtendimentoConversaIdRoute: typeof AtendimentoConversaIdRouteWithChildren
+}
+
+const AtendimentoRouteChildren: AtendimentoRouteChildren = {
+  AtendimentoConversasRoute: AtendimentoConversasRoute,
+  AtendimentoEntrarRoute: AtendimentoEntrarRoute,
+  AtendimentoEsperaRoute: AtendimentoEsperaRoute,
+  AtendimentoIndexRoute: AtendimentoIndexRoute,
+  AtendimentoConversaIdRoute: AtendimentoConversaIdRouteWithChildren,
+}
+
+const AtendimentoRouteWithChildren = AtendimentoRoute._addFileChildren(
+  AtendimentoRouteChildren,
+)
+
 interface AuthRouteChildren {
   AuthDefinirSenhaRoute: typeof AuthDefinirSenhaRoute
   AuthLoginRoute: typeof AuthLoginRoute
@@ -4338,6 +4524,7 @@ const PwaRouteWithChildren = PwaRoute._addFileChildren(PwaRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  AtendimentoRoute: AtendimentoRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   DesignSystemRoute: DesignSystemRoute,
   ErroRoute: ErroRoute,

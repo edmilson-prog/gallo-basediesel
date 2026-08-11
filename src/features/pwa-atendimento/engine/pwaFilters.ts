@@ -1,13 +1,18 @@
 /**
  * Filter composition for the atendimento PWA list.
  *
- * One rule carries over from the desktop Inbox and is the reason this lives in
- * `engine/`: **a search overrides the facets**. Typing a customer's name must
- * find them even when the status chip is set to something they are not in —
- * otherwise the list lies by omission and the user cannot tell why.
+ * The rules are expressed as **provider parameters**, not as a client-side
+ * predicate, for two reasons: the list is paginated (a client filter would only
+ * narrow the pages already loaded, so the counts would lie), and the desktop
+ * Inbox already encodes the same rules server-side. One rule, one place.
+ *
+ * The rule that matters most, carried over from `filtersToListParams`:
+ * **a search overrides every facet**. Typing a customer's name must find them
+ * even when the status chip is set to something they are not in — otherwise the
+ * list lies by omission and the user cannot tell why.
  */
-import type { ConversationChannel, ConversationStatus, IConversation } from "@/shared/types";
-import { digitsOf } from "@/features/conversations/engine/phoneBR";
+import type { ConversationChannel, ConversationStatus, ID } from "@/shared/types";
+import type { IListConversationsParams } from "@/providers/data";
 
 export interface IPwaFilters {
   q: string;
@@ -16,20 +21,20 @@ export interface IPwaFilters {
   assign: "all" | "me" | "queue";
 }
 
-/** Identity resolved outside the conversation row (name and phone live in the
- *  contact, not in `IConversation`), plus who is asking. */
-export interface IPwaFilterContext {
-  name: string;
-  phone: string;
-  sellerId: string | null;
-}
-
 export const EMPTY_PWA_FILTERS: IPwaFilters = {
   q: "",
   status: "all",
   channel: "all",
   assign: "all",
 };
+
+/** Statuses shown when no explicit status is picked — closed ones stay out,
+ *  same default as the desktop Inbox. */
+export const PWA_OPEN_STATUSES: ConversationStatus[] = [
+  "aguardando",
+  "em_andamento",
+  "aguardando_cliente",
+];
 
 /** How many facets are narrowing the list — drives the badge on the filter button. */
 export function activeFilterCount(filters: IPwaFilters): number {
@@ -40,30 +45,39 @@ export function activeFilterCount(filters: IPwaFilters): number {
   return count;
 }
 
-function matchesSearch(query: string, context: IPwaFilterContext): boolean {
-  const term = query.trim().toLowerCase();
-  if (context.name.toLowerCase().includes(term)) return true;
-
-  // Phone search is digit-only on both sides: the user types what they read off
-  // a screen, never the mask we happen to render.
-  const termDigits = digitsOf(term);
-  if (!termDigits) return false;
-  return digitsOf(context.phone).includes(termDigits);
+export function hasActiveSearch(filters: IPwaFilters): boolean {
+  return filters.q.trim().length > 0;
 }
 
-export function matchesPwaFilters(
-  conversation: IConversation,
+export function pwaFiltersToListParams(
   filters: IPwaFilters,
-  context: IPwaFilterContext,
-): boolean {
-  if (filters.q.trim()) return matchesSearch(filters.q, context);
+  ctx: { storeId: ID | null; currentSellerId: ID | null },
+): IListConversationsParams {
+  const base: IListConversationsParams = {};
+  if (ctx.storeId) base.storeId = ctx.storeId;
 
-  if (filters.status !== "all" && conversation.status !== filters.status) return false;
-  if (filters.channel !== "all" && conversation.channel !== filters.channel) return false;
-  if (filters.assign === "me") {
-    if (!context.sellerId) return false;
-    if (conversation.assignedSellerId !== context.sellerId) return false;
+  // Search is global: every facet is dropped, including the closed-status
+  // default, so a match is never hidden by a chip the user forgot about.
+  if (hasActiveSearch(filters)) {
+    return { ...base, search: filters.q.trim(), orderBy: "lastMessageAt", orderDir: "desc" };
   }
-  if (filters.assign === "queue" && conversation.assignedSellerId) return false;
-  return true;
+
+  const params: IListConversationsParams = {
+    ...base,
+    status: filters.status === "all" ? PWA_OPEN_STATUSES : filters.status,
+    orderBy: "lastMessageAt",
+    orderDir: "desc",
+  };
+
+  if (filters.channel !== "all") params.channel = filters.channel;
+
+  if (filters.assign === "me") {
+    // No seller identity means nothing can be "mine": ask for an impossible
+    // set rather than silently widening to every conversation.
+    params.assignmentAny = { sellerIds: ctx.currentSellerId ? [ctx.currentSellerId] : [] };
+  } else if (filters.assign === "queue") {
+    params.assignmentAny = { queue: true };
+  }
+
+  return params;
 }
