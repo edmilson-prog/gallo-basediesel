@@ -4,6 +4,10 @@
  * MVP scope: static-asset caching only — NO offline navigation, NO request
  * queue, NO data caching. Those are Fase 2 concerns. We deliberately avoid
  * caching navigation/HTML requests so the SPA shell is never served stale.
+ *
+ * Plus the two Web Push handlers (PRD-145 RF-004), added for the atendimento
+ * PWA at /atendimento. They are additive: one worker serves both installable
+ * apps on this origin, because it is registered at the root scope.
  */
 
 /*
@@ -14,7 +18,7 @@
  *
  * ALWAYS bump this when changing the caching rules below.
  */
-const CACHE_VERSION = "gallo-static-v2";
+const CACHE_VERSION = "gallo-static-v3";
 const CACHEABLE_DESTINATIONS = new Set(["style", "script", "image", "font"]);
 
 /**
@@ -105,6 +109,82 @@ self.addEventListener("fetch", (event) => {
         // Offline with no cache hit: let the request fail naturally.
         throw err;
       }
+    })(),
+  );
+});
+
+/* ── Web Push (PRD-145 RF-004) ─────────────────────────────────────────────
+ *
+ * The payload is minted by the `push-dispatch` Edge Function and stays under
+ * 3KB. `data.url` is an in-app path, never an absolute URL: `notificationclick`
+ * focuses an already-open tab of this origin when it finds one, and a stale
+ * absolute host would defeat that match after a domain change.
+ */
+
+const PUSH_DEFAULT_TITLE = "GALLO Atendimento";
+const PUSH_ICON = "/android-chrome-192x192.png";
+const PUSH_BADGE = "/favicon-32x32.png";
+const PUSH_FALLBACK_URL = "/atendimento";
+
+function readPushPayload(event) {
+  if (!event.data) return {};
+  try {
+    return event.data.json();
+  } catch {
+    // A provider test push (or a malformed payload) arrives as plain text.
+    return { body: event.data.text() };
+  }
+}
+
+self.addEventListener("push", (event) => {
+  const payload = readPushPayload(event);
+  const title = payload.title || PUSH_DEFAULT_TITLE;
+  const url =
+    typeof payload.url === "string" && payload.url.startsWith("/")
+      ? payload.url
+      : PUSH_FALLBACK_URL;
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: payload.body || "",
+      icon: PUSH_ICON,
+      badge: PUSH_BADGE,
+      // Collapse repeated notifications from the same conversation into one
+      // line instead of stacking a wall of them on the lock screen.
+      tag: payload.tag || url,
+      renotify: Boolean(payload.tag),
+      data: { url },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || PUSH_FALLBACK_URL;
+
+  event.waitUntil(
+    (async () => {
+      const clientList = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+
+      for (const client of clientList) {
+        if (new URL(client.url).origin !== self.location.origin) continue;
+        await client.focus();
+        // `navigate` is unavailable on some engines; focusing is the part that
+        // matters, so a failure here must not reject the whole handler.
+        if ("navigate" in client) {
+          try {
+            await client.navigate(target);
+          } catch {
+            /* focused tab keeps its current route */
+          }
+        }
+        return;
+      }
+
+      await self.clients.openWindow(target);
     })(),
   );
 });

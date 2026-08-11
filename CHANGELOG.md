@@ -4,6 +4,20 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.173.0] — Pocket · 2026-08-11
+
+**Quem acompanha o atendimento não vive na frente do computador — vive no balcão, na oficina, na rua. Agora existe um app só de conversas, instalável no celular, em `/atendimento`: abre em tela cheia, mostra a mesma inbox de sempre, e responde. Nada de assumir, transferir, etiquetar ou anotar: isso continua no sistema grande. Aqui é só a troca de mensagens, e ela é a de verdade — a mesma conversa, o mesmo envio, a mesma regra de quem enxerga o quê.**
+
+### Added
+
+- **App de atendimento no celular** — em `/atendimento`, instalável na tela de início. Abre com a marca, ensina a instalar e entra com o mesmo e-mail e senha do sistema, inclusive com verificação em duas etapas. Duas abas embaixo: Conversas e Espera. Conta e sair ficam no avatar do topo.
+- **Lista de conversas com busca e filtros** — busca por nome ou por telefone (digitando só os números, sem se preocupar com a máscara), e filtros de Status, Canal e Atribuição num painel que abre e fecha. Como no computador, **a busca ignora os filtros**: procurar um cliente encontra o cliente, mesmo que o filtro de status esteja em outra coisa.
+- **Espera com semáforo** — as conversas do pool ordenadas por quem espera há mais tempo, com três contadores no topo: mais de 30 minutos, mais de 10 minutos, e o total na espera. Mesmo limiar do computador — atenção aos 10, urgente aos 30.
+- **Conversa completa no bolso** — separadores de dia, texto com a formatação do WhatsApp, foto, vídeo, documento, áudio com transcrição, e os mesmos ticks de enviado, entregue e lido. Responder é responder de verdade: sai pela conta de WhatsApp da conversa.
+- **Gravar áudio, anexar e enviar peça** — nota de voz com cronômetro e onda, foto da galeria ou da câmera, documento, e a busca de peças do consultor, que insere código, preço e disponibilidade prontos para enviar.
+- **Mídias da conversa** — grade com abas Tudo, Fotos, Áudios e Docs, montada a partir das próprias mensagens.
+- **Aviso de mensagem nova** — faixa no topo quando chega mensagem de outra conversa enquanto você atende, com "Abrir conversa" e "Dispensar". A permissão de notificação é pedida depois do login, nunca ao abrir, e um "agora não" compra duas semanas de silêncio.
+- **Notificação com o app fechado** — fundação de Web Push: assinatura por aparelho, envio pelo servidor com limpeza automática de aparelho que desinstalou o app, e preferências por aparelho. Depende de chave e liberação em produção para entrar no ar; conversa sem responsável não dispara aviso, por decisão de segurança.
 ## [0.172.0] — Pinboard · 2026-08-11
 
 **A Inbox ordena por quem falou por último, e só isso. A conversa que importa hoje — o cliente que fecha amanhã, o orçamento parado esperando a peça chegar — afunda sozinha conforme o resto do dia vai chegando por cima. Quem precisava dela de volta ia caçar na busca. Agora cada atendente escolhe um punhado de conversas que ficam no topo e não saem de lá.**
