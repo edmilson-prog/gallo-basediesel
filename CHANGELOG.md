@@ -13,6 +13,14 @@ versioning follows [SemVer](https://semver.org/).
 - **Fixar conversa no topo da Inbox** — passe o mouse na linha e clique no alfinete, ou use o menu de três pontos dentro da conversa. Ela sobe para um bloco **Fixadas** no alto da lista e continua ali mesmo depois de dias sem mensagem, mesmo que mude de situação e mesmo quando os filtros ativos a esconderiam. Durante uma busca por texto o bloco sai da frente, para não competir com o resultado. As fixadas são suas: fixar não mexe na tela de mais ninguém.
 - **Limite de conversas fixadas** — nova tela em Configurações → Atendimento → Conversas fixadas, onde se define quantas cada atendente pode manter no topo (padrão 5, até 20). Ao atingir o limite é preciso desafixar uma para fixar outra — nada sai do topo sozinho. Se o limite for reduzido depois, quem já tiver mais continua vendo todas as suas e apenas fica impedido de fixar novas.
 
+### Fixed
+
+- **Resposta saía para um número sem WhatsApp** — depois que um contato era vinculado a um cliente já cadastrado, as respostas passavam a ser enviadas para o telefone do cadastro, que em boa parte da base é o fixo da empresa importado do ERP. A mensagem simplesmente falhava, sem dizer por quê, enquanto o mesmo texto enviado do celular do vendedor chegava normalmente. A plataforma agora responde sempre no mesmo lugar onde a conversa está acontecendo, independentemente do que esteja no cadastro.
+- **Buscar na Inbox dava erro** — procurar por nome ou telefone podia levar oito segundos e terminar sem resultado nenhum, e enquanto isso deixava o sistema pesado para os outros atendentes. A consulta foi corrigida e passou a responder em uma fração do tempo que levava antes.
+- **O erro na busca deixava tudo mais lento ainda** — quando uma consulta falhava, o sistema repetia o pedido três vezes seguidas, multiplicando a carga justamente no pior momento. Agora ele não insiste quando o problema é de sobrecarga: tenta de novo só quando há chance real de dar certo.
+- **A busca voltava sozinha ao abrir o sistema** — o texto pesquisado ficava guardado, e a Inbox reabria em modo de busca na visita seguinte sem ninguém ter digitado nada. Links compartilhados com uma busca dentro continuam funcionando.
+- **Leitores de tela não anunciavam algumas janelas** — as fichas de cliente e de lead, a galeria de mídias da conversa e o visualizador de imagens abriam sem título ou descrição para quem usa leitor de tela.
+
 ## [0.171.0] — Glance · 2026-08-11
 
 **Duas telas onde era preciso abrir alguma coisa para saber o que já estava ali. Na Inbox, descobrir quem era o contato e sobre o que era a conversa exigia abrir o atendimento — e abrir marca como lido; agora basta pousar o mouse na linha. No orçamento, aplicar um kit era um menu que abria uma janela por cima da tela, e lançar um item sem cadastro era outra janela: os dois viraram superfícies dentro da própria página, onde dá para ver antes de decidir.**
