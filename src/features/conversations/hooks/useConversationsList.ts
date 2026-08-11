@@ -21,6 +21,7 @@ import {
   shouldStartRehydrate,
   type ListFetchIntent,
 } from "../engine/listFetchPolicy";
+import { markConversationReadInList } from "../engine/markRead";
 
 /** Conversations pulled per page from the provider. */
 export const PAGE_SIZE = 30;
@@ -513,9 +514,10 @@ export function useConversationsList(
   }, [fetchPage]);
 
   const markItemRead = useCallback((id: ID) => {
-    setItems((prev) =>
-      prev.map((c) => (c.id === id && c.unreadCount > 0 ? { ...c, unreadCount: 0 } : c)),
-    );
+    // Referentially stable when nothing matched — see markConversationReadInList.
+    // A bare `.map()` here looped the Inbox's read-reset effect for pinned rows
+    // outside the paginated window (2026-08-11).
+    setItems((prev) => markConversationReadInList(prev, id));
   }, []);
 
   return {

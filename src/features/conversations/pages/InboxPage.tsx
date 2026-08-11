@@ -216,8 +216,8 @@ export function InboxPage() {
   // (localStorage); the badge reads conversation.unreadCount — a materialized
   // column reset only via the provider. We clear it optimistically so the badge
   // disappears instantly, then persist with markRead (best-effort; this also
-  // syncs the count across devices). Idempotent: zeroing the local count makes
-  // this effect re-run and exit early, and markRead is a no-op when already 0.
+  // syncs the count across devices). Idempotent ONLY because every source the
+  // lookup below reads from gets zeroed — see the comment at the reset itself.
   // A fresh inbound bumps the count again, so badges still reappear for new
   // messages — including while the conversation stays open.
   useEffect(() => {
@@ -229,12 +229,26 @@ export function InboxPage() {
       rawItems.find((c) => c.id === selectedId) ??
       pins.pinnedItems.find((c) => c.id === selectedId);
     if (!conv || conv.unreadCount <= 0) return;
+    // BOTH sources have to be zeroed, because the lookup above reads from
+    // either one. Zeroing only the list left a pinned row outside the
+    // paginated window reporting unread forever, so this effect re-ran on
+    // every new `rawItems` identity and fired a markRead request each time
+    // (2026-08-11 freeze). The referential bailout in markConversationReadInList
+    // is the other half of the fix: a no-op reset now changes nothing at all.
     markItemRead(selectedId);
+    pins.markPinnedRead(selectedId);
     void conversationsProvider.markRead(selectedId).catch(() => {
       // Best-effort: a failed reset is re-resolved on the next list refetch;
       // reopening the conversation retries.
     });
-  }, [selectedId, rawItems, pins.pinnedItems, markItemRead, conversationsProvider]);
+  }, [
+    selectedId,
+    rawItems,
+    pins.pinnedItems,
+    pins.markPinnedRead,
+    markItemRead,
+    conversationsProvider,
+  ]);
 
   // Infinite scroll sentinel.
   const sentinelRef = useRef<HTMLDivElement | null>(null);

@@ -9,6 +9,7 @@ import {
 } from "@/providers/data";
 import { MAX_PINNED } from "../config/pinDefaults";
 import { canPinMore } from "../engine/pinPolicy";
+import { markConversationReadInList } from "../engine/markRead";
 import { useInboxPinsLimit } from "./useInboxPinsLimit";
 import { INBOX_STRINGS } from "../i18n/pt-BR";
 
@@ -29,6 +30,13 @@ export interface IPinnedConversationsState {
   isPinned: (id: ID) => boolean;
   /** Pins when unpinned, unpins when pinned. Handles the cap internally. */
   togglePin: (conversation: IConversation) => Promise<void>;
+  /**
+   * Clears the unread badge of a pinned row locally, mirroring the list's own
+   * `markItemRead`. The Inbox reads the open conversation from EITHER source,
+   * so both have to be zeroed — otherwise the read-reset effect keeps seeing
+   * `unreadCount > 0` here and re-fires on every list change.
+   */
+  markPinnedRead: (id: ID) => void;
   /** False once the cap is reached — disables the pin affordance. */
   canPin: boolean;
   maxPinned: number;
@@ -88,6 +96,24 @@ export function usePinnedConversations({
   const pinnedIds = useMemo(() => new Set(ids), [ids]);
   const isPinned = useCallback((id: ID) => pinnedIds.has(id), [pinnedIds]);
 
+  // Local-only badge reset for a pinned row. Writes straight into this query's
+  // cache with the same referential bailout the list uses, so a no-op write
+  // cannot re-render (and therefore cannot re-trigger the caller's effect).
+  // Persistence is the caller's `conversationsProvider.markRead` — this only
+  // keeps the pinned copy in step with the list copy.
+  const conversationsKey = useMemo(
+    () => ["pinned-conversations", sellerId, idsKey] as const,
+    [sellerId, idsKey],
+  );
+  const markPinnedRead = useCallback(
+    (id: ID) => {
+      queryClient.setQueryData<IConversation[]>(conversationsKey, (prev) =>
+        prev ? markConversationReadInList(prev, id) : prev,
+      );
+    },
+    [queryClient, conversationsKey],
+  );
+
   // The Inbox's realtime tick also refreshes the pinned previews. Same debounce
   // as the list, so a burst becomes a single refetch.
   const refetchPinnedConversations = conversationsQuery.refetch;
@@ -145,6 +171,7 @@ export function usePinnedConversations({
     pinnedIds,
     isPinned,
     togglePin,
+    markPinnedRead,
     canPin: sellerId !== null && canPinMore(pins.length, maxPinned),
     maxPinned,
     pinnedCount: pins.length,
