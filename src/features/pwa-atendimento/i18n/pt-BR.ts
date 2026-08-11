@@ -201,6 +201,15 @@ export const PWA_ATENDIMENTO_STRINGS = {
     headsUpNow: "agora",
   },
 
+  update: {
+    eyebrow: "Atualização",
+    title: "Nova versão disponível",
+    body: "Atualize para receber as correções e melhorias mais recentes.",
+    accept: "Atualizar agora",
+    later: "Agora não",
+    updating: "Atualizando…",
+  },
+
   nav: {
     conversations: "Conversas",
     queue: "Espera",

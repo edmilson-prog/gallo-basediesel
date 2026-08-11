@@ -4,6 +4,19 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.174.0] — Crest · 2026-08-11
+
+**O app de atendimento ganhou cara própria na tela de início e passou a avisar quando sai versão nova. Antes ele emprestava o ícone verde do app do vendedor; agora leva a crista do galo sobre fundo escuro, recortada para continuar legível no tamanho que o celular de fato desenha. E porque um app instalado fica dias aberto sem ninguém recarregar, ele avisa quando há atualização — com "Atualizar agora" ali mesmo, sem precisar fechar nada.**
+
+### Added
+
+- **Ícone próprio na tela de início** — a marca alternativa em branco sobre o fundo escuro do app, em quatro arquivos: dois para o ícone comum e dois para o recorte circular do Android, que come as bordas de quem não previu isso. O iPhone recebe o seu, e o aviso de mensagem passa a mostrar a mesma marca.
+- **Aviso de versão nova dentro do app** — a mesma checagem que a plataforma no computador já faz, com faixa no topo, "Atualizar agora" e "Agora não". Dispensar compra 15 minutos e ela volta. Se chegar mensagem enquanto a faixa está aberta, a mensagem tem prioridade e a faixa reaparece depois.
+
+### Fixed
+
+- **Instalar pelo iPhone criava um atalho com o ícone do app do vendedor** — o iOS ignora o manifesto e lê a sua própria etiqueta, que continuava apontando para o ícone verde. Agora ela é trocada junto com o resto, antes da página desenhar.
+
 ## [0.173.0] — Pocket · 2026-08-11
 
 **Quem acompanha o atendimento não vive na frente do computador — vive no balcão, na oficina, na rua. Agora existe um app só de conversas, instalável no celular, em `/atendimento`: abre em tela cheia, mostra a mesma inbox de sempre, e responde. Nada de assumir, transferir, etiquetar ou anotar: isso continua no sistema grande. Aqui é só a troca de mensagens, e ela é a de verdade — a mesma conversa, o mesmo envio, a mesma regra de quem enxerga o quê.**
