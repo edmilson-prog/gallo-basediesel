@@ -162,7 +162,7 @@ CONFLICT (content): Merge conflict in supabase/tests/rls-regression.sql
    - `bun run test` (a PR original marcava 2132/2132, +11 casos novos nos engines — o número mudou desde então)
    - `bun run build`
    - `bunx tsc --noEmit` avaliado **por delta** (há baseline de erros pré-existentes; ver `docs/` e a nota no `CLAUDE.md`)
-4. Re-sincronizar os espelhos Deno se algo mudou: `scripts/sync-whatsapp-shared.ts` **não** cobre conversation-rescue — o script de sync desta feature é o mesmo padrão de espelho; conferir `supabase/functions/_shared/conversation-rescue/engine/` contra `src/features/conversation-rescue/engine/`.
+4. Re-sincronizar os espelhos Deno se algum engine mudou: **`scripts/sync-conversation-rescue-shared.ts`** (script dedicado desta feature — não confundir com `sync-whatsapp-shared.ts`). Regra: mudou o engine fonte em `src/features/conversation-rescue/engine/` ⇒ rodar o sync **e** redeployar o tick.
 5. Push, deixar a PR *ready for review*, confirmar que os checks ficaram verdes.
 6. **Merge só com OK explícito do dono.**
 
@@ -171,13 +171,21 @@ CONFLICT (content): Merge conflict in supabase/tests/rls-regression.sql
 Nesta ordem:
 
 1. **Aplicar a migration** `supabase/migrations/20260718210000_conversation_rescue_claim_guards.sql` via MCP (`apply_migration`). Lembrete: **mergear a PR não aplica a migration** — a aplicação em produção é manual.
-2. **Redeploy do `conversation-rescue-tick`** — `npx supabase functions deploy conversation-rescue-tick`. Inclui o espelho novo `rescueCooldown.ts`. Arquivos envolvidos:
+2. **Redeploy do `conversation-rescue-tick`** — `npx supabase functions deploy conversation-rescue-tick`. O deploy empacota todo o grafo de imports (o corpo da PR contabiliza **14 arquivos**, contra 13 no deploy original de 17/07). O arquivo **novo** é o espelho `rescueCooldown.ts`. Imports diretos do tick no branch:
    ```
    supabase/functions/conversation-rescue-tick/index.ts
-   supabase/functions/_shared/conversation-rescue/engine/determineAbsence.ts
-   supabase/functions/_shared/conversation-rescue/engine/pickFallbackSeller.ts
-   supabase/functions/_shared/conversation-rescue/engine/rescueCooldown.ts   <-- novo
+   ../_shared/env.ts
+   ../_shared/http.ts
+   ../_shared/serve.ts
+   ../_shared/secrets.ts
+   ../_shared/workerAuth.ts
+   ../_shared/access/workSchedule.ts
+   ../_shared/access/accessRecipients.ts
+   ../_shared/conversation-rescue/engine/determineAbsence.ts
+   ../_shared/conversation-rescue/engine/pickFallbackSeller.ts
+   ../_shared/conversation-rescue/engine/rescueCooldown.ts   <-- NOVO
    ```
+   Nota do deploy original: os arquivos precisam ser nomeados com o path relativo exato do import (`../_shared/...`) para o deploy resolver corretamente.
 3. **Deploy do frontend** (Vercel, automático via merge na `main`).
 4. **Só então religar** `enabled` por loja — e **preencher `fallbackSellerIds` antes** (hoje está `[]`, que é uma limitação conhecida e documentada).
 5. **Smoke pós-religamento:** monitorar `public.conversation_rescues` nos primeiros minutos; com `maxClientWaitHours = 24h` o volume esperado cai de ~239 para a ordem de ~42 conversas elegíveis. Volume muito acima disso = a guarda não está ativa; desligar imediatamente.
@@ -200,6 +208,8 @@ Nesta ordem:
 | `supabase/functions/conversation-rescue-tick/index.ts` | O tick (cron a cada minuto) |
 | `supabase/tests/rls-regression.sql` | Suíte de RLS — **o único arquivo com conflito** |
 | `supabase/migrations/20260717170000_conversation_rescues.sql` | Versão original da RPC `claim_conversation_rescue` (sem P0006) |
+| `scripts/sync-conversation-rescue-shared.ts` | Gera os espelhos Deno em `supabase/functions/_shared/conversation-rescue/`. Mudou engine ⇒ rodar o sync e redeployar o tick |
+| `supabase/functions/_shared/access/workSchedule.ts` · `accessRecipients.ts` | Também espelhos Deno consumidos pelo tick (agenda PRD-212 e destinatários por acesso) |
 | `CLAUDE.md` | Regras de infra: migration manual, deploy de edge com OK do dono, worktree isolada obrigatória |
 
 ### No branch `fix/conversation-rescue-incident` (ainda não na `main`)
