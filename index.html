@@ -23,7 +23,10 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:alt" content="GALLO BASE DIESEL — Plataforma de Inteligência Comercial" />
+    <meta
+      property="og:image:alt"
+      content="GALLO BASE DIESEL — Plataforma de Inteligência Comercial"
+    />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="GALLO BASE DIESEL — Plataforma de Inteligência Comercial" />
     <meta name="twitter:description" content="Plataforma proprietária GALLO BASE DIESEL." />
@@ -31,14 +34,44 @@
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-    <!-- PWA (PRD-070 — external seller installable app) -->
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#16a34a" />
+    <!-- PWA — two installable apps share this single index.html: the external
+         seller app at /pwa (PRD-070) and the atendimento app at /atendimento.
+         The defaults below are the seller's; the script that follows switches
+         them for /atendimento BEFORE the first paint. -->
+    <link rel="manifest" href="/manifest.webmanifest" id="app-manifest" />
+    <meta name="theme-color" content="#16a34a" id="app-theme-color" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="GALLO Vendedor" />
+    <meta name="apple-mobile-web-app-title" content="GALLO Vendedor" id="app-ios-title" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <script>
+      // Pick the manifest for the app being opened, before the first paint.
+      //
+      // The browser decides whether a page is installable AT LOAD, against the
+      // manifest linked at that moment. Swapping the href later (from React,
+      // once the route mounts) is too late: `beforeinstallprompt` never fires,
+      // so no install banner appears — and worse, "add to home screen" from the
+      // browser menu would install the SELLER app, because the seller manifest
+      // (scope /pwa) is what the page still declares.
+      //
+      // Same discipline as the anti-FOUC theme script below: decide in the head,
+      // not after hydration.
+      (function () {
+        try {
+          if (!window.location.pathname.startsWith("/atendimento")) return;
+          document.getElementById("app-manifest").setAttribute("href", "/atendimento.webmanifest");
+          document.getElementById("app-theme-color").setAttribute("content", "#141011");
+          document.getElementById("app-ios-title").setAttribute("content", "GALLO Atendimento");
+        } catch (e) {
+          // The seller defaults stay in place: the app still works, it just is
+          // not installable from /atendimento. Say so out loud — silence here
+          // costs an entire debugging round, as it already did once.
+          console.warn("[pwa] manifest swap failed", e);
+        }
+      })();
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
