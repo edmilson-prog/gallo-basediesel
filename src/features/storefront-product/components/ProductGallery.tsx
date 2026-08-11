@@ -2,7 +2,13 @@ import { useState } from "react";
 import type { IPart } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PartImage } from "@/features/catalog";
 import { STOREFRONT_PRODUCT_STRINGS as S } from "../i18n/pt-BR";
 
@@ -51,6 +57,10 @@ export function ProductGallery({ part }: IProductGalleryProps) {
 
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
         <DialogContent className="max-w-3xl p-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{S.galleryLightboxTitle}</DialogTitle>
+            <DialogDescription>{S.galleryLightboxDescription}</DialogDescription>
+          </DialogHeader>
           <div className="relative">
             <Button
               variant="ghost"

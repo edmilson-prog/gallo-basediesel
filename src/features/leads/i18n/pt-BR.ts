@@ -576,6 +576,9 @@ export const LEADS_STRINGS = {
   },
   fiche: {
     title: "Ficha do lead",
+    // Read by screen readers only (sr-only header) — Radix requires every
+    // Dialog/Sheet content to be described, or it warns in the console.
+    sheetDescription: "Dados do lead, funis, dono responsável e ações de conversão.",
     sectionData: "Dados do lead",
     owner: "Dono do lead",
     ownerQueue: "Em fila",
