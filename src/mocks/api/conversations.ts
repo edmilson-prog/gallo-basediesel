@@ -150,6 +150,10 @@ function applyNonSearchFilters(
 ): IConversation[] {
   let filtered = all;
   if (params.storeId) filtered = filtered.filter((c) => c.storeId === params.storeId);
+  if (params.ids && params.ids.length > 0) {
+    const wanted = new Set(params.ids);
+    filtered = filtered.filter((c) => wanted.has(c.id));
+  }
   if (params.assignedSellerId)
     filtered = filtered.filter((c) => c.assignedSellerId === params.assignedSellerId);
   if (params.unassigned) filtered = filtered.filter((c) => !c.assignedSellerId);

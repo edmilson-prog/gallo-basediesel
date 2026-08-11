@@ -209,6 +209,16 @@ export interface IEchoContinuitySettings {
   windowHours: number;
 }
 
+/**
+ * Pinned inbox conversations (spec 2026-08-11). The pin itself is PERSONAL to
+ * each attendant (table `conversation_pins`); the store only decides how many
+ * fit. Stored at `stores.settings->'inboxPins'`. Absent → DEFAULT_INBOX_PINS_SETTINGS.
+ */
+export interface IInboxPinsSettings {
+  /** Cap of pinned conversations per attendant. Integer in [1, 20]. */
+  maxPinned: number;
+}
+
 /** Reference (not the credential itself) to a WhatsApp account. */
 export interface IWhatsAppAccountRef {
   id: ID;
@@ -286,6 +296,8 @@ export interface IPlatformSettings {
   conversationRescue?: IConversationRescueSettings;
   /** Echo continuity window (2026-07-23). Undefined → 24h (DEFAULT_ECHO_CONTINUITY_WINDOW_HOURS). */
   echoContinuity?: IEchoContinuitySettings;
+  /** Pinned inbox conversations (2026-08-11). Undefined → DEFAULT_INBOX_PINS_SETTINGS. */
+  inboxPins?: IInboxPinsSettings;
   /** Notification sound center (per-store). Absent on legacy stores → DEFAULT_SOUND_SETTINGS. */
   sound?: ISoundSettings;
   /** On-screen alert for inbound messages (per-store). Absent → DEFAULT_INBOUND_TOAST_SETTINGS. */

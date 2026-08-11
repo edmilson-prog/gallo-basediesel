@@ -111,6 +111,8 @@ export type {
   ITrackableLinkProvider,
   IScheduledSendProvider,
   IConversationNotesProvider,
+  IConversationPinsProvider,
+  IConversationPin,
   IStorefrontProvider,
   ISystemHealthProvider,
   IWebhookDeliveriesProvider,
@@ -181,6 +183,7 @@ export { useQuickReplyProvider } from "./hooks/useQuickReplyProvider";
 export { useTrackableLinkProvider } from "./hooks/useTrackableLinkProvider";
 export { useScheduledSendProvider } from "./hooks/useScheduledSendProvider";
 export { useConversationNotesProvider } from "./hooks/useConversationNotesProvider";
+export { useConversationPinsProvider } from "./hooks/useConversationPinsProvider";
 export { useStorefrontProvider } from "./hooks/useStorefrontProvider";
 export { useSystemHealthProvider } from "./hooks/useSystemHealthProvider";
 export { useWebhookDeliveriesProvider } from "./hooks/useWebhookDeliveriesProvider";

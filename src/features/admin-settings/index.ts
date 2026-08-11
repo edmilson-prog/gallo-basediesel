@@ -16,4 +16,5 @@ export { DivisionsPlaceholderPage } from "./pages/DivisionsPlaceholderPage";
 export { MediaRetentionSettingsPage } from "./pages/MediaRetentionSettingsPage";
 export { IdleAlertsSettingsPage } from "./pages/IdleAlertsSettingsPage";
 export { EchoContinuitySettingsPage } from "./pages/EchoContinuitySettingsPage";
+export { InboxPinsSettingsPage } from "./pages/InboxPinsSettingsPage";
 export { ConversationRescueSettingsPage } from "./pages/ConversationRescueSettingsPage";

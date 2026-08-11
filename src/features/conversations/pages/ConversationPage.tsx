@@ -21,6 +21,7 @@ import { ConversationMenu } from "../components/ConversationMenu";
 import { NewConversationDialog } from "../components/NewConversationDialog";
 import { useAccessibleConnectedAccounts } from "../hooks/useAccessibleConnectedAccounts";
 import { useConversationFiche } from "../hooks/useConversationFiche";
+import { usePinnedConversations } from "../hooks/usePinnedConversations";
 import { useStatusControlMode } from "../hooks/useStatusControlMode";
 import { useMessages } from "../hooks/useMessages";
 import { useRealtimeMessages } from "../hooks/useRealtimeMessages";
@@ -124,6 +125,9 @@ export function ConversationPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const sellerId: ID | null = currentUser?.sellerId ?? null;
+  // Same query key as the Inbox — react-query shares the cache, so opening a
+  // conversation costs no extra request.
+  const pins = usePinnedConversations({ sellerId });
   const [contactDialogTarget, setContactDialogTarget] = useState<{
     name?: string;
     phone: string;
@@ -272,6 +276,9 @@ export function ConversationPage() {
                     contact={contact}
                     whatsappAccount={whatsappAccount}
                     onMutated={detail.refresh}
+                    isPinned={pins.isPinned(conversation.id)}
+                    canPin={pins.canPin}
+                    onTogglePin={sellerId ? () => void pins.togglePin(conversation) : undefined}
                     statusControlMode={statusControlMode}
                     onStatusControlModeChange={setStatusControlMode}
                   />

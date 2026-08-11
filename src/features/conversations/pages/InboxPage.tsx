@@ -16,6 +16,8 @@ import { useInboxFilters, filtersToListParams } from "../hooks/useInboxFilters";
 import { useRealtimeConversations } from "../hooks/useRealtimeConversations";
 import { useLastSelectedConversation } from "../hooks/useLastSelectedConversation";
 import { useUnreadTracking } from "../hooks/useUnreadTracking";
+import { usePinnedConversations } from "../hooks/usePinnedConversations";
+import { mergePinnedFirst, shouldShowPinnedBlock } from "../engine/pinPolicy";
 import { ConversationListItem } from "../components/ConversationListItem";
 import { InboxFilters } from "../components/InboxFilters";
 import { InboxHeader } from "../components/InboxHeader";
@@ -161,7 +163,24 @@ export function InboxPage() {
     if (!filters.escalated || searchActive) return rawItems;
     return rawItems.filter((c) => escalationsByConversation.has(c.id));
   }, [rawItems, escalationsByConversation, filters.escalated, searchActive]);
-  const related = useRelatedEntities(items, { skipLastMessages: messageSearchActive });
+  const pins = usePinnedConversations({ sellerId, refreshKey: realtime.tick });
+  // The block disappears during any search (decision D-3): search already
+  // ignores every filter, and a fixed block above the results would compete
+  // with what was searched for.
+  const showPinned = shouldShowPinnedBlock({
+    searchActive,
+    messageSearchActive,
+    pinnedCount: pins.pinnedItems.length,
+  });
+  // A single list: pinned rows first, then the normal list without them.
+  // Keyboard arrows, the unread badge and "reopen last conversation" all scan
+  // this list, so they see the pinned rows with no special case.
+  const { items: displayItems, pinnedCount } = useMemo(
+    () => mergePinnedFirst(showPinned ? pins.pinnedItems : [], items),
+    [showPinned, pins.pinnedItems, items],
+  );
+
+  const related = useRelatedEntities(displayItems, { skipLastMessages: messageSearchActive });
   const { isUnread, markViewed } = useUnreadTracking(userId);
   const { lastId, setLastId } = useLastSelectedConversation();
 
@@ -171,13 +190,13 @@ export function InboxPage() {
   useEffect(() => {
     if (selectedId !== null) return;
     if (!lastId) return;
-    if (!items.find((c) => c.id === lastId)) return;
+    if (!displayItems.find((c) => c.id === lastId)) return;
     void navigate({
       to: "/app/atendimento/$id",
       params: { id: lastId },
       search: (prev) => prev,
     });
-  }, [selectedId, lastId, items, navigate]);
+  }, [selectedId, lastId, displayItems, navigate]);
 
   // Track the selected one for next session.
   useEffect(() => {
@@ -198,14 +217,19 @@ export function InboxPage() {
   // messages — including while the conversation stays open.
   useEffect(() => {
     if (!selectedId) return;
-    const conv = rawItems.find((c) => c.id === selectedId);
+    // `rawItems` stays the primary source (it is the superset — the escalated
+    // post-filter must not hide the open conversation from this reset). Pinned
+    // rows are the fallback: they may sit outside the paginated window.
+    const conv =
+      rawItems.find((c) => c.id === selectedId) ??
+      pins.pinnedItems.find((c) => c.id === selectedId);
     if (!conv || conv.unreadCount <= 0) return;
     markItemRead(selectedId);
     void conversationsProvider.markRead(selectedId).catch(() => {
       // Best-effort: a failed reset is re-resolved on the next list refetch;
       // reopening the conversation retries.
     });
-  }, [selectedId, rawItems, markItemRead, conversationsProvider]);
+  }, [selectedId, rawItems, pins.pinnedItems, markItemRead, conversationsProvider]);
 
   // Infinite scroll sentinel.
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -241,19 +265,19 @@ export function InboxPage() {
       }
       if (isEditable) return;
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        const idx = items.findIndex((c) => c.id === selectedId);
-        if (idx === -1 && items[0]) {
+        const idx = displayItems.findIndex((c) => c.id === selectedId);
+        if (idx === -1 && displayItems[0]) {
           e.preventDefault();
           void navigate({
             to: "/app/atendimento/$id",
-            params: { id: items[0].id },
+            params: { id: displayItems[0].id },
             search: (prev) => prev,
           });
           return;
         }
         const next =
-          e.key === "ArrowDown" ? Math.min(items.length - 1, idx + 1) : Math.max(0, idx - 1);
-        const target = items[next];
+          e.key === "ArrowDown" ? Math.min(displayItems.length - 1, idx + 1) : Math.max(0, idx - 1);
+        const target = displayItems[next];
         if (target && target.id !== selectedId) {
           e.preventDefault();
           void navigate({
@@ -266,7 +290,7 @@ export function InboxPage() {
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [items, selectedId, navigate]);
+  }, [displayItems, selectedId, navigate]);
 
   // Header-only unread total for the CURRENT filtered view. This is NOT the
   // global "unread mine" badge — that is owned end-to-end by
@@ -274,8 +298,8 @@ export function InboxPage() {
   // filter-scoped count into the global badge would silence it whenever a
   // search/tag/assignment filter excluded the seller's real unread threads.
   const unreadGlobal = useMemo(
-    () => items.reduce((acc, c) => acc + (isUnread(c) ? c.unreadCount || 1 : 0), 0),
-    [items, isUnread],
+    () => displayItems.reduce((acc, c) => acc + (isUnread(c) ? c.unreadCount || 1 : 0), 0),
+    [displayItems, isUnread],
   );
 
   const sortDescription = INBOX_STRINGS.sortOptions[filters.sort];
@@ -375,53 +399,77 @@ export function InboxPage() {
           )}
 
           {!error &&
-            items.map((conversation) => (
-              <ConversationListItem
-                key={conversation.id}
-                conversation={conversation}
-                contact={
-                  related.contacts.get(conversation.id) ??
-                  (conversation.searchContact
-                    ? {
-                        conversationId: conversation.id,
-                        refId: conversation.customerId ?? conversation.leadId ?? conversation.id,
-                        isLead: !conversation.customerId,
-                        name: conversation.searchContact.name,
-                        phone: conversation.searchContact.phone,
-                      }
-                    : null)
-                }
-                lastMessage={related.lastMessages.get(conversation.id) ?? null}
-                isSelected={conversation.id === selectedId}
-                isUnread={isUnread(conversation)}
-                highlightTerm={filters.search}
-                onSelect={() => handleSelect(conversation.id)}
-                onLockedSelect={() => {
-                  const name = conversation.assignedSellerId
-                    ? (sellersById.get(conversation.assignedSellerId)?.fullName ??
-                      INBOX_STRINGS.searchLockedFallbackName)
-                    : INBOX_STRINGS.searchLockedFallbackName;
-                  toast.info(INBOX_STRINGS.searchLockedWith(name));
-                }}
-                trailing={
-                  conversation.isAccessible === false ? undefined : (
-                    <QuickActions conversation={conversation} onMutated={refetch} />
-                  )
-                }
-                escalation={escalationsByConversation.get(conversation.id) ?? null}
-                originAccount={
-                  conversation.whatsappAccountId
-                    ? (accountsById.get(conversation.whatsappAccountId) ?? null)
-                    : null
-                }
-                showOrigin={showOrigin}
-                assignedSeller={
-                  conversation.assignedSellerId
-                    ? (sellersById.get(conversation.assignedSellerId) ?? null)
-                    : null
-                }
-                showAssignee={showAssignee}
-              />
+            displayItems.map((conversation, index) => (
+              <div key={conversation.id}>
+                {showPinned && index === 0 && (
+                  <div className="flex items-center justify-between gap-2 bg-muted/40 px-3 py-1.5">
+                    <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <Icon icon="mdi:pin" size={12} />
+                      {INBOX_STRINGS.pin.blockTitle}
+                    </span>
+                    <span className="text-[11px] tabular-nums text-muted-foreground">
+                      {INBOX_STRINGS.pin.blockCount(pinnedCount, pins.maxPinned)}
+                    </span>
+                  </div>
+                )}
+                {showPinned && pinnedCount > 0 && index === pinnedCount && (
+                  <div className="bg-muted/40 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {INBOX_STRINGS.pin.listSeparator}
+                  </div>
+                )}
+                <ConversationListItem
+                  conversation={conversation}
+                  contact={
+                    related.contacts.get(conversation.id) ??
+                    (conversation.searchContact
+                      ? {
+                          conversationId: conversation.id,
+                          refId: conversation.customerId ?? conversation.leadId ?? conversation.id,
+                          isLead: !conversation.customerId,
+                          name: conversation.searchContact.name,
+                          phone: conversation.searchContact.phone,
+                        }
+                      : null)
+                  }
+                  lastMessage={related.lastMessages.get(conversation.id) ?? null}
+                  isSelected={conversation.id === selectedId}
+                  isUnread={isUnread(conversation)}
+                  isPinned={pins.isPinned(conversation.id)}
+                  highlightTerm={filters.search}
+                  onSelect={() => handleSelect(conversation.id)}
+                  onLockedSelect={() => {
+                    const name = conversation.assignedSellerId
+                      ? (sellersById.get(conversation.assignedSellerId)?.fullName ??
+                        INBOX_STRINGS.searchLockedFallbackName)
+                      : INBOX_STRINGS.searchLockedFallbackName;
+                    toast.info(INBOX_STRINGS.searchLockedWith(name));
+                  }}
+                  trailing={
+                    conversation.isAccessible === false ? undefined : (
+                      <QuickActions
+                        conversation={conversation}
+                        onMutated={refetch}
+                        isPinned={pins.isPinned(conversation.id)}
+                        canPin={pins.canPin}
+                        onTogglePin={sellerId ? () => void pins.togglePin(conversation) : undefined}
+                      />
+                    )
+                  }
+                  escalation={escalationsByConversation.get(conversation.id) ?? null}
+                  originAccount={
+                    conversation.whatsappAccountId
+                      ? (accountsById.get(conversation.whatsappAccountId) ?? null)
+                      : null
+                  }
+                  showOrigin={showOrigin}
+                  assignedSeller={
+                    conversation.assignedSellerId
+                      ? (sellersById.get(conversation.assignedSellerId) ?? null)
+                      : null
+                  }
+                  showAssignee={showAssignee}
+                />
+              </div>
             ))}
 
           {hasMore && (

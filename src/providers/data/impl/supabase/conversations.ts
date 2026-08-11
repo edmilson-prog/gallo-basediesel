@@ -334,6 +334,7 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       : getSupabaseClient().from(TABLE).select(COLUMNS);
 
     if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+    if (params.ids && params.ids.length > 0) query = query.in("id", params.ids);
     if (params.assignedSellerId !== undefined)
       query = query.eq("assigned_seller_id", params.assignedSellerId);
     if (params.unassigned) query = query.is("assigned_seller_id", null);
