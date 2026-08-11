@@ -4,6 +4,15 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.172.0] — Pinboard · 2026-08-11
+
+**A Inbox ordena por quem falou por último, e só isso. A conversa que importa hoje — o cliente que fecha amanhã, o orçamento parado esperando a peça chegar — afunda sozinha conforme o resto do dia vai chegando por cima. Quem precisava dela de volta ia caçar na busca. Agora cada atendente escolhe um punhado de conversas que ficam no topo e não saem de lá.**
+
+### Added
+
+- **Fixar conversa no topo da Inbox** — passe o mouse na linha e clique no alfinete, ou use o menu de três pontos dentro da conversa. Ela sobe para um bloco **Fixadas** no alto da lista e continua ali mesmo depois de dias sem mensagem, mesmo que mude de situação e mesmo quando os filtros ativos a esconderiam. Durante uma busca por texto o bloco sai da frente, para não competir com o resultado. As fixadas são suas: fixar não mexe na tela de mais ninguém.
+- **Limite de conversas fixadas** — nova tela em Configurações → Atendimento → Conversas fixadas, onde se define quantas cada atendente pode manter no topo (padrão 5, até 20). Ao atingir o limite é preciso desafixar uma para fixar outra — nada sai do topo sozinho. Se o limite for reduzido depois, quem já tiver mais continua vendo todas as suas e apenas fica impedido de fixar novas.
+
 ## [0.171.0] — Glance · 2026-08-11
 
 **Duas telas onde era preciso abrir alguma coisa para saber o que já estava ali. Na Inbox, descobrir quem era o contato e sobre o que era a conversa exigia abrir o atendimento — e abrir marca como lido; agora basta pousar o mouse na linha. No orçamento, aplicar um kit era um menu que abria uma janela por cima da tela, e lançar um item sem cadastro era outra janela: os dois viraram superfícies dentro da própria página, onde dá para ver antes de decidir.**
