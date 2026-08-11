@@ -24,6 +24,8 @@
  * hook (buffer 1..N, commit once) and does not flow through these intent rules.
  */
 
+import { isServerOverloadError } from "@/shared/lib/queryRetry";
+
 export type ListFetchIntent = "initial" | "load-more" | "refetch";
 
 export type ListFetchPlacement = "replace" | "append";
@@ -62,13 +64,22 @@ export function resolveListFetchFailure(input: {
  * load-more must NOT auto-retry (it would amplify load during the exact
  * server-side timeout it rides on — the UI offers a manual retry instead);
  * realtime re-hydration retries itself on the next tick.
+ *
+ * `error` extends that same reasoning to the intents that DO retry: the rule
+ * above already refuses to amplify a server-side timeout for load-more, but
+ * "initial" and "refetch" used to retry 400ms after ANY failure — including a
+ * statement timeout that had just spent 8s of a database connection. Passing
+ * the error lets them make the distinction the load-more rule always made.
+ * Optional so callers that cannot supply it keep the previous behaviour.
  */
 export function shouldRetryListFetch(input: {
   intent: ListFetchIntent;
   hasItems: boolean;
   attempt: number;
+  error?: unknown;
 }): boolean {
   if (input.attempt >= INITIAL_LOAD_MAX_ATTEMPTS) return false;
+  if (input.error !== undefined && isServerOverloadError(input.error)) return false;
   if (input.intent === "initial") return !input.hasItems;
   return input.intent === "refetch";
 }
