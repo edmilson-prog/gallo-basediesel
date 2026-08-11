@@ -14,13 +14,19 @@ function findOrCreateMeta(name: string): HTMLMetaElement {
 }
 
 /**
- * Point the document at the atendimento manifest while this app is mounted.
+ * Keep the document pointed at the atendimento manifest while this app is mounted.
  *
- * The SPA ships a single `index.html`, and its manifest belongs to the external
- * seller PWA (`scope: /pwa`). A second installable app on the same origin needs
- * its own manifest with a non-overlapping scope, so the route swaps the `href`
- * on entry and restores it on exit — otherwise "add to home screen" from
- * /atendimento would install the seller app instead.
+ * The SPA ships a single `index.html` whose default manifest belongs to the
+ * external seller PWA (`scope: /pwa`), so a second installable app on the same
+ * origin has to declare its own.
+ *
+ * This hook covers only the SPA case — arriving at /atendimento through a
+ * client-side navigation, where no document load happens. **A direct load is
+ * handled by the inline script in `index.html`**, and it has to be: the browser
+ * evaluates installability at load, against the manifest linked at that moment.
+ * Swapping here alone was the bug behind "the install banner never appears" —
+ * by the time React mounts, the browser has already decided the page is not
+ * installable.
  */
 export function usePwaManifest(): void {
   useEffect(() => {

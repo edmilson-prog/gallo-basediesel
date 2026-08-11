@@ -45,7 +45,7 @@ export function PwaAccountSheet({ open, onOpenChange, online }: IPwaAccountSheet
   const navigate = useNavigate();
   const { currentUser, signOut } = useAuth();
   const notifications = usePwaNotifications();
-  const { isInstalled } = useInstallPrompt();
+  const { isInstalled, canPrompt, prompt } = useInstallPrompt();
   const permission = notifications.permission;
 
   const permissionLabel =
@@ -101,10 +101,24 @@ export function PwaAccountSheet({ open, onOpenChange, online }: IPwaAccountSheet
           notifications.openPreferences();
         }}
       />
+      {/* An already-signed-in user is redirected straight to the list and never
+          passes the install screen, so this is the only place they can install
+          from. Chromium gets the native dialog; iOS has no such API, so it gets
+          the screen with the manual "add to home screen" steps. */}
       <Row
         icon="mdi:cellphone"
         label={S.account.installed}
         value={isInstalled ? S.account.yes : S.account.no}
+        onClick={
+          isInstalled
+            ? undefined
+            : canPrompt
+              ? () => void prompt()
+              : () => {
+                  onOpenChange(false);
+                  void navigate({ to: "/atendimento/instalar" });
+                }
+        }
       />
     </PwaSheet>
   );

@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
+import { useAuth } from "@/features/auth/useAuth";
 import { PwaButton } from "../components/ui/PwaButton";
 import { useInstallPrompt } from "../hooks/useInstallPrompt";
 import { INSTALL_SEEN_KEY } from "../engine/installGate";
@@ -9,6 +10,7 @@ const STEP_ICONS = ["mdi:export-variant", "mdi:plus-box-outline", "mdi:cellphone
 
 export function InstallPage() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const { canPrompt, isInstalled, prompt } = useInstallPrompt();
 
   const goOn = () => {
@@ -18,7 +20,9 @@ export function InstallPage() {
     } catch {
       /* no storage — the screen shows again, which is merely mildly annoying */
     }
-    void navigate({ to: "/atendimento/entrar" });
+    // Reached from the account sheet by someone already signed in: send them
+    // back to the list, not to a login form they do not need.
+    void navigate({ to: isAuthenticated ? "/atendimento/conversas" : "/atendimento/entrar" });
   };
 
   const install = async () => {
@@ -85,7 +89,11 @@ export function InstallPage() {
           </PwaButton>
         )}
         <PwaButton variant={canPrompt && !isInstalled ? "plain" : "gold"} full onClick={goOn}>
-          {canPrompt && !isInstalled ? S.install.secondary : S.login.submit}
+          {canPrompt && !isInstalled
+            ? S.install.secondary
+            : isAuthenticated
+              ? S.install.backToApp
+              : S.login.submit}
         </PwaButton>
       </div>
     </div>

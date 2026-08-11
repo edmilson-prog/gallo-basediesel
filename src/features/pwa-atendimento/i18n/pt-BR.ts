@@ -16,6 +16,7 @@ export const PWA_ATENDIMENTO_STRINGS = {
     primary: "Adicionar à tela de início",
     secondary: "Continuar no navegador",
     installed: "App já instalado neste aparelho",
+    backToApp: "Voltar às conversas",
     iosNote: "No iPhone, o aviso de mensagem nova só chega com o app instalado na tela de início.",
   },
 
