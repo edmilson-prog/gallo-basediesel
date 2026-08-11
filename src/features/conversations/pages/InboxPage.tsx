@@ -134,6 +134,11 @@ export function InboxPage() {
   useEffect(() => {
     if (filters.search.trim().length === 0) setMessageSearchActive(false);
   }, [filters.search]);
+  // DERIVED, not the raw state: the effect above only runs AFTER the render in
+  // which the term was cleared, so for one render `messageSearchActive` is
+  // still true with an empty term — enough to fire `search_conversation_messages`
+  // with `p_search=""`, which has no empty-term guard and scans every message.
+  const messageSearchMode = messageSearchActive && filters.search.trim().length > 0;
 
   const listParams = useMemo(
     () => filtersToListParams(filters, { currentSellerId: sellerId }),
@@ -152,7 +157,7 @@ export function InboxPage() {
     markItemRead,
   } = useConversationsList(listParams, {
     refreshKey: realtime.tick,
-    mode: messageSearchActive ? "messages" : "list",
+    mode: messageSearchMode ? "messages" : "list",
   });
   const conversationsProvider = useConversationsProvider();
 
