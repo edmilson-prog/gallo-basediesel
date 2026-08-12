@@ -18,6 +18,9 @@ export const PWA_ATENDIMENTO_STRINGS = {
     installed: "App já instalado neste aparelho",
     backToApp: "Voltar às conversas",
     iosNote: "No iPhone, o aviso de mensagem nova só chega com o app instalado na tela de início.",
+    iosSafariOnlyTitle: "No iPhone, instale pelo Safari",
+    iosSafariOnlyBody:
+      "Neste navegador o atalho pode virar um simples favorito, e favorito não recebe aviso de mensagem. Abra o mesmo endereço no Safari e use Compartilhar → Adicionar à Tela de Início.",
   },
 
   login: {
