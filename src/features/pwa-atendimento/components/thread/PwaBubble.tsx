@@ -1,8 +1,12 @@
+import { useState } from "react";
 import type { IMessage } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { WhatsAppText } from "@/features/conversations/components/bubbles/WhatsAppText";
 import { useResolvedMediaUrl } from "@/features/conversations/hooks/useResolvedMediaUrl";
+import { downloadFileName } from "@/features/conversations/utils/mediaDownload";
+import { PwaMediaViewer } from "../ui/PwaMediaViewer";
+import { PWA_ATENDIMENTO_STRINGS as S } from "../../i18n/pt-BR";
 import { PwaTicks } from "./PwaTicks";
 import { PwaAudioBody } from "./PwaAudioBody";
 
@@ -14,16 +18,27 @@ function timeOf(iso: string): string {
 
 function PwaImageBody({ message, outgoing }: { message: IMessage; outgoing: boolean }) {
   const { data: url, isLoading } = useResolvedMediaUrl(message.mediaUrl);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const caption = message.text?.trim();
   return (
     <div className="w-[214px]">
       {url ? (
-        <img
-          src={url}
-          alt={caption || "Imagem da conversa"}
-          loading="lazy"
-          className="max-h-[280px] w-full rounded-sm object-cover"
-        />
+        // O balão corta a foto (`object-cover`) para a lista não virar uma
+        // coluna de alturas irregulares — quem quer ver a foto inteira toca
+        // nela. Sem isso o corte seria a única leitura possível.
+        <button
+          type="button"
+          onClick={() => setViewerOpen(true)}
+          aria-label={S.viewer.open}
+          className="block w-full"
+        >
+          <img
+            src={url}
+            alt={caption || S.viewer.title}
+            loading="lazy"
+            className="max-h-[280px] w-full rounded-sm object-cover"
+          />
+        </button>
       ) : (
         <div
           className={cn(
@@ -39,6 +54,19 @@ function PwaImageBody({ message, outgoing }: { message: IMessage; outgoing: bool
         </div>
       )}
       {caption && <p className="mt-1.5 text-[13.5px] leading-snug">{caption}</p>}
+
+      <PwaMediaViewer
+        open={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+        kind="image"
+        url={url ?? null}
+        caption={caption}
+        fileName={downloadFileName({
+          mediaType: message.mediaType,
+          id: message.id,
+          caption: message.text,
+        })}
+      />
     </div>
   );
 }

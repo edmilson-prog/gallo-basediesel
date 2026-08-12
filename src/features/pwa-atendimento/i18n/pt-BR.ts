@@ -155,6 +155,16 @@ export const PWA_ATENDIMENTO_STRINGS = {
     fromCustomer: "Cliente",
   },
 
+  viewer: {
+    title: "Imagem da conversa",
+    open: "Ampliar imagem",
+    openVideo: "Abrir vídeo",
+    close: "Fechar",
+    download: "Baixar arquivo",
+    unavailable: "Mídia indisponível",
+    zoomHint: "Toque duas vezes para aproximar",
+  },
+
   account: {
     title: "Conta",
     realtime: "Atualização em tempo real",
@@ -236,5 +246,7 @@ export const PWA_ATENDIMENTO_STRINGS = {
     conversations: "Conversas",
     queue: "Espera",
     analise: "Análise",
+    /** Carimbo de versão no rodapé — é por ele que se confere se o app atualizou. */
+    version: (version: string) => `Versão ${version} do app`,
   },
 } as const;
