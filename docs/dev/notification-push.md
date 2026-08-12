@@ -149,7 +149,12 @@ Corrigido em duas metades, porque cada uma sozinha deixa uma armadilha:
 
 ⚠️ **Ao criar ou re-vincular um usuário, mantenha as duas direções em dia.** O app mantém
 `profiles.seller_id`; `sellers.auth_user_id` é espelho reverso e nada o sincroniza sozinho.
-Continua faltando `joziel@gallobasediesel.com.br`, que não tem linha em `profiles`.
+Em 12/08/2026 os **7 vendedores ativos** estão vinculados. Vendedor inativo pode ficar sem
+vínculo sem prejuízo — não recebe push porque não atende.
+
+⚠️ **Mas desativar um vendedor não redistribui as conversas dele.** Hoje há 84 conversas
+abertas atribuídas a um vendedor `active = false`: ninguém é notificado e ninguém está
+atendendo. Ao desligar alguém, transfira a carteira e as conversas abertas antes.
 
 ## iOS
 
