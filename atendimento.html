@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <title>GALLO Atendimento</title>
+    <meta name="description" content="Conversas do atendimento GALLO BASE DIESEL no celular." />
+    <meta name="author" content="GALLO BASE DIESEL" />
+    <meta name="robots" content="noindex" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Own document, on purpose.
+         Two installable apps share this origin: the external seller app at /pwa
+         and this one at /atendimento. They used to share `index.html` too, with
+         an inline script swapping the head tags by pathname — and that cannot
+         work on iOS. WebKit ties a web app's identity to the manifest present
+         when the document loads; mutating `link[rel=manifest]`'s href afterwards
+         is never re-evaluated, so Safari's "Adicionar à Tela de Início" kept
+         offering "GALLO Vendedor" pointing at /pwa even while the page was
+         /atendimento. Chrome re-reads the mutated href, which is why every
+         desktop measurement looked correct and the iPhone did not.
+         `vercel.json` routes /atendimento* here. -->
+    <link rel="manifest" href="/atendimento.webmanifest" />
+    <meta name="theme-color" content="#141011" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="GALLO Atendimento" />
+    <link rel="apple-touch-icon" href="/atendimento-apple-touch-icon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Saira+Condensed:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+
+    <script>
+      // Anti-FOUC. This app is monochrome-with-gold and always dark, so it pins
+      // the parent brand instead of reading the user's sub-brand preference —
+      // same choice PwaShell makes on its own container.
+      (function () {
+        try {
+          var html = document.documentElement;
+          html.setAttribute("data-theme", "diesel");
+          html.setAttribute("data-mode", "dark");
+          html.classList.add("dark");
+        } catch (_e) {
+          /* nothing to recover: the app pins its own theme once mounted */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
