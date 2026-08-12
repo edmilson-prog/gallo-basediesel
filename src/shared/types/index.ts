@@ -587,3 +587,13 @@ export { AI_FEATURE_LABELS, AI_PROVIDER_LABELS, AI_SUPPORTED_PROVIDERS } from ".
 
 // PIX shortcut — store-owned PIX keys (design 2026-08-07)
 export type { PixKeyType, IPixKey, IPixKeyProvider } from "./pix";
+
+// NPS transacional (PRD-148B, design 2026-08-12)
+export type {
+  INpsClass,
+  INpsTrigger,
+  INpsSurveyStatus,
+  INpsSurvey,
+  INpsResult,
+  INpsSettings,
+} from "./nps";
