@@ -121,7 +121,13 @@ async function processStore(
   settingsRow: ISettingsRow,
   baseUrl: string,
   now: Date,
-): Promise<{ eligible: number; created: number; sent: number; failed: number; suppressed: Record<string, number> }> {
+): Promise<{
+  eligible: number;
+  created: number;
+  sent: number;
+  failed: number;
+  suppressed: Record<string, number>;
+}> {
   const settings = toSchedulerSettings(settingsRow);
 
   const { data: candidateRows, error: candidatesError } = await admin.rpc("nps_survey_candidates", {
@@ -181,7 +187,10 @@ async function processStore(
     }
     created += 1;
 
-    const text = buildSurveyMessage(firstNameOf(row.recipient_name), buildSurveyUrl(baseUrl, token));
+    const text = buildSurveyMessage(
+      firstNameOf(row.recipient_name),
+      buildSurveyUrl(baseUrl, token),
+    );
     const result = await sender.send({
       conversationId: row.conversation_id,
       storeId: row.store_id,

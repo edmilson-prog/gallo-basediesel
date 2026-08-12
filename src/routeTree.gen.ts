@@ -39,6 +39,7 @@ import { Route as PortalInicioRouteImport } from './routes/portal.inicio'
 import { Route as PortalFrotaRouteImport } from './routes/portal.frota'
 import { Route as PortalFaturamentoRouteImport } from './routes/portal.faturamento'
 import { Route as PortalAnaliseRouteImport } from './routes/portal.analise'
+import { Route as PesquisaTokenRouteImport } from './routes/pesquisa.$token'
 import { Route as LojaRecuperarSenhaRouteImport } from './routes/loja.recuperar-senha'
 import { Route as LojaLoginRouteImport } from './routes/loja.login'
 import { Route as LojaContaRouteImport } from './routes/loja.conta'
@@ -360,6 +361,11 @@ const PortalAnaliseRoute = PortalAnaliseRouteImport.update({
   id: '/analise',
   path: '/analise',
   getParentRoute: () => PortalRoute,
+} as any)
+const PesquisaTokenRoute = PesquisaTokenRouteImport.update({
+  id: '/pesquisa/$token',
+  path: '/pesquisa/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const LojaRecuperarSenhaRoute = LojaRecuperarSenhaRouteImport.update({
   id: '/recuperar-senha',
@@ -1314,6 +1320,7 @@ export interface FileRoutesByFullPath {
   '/loja/conta': typeof LojaContaRouteWithChildren
   '/loja/login': typeof LojaLoginRoute
   '/loja/recuperar-senha': typeof LojaRecuperarSenhaRoute
+  '/pesquisa/$token': typeof PesquisaTokenRoute
   '/portal/analise': typeof PortalAnaliseRoute
   '/portal/faturamento': typeof PortalFaturamentoRoute
   '/portal/frota': typeof PortalFrotaRouteWithChildren
@@ -1504,6 +1511,7 @@ export interface FileRoutesByTo {
   '/loja/checkout': typeof LojaCheckoutRoute
   '/loja/login': typeof LojaLoginRoute
   '/loja/recuperar-senha': typeof LojaRecuperarSenhaRoute
+  '/pesquisa/$token': typeof PesquisaTokenRoute
   '/portal/analise': typeof PortalAnaliseRoute
   '/portal/faturamento': typeof PortalFaturamentoRoute
   '/portal/inicio': typeof PortalInicioRoute
@@ -1695,6 +1703,7 @@ export interface FileRoutesById {
   '/loja/conta': typeof LojaContaRouteWithChildren
   '/loja/login': typeof LojaLoginRoute
   '/loja/recuperar-senha': typeof LojaRecuperarSenhaRoute
+  '/pesquisa/$token': typeof PesquisaTokenRoute
   '/portal/analise': typeof PortalAnaliseRoute
   '/portal/faturamento': typeof PortalFaturamentoRoute
   '/portal/frota': typeof PortalFrotaRouteWithChildren
@@ -1900,6 +1909,7 @@ export interface FileRouteTypes {
     | '/loja/conta'
     | '/loja/login'
     | '/loja/recuperar-senha'
+    | '/pesquisa/$token'
     | '/portal/analise'
     | '/portal/faturamento'
     | '/portal/frota'
@@ -2090,6 +2100,7 @@ export interface FileRouteTypes {
     | '/loja/checkout'
     | '/loja/login'
     | '/loja/recuperar-senha'
+    | '/pesquisa/$token'
     | '/portal/analise'
     | '/portal/faturamento'
     | '/portal/inicio'
@@ -2280,6 +2291,7 @@ export interface FileRouteTypes {
     | '/loja/conta'
     | '/loja/login'
     | '/loja/recuperar-senha'
+    | '/pesquisa/$token'
     | '/portal/analise'
     | '/portal/faturamento'
     | '/portal/frota'
@@ -2454,6 +2466,7 @@ export interface RootRouteChildren {
   PortalRoute: typeof PortalRouteWithChildren
   PwaRoute: typeof PwaRouteWithChildren
   SemPermissaoRoute: typeof SemPermissaoRoute
+  PesquisaTokenRoute: typeof PesquisaTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2667,6 +2680,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/portal/analise'
       preLoaderRoute: typeof PortalAnaliseRouteImport
       parentRoute: typeof PortalRoute
+    }
+    '/pesquisa/$token': {
+      id: '/pesquisa/$token'
+      path: '/pesquisa/$token'
+      fullPath: '/pesquisa/$token'
+      preLoaderRoute: typeof PesquisaTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/loja/recuperar-senha': {
       id: '/loja/recuperar-senha'
@@ -4597,6 +4617,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortalRoute: PortalRouteWithChildren,
   PwaRoute: PwaRouteWithChildren,
   SemPermissaoRoute: SemPermissaoRoute,
+  PesquisaTokenRoute: PesquisaTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

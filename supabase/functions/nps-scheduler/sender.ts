@@ -3,7 +3,10 @@ import { dispatchWahaText } from "../_shared/wahaSendAdapter.ts";
 import { makeSendDb, makeEngineDeps } from "../_shared/whatsappSendAdapter.ts";
 import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
 import { processSendRequest } from "../_shared/whatsapp/send/core.ts";
-import { buildScheduledSendRequest, buildSystemSender } from "../_shared/whatsapp/scheduled/core.ts";
+import {
+  buildScheduledSendRequest,
+  buildSystemSender,
+} from "../_shared/whatsapp/scheduled/core.ts";
 
 /**
  * The NPS delivery boundary.
