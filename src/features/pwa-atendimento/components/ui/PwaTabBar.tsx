@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
+import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { PWA_ATENDIMENTO_STRINGS as S } from "../../i18n/pt-BR";
 
 interface IPwaTabBarProps {
@@ -11,11 +12,17 @@ interface IPwaTabBarProps {
 }
 
 /**
- * Two tabs only — the kit's recorte. Account and sign-out live behind the
- * header avatar, not down here.
+ * Conversas, Espera e — para quem pode ver — Análise. Conta e sair ficam atrás
+ * do avatar do cabeçalho, não aqui embaixo.
+ *
+ * A terceira aba **não é montada** para quem não tem o recurso na matriz de
+ * Papéis, em vez de aparecer e negar o acesso depois: uma aba que só serve para
+ * dizer "não pode" é ruído permanente na barra.
  */
 export function PwaTabBar({ unreadCount, queueCount }: IPwaTabBarProps) {
   const { pathname } = useLocation();
+  const canSeeAnalise = usePermission("customer_service_analytics", "view");
+
   const items = [
     {
       to: "/atendimento/conversas",
@@ -24,6 +31,16 @@ export function PwaTabBar({ unreadCount, queueCount }: IPwaTabBarProps) {
       badge: unreadCount,
     },
     { to: "/atendimento/espera", label: S.nav.queue, icon: "mdi:clock-outline", badge: queueCount },
+    ...(canSeeAnalise
+      ? [
+          {
+            to: "/atendimento/analise" as const,
+            label: S.nav.analise,
+            icon: "mdi:chart-line",
+            badge: 0,
+          },
+        ]
+      : []),
   ] as const;
 
   return (

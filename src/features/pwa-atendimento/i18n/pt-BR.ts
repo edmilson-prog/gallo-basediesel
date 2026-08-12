@@ -213,8 +213,28 @@ export const PWA_ATENDIMENTO_STRINGS = {
     updating: "Atualizando…",
   },
 
+  /** Aba Análise (PRD-051). Os rótulos das métricas vêm de `CSA_STRINGS`, para
+   *  o móvel e o desktop não divergirem no primeiro ajuste de texto. */
+  analise: {
+    title: "Análise",
+    subtitle: "Atendimento, mês a mês",
+    sellerAll: "Todos os vendedores",
+    loading: "Calculando…",
+    failed: "Não foi possível calcular a análise.",
+    retry: "Tentar de novo",
+    empty: "Sem conversas no período.",
+    deltaNoBase: "sem base",
+    teamAverage: "Média da equipe",
+    sellerHealth: "Saúde",
+    escalationsOf: (n: number) => (n === 1 ? "1 escalação" : `${n} escalações`),
+    conversationsOf: (n: number) => (n === 1 ? "1 conversa" : `${n} conversas`),
+    blockedTitle: "Acesso restrito",
+    blockedBody: "A análise é visível apenas para Owner, Gestor e Financeiro.",
+  },
+
   nav: {
     conversations: "Conversas",
     queue: "Espera",
+    analise: "Análise",
   },
 } as const;

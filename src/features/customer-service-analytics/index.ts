@@ -8,6 +8,12 @@
  */
 
 export { calculateCustomerServiceMetrics, deltaPctOf } from "./engine";
+
+// Reaproveitados pela aba Análise do PWA (`src/features/pwa-atendimento`): a
+// tela móvel é outra apresentação da MESMA análise, então copiar os rótulos ou
+// o formatador de duração faria as duas divergirem no primeiro ajuste.
+export { CSA_STRINGS } from "./i18n/pt-BR";
+export { formatDuration } from "./utils/time";
 export type { ICustomerServiceEngineContext, ServiceChannelKey } from "./engine";
 
 export { CustomerServiceAnalyticsPage } from "./pages/CustomerServiceAnalyticsPage";
