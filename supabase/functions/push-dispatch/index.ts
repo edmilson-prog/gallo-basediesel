@@ -21,6 +21,7 @@ import { servePost, type RequestContext } from "../_shared/serve.ts";
 import { createSecretResolver } from "../_shared/secrets.ts";
 import { verifyWorkerSecret } from "../_shared/workerAuth.ts";
 import { sendWebPush, type IVapidKeys } from "../_shared/webpush.ts";
+import { resolveRecipient, type IRecipientReader } from "./recipient.ts";
 
 const WORKER_SECRET_NAME = "PUSH_DISPATCH_WORKER_SECRET";
 const VAPID_PRIVATE_NAME = "VAPID_PRIVATE_KEY";
@@ -160,13 +161,10 @@ servePost(async (req: Request, ctx: RequestContext): Promise<Response> => {
     return json({ skipped: "closed conversation" });
   }
 
-  const { data: sellerData, error: sellerError } = await admin
-    .from("sellers")
-    .select("auth_user_id")
-    .eq("id", conversation.assigned_seller_id)
-    .maybeSingle();
-  if (sellerError) throw new HttpError(500, `seller read failed: ${sellerError.message}`);
-  const authUserId = (sellerData as { auth_user_id: string | null } | null)?.auth_user_id;
+  const authUserId = await resolveRecipient(
+    admin as unknown as IRecipientReader,
+    conversation.assigned_seller_id,
+  );
   if (!authUserId) return json({ skipped: "assignee has no login" });
 
   const { data: subscriptionData, error: subscriptionError } = await admin
@@ -195,7 +193,9 @@ servePost(async (req: Request, ctx: RequestContext): Promise<Response> => {
     }),
   );
 
-  const expired = results.filter((entry) => entry.result.isExpired).map((entry) => entry.subscription.id);
+  const expired = results
+    .filter((entry) => entry.result.isExpired)
+    .map((entry) => entry.subscription.id);
   if (expired.length > 0) {
     // A zombie endpoint is a phantom delivery — prune it the moment it answers
     // 410, not on some later sweep.
@@ -203,7 +203,9 @@ servePost(async (req: Request, ctx: RequestContext): Promise<Response> => {
     ctx.log.info("pruned expired push subscriptions", { count: expired.length });
   }
 
-  const delivered = results.filter((entry) => entry.result.status >= 200 && entry.result.status < 300);
+  const delivered = results.filter(
+    (entry) => entry.result.status >= 200 && entry.result.status < 300,
+  );
   if (delivered.length > 0) {
     await admin
       .from("push_subscriptions")
@@ -215,7 +217,10 @@ servePost(async (req: Request, ctx: RequestContext): Promise<Response> => {
   }
 
   const failed = results
-    .filter((entry) => !entry.result.isExpired && (entry.result.status < 200 || entry.result.status >= 300))
+    .filter(
+      (entry) =>
+        !entry.result.isExpired && (entry.result.status < 200 || entry.result.status >= 300),
+    )
     .map((entry) => ({ endpoint: entry.subscription.endpoint, ...entry.result }));
   if (failed.length > 0) ctx.log.error("push delivery failures", { failed });
 
