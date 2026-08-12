@@ -88,10 +88,19 @@ export function initialsOf(name: string): string {
 }
 
 /**
- * Short label for a list row: the part before the first separator, so
- * "PAWIMAC · Antonello Terraplanagem" reads as "PAWIMAC" on a narrow screen.
+ * Display label for a contact: the part before the first separator, so
+ * "PAWIMAC · Antonello Terraplanagem" reads as "PAWIMAC" on a narrow screen —
+ * **in caixa alta**.
+ *
+ * The names arrive from the WhatsApp address book and from imports, so the list
+ * mixes "EDER BATISTA", "Marcelo Viana" and "raimannbuenodiego" on consecutive
+ * rows. Normalising here rather than with `text-transform` keeps the three
+ * surfaces that show a contact — lista, cabeçalho da conversa e mídias — reading
+ * from one rule, and keeps the shortening and the casing in the same place.
+ * The stored name is untouched: this is a label, not a migration.
  */
 export function shortNameOf(name: string): string {
   const [head] = name.split(/\s+[·|—-]\s+/);
-  return (head ?? name).trim() || name;
+  const label = (head ?? name).trim() || name;
+  return label.toLocaleUpperCase("pt-BR");
 }
