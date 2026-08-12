@@ -86,29 +86,51 @@ function classRange(npsClass: NonNullable<INpsListFilters["npsClass"]>): [number
   return [9, 10];
 }
 
+/**
+ * Applies the shared filters to a query.
+ *
+ * The builder is narrowed to a loose shape first: the Supabase client is not
+ * parametrised with a generated `Database` type here, so re-assigning a
+ * fully-inferred builder once per conditional filter makes TypeScript walk an
+ * ever-deeper type and eventually give up with TS2589. Fixing the type at the
+ * boundary keeps the call sites readable and the checker finite.
+ */
+interface IFilterableQuery {
+  eq(column: string, value: unknown): IFilterableQuery;
+  is(column: string, value: unknown): IFilterableQuery;
+  not(column: string, operator: string, value: unknown): IFilterableQuery;
+}
+
+function applySharedFilters<T>(query: T, filters: INpsFilters): T {
+  let out = query as unknown as IFilterableQuery;
+  if (filters.storeId) out = out.eq("store_id", filters.storeId);
+  if (filters.trigger) out = out.eq("trigger", filters.trigger);
+  if (filters.audience === "customer") out = out.not("customer_id", "is", null);
+  if (filters.audience === "contact") out = out.is("customer_id", null);
+  return out as unknown as T;
+}
+
 export const supabaseNpsProvider: INpsProvider = {
   async rawMetrics(filters: INpsFilters): Promise<INpsRawMetrics> {
     const supabase = getSupabaseClient();
     const { start, previousStart } = windowBounds(filters.windowDays);
 
-    let answered = supabase
-      .from(TABLE)
-      .select("score, responded_at, customer_id, trigger")
-      .eq("status", "responded")
-      .not("score", "is", null)
-      .gte("responded_at", previousStart);
-
-    if (filters.storeId) answered = answered.eq("store_id", filters.storeId);
-    if (filters.trigger) answered = answered.eq("trigger", filters.trigger);
-    if (filters.audience === "customer") answered = answered.not("customer_id", "is", null);
-    if (filters.audience === "contact") answered = answered.is("customer_id", null);
+    const answered = applySharedFilters(
+      supabase
+        .from(TABLE)
+        .select("score, responded_at, customer_id, trigger")
+        .eq("status", "responded")
+        .not("score", "is", null)
+        .gte("responded_at", previousStart),
+      filters,
+    );
 
     const { data, error } = await answered;
     if (error) throw error;
 
     const responses: INpsResponsePoint[] = [];
     const previousResponses: INpsResponsePoint[] = [];
-    for (const row of (data ?? []) as Array<{ score: number; responded_at: string }>) {
+    for (const row of (data ?? []) as unknown as Array<{ score: number; responded_at: string }>) {
       const point = { score: row.score, respondedAt: row.responded_at };
       if (row.responded_at >= start) responses.push(point);
       else previousResponses.push(point);
@@ -119,16 +141,12 @@ export const supabaseNpsProvider: INpsProvider = {
     // engagement by blaming the customer for a delivery problem.
     const reached = ["sent", "responded", "expired"];
     const countSent = async (from: string, to: string | null): Promise<number> => {
-      let query = supabase
+      const base = supabase
         .from(TABLE)
         .select("id", { count: "exact", head: true })
         .in("status", reached)
         .gte("sent_at", from);
-      if (to) query = query.lt("sent_at", to);
-      if (filters.storeId) query = query.eq("store_id", filters.storeId);
-      if (filters.trigger) query = query.eq("trigger", filters.trigger);
-      if (filters.audience === "customer") query = query.not("customer_id", "is", null);
-      if (filters.audience === "contact") query = query.is("customer_id", null);
+      const query = applySharedFilters(to ? base.lt("sent_at", to) : base, filters);
       const { count, error: countError } = await query;
       if (countError) throw countError;
       return count ?? 0;
@@ -159,10 +177,7 @@ export const supabaseNpsProvider: INpsProvider = {
       // a full page is never mistaken for the end of the list.
       .range(from, from + pageSize - 1);
 
-    if (filters.storeId) query = query.eq("store_id", filters.storeId);
-    if (filters.trigger) query = query.eq("trigger", filters.trigger);
-    if (filters.audience === "customer") query = query.not("customer_id", "is", null);
-    if (filters.audience === "contact") query = query.is("customer_id", null);
+    query = applySharedFilters(query, filters);
     if (filters.npsClass) {
       const [min, max] = classRange(filters.npsClass);
       query = query.gte("score", min).lte("score", max);
@@ -175,7 +190,7 @@ export const supabaseNpsProvider: INpsProvider = {
     if (error) throw error;
 
     return {
-      data: ((data ?? []) as NpsSurveyRow[]).map(rowToNpsSurvey),
+      data: ((data ?? []) as unknown as NpsSurveyRow[]).map(rowToNpsSurvey),
       total: count ?? 0,
     };
   },
