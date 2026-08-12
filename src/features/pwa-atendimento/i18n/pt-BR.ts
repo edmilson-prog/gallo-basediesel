@@ -209,6 +209,7 @@ export const PWA_ATENDIMENTO_STRINGS = {
     prefSound: "Som e vibração",
     prefQuiet: "Silenciar das 22h às 6h",
     prefQuietHint: "Urgentes continuam passando",
+    headsUpEyebrow: "Nova mensagem",
     headsUpOpen: "Abrir conversa",
     headsUpDismiss: "Dispensar",
     headsUpNow: "agora",

@@ -44,9 +44,12 @@ export function PwaUpdateBar({ hidden = false }: IPwaUpdateBarProps) {
   if (!updateReady || hidden || dismissedAt !== null) return null;
 
   return (
+    // Mesma correção da faixa de mensagem: `top-2` cru cai por cima do relógio
+    // e da bateria do iPhone. Esta segue escura de propósito — assim as duas
+    // faixas que dividem o slot do topo não se confundem uma com a outra.
     <div
       role="status"
-      className="absolute inset-x-2 top-2 z-[68] overflow-hidden rounded-lg bg-card shadow-lg ring-1 ring-inset ring-primary/40"
+      className="absolute inset-x-2 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[68] overflow-hidden rounded-lg bg-card shadow-lg ring-1 ring-inset ring-primary/40"
     >
       <div className="flex gap-3 px-3 pb-2.5 pt-3">
         <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-md bg-primary/15">
