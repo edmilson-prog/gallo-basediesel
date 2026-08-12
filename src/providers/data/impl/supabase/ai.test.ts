@@ -33,14 +33,7 @@ describe("supabase ai mappers", () => {
           provider: "openai",
           enabled: true,
           defaultModel: "gpt-5.2",
-          models: [
-            {
-              id: "gpt-5.2",
-              label: "GPT-5.2",
-              inputPricePer1kUsd: 0.01,
-              outputPricePer1kUsd: 0.03,
-            },
-          ],
+          models: [{ id: "gpt-5.2", label: "GPT-5.2", inputPricePer1kUsd: 0.01, outputPricePer1kUsd: 0.03 }],
           credentialsRef: "OPENAI_API_KEY",
           status: "configured",
           modelsRefreshedAt: "2026-06-17T10:00:00.000Z",

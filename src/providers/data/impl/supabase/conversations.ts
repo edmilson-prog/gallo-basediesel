@@ -269,7 +269,8 @@ async function searchConversationMessages(
     buildSearchRpcParams(params, page, pageSize),
   );
 
-  if (error) throw new Error(`[supabase] conversations.searchMessages failed: ${error.message}`);
+  if (error)
+    throw new Error(`[supabase] conversations.searchMessages failed: ${error.message}`);
 
   const rows = (data ?? []) as unknown as ConversationMessageMatchRow[];
   return {
@@ -306,9 +307,7 @@ async function listConversationsViaRpc(
 }
 
 export const supabaseConversationsProvider: IConversationsProvider = {
-  async searchMessages(
-    params: IListConversationsParams = {},
-  ): Promise<IPaginatedResult<IConversation>> {
+  async searchMessages(params: IListConversationsParams = {}): Promise<IPaginatedResult<IConversation>> {
     return searchConversationMessages(params);
   },
 
@@ -409,7 +408,8 @@ export const supabaseConversationsProvider: IConversationsProvider = {
     const { data, error } = await getSupabaseClient().rpc("conversation_contacts", {
       p_ids: conversationIds,
     });
-    if (error) throw new Error(`[supabase] conversations.listContacts failed: ${error.message}`);
+    if (error)
+      throw new Error(`[supabase] conversations.listContacts failed: ${error.message}`);
     const rows = (data ?? []) as unknown as ConversationContactRow[];
     return rows.map((r) => ({
       conversationId: r.conversation_id,
@@ -522,7 +522,8 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       .eq("id", id)
       .select(COLUMNS)
       .single();
-    if (error) throw new Error(`[supabase] conversations.unassign(${id}) failed: ${error.message}`);
+    if (error)
+      throw new Error(`[supabase] conversations.unassign(${id}) failed: ${error.message}`);
     return rowToConversation(data as ConversationRow);
   },
 

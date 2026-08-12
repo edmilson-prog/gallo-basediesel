@@ -11,7 +11,8 @@ import type { IListConversationsParams } from "../contracts/conversations";
  * the count matches what the list returns for the same params.
  */
 export function assertInboxCountParams(params: IListConversationsParams): void {
-  const hasRealSearch = typeof params.search === "string" && params.search.trim().length > 0;
+  const hasRealSearch =
+    typeof params.search === "string" && params.search.trim().length > 0;
   if (
     params.storeId !== undefined ||
     hasRealSearch ||

@@ -78,7 +78,10 @@ export const supabaseRotationParticipantsProvider: IRotationParticipantsProvider
   },
 
   async remove(id: ID) {
-    const { error } = await getSupabaseClient().from("rotation_participants").delete().eq("id", id);
+    const { error } = await getSupabaseClient()
+      .from("rotation_participants")
+      .delete()
+      .eq("id", id);
     if (error) throw new Error(`[supabase] rotationParticipants.remove failed: ${error.message}`);
   },
 
@@ -89,8 +92,7 @@ export const supabaseRotationParticipantsProvider: IRotationParticipantsProvider
       .eq("id", id)
       .select(P_COLUMNS)
       .single();
-    if (error)
-      throw new Error(`[supabase] rotationParticipants.setEnabled failed: ${error.message}`);
+    if (error) throw new Error(`[supabase] rotationParticipants.setEnabled failed: ${error.message}`);
     return rowToParticipant(data as PartRow);
   },
 
@@ -104,8 +106,7 @@ export const supabaseRotationParticipantsProvider: IRotationParticipantsProvider
         .from("rotation_participants")
         .update({ order: index })
         .eq("id", id);
-      if (error)
-        throw new Error(`[supabase] rotationParticipants.reorder failed: ${error.message}`);
+      if (error) throw new Error(`[supabase] rotationParticipants.reorder failed: ${error.message}`);
     }
   },
 

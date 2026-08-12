@@ -12,19 +12,13 @@ describe("assertInboxCountParams", () => {
         tags: ["vip"],
         fromDate: "2026-07-01T00:00:00.000Z",
         toDate: "2026-07-02T00:00:00.000Z",
-        assignmentAny: {
-          sellerIds: ["97834e8d-e1b5-4bb7-9f25-2e58e641fdab"],
-          unassigned: true,
-          queue: true,
-        },
+        assignmentAny: { sellerIds: ["97834e8d-e1b5-4bb7-9f25-2e58e641fdab"], unassigned: true, queue: true },
       }),
     ).not.toThrow();
   });
 
   it("rejects params outside the no-search path", () => {
-    expect(() =>
-      assertInboxCountParams({ storeId: "00000000-0000-0000-0000-000000000001" }),
-    ).toThrow();
+    expect(() => assertInboxCountParams({ storeId: "00000000-0000-0000-0000-000000000001" })).toThrow();
     expect(() => assertInboxCountParams({ search: "volvo" })).toThrow();
     expect(() => assertInboxCountParams({ customerId: "c1" })).toThrow();
     expect(() => assertInboxCountParams({ leadId: "l1" })).toThrow();

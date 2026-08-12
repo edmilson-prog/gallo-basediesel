@@ -265,7 +265,8 @@ export const supabaseQuotesProvider: IQuotesProvider = {
       }
 
       if (params.createdAfter !== undefined) query = query.gte("created_at", params.createdAfter);
-      if (params.createdBefore !== undefined) query = query.lte("created_at", params.createdBefore);
+      if (params.createdBefore !== undefined)
+        query = query.lte("created_at", params.createdBefore);
       if (typeof params.totalMin === "number") query = query.gte("total", params.totalMin);
       if (typeof params.totalMax === "number") query = query.lte("total", params.totalMax);
       if (params.search) {

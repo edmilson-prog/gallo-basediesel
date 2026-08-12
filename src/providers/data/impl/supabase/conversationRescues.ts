@@ -57,8 +57,7 @@ export const supabaseConversationRescuesProvider: IConversationRescuesProvider =
     const { data, error } = await getSupabaseClient().rpc("claim_conversation_rescue", {
       p_rescue_id: rescueId,
     });
-    if (error)
-      throw new Error(`[supabase] conversationRescues.claim(${rescueId}) failed: ${error.message}`);
+    if (error) throw new Error(`[supabase] conversationRescues.claim(${rescueId}) failed: ${error.message}`);
     return fromRow(data as IConversationRescueRow);
   },
 };

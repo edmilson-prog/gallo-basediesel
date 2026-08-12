@@ -120,8 +120,7 @@ export const supabaseScheduledSendProvider: IScheduledSendProvider = {
       conversation_id: input.conversationId,
       scheduled_for: input.scheduledFor ?? null,
       payload: input.payload,
-      status: ((input as { status?: ScheduledSendStatus }).status ??
-        "pending") as ScheduledSendStatus,
+      status: ((input as { status?: ScheduledSendStatus }).status ?? "pending") as ScheduledSendStatus,
       failure_reason: input.failureReason ?? null,
       created_by: input.createdBy,
     };

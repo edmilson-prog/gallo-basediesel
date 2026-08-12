@@ -320,7 +320,9 @@ export const mockLeadFunnelsProvider: ILeadFunnelsProvider = {
 
     // Step 1b: insert — any id in `next` that didn't already exist for this
     // funnel is a genuinely new stage.
-    const existingIds = new Set(stages.filter((s) => s.funnelId === funnelId).map((s) => s.id));
+    const existingIds = new Set(
+      stages.filter((s) => s.funnelId === funnelId).map((s) => s.id),
+    );
     const inserted = next
       .filter((s) => !existingIds.has(s.id))
       .map((s) => ({ ...s, funnelId, updatedAt: nowIso() }));

@@ -19,11 +19,7 @@ export interface IConversationParticipantsProvider {
    * "via @menção" UI tag and whether the manual-add bell notification fires
    * (mention adds rely on the pre-existing note-mention notification instead).
    */
-  add(
-    conversationId: ID,
-    sellerId: ID,
-    source: "manual" | "mention",
-  ): Promise<IConversationParticipant>;
+  add(conversationId: ID, sellerId: ID, source: "manual" | "mention"): Promise<IConversationParticipant>;
   /** Removes a collaborator — staff, the conversation's assignee, or the
    *  collaborator removing themselves ("Sair da conversa"). */
   remove(conversationId: ID, sellerId: ID): Promise<void>;

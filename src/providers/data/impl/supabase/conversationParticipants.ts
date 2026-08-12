@@ -36,9 +36,7 @@ export const supabaseConversationParticipantsProvider: IConversationParticipants
       .select(COLUMNS)
       .eq("conversation_id", conversationId);
     if (error)
-      throw new Error(
-        `[supabase] conversationParticipants.list(${conversationId}) failed: ${error.message}`,
-      );
+      throw new Error(`[supabase] conversationParticipants.list(${conversationId}) failed: ${error.message}`);
     return (data as ParticipantRow[]).map(rowToParticipant);
   },
 
@@ -57,9 +55,7 @@ export const supabaseConversationParticipantsProvider: IConversationParticipants
       .single();
     if (error) {
       if (error.code !== "PGRST116") {
-        throw new Error(
-          `[supabase] conversationParticipants.add(${conversationId}) failed: ${error.message}`,
-        );
+        throw new Error(`[supabase] conversationParticipants.add(${conversationId}) failed: ${error.message}`);
       }
       // ignoreDuplicates makes a conflicting insert a no-op `ON CONFLICT DO
       // NOTHING`, so RETURNING yields 0 rows; `.single()` on a 0-row result
@@ -73,9 +69,7 @@ export const supabaseConversationParticipantsProvider: IConversationParticipants
         .eq("seller_id", sellerId)
         .single();
       if (readError)
-        throw new Error(
-          `[supabase] conversationParticipants.add(${conversationId}) failed: ${readError.message}`,
-        );
+        throw new Error(`[supabase] conversationParticipants.add(${conversationId}) failed: ${readError.message}`);
       return rowToParticipant(existing as ParticipantRow);
     }
     return rowToParticipant(data as ParticipantRow);
@@ -88,8 +82,6 @@ export const supabaseConversationParticipantsProvider: IConversationParticipants
       .eq("conversation_id", conversationId)
       .eq("seller_id", sellerId);
     if (error)
-      throw new Error(
-        `[supabase] conversationParticipants.remove(${conversationId}) failed: ${error.message}`,
-      );
+      throw new Error(`[supabase] conversationParticipants.remove(${conversationId}) failed: ${error.message}`);
   },
 };

@@ -2,14 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { IConversation, ICustomer, ISeller } from "@/shared/types";
 import type { IPaginatedResult } from "../../contracts/_shared";
 
-const { conversationsList, customersList, sellersList, messagesListForAnalytics } = vi.hoisted(
-  () => ({
-    conversationsList: vi.fn(),
-    customersList: vi.fn(),
-    sellersList: vi.fn(),
-    messagesListForAnalytics: vi.fn(),
-  }),
-);
+const { conversationsList, customersList, sellersList, messagesListForAnalytics } = vi.hoisted(() => ({
+  conversationsList: vi.fn(),
+  customersList: vi.fn(),
+  sellersList: vi.fn(),
+  messagesListForAnalytics: vi.fn(),
+}));
 
 vi.mock("./conversations", () => ({
   supabaseConversationsProvider: { list: conversationsList },
@@ -34,11 +32,7 @@ const PARAMS = {
   prevToIso: "2026-07-01T00:00:00.000Z",
 };
 
-function conversationPage(
-  count: number,
-  page: number,
-  pageSize: number,
-): IPaginatedResult<IConversation> {
+function conversationPage(count: number, page: number, pageSize: number): IPaginatedResult<IConversation> {
   const data = Array.from({ length: count }, (_, i) => ({
     id: `c${page}-${i}`,
     lastMessageAt: PARAMS.fromIso,

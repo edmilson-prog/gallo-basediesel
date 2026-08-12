@@ -1,9 +1,4 @@
-import type {
-  ID,
-  IScheduledSend,
-  IScheduledSendWithContext,
-  ScheduledSendStatus,
-} from "@/shared/types";
+import type { ID, IScheduledSend, IScheduledSendWithContext, ScheduledSendStatus } from "@/shared/types";
 import { scheduledSendApi } from "@/mocks";
 import type { IScheduledSendProvider } from "../../contracts/scheduledSend";
 import { logMockMutation } from "./_audit";

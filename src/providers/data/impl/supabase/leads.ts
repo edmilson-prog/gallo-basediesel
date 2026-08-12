@@ -341,7 +341,10 @@ export const supabaseLeadsProvider: ILeadsProvider = {
     return rowToLead(data as unknown as LeadRow);
   },
 
-  async markConverted(leadId: ID, args: { stage: ILeadStage; customerId: ID }): Promise<void> {
+  async markConverted(
+    leadId: ID,
+    args: { stage: ILeadStage; customerId: ID },
+  ): Promise<void> {
     const { error } = await getSupabaseClient().rpc("convert_lead_mark", {
       p_lead_id: leadId,
       p_customer_id: args.customerId,

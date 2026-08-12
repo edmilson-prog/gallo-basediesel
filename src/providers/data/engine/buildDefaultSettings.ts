@@ -1,9 +1,5 @@
 import type { ID, IPlatformSettings } from "@/shared/types";
-import {
-  DEFAULT_INSIGHT_THRESHOLDS,
-  DEFAULT_STOREFRONT_CONFIG,
-  DEFAULT_SOUND_SETTINGS,
-} from "@/shared/types";
+import { DEFAULT_INSIGHT_THRESHOLDS, DEFAULT_STOREFRONT_CONFIG, DEFAULT_SOUND_SETTINGS } from "@/shared/types";
 import { SEED_PIPELINE_STAGES } from "@/mocks/data/seedPipelineStages";
 import { SEED_LOSS_REASONS } from "@/mocks/data/seedLossReasons";
 import { SEED_TAGS } from "@/mocks/data/seedTags";

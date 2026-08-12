@@ -18,7 +18,7 @@ describe("mockWhatsAppGoServersProvider", () => {
       apiKeyRef: "WA_GO_SERVER_SEGUNDO_AB",
     });
     expect(created.id).toBeTruthy();
-    expect(await mockWhatsAppGoServersProvider.list()).toHaveLength(2);
+    expect((await mockWhatsAppGoServersProvider.list())).toHaveLength(2);
 
     const updated = await mockWhatsAppGoServersProvider.update(created.id, {
       baseUrl: "https://go2b.test",
@@ -26,12 +26,12 @@ describe("mockWhatsAppGoServersProvider", () => {
     expect(updated.baseUrl).toBe("https://go2b.test");
 
     await mockWhatsAppGoServersProvider.remove(created.id);
-    expect(await mockWhatsAppGoServersProvider.list()).toHaveLength(1);
+    expect((await mockWhatsAppGoServersProvider.list())).toHaveLength(1);
   });
 
   it("throws when updating a missing server", async () => {
-    await expect(mockWhatsAppGoServersProvider.update("nope", { name: "x" })).rejects.toThrow(
-      /not found/i,
-    );
+    await expect(
+      mockWhatsAppGoServersProvider.update("nope", { name: "x" }),
+    ).rejects.toThrow(/not found/i);
   });
 });

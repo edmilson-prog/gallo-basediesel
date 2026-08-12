@@ -6,9 +6,7 @@ const B = "22222222-2222-2222-2222-222222222222";
 
 describe("deriveActivityDelta", () => {
   it("INSERT (before=null) is a 'created' event carrying the initial status/owner", () => {
-    expect(
-      deriveActivityDelta(null, { status: "aguardando", assignedSellerId: null }, null),
-    ).toEqual({
+    expect(deriveActivityDelta(null, { status: "aguardando", assignedSellerId: null }, null)).toEqual({
       type: "created",
       fromStatus: null,
       toStatus: "aguardando",
