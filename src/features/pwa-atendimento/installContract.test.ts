@@ -156,18 +156,51 @@ describe("index.html", () => {
 
 describe("usePwaManifest", () => {
   const source = read("src/features/pwa-atendimento/hooks/usePwaManifest.ts");
-  const constant = (name: string) =>
-    new RegExp(`${name}\\s*=\\s*"([^"]+)"`).exec(source)?.[1] ?? null;
+  const scriptStart = html.indexOf("Pick the manifest for the app being opened");
+  const script = html.slice(scriptStart, html.indexOf("</script>", scriptStart));
 
-  it("restores the values index.html actually ships", () => {
-    // Restoring "whatever was there on mount" reads the atendimento manifest on
-    // a direct load — and leaves the rest of the CRM declaring it.
-    expect(constant("DEFAULT_MANIFEST_HREF")).toBe("/manifest.webmanifest");
-    expect(constant("DEFAULT_THEME_COLOR")).toBe(manifests["/manifest.webmanifest"]?.theme_color);
+  /** Reads one field out of an identity object literal in the hook. */
+  const field = (constant: string, key: string) => {
+    const block = new RegExp(`${constant}[^=]*=\\s*\\{([^}]*)\\}`).exec(source)?.[1] ?? "";
+    return new RegExp(`${key}:\\s*"([^"]+)"`).exec(block)?.[1] ?? null;
+  };
+
+  // The asymmetry this locks: the head script swapped four tags and the hook
+  // restored two, so leaving the app left the seller's page wearing the
+  // atendimento icon — and iOS reads that link, not the manifest icons.
+  it.each(["app-manifest", "app-theme-color", "app-ios-title", "app-apple-icon"])(
+    "handles #%s, the same tag the head script swaps",
+    (id) => {
+      expect(script).toContain(id);
+      expect(source).toContain(id);
+    },
+  );
+
+  it("applies exactly the atendimento values the head script applies", () => {
+    for (const key of ["manifest", "themeColor", "iosTitle", "appleIcon"]) {
+      const value = field("ATENDIMENTO", key);
+      expect(value).toBeTruthy();
+      expect(script).toContain(value);
+    }
   });
 
-  it("applies the atendimento manifest while the app is mounted", () => {
-    expect(constant("PWA_MANIFEST_HREF")).toBe("/atendimento.webmanifest");
-    expect(constant("PWA_THEME_COLOR")).toBe(manifests["/atendimento.webmanifest"]?.theme_color);
+  it("keeps the theme colour tied to the manifest that declares it", () => {
+    expect(field("ATENDIMENTO", "themeColor")).toBe(
+      manifests["/atendimento.webmanifest"]?.theme_color,
+    );
+  });
+
+  it("restores exactly what index.html ships as the seller default", () => {
+    // Restoring "whatever was there on mount" reads the atendimento values on a
+    // direct load — and leaves the rest of the CRM wearing them.
+    const head = html.slice(0, scriptStart);
+    expect(head).toContain(`href="${field("SELLER", "manifest")}"`);
+    expect(head).toContain(`content="${field("SELLER", "themeColor")}"`);
+    expect(head).toContain(`content="${field("SELLER", "iosTitle")}"`);
+    expect(head).toContain(`href="${field("SELLER", "appleIcon")}"`);
+  });
+
+  it("points the seller default at an icon that exists", () => {
+    expect(() => read("public" + field("SELLER", "appleIcon"))).not.toThrow();
   });
 });

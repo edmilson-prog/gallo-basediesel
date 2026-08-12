@@ -1,56 +1,75 @@
 import { useEffect } from "react";
 
-const PWA_MANIFEST_HREF = "/atendimento.webmanifest";
-/** Matches `background_color`/`theme_color` in atendimento.webmanifest. */
-const PWA_THEME_COLOR = "#141011";
+/**
+ * The head tags that say *which app this document is*.
+ *
+ * Two installable apps share one `index.html`, so these four tags are the only
+ * thing telling them apart. They must move together: the inline script in
+ * `index.html` swaps all four on a direct load, and this hook has to cover the
+ * same four on a client-side navigation. Handling a subset is what put the
+ * atendimento icon on the seller's "Add to Home Screen" sheet — iOS reads the
+ * `apple-touch-icon` link and ignores the manifest icons, so an un-restored
+ * icon outlives the manifest that was restored beside it.
+ *
+ * The ids match `index.html`; `installContract.test.ts` fails if the two ever
+ * disagree about which tags exist or what they should hold.
+ */
+interface IAppIdentity {
+  manifest: string;
+  themeColor: string;
+  iosTitle: string;
+  appleIcon: string;
+}
+
+const ATENDIMENTO: IAppIdentity = {
+  manifest: "/atendimento.webmanifest",
+  themeColor: "#141011",
+  iosTitle: "GALLO Atendimento",
+  appleIcon: "/atendimento-apple-touch-icon.png",
+};
 
 /**
  * The static defaults written in `index.html` — the external seller PWA's.
  *
- * They are restored by name rather than captured on mount: since the inline
- * head script started choosing the manifest by pathname, a direct load of
- * /atendimento already finds `/atendimento.webmanifest` in the document, so
- * "put back what was there" would have put back the atendimento manifest and
- * left the rest of the CRM declaring a manifest whose scope it is outside of.
+ * Restored by name rather than captured on mount: since the inline head script
+ * started choosing by pathname, a direct load of /atendimento already finds the
+ * atendimento values in the document, so "put back what was there" would have
+ * put them back and left the rest of the CRM wearing them.
  */
-const DEFAULT_MANIFEST_HREF = "/manifest.webmanifest";
-const DEFAULT_THEME_COLOR = "#16a34a";
+const SELLER: IAppIdentity = {
+  manifest: "/manifest.webmanifest",
+  themeColor: "#16a34a",
+  iosTitle: "GALLO Vendedor",
+  appleIcon: "/apple-touch-icon.png",
+};
 
-function findOrCreateMeta(name: string): HTMLMetaElement {
-  const existing = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
-  if (existing) return existing;
-  const created = document.createElement("meta");
-  created.name = name;
-  document.head.appendChild(created);
-  return created;
+/** Prefers the id from `index.html`, falls back to the tag itself. */
+function tag(id: string, selector: string): Element | null {
+  return document.getElementById(id) ?? document.querySelector(selector);
+}
+
+function apply(identity: IAppIdentity): void {
+  tag("app-manifest", 'link[rel="manifest"]')?.setAttribute("href", identity.manifest);
+  tag("app-theme-color", 'meta[name="theme-color"]')?.setAttribute("content", identity.themeColor);
+  tag("app-ios-title", 'meta[name="apple-mobile-web-app-title"]')?.setAttribute(
+    "content",
+    identity.iosTitle,
+  );
+  tag("app-apple-icon", 'link[rel="apple-touch-icon"]')?.setAttribute("href", identity.appleIcon);
 }
 
 /**
- * Keep the document pointed at the atendimento manifest while this app is mounted.
+ * Keep the document identified as the atendimento app while it is mounted.
  *
- * The SPA ships a single `index.html` whose default manifest belongs to the
- * external seller PWA (`scope: /pwa`), so a second installable app on the same
- * origin has to declare its own.
- *
- * This hook covers only the SPA case — arriving at /atendimento through a
- * client-side navigation, where no document load happens. **A direct load is
- * handled by the inline script in `index.html`**, and it has to be: the browser
- * evaluates installability at load, against the manifest linked at that moment.
- * Swapping here alone was the bug behind "the install banner never appears" —
- * by the time React mounts, the browser has already decided the page is not
- * installable.
+ * This hook covers only the SPA case — arriving through a client-side
+ * navigation, where no document load happens. **A direct load is handled by the
+ * inline script in `index.html`**, and it has to be: the browser judges
+ * installability at load, against the manifest linked at that moment. Swapping
+ * here alone was the bug behind "the install banner never appears".
  */
 export function usePwaManifest(): void {
   useEffect(() => {
-    const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-    const themeMeta = findOrCreateMeta("theme-color");
-
-    link?.setAttribute("href", PWA_MANIFEST_HREF);
-    themeMeta.setAttribute("content", PWA_THEME_COLOR);
-
-    return () => {
-      link?.setAttribute("href", DEFAULT_MANIFEST_HREF);
-      themeMeta.setAttribute("content", DEFAULT_THEME_COLOR);
-    };
+    apply(ATENDIMENTO);
+    return () => apply(SELLER);
   }, []);
 }

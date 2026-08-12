@@ -4,6 +4,7 @@ import { useAuth } from "@/features/auth/useAuth";
 import { PwaButton } from "../components/ui/PwaButton";
 import { useInstallPrompt } from "../hooks/useInstallPrompt";
 import { INSTALL_SEEN_KEY } from "../engine/installGate";
+import { shouldWarnAboutIosBrowser } from "../engine/iosBrowser";
 import { PWA_ATENDIMENTO_STRINGS as S } from "../i18n/pt-BR";
 
 const STEP_ICONS = ["mdi:export-variant", "mdi:plus-box-outline", "mdi:cellphone"];
@@ -12,6 +13,12 @@ export function InstallPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { canPrompt, isInstalled, prompt } = useInstallPrompt();
+  // On iOS the Push API only exists for a Home Screen web app, and the flow that
+  // reliably creates one lives in Safari's share sheet. Installing from Chrome
+  // or Firefox there can produce an icon that opens a tab — it looks installed
+  // and never rings.
+  const warnIosBrowser =
+    typeof navigator !== "undefined" && shouldWarnAboutIosBrowser(navigator.userAgent);
 
   const goOn = () => {
     // Remember the nudge happened, so the next launch goes straight to login.
@@ -58,6 +65,23 @@ export function InstallPage() {
           </p>
         ) : (
           <div className="flex flex-col gap-2.5">
+            {warnIosBrowser && (
+              <div className="flex gap-2.5 rounded bg-severity-warning/10 px-3.5 py-3 ring-1 ring-inset ring-severity-warning/30">
+                <Icon
+                  icon="mdi:alert-outline"
+                  size={17}
+                  className="mt-0.5 shrink-0 text-severity-warning"
+                />
+                <div>
+                  <p className="text-[13px] font-bold text-severity-warning">
+                    {S.install.iosSafariOnlyTitle}
+                  </p>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+                    {S.install.iosSafariOnlyBody}
+                  </p>
+                </div>
+              </div>
+            )}
             {S.install.steps.map((step, index) => (
               <div
                 key={step}
