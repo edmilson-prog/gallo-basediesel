@@ -60,6 +60,7 @@ import { Route as AppStorefrontAdminRouteImport } from './routes/app.storefront-
 import { Route as AppSdrRouteImport } from './routes/app.sdr'
 import { Route as AppPedidosRouteImport } from './routes/app.pedidos'
 import { Route as AppOrcamentosRouteImport } from './routes/app.orcamentos'
+import { Route as AppNpsRouteImport } from './routes/app.nps'
 import { Route as AppNotificacoesRouteImport } from './routes/app.notificacoes'
 import { Route as AppLeadsRouteImport } from './routes/app.leads'
 import { Route as AppKitsRouteImport } from './routes/app.kits'
@@ -465,6 +466,11 @@ const AppPedidosRoute = AppPedidosRouteImport.update({
 const AppOrcamentosRoute = AppOrcamentosRouteImport.update({
   id: '/orcamentos',
   path: '/orcamentos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNpsRoute = AppNpsRouteImport.update({
+  id: '/nps',
+  path: '/nps',
   getParentRoute: () => AppRoute,
 } as any)
 const AppNotificacoesRoute = AppNotificacoesRouteImport.update({
@@ -1300,6 +1306,7 @@ export interface FileRoutesByFullPath {
   '/app/kits': typeof AppKitsRouteWithChildren
   '/app/leads': typeof AppLeadsRouteWithChildren
   '/app/notificacoes': typeof AppNotificacoesRoute
+  '/app/nps': typeof AppNpsRoute
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
   '/app/pedidos': typeof AppPedidosRouteWithChildren
   '/app/sdr': typeof AppSdrRoute
@@ -1495,6 +1502,7 @@ export interface FileRoutesByTo {
   '/app/inicio': typeof AppInicioRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/notificacoes': typeof AppNotificacoesRoute
+  '/app/nps': typeof AppNpsRoute
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
   '/atendimento/analise': typeof AtendimentoAnaliseRoute
@@ -1683,6 +1691,7 @@ export interface FileRoutesById {
   '/app/kits': typeof AppKitsRouteWithChildren
   '/app/leads': typeof AppLeadsRouteWithChildren
   '/app/notificacoes': typeof AppNotificacoesRoute
+  '/app/nps': typeof AppNpsRoute
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
   '/app/pedidos': typeof AppPedidosRouteWithChildren
   '/app/sdr': typeof AppSdrRoute
@@ -1889,6 +1898,7 @@ export interface FileRouteTypes {
     | '/app/kits'
     | '/app/leads'
     | '/app/notificacoes'
+    | '/app/nps'
     | '/app/orcamentos'
     | '/app/pedidos'
     | '/app/sdr'
@@ -2084,6 +2094,7 @@ export interface FileRouteTypes {
     | '/app/inicio'
     | '/app/insights'
     | '/app/notificacoes'
+    | '/app/nps'
     | '/app/sdr'
     | '/app/storefront-admin'
     | '/atendimento/analise'
@@ -2271,6 +2282,7 @@ export interface FileRouteTypes {
     | '/app/kits'
     | '/app/leads'
     | '/app/notificacoes'
+    | '/app/nps'
     | '/app/orcamentos'
     | '/app/pedidos'
     | '/app/sdr'
@@ -2826,6 +2838,13 @@ declare module '@tanstack/react-router' {
       path: '/orcamentos'
       fullPath: '/app/orcamentos'
       preLoaderRoute: typeof AppOrcamentosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/nps': {
+      id: '/app/nps'
+      path: '/nps'
+      fullPath: '/app/nps'
+      preLoaderRoute: typeof AppNpsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/notificacoes': {
@@ -4162,6 +4181,7 @@ interface AppRouteChildren {
   AppKitsRoute: typeof AppKitsRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
   AppNotificacoesRoute: typeof AppNotificacoesRoute
+  AppNpsRoute: typeof AppNpsRoute
   AppOrcamentosRoute: typeof AppOrcamentosRouteWithChildren
   AppPedidosRoute: typeof AppPedidosRouteWithChildren
   AppSdrRoute: typeof AppSdrRoute
@@ -4252,6 +4272,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppKitsRoute: AppKitsRouteWithChildren,
   AppLeadsRoute: AppLeadsRouteWithChildren,
   AppNotificacoesRoute: AppNotificacoesRoute,
+  AppNpsRoute: AppNpsRoute,
   AppOrcamentosRoute: AppOrcamentosRouteWithChildren,
   AppPedidosRoute: AppPedidosRouteWithChildren,
   AppSdrRoute: AppSdrRoute,

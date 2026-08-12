@@ -20,6 +20,7 @@ export const ROUTES = {
   APP_LEADS: "/app/leads",
   APP_VEICULOS: "/app/veiculos",
   APP_CARTEIRA: "/app/carteira",
+  APP_NPS: "/app/nps",
   APP_CATALOGO: "/app/catalogo",
   APP_CATALOGO_KITS: "/app/catalogo/kits",
   APP_KITS: "/app/kits",
