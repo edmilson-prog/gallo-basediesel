@@ -104,8 +104,13 @@ async function resolveContactName(
   conversationId: string,
 ): Promise<string> {
   try {
+    // ⚠️ O argumento chama-se `p_ids`. O PostgREST resolve função por NOME de
+    // argumento, então `p_conversation_ids` não achava nada (PGRST202), o erro
+    // caía no fallback e TODO push de mensagem chegava como "Nova mensagem" em
+    // vez do nome de quem escreveu — silenciosamente, porque o fallback existe
+    // justamente para nunca derrubar o disparo.
     const { data, error } = await admin.rpc("conversation_contacts", {
-      p_conversation_ids: [conversationId],
+      p_ids: [conversationId],
     });
     if (error || !Array.isArray(data) || data.length === 0) return "Nova mensagem";
     const row = data[0] as { name?: string };
