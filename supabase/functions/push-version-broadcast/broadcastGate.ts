@@ -68,14 +68,27 @@ export function decideBroadcast({
   return "send";
 }
 
-/** Lock-screen copy. Keeps the version visible so "again?" has an answer. */
+/**
+ * Maximum title length before iOS truncates it on the lock screen.
+ */
+export const TITLE_MAX_CHARS = 30;
+
+/**
+ * Lock-screen copy. Keeps the version visible so "again?" has an answer.
+ *
+ * ⚠️ **O título NÃO pode nomear o app.** O iOS acrescenta sozinho
+ * `" from <nome do manifest>"` ao título de todo push web, lendo o nome do Web
+ * App Manifest — e isso não é editável por mensagem. Com o título antigo
+ * ("GALLO Atendimento") a tela de bloqueio exibia
+ * **"GALLO Atendimento from Atendimento"**: o nome do app duas vezes, e nenhuma
+ * palavra sobre o que tinha acontecido. O título tem que gastar seus poucos
+ * caracteres dizendo o que mudou; quem mandou o iOS já diz.
+ */
 export function buildUpdateNotification(version: string | null | undefined) {
   const label = version?.trim();
   return {
-    title: "GALLO Atendimento",
-    body: label
-      ? `Versão ${label} disponível — toque para atualizar.`
-      : "Nova versão disponível — toque para atualizar.",
+    title: "Nova versão disponível",
+    body: label ? `Versão ${label} — toque para atualizar.` : "Toque para atualizar o app.",
     url: "/atendimento",
     // One tag for every update push: a device that missed two releases sees one
     // line, not a stack of them.

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  TITLE_MAX_CHARS,
   buildUpdateNotification,
   decideBroadcast,
   isQuietHour,
@@ -119,8 +120,24 @@ describe("buildUpdateNotification", () => {
   it("names the version, so the second push is not a mystery", () => {
     const notice = buildUpdateNotification("0.175.0");
     expect(notice.body).toContain("0.175.0");
-    expect(notice.title).toBe("GALLO Atendimento");
+    expect(notice.title).toBe("Nova versão disponível");
     expect(notice.url).toBe("/atendimento");
+  });
+
+  it("nunca nomeia o app no título — o iOS já acrescenta 'from <app>'", () => {
+    // Regressão real: com o título "GALLO Atendimento", a tela de bloqueio saiu
+    // "GALLO Atendimento from Atendimento" — o nome duas vezes, e nada sobre o
+    // que aconteceu. O sufixo vem do manifest e não é editável por mensagem, então
+    // a única defesa é o título não repeti-lo.
+    for (const version of ["0.175.0", null, undefined, "  "]) {
+      expect(buildUpdateNotification(version).title).not.toMatch(/atendimento|gallo/i);
+    }
+  });
+
+  it("cabe na tela de bloqueio sem ser cortado", () => {
+    for (const version of ["0.175.0", null]) {
+      expect(buildUpdateNotification(version).title.length).toBeLessThanOrEqual(TITLE_MAX_CHARS);
+    }
   });
 
   it("collapses repeats under one tag", () => {
@@ -130,9 +147,7 @@ describe("buildUpdateNotification", () => {
 
   it("still says something useful without a version", () => {
     for (const missing of [null, undefined, "  "]) {
-      expect(buildUpdateNotification(missing).body).toBe(
-        "Nova versão disponível — toque para atualizar.",
-      );
+      expect(buildUpdateNotification(missing).body).toBe("Toque para atualizar o app.");
     }
   });
 });
