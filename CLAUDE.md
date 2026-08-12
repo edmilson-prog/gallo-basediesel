@@ -23,6 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | o que mudou em cada release | `CHANGELOG.md` — fonte única do histórico |
 | o que ainda está pendente | `docs/fase2-pendencias.md` — doc mestre de pendências |
 | como funciona um subsistema | `docs/dev/` (ex.: `conversation-access-model.md`, `whatsapp-*.md`, `rotation-queue.md`, `work-schedule-access.md`, `ai-llm-integration.md`, `environment-mode.md`, `integration-secrets.md`, `ux-guidelines.md`) |
+| mexer em PWA, manifest, ícone ou instalação | **`docs/dev/pwa-apps.md` — leia ANTES.** Dois apps instaláveis dividem esta origem e as regras de iOS já custaram 4 rodadas de bug |
 | requisitos de uma feature | `docs/prds/` — mestre: `briefing-execucao-prds.md` |
 | operação, backup e DR | `docs/infra/`, `docs/ops/` |
 
