@@ -505,11 +505,41 @@ Landing e `nps-submit` são anônimas **por token** (posse = autorização para 
 
 | Campo | Valor |
 |-------|-------|
-| **Status** | ⏳ PENDENTE |
-| **Data de Implementação** | - |
-| **Versão do App** | - |
-| **Implementado por** | - |
-| **Observações** | - |
+| **Status** | ✅ IMPLEMENTADO — **inerte até o dono ligar** |
+| **Data de Implementação** | 12/08/2026 |
+| **Versão do App** | bump pendente (ver ressalvas) |
+| **Implementado por** | Claude Code CLI |
+| **Observações** | Ver ressalvas abaixo. Código completo e testado; migrations **não aplicadas**, Edge Functions **não deployadas**, master switch `false`. |
+
+### Ressalvas — divergências deliberadas do PRD
+
+Redesenho registrado em `docs/superpowers/specs/2026-08-12-nps-pesquisa-satisfacao-design.md`.
+O PRD pressupunha a Onda 8 (PRD-141/142/143), que **nunca foi implementada**:
+`notification-dispatch` não existe e os canais de e-mail e WhatsApp do bus de
+notificações são stubs que lançam `NotImplementedError`.
+
+| PRD manda | Entregue | Motivo |
+|---|---|---|
+| Envio pelo dispatch 141, via HSM | Texto na própria thread, atrás de `INpsSurveySender` | Motor de produção é WAHA: sem janela de 24h, sem template Meta |
+| Canal e-mail (142) | **Fora do MVP** | Resend inerte; 22% dos clientes têm e-mail |
+| Template `nps_pesquisa` na Meta | **Não submetido** | Não se aplica a WAHA |
+| `order_delivered` ligado | Modelado, dormente | `orders` vazia em produção |
+| Conversa resolvida desligada | **Gatilho primário** | 348 resolvidas em 30 dias — único com volume |
+| `customer_id NOT NULL` | Nullable + `phone_digits` | 293 das 348 são leads, não clientes |
+| `crm.nps_surveys` | `public.nps_surveys` | Schema `crm` não existe |
+| `platform_settings` | Tabela `nps_settings` | `platform_settings` não existe |
+
+**Acrescentado ao PRD:** duas travas anti-disparo em massa (`max_backfill_days`,
+`daily_cap`). Sem elas, ligar a chave dispararia para as 682 conversas
+resolvidas do histórico de uma vez.
+
+**Pendente do dono:** aplicar as 3 migrations, cadastrar `NPS_WORKER_SECRET`,
+deployar as duas Edge Functions (`nps-submit` exige `--no-verify-jwt`), aplicar
+o cron, revisar o texto da pesquisa, ligar o switch, e bump de versão. Passo a
+passo em `docs/dev/nps.md`.
+
+**Deferido para a Onda 8:** canal e-mail com grade 0–10, submissão do HSM e
+roteamento pelo dispatch 141.
 
 ---
 
