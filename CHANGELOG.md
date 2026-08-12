@@ -4,6 +4,23 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.175.0] — Telemetry · 2026-08-12
+
+**O app de atendimento deixou de ser só conversas. Ganhou a aba Análise — os mesmos números que o gestor lê no computador, agora no bolso: volume, TMA, TMR, resolução, conversão, saúde por vendedor e motivos de escalação, mês a mês. E o aparelho passou a ser avisado sozinho quando sai versão nova, sem depender de alguém estar com o app aberto na hora.**
+
+### Added
+
+- **Aba Análise no app de atendimento** — espelho da análise histórica do computador, com filtro de mês e de vendedor e quatro seções: Visão Geral, Por Canal, Por Vendedor e Escalações SDR. Traz os seis indicadores com a variação em relação ao mês anterior, a evolução de TMA e TMR nos últimos 12 meses, o volume diário, a saúde de cada vendedor com detalhe ao toque, e a distribuição das escalações por motivo. Visível apenas para Owner, Gestor e Financeiro — para os demais a aba nem aparece.
+- **Aviso de versão nova por notificação** — quando sai uma atualização, o aparelho avisa mesmo com o app fechado, e o toque abre o app para atualizar. Um aviso por versão, nunca repetido, e nada entre 21h e 7h.
+
+### Changed
+
+- **Nomes de contato em caixa alta** em todo o app — lista, cabeçalho da conversa, tela de mídias e a própria notificação. A agenda do WhatsApp e as importações traziam "EDER BATISTA", "Marcelo Viana" e "raimannbuenodiego" em linhas seguidas. Só a exibição muda: o nome guardado, a busca e a mensagem enviada continuam como estavam.
+
+### Fixed
+
+- **Instalar o app pelo iPhone criava o atalho errado** — a folha "Adicionar à Tela de Início" oferecia o app do vendedor, apontando para outro endereço, mesmo com a tela do atendimento aberta. O iPhone decide qual app é aquele no instante em que a página carrega e não revê essa decisão; agora o atendimento tem endereço próprio desde o primeiro byte. **Quem já tinha o atalho antigo precisa apagá-lo e instalar de novo.**
+
 ## [0.174.0] — Crest · 2026-08-11
 
 **O app de atendimento ganhou cara própria na tela de início e passou a avisar quando sai versão nova. Antes ele emprestava o ícone verde do app do vendedor; agora leva a crista do galo sobre fundo escuro, recortada para continuar legível no tamanho que o celular de fato desenha. E porque um app instalado fica dias aberto sem ninguém recarregar, ele avisa quando há atualização — com "Atualizar agora" ali mesmo, sem precisar fechar nada.**
