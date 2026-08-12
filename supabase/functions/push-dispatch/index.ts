@@ -109,7 +109,11 @@ async function resolveContactName(
     });
     if (error || !Array.isArray(data) || data.length === 0) return "Nova mensagem";
     const row = data[0] as { name?: string };
-    return row.name?.trim() || "Nova mensagem";
+    // Caixa alta, como na lista do app: os nomes vêm da agenda do WhatsApp e de
+    // importações, então sem isso a tela de bloqueio mistura "EDER BATISTA" e
+    // "Marcelo Viana". Mesma regra de `shortNameOf` no front.
+    const name = row.name?.trim();
+    return name ? name.toLocaleUpperCase("pt-BR") : "Nova mensagem";
   } catch {
     return "Nova mensagem";
   }
