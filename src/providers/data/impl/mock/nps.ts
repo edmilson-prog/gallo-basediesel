@@ -195,6 +195,13 @@ export const mockNpsProvider: INpsProvider = {
     return { data: matching.slice(from, from + pageSize), total: matching.length };
   },
 
+  async latestForCustomer(customerId: string): Promise<INpsSurvey | null> {
+    const owned = DATASET.filter((survey) => survey.customerId === customerId).sort((a, b) =>
+      (b.respondedAt ?? "").localeCompare(a.respondedAt ?? ""),
+    );
+    return owned[0] ?? null;
+  },
+
   async getSettings(storeId: string): Promise<INpsSettings | null> {
     return { ...mockSettings, storeId };
   },

@@ -271,6 +271,20 @@ export const supabaseNpsProvider: INpsProvider = {
     };
   },
 
+  async latestForCustomer(customerId: string): Promise<INpsSurvey | null> {
+    const { data, error } = await getSupabaseClient()
+      .from(TABLE)
+      .select(COLUMNS)
+      .eq("customer_id", customerId)
+      .eq("status", "responded")
+      .order("responded_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    return rowToNpsSurvey(data as unknown as NpsSurveyRow);
+  },
+
   async getSettings(storeId: string): Promise<INpsSettings | null> {
     const { data, error } = await getSupabaseClient()
       .from(SETTINGS_TABLE)
