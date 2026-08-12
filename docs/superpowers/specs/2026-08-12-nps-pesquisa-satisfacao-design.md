@@ -174,15 +174,20 @@ Ordem de avaliação, **antes** de criar qualquer survey:
 
 ---
 
-## 5. Motor (`src/features/nps/engine/`)
+## 5. Motor
 
-Lógica pura, testada com Vitest, sem dependência de rede ou banco.
+Lógica pura, testada com Vitest, sem dependência de rede ou banco. O Vitest
+cobre `src/**` **e** `supabase/functions/**`, então cada metade mora ao lado de
+quem a consome — mesmo arranjo do `sdr-backstop-tick`, que mantém seu
+`eligibility.ts` dentro da Edge Function:
 
 ```ts
+// src/features/nps/engine/computeNps.ts — consumido pelo front
 computeNps(responses: INpsResponse[], opts: { minResponses: number }): INpsResult
 // -> { state: 'ok' | 'collecting', score, n, responseRate,
 //      promoters, passives, detractors }
 
+// supabase/functions/nps-scheduler/eligibility.ts — consumido pelo scheduler
 evaluateEligibility(candidate: INpsCandidate, settings: INpsSettings, ctx): IEligibilityVerdict
 // -> { eligible: true } | { eligible: false, reason: 'cooldown' | 'backfill' | ... }
 ```
