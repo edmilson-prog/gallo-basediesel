@@ -27,9 +27,7 @@ function inRange(iso: string, from: string, to: string): boolean {
 
 function scopedConversations(storeId?: string, sellerId?: string) {
   return getMockState().conversations.filter(
-    (c) =>
-      (!storeId || c.storeId === storeId) &&
-      (!sellerId || c.assignedSellerId === sellerId),
+    (c) => (!storeId || c.storeId === storeId) && (!sellerId || c.assignedSellerId === sellerId),
   );
 }
 
@@ -100,19 +98,17 @@ export const mockAtendimentoMetricsProvider: IAtendimentoMetricsProvider = {
       if (audience === "human" && !isHuman(m.authorType)) continue;
       if (audience === "automation" && !isAuto(m.authorType)) continue;
       const key = m.authorId ?? `auto:${m.authorType}`;
-      const row =
-        counts.get(key) ??
-        {
-          sellerId: m.authorType === "seller" ? (m.authorId ?? null) : null,
-          name:
-            m.authorType === "seller"
-              ? (sellers.get(m.authorId ?? "") ?? "Atendente")
-              : m.authorType === "sdr"
-                ? "SDR (automação)"
-                : "Sistema",
-          authorType: m.authorType as "seller" | "sdr" | "system",
-          count: 0,
-        };
+      const row = counts.get(key) ?? {
+        sellerId: m.authorType === "seller" ? (m.authorId ?? null) : null,
+        name:
+          m.authorType === "seller"
+            ? (sellers.get(m.authorId ?? "") ?? "Atendente")
+            : m.authorType === "sdr"
+              ? "SDR (automação)"
+              : "Sistema",
+        authorType: m.authorType as "seller" | "sdr" | "system",
+        count: 0,
+      };
       row.count += 1;
       counts.set(key, row);
     }

@@ -8,7 +8,11 @@ resetMockStorePerFile();
 describe("mockAiProvider.listProviderModels", () => {
   it("devolve o catálogo estático do provedor", async () => {
     const out = await mockAiProvider.listProviderModels("openai");
-    expect(out.map((m) => m.id).sort()).toEqual(modelsFor("openai").map((m) => m.id).sort());
+    expect(out.map((m) => m.id).sort()).toEqual(
+      modelsFor("openai")
+        .map((m) => m.id)
+        .sort(),
+    );
   });
 });
 

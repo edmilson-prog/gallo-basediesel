@@ -17,24 +17,74 @@ import type {
  */
 export const MODELS: Record<AiProviderId, IAiModelOption[]> = {
   anthropic: [
-    { id: "claude-opus-4-8", label: "Claude Opus 4.8", inputPricePer1kUsd: 0.015, outputPricePer1kUsd: 0.075 },
-    { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", inputPricePer1kUsd: 0.003, outputPricePer1kUsd: 0.015 },
-    { id: "claude-haiku-4-5", label: "Claude Haiku 4.5", inputPricePer1kUsd: 0.0008, outputPricePer1kUsd: 0.004 },
+    {
+      id: "claude-opus-4-8",
+      label: "Claude Opus 4.8",
+      inputPricePer1kUsd: 0.015,
+      outputPricePer1kUsd: 0.075,
+    },
+    {
+      id: "claude-sonnet-4-6",
+      label: "Claude Sonnet 4.6",
+      inputPricePer1kUsd: 0.003,
+      outputPricePer1kUsd: 0.015,
+    },
+    {
+      id: "claude-haiku-4-5",
+      label: "Claude Haiku 4.5",
+      inputPricePer1kUsd: 0.0008,
+      outputPricePer1kUsd: 0.004,
+    },
   ],
   openai: [
     { id: "gpt-5.2", label: "GPT-5.2", inputPricePer1kUsd: 0.01, outputPricePer1kUsd: 0.03 },
-    { id: "gpt-5-mini", label: "GPT-5 mini", inputPricePer1kUsd: 0.0006, outputPricePer1kUsd: 0.0024 },
+    {
+      id: "gpt-5-mini",
+      label: "GPT-5 mini",
+      inputPricePer1kUsd: 0.0006,
+      outputPricePer1kUsd: 0.0024,
+    },
     { id: "gpt-4o", label: "GPT-4o", inputPricePer1kUsd: 0.0025, outputPricePer1kUsd: 0.01 },
-    { id: "gpt-4o-mini", label: "GPT-4o mini", inputPricePer1kUsd: 0.00015, outputPricePer1kUsd: 0.0006 },
+    {
+      id: "gpt-4o-mini",
+      label: "GPT-4o mini",
+      inputPricePer1kUsd: 0.00015,
+      outputPricePer1kUsd: 0.0006,
+    },
   ],
   openrouter: [
-    { id: "anthropic/claude-opus-4.8", label: "Anthropic: Claude Opus 4.8", inputPricePer1kUsd: 0.015, outputPricePer1kUsd: 0.075 },
-    { id: "google/gemini-2.5-pro", label: "Google: Gemini 2.5 Pro", inputPricePer1kUsd: 0.0035, outputPricePer1kUsd: 0.0105 },
-    { id: "openai/whisper-1", label: "OpenAI: Whisper (transcrição)", inputPricePer1kUsd: 0, outputPricePer1kUsd: 0 },
+    {
+      id: "anthropic/claude-opus-4.8",
+      label: "Anthropic: Claude Opus 4.8",
+      inputPricePer1kUsd: 0.015,
+      outputPricePer1kUsd: 0.075,
+    },
+    {
+      id: "google/gemini-2.5-pro",
+      label: "Google: Gemini 2.5 Pro",
+      inputPricePer1kUsd: 0.0035,
+      outputPricePer1kUsd: 0.0105,
+    },
+    {
+      id: "openai/whisper-1",
+      label: "OpenAI: Whisper (transcrição)",
+      inputPricePer1kUsd: 0,
+      outputPricePer1kUsd: 0,
+    },
   ],
   google: [
-    { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", inputPricePer1kUsd: 0.0035, outputPricePer1kUsd: 0.0105 },
-    { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", inputPricePer1kUsd: 0.0003, outputPricePer1kUsd: 0.0012 },
+    {
+      id: "gemini-2.5-pro",
+      label: "Gemini 2.5 Pro",
+      inputPricePer1kUsd: 0.0035,
+      outputPricePer1kUsd: 0.0105,
+    },
+    {
+      id: "gemini-2.5-flash",
+      label: "Gemini 2.5 Flash",
+      inputPricePer1kUsd: 0.0003,
+      outputPricePer1kUsd: 0.0012,
+    },
   ],
 };
 
@@ -189,12 +239,65 @@ export function buildDefaultAiSettings(env: "mock" | "supabase"): IAiSettings {
       providerConfig("google", "gemini-2.5-pro", googleStatus),
     ],
     routing: [
-      { feature: "conversation_copilot", enabled: true, providerId: "openai", model: "gpt-5.2", fallbackProviderId: "anthropic", fallbackModel: "claude-sonnet-4-6", params: { temperature: 0.4, maxTokens: 1024 }, systemPrompt: "Você é o copiloto de atendimento da GALLO. Sugira respostas claras e comerciais." },
-      { feature: "analytics_copilot", enabled: true, providerId: "anthropic", model: "claude-haiku-4-5", fallbackProviderId: "openai", fallbackModel: "gpt-5-mini", params: { temperature: 0.2, maxTokens: 800 }, systemPrompt: "Responda perguntas sobre os indicadores comerciais com números e comparações verificáveis." },
-      { feature: "sdr", enabled: true, providerId: "anthropic", model: "claude-opus-4-8", fallbackProviderId: "openai", fallbackModel: "gpt-5.2", params: { temperature: 0.5, maxTokens: 1024 }, systemPrompt: "Você é o SDR da GALLO. Qualifique o lead e conduza para o orçamento." },
-      { feature: "part_identification", enabled: true, providerId: "google", model: "gemini-2.5-flash", fallbackProviderId: "openai", fallbackModel: "gpt-5.2", params: { temperature: 0.1, maxTokens: 512 }, systemPrompt: "Extraia a peça (código, aplicação, montadora) a partir do texto/imagem do cliente." },
-      { feature: "insights", enabled: false, providerId: "openrouter", model: "anthropic/claude-opus-4.8", params: { temperature: 0.6, maxTokens: 1200 }, systemPrompt: "Gere insights comerciais acionáveis a partir dos dados do período." },
-      { feature: "audio_transcription", enabled: false, providerId: "openrouter", model: "openai/whisper-1", params: { temperature: 0, maxTokens: 0 }, systemPrompt: "" },
+      {
+        feature: "conversation_copilot",
+        enabled: true,
+        providerId: "openai",
+        model: "gpt-5.2",
+        fallbackProviderId: "anthropic",
+        fallbackModel: "claude-sonnet-4-6",
+        params: { temperature: 0.4, maxTokens: 1024 },
+        systemPrompt:
+          "Você é o copiloto de atendimento da GALLO. Sugira respostas claras e comerciais.",
+      },
+      {
+        feature: "analytics_copilot",
+        enabled: true,
+        providerId: "anthropic",
+        model: "claude-haiku-4-5",
+        fallbackProviderId: "openai",
+        fallbackModel: "gpt-5-mini",
+        params: { temperature: 0.2, maxTokens: 800 },
+        systemPrompt:
+          "Responda perguntas sobre os indicadores comerciais com números e comparações verificáveis.",
+      },
+      {
+        feature: "sdr",
+        enabled: true,
+        providerId: "anthropic",
+        model: "claude-opus-4-8",
+        fallbackProviderId: "openai",
+        fallbackModel: "gpt-5.2",
+        params: { temperature: 0.5, maxTokens: 1024 },
+        systemPrompt: "Você é o SDR da GALLO. Qualifique o lead e conduza para o orçamento.",
+      },
+      {
+        feature: "part_identification",
+        enabled: true,
+        providerId: "google",
+        model: "gemini-2.5-flash",
+        fallbackProviderId: "openai",
+        fallbackModel: "gpt-5.2",
+        params: { temperature: 0.1, maxTokens: 512 },
+        systemPrompt:
+          "Extraia a peça (código, aplicação, montadora) a partir do texto/imagem do cliente.",
+      },
+      {
+        feature: "insights",
+        enabled: false,
+        providerId: "openrouter",
+        model: "anthropic/claude-opus-4.8",
+        params: { temperature: 0.6, maxTokens: 1200 },
+        systemPrompt: "Gere insights comerciais acionáveis a partir dos dados do período.",
+      },
+      {
+        feature: "audio_transcription",
+        enabled: false,
+        providerId: "openrouter",
+        model: "openai/whisper-1",
+        params: { temperature: 0, maxTokens: 0 },
+        systemPrompt: "",
+      },
     ],
   };
 }

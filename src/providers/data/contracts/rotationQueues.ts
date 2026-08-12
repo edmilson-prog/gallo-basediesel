@@ -8,6 +8,10 @@ export interface IRotationQueuesProvider {
   /** Patches queue config (targetMode / pointer / skipOffline). Audited. */
   update(
     storeId: ID,
-    patch: { targetMode?: RotationTargetMode; lastAssignedRefId?: ID | null; skipOffline?: boolean },
+    patch: {
+      targetMode?: RotationTargetMode;
+      lastAssignedRefId?: ID | null;
+      skipOffline?: boolean;
+    },
   ): Promise<IRotationQueue>;
 }

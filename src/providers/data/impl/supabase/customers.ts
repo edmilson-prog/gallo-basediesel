@@ -567,7 +567,9 @@ export const supabaseCustomersProvider: ICustomersProvider = {
       .rpc("mark_contact_not_customer", { p_customer_id: customerId })
       .maybeSingle();
     if (error)
-      throw new Error(`[supabase] customers.markContactNotCustomer(${customerId}) failed: ${error.message}`);
+      throw new Error(
+        `[supabase] customers.markContactNotCustomer(${customerId}) failed: ${error.message}`,
+      );
     if (!data) throw new Error("[supabase] customers.markContactNotCustomer returned no row");
     return rowToCustomer(data as unknown as CustomerRow, []);
   },
@@ -577,7 +579,9 @@ export const supabaseCustomersProvider: ICustomersProvider = {
       .rpc("restore_pending_contact", { p_customer_id: customerId })
       .maybeSingle();
     if (error)
-      throw new Error(`[supabase] customers.restorePendingContact(${customerId}) failed: ${error.message}`);
+      throw new Error(
+        `[supabase] customers.restorePendingContact(${customerId}) failed: ${error.message}`,
+      );
     if (!data) throw new Error("[supabase] customers.restorePendingContact returned no row");
     return rowToCustomer(data as unknown as CustomerRow, []);
   },

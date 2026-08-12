@@ -33,9 +33,7 @@ export const mockConversationsProvider: IConversationsProvider = {
     // withOwnSellerScope on top would AND a scalar assignedSellerId=self and hide
     // pool/queue rows for a non-staff user — diverging from the supabase path,
     // which scopes via RLS (the pool is visible). Skip the own-scope fill then.
-    const owned = scoped.assignmentAny
-      ? scoped
-      : withOwnSellerScope(scoped, "conversation");
+    const owned = scoped.assignmentAny ? scoped : withOwnSellerScope(scoped, "conversation");
     return conversationsApi.list(owned);
   },
   count: async (params) => {
@@ -54,9 +52,7 @@ export const mockConversationsProvider: IConversationsProvider = {
   },
   searchMessages: (params) => {
     const scoped = scopedListParams(params, "conversation");
-    const owned = scoped.assignmentAny
-      ? scoped
-      : withOwnSellerScope(scoped, "conversation");
+    const owned = scoped.assignmentAny ? scoped : withOwnSellerScope(scoped, "conversation");
     return conversationsApi.searchMessages(owned);
   },
   get: (id) => conversationsApi.get(id),

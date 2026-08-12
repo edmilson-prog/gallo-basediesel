@@ -62,6 +62,59 @@ export interface INpsResult {
   detractors: number;
 }
 
+export interface INpsFilters {
+  storeId?: string;
+  windowDays: number;
+  trigger?: INpsTrigger;
+  /** 'customer' = only registered customers; 'contact' = only pool contacts. */
+  audience?: "customer" | "contact";
+}
+
+export interface INpsMonthlyPoint {
+  /** 'YYYY-MM' */
+  month: string;
+  score: number | null;
+  promoters: number;
+  passives: number;
+  detractors: number;
+  n: number;
+}
+
+export interface INpsResponsePoint {
+  score: number;
+  respondedAt: string;
+}
+
+/**
+ * Raw material for the score, not the score itself.
+ *
+ * The provider does I/O; `computeNps` does the arithmetic. Keeping the split
+ * this way round means the data layer never has to import a feature's engine,
+ * and there is exactly one implementation of the "no score without N" rule.
+ */
+export interface INpsRawMetrics {
+  /** Answers inside the window. */
+  responses: INpsResponsePoint[];
+  /** Answers inside the preceding window of equal length, for the delta. */
+  previousResponses: INpsResponsePoint[];
+  /** Surveys that reached the customer in the window — the response-rate denominator. */
+  sent: number;
+  previousSent: number;
+}
+
+export interface INpsListFilters extends INpsFilters {
+  page?: number;
+  pageSize?: number;
+  /** Free-text search over the comment. */
+  search?: string;
+  npsClass?: INpsClass;
+}
+
+export interface INpsProvider {
+  rawMetrics(filters: INpsFilters): Promise<INpsRawMetrics>;
+  list(filters: INpsListFilters): Promise<{ data: INpsSurvey[]; total: number }>;
+}
+
 export interface INpsSettings {
   storeId: string;
   enabled: boolean;

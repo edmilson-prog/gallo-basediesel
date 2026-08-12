@@ -34,9 +34,9 @@ describe("buildSharedConversationRpcFilters", () => {
   });
 
   it("does NOT emit p_unassigned (each builder owns its own derivation)", () => {
-    expect(buildSharedConversationRpcFilters({ assignmentAny: { queue: true } })).not.toHaveProperty(
-      "p_unassigned",
-    );
+    expect(
+      buildSharedConversationRpcFilters({ assignmentAny: { queue: true } }),
+    ).not.toHaveProperty("p_unassigned");
   });
 
   it("maps channel/instance/sdr/tags/period consistently", () => {

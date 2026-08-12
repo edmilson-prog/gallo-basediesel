@@ -42,7 +42,9 @@ describe("supabaseAuditsProvider.create", () => {
     // audit_logs SELECT is staff/financeiro-only; INSERT ... RETURNING must pass
     // it, so a representation request 403s for sellers. The insert must resolve
     // on its own (return=minimal).
-    getSession.mockResolvedValue({ data: { session: { access_token: fakeJwt({ store_id: "store-jwt" }) } } });
+    getSession.mockResolvedValue({
+      data: { session: { access_token: fakeJwt({ store_id: "store-jwt" }) } },
+    });
 
     const out = await P.create(INPUT);
 
@@ -72,7 +74,9 @@ describe("supabaseAuditsProvider.create", () => {
   });
 
   it("scopes store_id to the JWT claim — the only value the RLS WITH CHECK accepts", async () => {
-    getSession.mockResolvedValue({ data: { session: { access_token: fakeJwt({ store_id: "store-jwt" }) } } });
+    getSession.mockResolvedValue({
+      data: { session: { access_token: fakeJwt({ store_id: "store-jwt" }) } },
+    });
 
     await P.create(INPUT);
 
@@ -118,7 +122,9 @@ describe("supabaseAuditsProvider.create", () => {
     // fallback) would die server-side as 22P02. The seller claim is the actor.
     const sellerFromJwt = "9b2f1c04-88d1-4f2e-9a37-6f0d1c2b3a45";
     getSession.mockResolvedValue({
-      data: { session: { access_token: fakeJwt({ store_id: "store-jwt", seller_id: sellerFromJwt }) } },
+      data: {
+        session: { access_token: fakeJwt({ store_id: "store-jwt", seller_id: sellerFromJwt }) },
+      },
     });
 
     const out = await P.create({ ...INPUT, actorId: "system" });
@@ -131,7 +137,10 @@ describe("supabaseAuditsProvider.create", () => {
     getSession.mockResolvedValue({
       data: {
         session: {
-          access_token: fakeJwt({ store_id: "store-jwt", seller_id: "9b2f1c04-88d1-4f2e-9a37-6f0d1c2b3a45" }),
+          access_token: fakeJwt({
+            store_id: "store-jwt",
+            seller_id: "9b2f1c04-88d1-4f2e-9a37-6f0d1c2b3a45",
+          }),
         },
       },
     });

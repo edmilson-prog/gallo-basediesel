@@ -1,9 +1,4 @@
-import type {
-  ID,
-  IRotationParticipant,
-  IRotationQueue,
-  IRotationQueueState,
-} from "@/shared/types";
+import type { ID, IRotationParticipant, IRotationQueue, IRotationQueueState } from "@/shared/types";
 import type { IRotationQueuesProvider } from "../../contracts/rotationQueues";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 

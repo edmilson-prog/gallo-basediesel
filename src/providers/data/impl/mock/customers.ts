@@ -90,8 +90,7 @@ export const mockCustomersProvider: ICustomersProvider = {
       matches.map(async (c) => ({
         id: c.id,
         type: c.type,
-        displayName:
-          (c.type === "B2B" ? c.nomeFantasia || c.razaoSocial : c.fullName) || "—",
+        displayName: (c.type === "B2B" ? c.nomeFantasia || c.razaoSocial : c.fullName) || "—",
         sellerId: c.sellerId ?? null,
         sellerName: c.sellerId
           ? ((await sellersApi.get(c.sellerId).catch(() => null))?.fullName ?? null)

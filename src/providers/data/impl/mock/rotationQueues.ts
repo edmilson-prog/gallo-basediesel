@@ -15,7 +15,11 @@ export const mockRotationQueuesProvider: IRotationQueuesProvider = {
   getState: (storeId) => rotationQueuesApi.getState(storeId),
   async update(
     storeId: ID,
-    patch: { targetMode?: RotationTargetMode; lastAssignedRefId?: ID | null; skipOffline?: boolean },
+    patch: {
+      targetMode?: RotationTargetMode;
+      lastAssignedRefId?: ID | null;
+      skipOffline?: boolean;
+    },
   ) {
     const updated = await rotationQueuesApi.update(storeId, patch);
     // Only audit operator-facing config changes (not pointer advances).

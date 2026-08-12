@@ -68,7 +68,9 @@ export const supabaseConversationPinsProvider: IConversationPinsProvider = {
       created_at: createdAt,
     });
     if (error && error.code !== UNIQUE_VIOLATION) {
-      throw new Error(`[supabase] conversationPins.pin(${conversationId}) failed: ${error.message}`);
+      throw new Error(
+        `[supabase] conversationPins.pin(${conversationId}) failed: ${error.message}`,
+      );
     }
     return { conversationId, sellerId, storeId, createdAt };
   },

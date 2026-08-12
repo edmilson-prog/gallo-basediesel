@@ -596,4 +596,10 @@ export type {
   INpsSurvey,
   INpsResult,
   INpsSettings,
+  INpsFilters,
+  INpsListFilters,
+  INpsMonthlyPoint,
+  INpsResponsePoint,
+  INpsRawMetrics,
+  INpsProvider,
 } from "./nps";

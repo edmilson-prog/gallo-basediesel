@@ -61,6 +61,7 @@ import type { IConversationParticipantsProvider } from "./conversationParticipan
 import type { ISdrPilotSettingsProvider } from "./sdrPilotSettings";
 import type { IConversationRescuesProvider } from "./conversationRescues";
 import type { IPixKeyProvider } from "./pixKey";
+import type { INpsProvider } from "./nps";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
 export { FETCH_ALL_PAGE_SIZE } from "./_shared";
@@ -206,6 +207,7 @@ export type {
 export type { ISdrPilotSettingsProvider } from "./sdrPilotSettings";
 export type { IConversationRescuesProvider } from "./conversationRescues";
 export type { IPixKeyProvider } from "./pixKey";
+export type { INpsProvider } from "./nps";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -269,4 +271,5 @@ export interface IDataProviders {
   sdrPilotSettings: ISdrPilotSettingsProvider;
   conversationRescues: IConversationRescuesProvider;
   pixKey: IPixKeyProvider;
+  nps: INpsProvider;
 }

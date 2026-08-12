@@ -18,11 +18,7 @@ import { getSupabaseClient } from "@/shared/lib/supabase";
  * contract shape as jsonb (built server-side). The RPC enforces the role gate +
  * store scope + demo-seed exclusion; this layer only maps params and casts.
  */
-async function callRpc<T>(
-  name: string,
-  params: Record<string, unknown>,
-  fallback: T,
-): Promise<T> {
+async function callRpc<T>(name: string, params: Record<string, unknown>, fallback: T): Promise<T> {
   const { data, error } = await getSupabaseClient().rpc(name, params);
   if (error) throw new Error(`${name}: ${error.message}`);
   return (data as T | null) ?? fallback;
@@ -32,7 +28,13 @@ export const supabaseAtendimentoMetricsProvider: IAtendimentoMetricsProvider = {
   async getNovosAtendimentos({ storeId, sellerId, from, to, granularity }) {
     return callRpc<INovosAtendimentosResult>(
       "service_volume_novos_atendimentos",
-      { p_store_id: storeId ?? null, p_from: from, p_to: to, p_granularity: granularity, p_seller_id: sellerId ?? null },
+      {
+        p_store_id: storeId ?? null,
+        p_from: from,
+        p_to: to,
+        p_granularity: granularity,
+        p_seller_id: sellerId ?? null,
+      },
       { series: [], total: 0, averagePerDay: 0, deltaPct: null, historyStartsAt: null },
     );
   },
@@ -40,7 +42,13 @@ export const supabaseAtendimentoMetricsProvider: IAtendimentoMetricsProvider = {
   async getMessageVolume({ storeId, sellerId, from, to, granularity }) {
     return callRpc<IMessageVolumeResult>(
       "service_volume_message_volume",
-      { p_store_id: storeId ?? null, p_from: from, p_to: to, p_granularity: granularity, p_seller_id: sellerId ?? null },
+      {
+        p_store_id: storeId ?? null,
+        p_from: from,
+        p_to: to,
+        p_granularity: granularity,
+        p_seller_id: sellerId ?? null,
+      },
       { series: [], totalSent: 0, totalReceived: 0 },
     );
   },
@@ -48,7 +56,13 @@ export const supabaseAtendimentoMetricsProvider: IAtendimentoMetricsProvider = {
   async getMessagesByUser({ storeId, sellerId, from, to, audience }) {
     return callRpc<IMessagesByUserResult>(
       "service_volume_messages_by_user",
-      { p_store_id: storeId ?? null, p_from: from, p_to: to, p_seller_id: sellerId ?? null, p_audience: audience },
+      {
+        p_store_id: storeId ?? null,
+        p_from: from,
+        p_to: to,
+        p_seller_id: sellerId ?? null,
+        p_audience: audience,
+      },
       { rows: [], audience },
     );
   },
@@ -64,7 +78,13 @@ export const supabaseAtendimentoMetricsProvider: IAtendimentoMetricsProvider = {
   async getAccumulatedChats({ storeId, sellerId, from, to, granularity }) {
     return callRpc<IAccumulatedChatsResult>(
       "service_volume_accumulated_chats",
-      { p_store_id: storeId ?? null, p_from: from, p_to: to, p_granularity: granularity, p_seller_id: sellerId ?? null },
+      {
+        p_store_id: storeId ?? null,
+        p_from: from,
+        p_to: to,
+        p_granularity: granularity,
+        p_seller_id: sellerId ?? null,
+      },
       { series: [], total: 0 },
     );
   },

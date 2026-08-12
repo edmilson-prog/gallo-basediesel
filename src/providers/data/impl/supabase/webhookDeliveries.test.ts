@@ -76,8 +76,14 @@ describe("supabaseWebhookDeliveriesProvider.list", () => {
 
     expect(calls).toContainEqual({ method: "eq", args: ["account_id", "acc-1"] });
     expect(calls).toContainEqual({ method: "eq", args: ["outcome", "rejected"] });
-    expect(calls).toContainEqual({ method: "gte", args: ["created_at", "2026-07-01T00:00:00.000Z"] });
-    expect(calls).toContainEqual({ method: "lte", args: ["created_at", "2026-07-14T00:00:00.000Z"] });
+    expect(calls).toContainEqual({
+      method: "gte",
+      args: ["created_at", "2026-07-01T00:00:00.000Z"],
+    });
+    expect(calls).toContainEqual({
+      method: "lte",
+      args: ["created_at", "2026-07-14T00:00:00.000Z"],
+    });
     expect(calls).toContainEqual({ method: "range", args: [5, 14] });
   });
 });

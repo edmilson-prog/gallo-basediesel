@@ -309,12 +309,10 @@ export const supabaseLeadFunnelsProvider: ILeadFunnelsProvider = {
     // locked every previously-granted seller out of a restricted funnel with no
     // way for a retry to say the grants were destroyed.
     if (sellerIds.length > 0) {
-      const { error: upsertError } = await client
-        .from("lead_funnel_access")
-        .upsert(
-          sellerIds.map((sellerId) => ({ funnel_id: funnelId, seller_id: sellerId })),
-          { onConflict: "funnel_id,seller_id" },
-        );
+      const { error: upsertError } = await client.from("lead_funnel_access").upsert(
+        sellerIds.map((sellerId) => ({ funnel_id: funnelId, seller_id: sellerId })),
+        { onConflict: "funnel_id,seller_id" },
+      );
       if (upsertError) {
         throw new Error(
           `[supabase] replaceAccess(${funnelId}) upsert failed: ${upsertError.message}`,

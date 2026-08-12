@@ -61,7 +61,12 @@ export const mockMessagesProvider: IMessagesProvider = {
     // caller can access. The lookups are independent → resolve concurrently.
     const resolved = await Promise.all(
       conversationIds.map(async (id): Promise<IMessage | null> => {
-        const res = await messagesApi.list({ conversationId: id, page: 1, pageSize: 1, orderDir: "desc" });
+        const res = await messagesApi.list({
+          conversationId: id,
+          page: 1,
+          pageSize: 1,
+          orderDir: "desc",
+        });
         const m = res.data[0];
         if (!m) return null;
         // Mirror the `list` receivedAt fallback (mock has no processing lag).
