@@ -6,16 +6,22 @@ import { describe, expect, it } from "vitest";
  * The contract that makes /atendimento installable.
  *
  * None of it is reachable from a unit test of a component: the decision is made
- * by the browser, at load, against static files. It shipped broken once —
- * `index.html` declared the seller's manifest (scope /pwa) while the atendimento
- * app swapped it only after React mounted — and `bun run build` + `bun run test`
- * both passed. These assertions are what would have caught it.
+ * by the browser, at load, against static files. It shipped broken three times —
+ * first the document declared the seller's manifest, then only half the head
+ * tags were restored on navigation, and finally the swap-at-runtime approach
+ * turned out to be unfixable on iOS: WebKit ties a web app's identity to the
+ * manifest present when the document loads and never re-reads a mutated href.
+ * Chrome does re-read it, which is why every desktop measurement passed while
+ * the iPhone kept offering "GALLO Vendedor".
+ *
+ * So the two apps now own two documents, and these assertions guard the seam.
  */
 
 const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const read = (relative: string) => readFileSync(repoRoot + relative, "utf8");
 
-const html = read("index.html");
+const sellerHtml = read("index.html");
+const atendimentoHtml = read("atendimento.html");
 
 interface IManifest {
   name?: string;
@@ -32,13 +38,15 @@ const manifests: Record<string, IManifest> = {
   "/manifest.webmanifest": JSON.parse(read("public/manifest.webmanifest")) as IManifest,
 };
 
-describe.each(Object.entries(manifests))("manifest %s", (href, manifest) => {
+describe.each(Object.entries(manifests))("manifest %s", (_href, manifest) => {
   it("names the app", () => {
     expect(manifest.name).toBeTruthy();
     expect(manifest.short_name).toBeTruthy();
   });
 
   it("asks for a standalone window", () => {
+    // iOS only treats a Home Screen entry as a web app when the manifest says
+    // standalone (or fullscreen) — otherwise it is a bookmark with no push.
     expect(manifest.display).toBe("standalone");
   });
 
@@ -54,8 +62,6 @@ describe.each(Object.entries(manifests))("manifest %s", (href, manifest) => {
   });
 
   it("keeps an icon usable as-is", () => {
-    // A manifest whose icons are all `maskable` fails the install check: the
-    // browser needs at least one it can draw unmodified.
     const anyPurpose = (manifest.icons ?? []).filter((icon) =>
       (icon.purpose ?? "any").split(/\s+/).includes("any"),
     );
@@ -66,6 +72,93 @@ describe.each(Object.entries(manifests))("manifest %s", (href, manifest) => {
     for (const icon of manifest.icons ?? []) {
       expect(() => read("public" + icon.src)).not.toThrow();
     }
+  });
+});
+
+describe("atendimento.html", () => {
+  it("declares its manifest statically, never by script", () => {
+    // The whole point of the separate document: the correct manifest is in the
+    // markup the parser sees, so WebKit latches the right identity.
+    expect(atendimentoHtml).toContain('<link rel="manifest" href="/atendimento.webmanifest" />');
+    expect(atendimentoHtml).not.toMatch(/getElementById\(["']app-manifest/);
+  });
+
+  it("carries the whole iOS identity, which the manifest alone does not cover", () => {
+    // iOS reads apple-touch-icon and apple-mobile-web-app-title, not the
+    // manifest icons — leaving them out puts the seller's face on the shortcut.
+    expect(atendimentoHtml).toContain(
+      '<link rel="apple-touch-icon" href="/atendimento-apple-touch-icon.png" />',
+    );
+    expect(atendimentoHtml).toContain(
+      '<meta name="apple-mobile-web-app-title" content="GALLO Atendimento" />',
+    );
+    expect(atendimentoHtml).toContain('<meta name="apple-mobile-web-app-capable" content="yes" />');
+    expect(() => read("public/atendimento-apple-touch-icon.png")).not.toThrow();
+  });
+
+  it("uses the theme colour its own manifest declares", () => {
+    const themeColor = manifests["/atendimento.webmanifest"]?.theme_color;
+    expect(atendimentoHtml).toContain(`<meta name="theme-color" content="${themeColor}" />`);
+  });
+
+  it("boots the same bundle as the CRM", () => {
+    expect(atendimentoHtml).toContain('src="/src/main.tsx"');
+    expect(atendimentoHtml).toContain('id="root"');
+  });
+
+  it("never declares the seller app", () => {
+    // Comments are stripped first: this file explains the history in prose, and
+    // the check is about what the parser acts on, not about what it documents.
+    const markup = atendimentoHtml.replace(/<!--[\s\S]*?-->/g, "");
+    expect(markup).not.toContain("/manifest.webmanifest");
+    expect(markup).not.toContain("GALLO Vendedor");
+  });
+});
+
+describe("index.html", () => {
+  it("belongs to the seller app alone", () => {
+    expect(sellerHtml).toContain('href="/manifest.webmanifest"');
+    expect(sellerHtml).toContain(`content="${manifests["/manifest.webmanifest"]?.theme_color}"`);
+    expect(sellerHtml).toContain('content="GALLO Vendedor"');
+  });
+
+  it("no longer swaps the manifest at runtime", () => {
+    // Removed deliberately: it worked on Chrome, never on iOS, and its presence
+    // invited the next person to "just add one more tag to the swap".
+    expect(sellerHtml).not.toContain("atendimento.webmanifest");
+  });
+
+  it("keeps the ids the SPA navigation path targets", () => {
+    for (const id of ["app-manifest", "app-theme-color", "app-ios-title", "app-apple-icon"]) {
+      expect(sellerHtml).toContain(`id="${id}"`);
+    }
+  });
+});
+
+describe("routing", () => {
+  const vercel = JSON.parse(read("vercel.json")) as {
+    rewrites: { source: string; destination: string }[];
+  };
+  const sources = vercel.rewrites.map((rule) => rule.source);
+
+  it("sends /atendimento and everything under it to its own document", () => {
+    for (const source of ["/atendimento", "/atendimento/(.*)"]) {
+      const rule = vercel.rewrites.find((entry) => entry.source === source);
+      expect(rule?.destination).toBe("/atendimento.html");
+    }
+  });
+
+  it("keeps those rules above the catch-all, which would swallow them", () => {
+    const catchAll = sources.indexOf("/(.*)");
+    expect(catchAll).toBe(sources.length - 1);
+    expect(sources.indexOf("/atendimento")).toBeLessThan(catchAll);
+    expect(sources.indexOf("/atendimento/(.*)")).toBeLessThan(catchAll);
+  });
+
+  it("builds both documents, or the rewrite points at nothing", () => {
+    const config = read("vite.config.ts");
+    expect(config).toContain("./index.html");
+    expect(config).toContain("./atendimento.html");
   });
 });
 
@@ -108,56 +201,8 @@ describe("the two apps on this origin", () => {
   });
 });
 
-describe("index.html", () => {
-  const idsUsedByScript = ["app-manifest", "app-theme-color", "app-ios-title", "app-apple-icon"];
-  const scriptStart = html.indexOf("Pick the manifest for the app being opened");
-
-  it("carries the head script that picks the manifest", () => {
-    expect(scriptStart).toBeGreaterThan(-1);
-  });
-
-  it.each(idsUsedByScript)("declares #%s above the script that reads it", (id) => {
-    const tagAt = html.indexOf(`id="${id}"`);
-    expect(tagAt).toBeGreaterThan(-1);
-    // `getElementById` in the head only finds what the parser has already seen.
-    expect(tagAt).toBeLessThan(scriptStart);
-  });
-
-  it("runs the script at parse time, not deferred", () => {
-    // `defer` or `type="module"` would push it past the browser's decision.
-    const tag = html.slice(html.lastIndexOf("<script", scriptStart), scriptStart);
-    expect(tag).not.toMatch(/\bdefer\b/);
-    expect(tag).not.toMatch(/type\s*=\s*"module"/);
-  });
-
-  it("switches to the atendimento manifest for that path only", () => {
-    const script = html.slice(scriptStart, html.indexOf("</script>", scriptStart));
-    expect(script).toContain('"/atendimento"');
-    expect(script).toContain('"/atendimento.webmanifest"');
-  });
-
-  it("swaps the iOS icon, which ignores the manifest and reads this link", () => {
-    const script = html.slice(scriptStart, html.indexOf("</script>", scriptStart));
-    expect(script).toContain("/atendimento-apple-touch-icon.png");
-    expect(() => read("public/atendimento-apple-touch-icon.png")).not.toThrow();
-  });
-
-  it("applies the atendimento theme colour declared in its manifest", () => {
-    const script = html.slice(scriptStart, html.indexOf("</script>", scriptStart));
-    expect(script).toContain(manifests["/atendimento.webmanifest"]?.theme_color);
-  });
-
-  it("defaults to the seller app, which owns the static tags", () => {
-    const head = html.slice(0, scriptStart);
-    expect(head).toContain('href="/manifest.webmanifest"');
-    expect(head).toContain(`content="${manifests["/manifest.webmanifest"]?.theme_color}"`);
-  });
-});
-
 describe("usePwaManifest", () => {
   const source = read("src/features/pwa-atendimento/hooks/usePwaManifest.ts");
-  const scriptStart = html.indexOf("Pick the manifest for the app being opened");
-  const script = html.slice(scriptStart, html.indexOf("</script>", scriptStart));
 
   /** Reads one field out of an identity object literal in the hook. */
   const field = (constant: string, key: string) => {
@@ -165,39 +210,29 @@ describe("usePwaManifest", () => {
     return new RegExp(`${key}:\\s*"([^"]+)"`).exec(block)?.[1] ?? null;
   };
 
-  // The asymmetry this locks: the head script swapped four tags and the hook
-  // restored two, so leaving the app left the seller's page wearing the
-  // atendimento icon — and iOS reads that link, not the manifest icons.
+  // Only reachable through a client-side navigation into /atendimento, which
+  // stays inside index.html. Installability is already settled by then — this
+  // is about the tab not lying about which app it is showing.
   it.each(["app-manifest", "app-theme-color", "app-ios-title", "app-apple-icon"])(
-    "handles #%s, the same tag the head script swaps",
+    "handles #%s, so the identity moves as one piece",
     (id) => {
-      expect(script).toContain(id);
       expect(source).toContain(id);
     },
   );
 
-  it("applies exactly the atendimento values the head script applies", () => {
+  it("applies the atendimento identity that atendimento.html ships", () => {
     for (const key of ["manifest", "themeColor", "iosTitle", "appleIcon"]) {
       const value = field("ATENDIMENTO", key);
       expect(value).toBeTruthy();
-      expect(script).toContain(value);
+      expect(atendimentoHtml).toContain(value);
     }
   });
 
-  it("keeps the theme colour tied to the manifest that declares it", () => {
-    expect(field("ATENDIMENTO", "themeColor")).toBe(
-      manifests["/atendimento.webmanifest"]?.theme_color,
-    );
-  });
-
   it("restores exactly what index.html ships as the seller default", () => {
-    // Restoring "whatever was there on mount" reads the atendimento values on a
-    // direct load — and leaves the rest of the CRM wearing them.
-    const head = html.slice(0, scriptStart);
-    expect(head).toContain(`href="${field("SELLER", "manifest")}"`);
-    expect(head).toContain(`content="${field("SELLER", "themeColor")}"`);
-    expect(head).toContain(`content="${field("SELLER", "iosTitle")}"`);
-    expect(head).toContain(`href="${field("SELLER", "appleIcon")}"`);
+    expect(sellerHtml).toContain(`href="${field("SELLER", "manifest")}"`);
+    expect(sellerHtml).toContain(`content="${field("SELLER", "themeColor")}"`);
+    expect(sellerHtml).toContain(`content="${field("SELLER", "iosTitle")}"`);
+    expect(sellerHtml).toContain(`href="${field("SELLER", "appleIcon")}"`);
   });
 
   it("points the seller default at an icon that exists", () => {
