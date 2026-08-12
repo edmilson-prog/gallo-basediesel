@@ -1,5 +1,6 @@
 import type {
   INpsFilters,
+  INpsSettings,
   INpsListFilters,
   INpsProvider,
   INpsRawMetrics,
@@ -130,6 +131,28 @@ function toPoint(survey: INpsSurvey): INpsResponsePoint {
   return { score: survey.score ?? 0, respondedAt: survey.respondedAt ?? "" };
 }
 
+/** Mirrors the column defaults in 20260812140000_nps_schema.sql. */
+const DEFAULT_SETTINGS: INpsSettings = {
+  storeId: "store-1",
+  enabled: false,
+  triggerConversationEnabled: true,
+  triggerConversationDelayHours: 2,
+  triggerOrderEnabled: false,
+  triggerOrderDelayHours: 24,
+  cooldownDays: 30,
+  tokenExpiryDays: 7,
+  windowDays: 90,
+  samplingRate: 1,
+  sendWindowStartHour: 9,
+  sendWindowEndHour: 20,
+  minResponsesForScore: 5,
+  maxBackfillDays: 3,
+  dailyCap: 50,
+  whatsappAccountId: null,
+};
+
+let mockSettings: INpsSettings = { ...DEFAULT_SETTINGS };
+
 export const mockNpsProvider: INpsProvider = {
   async rawMetrics(filters: INpsFilters): Promise<INpsRawMetrics> {
     const now = Date.now();
@@ -170,5 +193,14 @@ export const mockNpsProvider: INpsProvider = {
 
     const from = (page - 1) * pageSize;
     return { data: matching.slice(from, from + pageSize), total: matching.length };
+  },
+
+  async getSettings(storeId: string): Promise<INpsSettings | null> {
+    return { ...mockSettings, storeId };
+  },
+
+  async updateSettings(storeId: string, patch: Partial<INpsSettings>): Promise<INpsSettings> {
+    mockSettings = { ...mockSettings, ...patch, storeId };
+    return { ...mockSettings };
   },
 };

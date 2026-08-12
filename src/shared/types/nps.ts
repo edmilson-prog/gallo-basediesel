@@ -113,6 +113,9 @@ export interface INpsListFilters extends INpsFilters {
 export interface INpsProvider {
   rawMetrics(filters: INpsFilters): Promise<INpsRawMetrics>;
   list(filters: INpsListFilters): Promise<{ data: INpsSurvey[]; total: number }>;
+  /** Null when the store has never been configured — the survey is then off. */
+  getSettings(storeId: string): Promise<INpsSettings | null>;
+  updateSettings(storeId: string, patch: Partial<INpsSettings>): Promise<INpsSettings>;
 }
 
 export interface INpsSettings {

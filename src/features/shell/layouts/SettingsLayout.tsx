@@ -181,6 +181,12 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         permission: { resource: "settings_automation", action: "edit" },
       },
       {
+        label: "NPS — Pesquisa de satisfação",
+        icon: "mdi:emoticon-outline",
+        to: "/app/configuracoes/nps",
+        permission: { resource: "settings_nps", action: "view" },
+      },
+      {
         label: "Sons de notificação",
         icon: "mdi:music-note-outline",
         to: "/app/configuracoes/sons",

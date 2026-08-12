@@ -1,5 +1,6 @@
 import type {
   INpsFilters,
+  INpsSettings,
   INpsListFilters,
   INpsProvider,
   INpsRawMetrics,
@@ -110,6 +111,81 @@ function applySharedFilters<T>(query: T, filters: INpsFilters): T {
   return out as unknown as T;
 }
 
+const SETTINGS_TABLE = "nps_settings";
+const SETTINGS_COLUMNS =
+  "store_id, enabled, trigger_conversation_enabled, trigger_conversation_delay_hours, " +
+  "trigger_order_enabled, trigger_order_delay_hours, cooldown_days, token_expiry_days, " +
+  "window_days, sampling_rate, send_window_start_hour, send_window_end_hour, " +
+  "min_responses_for_score, max_backfill_days, daily_cap, whatsapp_account_id";
+
+interface NpsSettingsRow {
+  store_id: string;
+  enabled: boolean;
+  trigger_conversation_enabled: boolean;
+  trigger_conversation_delay_hours: number;
+  trigger_order_enabled: boolean;
+  trigger_order_delay_hours: number;
+  cooldown_days: number;
+  token_expiry_days: number;
+  window_days: number;
+  sampling_rate: number;
+  send_window_start_hour: number;
+  send_window_end_hour: number;
+  min_responses_for_score: number;
+  max_backfill_days: number;
+  daily_cap: number;
+  whatsapp_account_id: string | null;
+}
+
+function rowToSettings(row: NpsSettingsRow): INpsSettings {
+  return {
+    storeId: row.store_id,
+    enabled: row.enabled,
+    triggerConversationEnabled: row.trigger_conversation_enabled,
+    triggerConversationDelayHours: row.trigger_conversation_delay_hours,
+    triggerOrderEnabled: row.trigger_order_enabled,
+    triggerOrderDelayHours: row.trigger_order_delay_hours,
+    cooldownDays: row.cooldown_days,
+    tokenExpiryDays: row.token_expiry_days,
+    windowDays: row.window_days,
+    samplingRate: Number(row.sampling_rate),
+    sendWindowStartHour: row.send_window_start_hour,
+    sendWindowEndHour: row.send_window_end_hour,
+    minResponsesForScore: row.min_responses_for_score,
+    maxBackfillDays: row.max_backfill_days,
+    dailyCap: row.daily_cap,
+    whatsappAccountId: row.whatsapp_account_id,
+  };
+}
+
+/** Only the columns the settings screen may write — storeId stays immutable. */
+function settingsPatchToRow(patch: Partial<INpsSettings>): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
+  if (patch.enabled !== undefined) row.enabled = patch.enabled;
+  if (patch.triggerConversationEnabled !== undefined)
+    row.trigger_conversation_enabled = patch.triggerConversationEnabled;
+  if (patch.triggerConversationDelayHours !== undefined)
+    row.trigger_conversation_delay_hours = patch.triggerConversationDelayHours;
+  if (patch.triggerOrderEnabled !== undefined)
+    row.trigger_order_enabled = patch.triggerOrderEnabled;
+  if (patch.triggerOrderDelayHours !== undefined)
+    row.trigger_order_delay_hours = patch.triggerOrderDelayHours;
+  if (patch.cooldownDays !== undefined) row.cooldown_days = patch.cooldownDays;
+  if (patch.tokenExpiryDays !== undefined) row.token_expiry_days = patch.tokenExpiryDays;
+  if (patch.windowDays !== undefined) row.window_days = patch.windowDays;
+  if (patch.samplingRate !== undefined) row.sampling_rate = patch.samplingRate;
+  if (patch.sendWindowStartHour !== undefined)
+    row.send_window_start_hour = patch.sendWindowStartHour;
+  if (patch.sendWindowEndHour !== undefined) row.send_window_end_hour = patch.sendWindowEndHour;
+  if (patch.minResponsesForScore !== undefined)
+    row.min_responses_for_score = patch.minResponsesForScore;
+  if (patch.maxBackfillDays !== undefined) row.max_backfill_days = patch.maxBackfillDays;
+  if (patch.dailyCap !== undefined) row.daily_cap = patch.dailyCap;
+  if (patch.whatsappAccountId !== undefined) row.whatsapp_account_id = patch.whatsappAccountId;
+  row.updated_at = new Date().toISOString();
+  return row;
+}
+
 export const supabaseNpsProvider: INpsProvider = {
   async rawMetrics(filters: INpsFilters): Promise<INpsRawMetrics> {
     const supabase = getSupabaseClient();
@@ -193,5 +269,28 @@ export const supabaseNpsProvider: INpsProvider = {
       data: ((data ?? []) as unknown as NpsSurveyRow[]).map(rowToNpsSurvey),
       total: count ?? 0,
     };
+  },
+
+  async getSettings(storeId: string): Promise<INpsSettings | null> {
+    const { data, error } = await getSupabaseClient()
+      .from(SETTINGS_TABLE)
+      .select(SETTINGS_COLUMNS)
+      .eq("store_id", storeId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    return rowToSettings(data as unknown as NpsSettingsRow);
+  },
+
+  async updateSettings(storeId: string, patch: Partial<INpsSettings>): Promise<INpsSettings> {
+    // Upsert, not update: a store with no row yet is the normal starting state,
+    // and the defaults live in the table definition rather than here.
+    const { data, error } = await getSupabaseClient()
+      .from(SETTINGS_TABLE)
+      .upsert({ store_id: storeId, ...settingsPatchToRow(patch) }, { onConflict: "store_id" })
+      .select(SETTINGS_COLUMNS)
+      .single();
+    if (error) throw error;
+    return rowToSettings(data as unknown as NpsSettingsRow);
   },
 };

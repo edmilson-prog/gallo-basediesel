@@ -142,6 +142,7 @@ import { Route as AppConfiguracoesPortalClienteRouteImport } from './routes/app.
 import { Route as AppConfiguracoesPixRouteImport } from './routes/app.configuracoes.pix'
 import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
 import { Route as AppConfiguracoesPapeisRouteImport } from './routes/app.configuracoes.papeis'
+import { Route as AppConfiguracoesNpsRouteImport } from './routes/app.configuracoes.nps'
 import { Route as AppConfiguracoesNotificacoesRouteImport } from './routes/app.configuracoes.notificacoes'
 import { Route as AppConfiguracoesMidiasRouteImport } from './routes/app.configuracoes.midias'
 import { Route as AppConfiguracoesLojasRouteImport } from './routes/app.configuracoes.lojas'
@@ -887,6 +888,11 @@ const AppConfiguracoesPapeisRoute = AppConfiguracoesPapeisRouteImport.update({
   path: '/configuracoes/papeis',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesNpsRoute = AppConfiguracoesNpsRouteImport.update({
+  id: '/configuracoes/nps',
+  path: '/configuracoes/nps',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConfiguracoesNotificacoesRoute =
   AppConfiguracoesNotificacoesRouteImport.update({
     id: '/configuracoes/notificacoes',
@@ -1376,6 +1382,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
+  '/app/configuracoes/nps': typeof AppConfiguracoesNpsRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/pix': typeof AppConfiguracoesPixRoute
@@ -1563,6 +1570,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
+  '/app/configuracoes/nps': typeof AppConfiguracoesNpsRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/pix': typeof AppConfiguracoesPixRoute
@@ -1761,6 +1769,7 @@ export interface FileRoutesById {
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
+  '/app/configuracoes/nps': typeof AppConfiguracoesNpsRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/pix': typeof AppConfiguracoesPixRoute
@@ -1968,6 +1977,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/midias'
     | '/app/configuracoes/notificacoes'
+    | '/app/configuracoes/nps'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/pix'
@@ -2155,6 +2165,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/midias'
     | '/app/configuracoes/notificacoes'
+    | '/app/configuracoes/nps'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/pix'
@@ -2352,6 +2363,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/midias'
     | '/app/configuracoes/notificacoes'
+    | '/app/configuracoes/nps'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/pix'
@@ -3414,6 +3426,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesPapeisRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/nps': {
+      id: '/app/configuracoes/nps'
+      path: '/configuracoes/nps'
+      fullPath: '/app/configuracoes/nps'
+      preLoaderRoute: typeof AppConfiguracoesNpsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/notificacoes': {
       id: '/app/configuracoes/notificacoes'
       path: '/configuracoes/notificacoes'
@@ -4210,6 +4229,7 @@ interface AppRouteChildren {
   AppConfiguracoesLojasRoute: typeof AppConfiguracoesLojasRoute
   AppConfiguracoesMidiasRoute: typeof AppConfiguracoesMidiasRoute
   AppConfiguracoesNotificacoesRoute: typeof AppConfiguracoesNotificacoesRoute
+  AppConfiguracoesNpsRoute: typeof AppConfiguracoesNpsRoute
   AppConfiguracoesPapeisRoute: typeof AppConfiguracoesPapeisRoute
   AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
   AppConfiguracoesPixRoute: typeof AppConfiguracoesPixRoute
@@ -4303,6 +4323,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesLojasRoute: AppConfiguracoesLojasRoute,
   AppConfiguracoesMidiasRoute: AppConfiguracoesMidiasRoute,
   AppConfiguracoesNotificacoesRoute: AppConfiguracoesNotificacoesRoute,
+  AppConfiguracoesNpsRoute: AppConfiguracoesNpsRoute,
   AppConfiguracoesPapeisRoute: AppConfiguracoesPapeisRoute,
   AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,
   AppConfiguracoesPixRoute: AppConfiguracoesPixRoute,
