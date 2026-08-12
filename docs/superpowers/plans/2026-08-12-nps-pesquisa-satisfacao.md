@@ -34,8 +34,8 @@
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `supabase/migrations/20260812120000_nps_schema.sql` | tabelas, índices, RLS, seed RBAC |
-| `supabase/migrations/20260812120100_nps_scheduler_cron.sql` | agendamento pg_cron (aplicar **depois** do deploy da Edge) |
+| `supabase/migrations/20260812140000_nps_schema.sql` | tabelas, índices, RLS, seed RBAC |
+| `supabase/migrations/20260812140100_nps_scheduler_cron.sql` | agendamento pg_cron (aplicar **depois** do deploy da Edge) |
 | `src/shared/types/nps.ts` | modelo de domínio `INpsSurvey`, `INpsSettings`, `INpsResult` |
 | `src/features/nps/engine/computeNps.ts` | cálculo puro do score |
 | `supabase/functions/nps-scheduler/eligibility.ts` | decisão pura de elegibilidade |
@@ -58,7 +58,7 @@
 ## Task 1: Schema, RLS e recurso RBAC
 
 **Files:**
-- Create: `supabase/migrations/20260812120000_nps_schema.sql`
+- Create: `supabase/migrations/20260812140000_nps_schema.sql`
 - Modify: `src/features/rbac/permissions/matrix.ts`
 - Test: `supabase/tests/rls-regression.sql` (acrescentar bloco)
 
@@ -68,7 +68,7 @@
 
 - [ ] **Step 1: Escrever a migration**
 
-Criar `supabase/migrations/20260812120000_nps_schema.sql`:
+Criar `supabase/migrations/20260812140000_nps_schema.sql`:
 
 ```sql
 -- NPS transacional (PRD-148B, redesenhado em docs/superpowers/specs/
@@ -193,7 +193,7 @@ on conflict (role_id, resource) do nothing;
 
 - [ ] **Step 2: Aplicar a migration e conferir**
 
-Aplicar via MCP `apply_migration` com `version = 20260812120000_nps_schema`. Depois validar:
+Aplicar via MCP `apply_migration` com `version = 20260812140000_nps_schema`. Depois validar:
 
 ```sql
 select count(*) from public.nps_surveys;                     -- 0, sem erro
@@ -252,7 +252,7 @@ Expected: PASS nos dois.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add supabase/migrations/20260812120000_nps_schema.sql src/features/rbac/permissions/matrix.ts
+git add supabase/migrations/20260812140000_nps_schema.sql src/features/rbac/permissions/matrix.ts
 git commit -m "feat(nps): add nps_surveys and nps_settings schema with RLS and RBAC seed"
 ```
 
@@ -803,7 +803,7 @@ git commit -m "feat(nps): add pure eligibility engine with mass-dispatch backsto
 ## Task 4: Scheduler e envio
 
 **Files:**
-- Create: `supabase/functions/nps-scheduler/index.ts`, `supabase/functions/nps-scheduler/sender.ts`, `supabase/migrations/20260812120100_nps_scheduler_cron.sql`
+- Create: `supabase/functions/nps-scheduler/index.ts`, `supabase/functions/nps-scheduler/sender.ts`, `supabase/migrations/20260812140100_nps_scheduler_cron.sql`
 - Read first: `supabase/functions/sdr-backstop-tick/index.ts` (auth e formato), `supabase/functions/scheduled-send-worker/index.ts` (como despachar por WAHA vs demais engines)
 
 **Interfaces:**
@@ -898,7 +898,7 @@ Criar `supabase/functions/nps-scheduler/index.ts` seguindo o esqueleto de `sdr-b
 
 - [ ] **Step 4: Escrever a migration do cron**
 
-Criar `supabase/migrations/20260812120100_nps_scheduler_cron.sql`, no formato de `20260715150000_sdr_backstop_cron_trigger.sql`:
+Criar `supabase/migrations/20260812140100_nps_scheduler_cron.sql`, no formato de `20260715150000_sdr_backstop_cron_trigger.sql`:
 
 ```sql
 -- NPS scheduler: tick horário.
@@ -955,7 +955,7 @@ Run: `bun run test && bun run build`
 Expected: PASS.
 
 ```bash
-git add supabase/functions/nps-scheduler/ supabase/migrations/20260812120100_nps_scheduler_cron.sql
+git add supabase/functions/nps-scheduler/ supabase/migrations/20260812140100_nps_scheduler_cron.sql
 git commit -m "feat(nps): add nps-scheduler edge function with WhatsApp sender and cron"
 ```
 
