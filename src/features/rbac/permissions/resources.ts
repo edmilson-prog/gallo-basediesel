@@ -44,6 +44,7 @@ export const RESOURCES = [
   "inventory",
   "customer_service_analytics",
   "service_volume",
+  "nps",
   "insight",
   "storefront_admin",
   "ecommerce_integration",
@@ -72,6 +73,9 @@ export const RESOURCES = [
   "settings_automation",
   // Environment & data source switch + session security.
   "settings_system",
+  // NPS survey configuration: triggers, anti-fatigue windows and the two
+  // mass-dispatch backstops.
+  "settings_nps",
 ] as const;
 
 export type ResourceName = (typeof RESOURCES)[number];

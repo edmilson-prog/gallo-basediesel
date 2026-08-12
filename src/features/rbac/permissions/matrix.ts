@@ -67,6 +67,7 @@ const OWNER_ENTRIES: ScopedActions[] = [
   p("inventory", ["view", "edit"], "all"),
   p("customer_service_analytics", ["view"], "all"),
   p("service_volume", ["view"], "all"),
+  p("nps", ["view"], "all"),
   p("insight", ["view", "edit", "delete"], "all"),
   p("storefront_admin", ["view", "edit"], "all"),
   p("ecommerce_integration", ["view", "edit"], "all"),
@@ -86,6 +87,7 @@ const OWNER_ENTRIES: ScopedActions[] = [
   p("settings_sdr", ["view", "edit"], "all"),
   p("settings_automation", ["view", "edit"], "all"),
   p("settings_system", ["view", "edit"], "all"),
+  p("settings_nps", ["view", "edit"], "all"),
 ];
 
 const GESTOR_ENTRIES: ScopedActions[] = [
@@ -132,6 +134,7 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("inventory", ["view", "edit"], "store"),
   p("customer_service_analytics", ["view"], "store"),
   p("service_volume", ["view"], "store"),
+  p("nps", ["view"], "store"),
   p("insight", ["view", "edit"], "store"),
   // Gestor: read-only on the storefront admin dashboard/analysis (PRD-066 RF-023).
   p("storefront_admin", ["view"], "store"),
@@ -149,6 +152,9 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("settings_whatsapp", ["view"], "store"),
   p("settings_sdr", ["view", "edit"], "store"),
   p("settings_automation", ["view", "edit"], "store"),
+  // Read-only: the Gestor sees how the NPS survey is tuned, but only the Owner
+  // changes triggers, cooldown and the mass-dispatch backstops.
+  p("settings_nps", ["view"], "store"),
   // Not granted (Owner-only today): settings_api_keys, settings_ai, settings_system.
 ];
 

@@ -71,6 +71,7 @@ const RESOURCE_LABELS: Record<ResourceName, string> = {
   inventory: "Estoque",
   customer_service_analytics: "Análise de Atendimento",
   service_volume: "Volume de Atendimento",
+  nps: "NPS — Satisfação",
   insight: "Insights",
   storefront_admin: "Admin E-commerce",
   ecommerce_integration: "Integração E-commerce",
@@ -91,6 +92,7 @@ const RESOURCE_LABELS: Record<ResourceName, string> = {
   settings_sdr: "Agente SDR",
   settings_automation: "Automações de atendimento",
   settings_system: "Sistema & Sessão",
+  settings_nps: "NPS",
 };
 
 /** Editorial grouping of resources into UI areas (PRD-211). */
@@ -115,6 +117,7 @@ const RESOURCE_GROUPS: Record<ResourceName, string> = {
   media: "Atendimento",
   customer_service_analytics: "Atendimento",
   service_volume: "Atendimento",
+  nps: "Atendimento",
   asset_library: "Atendimento",
   quick_reply: "Atendimento",
   trackable_link: "Atendimento",
@@ -149,6 +152,7 @@ const RESOURCE_GROUPS: Record<ResourceName, string> = {
   settings_sdr: "Configuração",
   settings_automation: "Configuração",
   settings_system: "Configuração",
+  settings_nps: "Configuração",
 };
 
 /**
