@@ -53,6 +53,7 @@ import { Route as AtendimentoInstalarRouteImport } from './routes/atendimento.in
 import { Route as AtendimentoEsperaRouteImport } from './routes/atendimento.espera'
 import { Route as AtendimentoEntrarRouteImport } from './routes/atendimento.entrar'
 import { Route as AtendimentoConversasRouteImport } from './routes/atendimento.conversas'
+import { Route as AtendimentoAnaliseRouteImport } from './routes/atendimento.analise'
 import { Route as AppVeiculosRouteImport } from './routes/app.veiculos'
 import { Route as AppStorefrontAdminRouteImport } from './routes/app.storefront-admin'
 import { Route as AppSdrRouteImport } from './routes/app.sdr'
@@ -428,6 +429,11 @@ const AtendimentoEntrarRoute = AtendimentoEntrarRouteImport.update({
 const AtendimentoConversasRoute = AtendimentoConversasRouteImport.update({
   id: '/conversas',
   path: '/conversas',
+  getParentRoute: () => AtendimentoRoute,
+} as any)
+const AtendimentoAnaliseRoute = AtendimentoAnaliseRouteImport.update({
+  id: '/analise',
+  path: '/analise',
   getParentRoute: () => AtendimentoRoute,
 } as any)
 const AppVeiculosRoute = AppVeiculosRouteImport.update({
@@ -1293,6 +1299,7 @@ export interface FileRoutesByFullPath {
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
   '/app/veiculos': typeof AppVeiculosRouteWithChildren
+  '/atendimento/analise': typeof AtendimentoAnaliseRoute
   '/atendimento/conversas': typeof AtendimentoConversasRoute
   '/atendimento/entrar': typeof AtendimentoEntrarRoute
   '/atendimento/espera': typeof AtendimentoEsperaRoute
@@ -1483,6 +1490,7 @@ export interface FileRoutesByTo {
   '/app/notificacoes': typeof AppNotificacoesRoute
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
+  '/atendimento/analise': typeof AtendimentoAnaliseRoute
   '/atendimento/conversas': typeof AtendimentoConversasRoute
   '/atendimento/entrar': typeof AtendimentoEntrarRoute
   '/atendimento/espera': typeof AtendimentoEsperaRoute
@@ -1672,6 +1680,7 @@ export interface FileRoutesById {
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
   '/app/veiculos': typeof AppVeiculosRouteWithChildren
+  '/atendimento/analise': typeof AtendimentoAnaliseRoute
   '/atendimento/conversas': typeof AtendimentoConversasRoute
   '/atendimento/entrar': typeof AtendimentoEntrarRoute
   '/atendimento/espera': typeof AtendimentoEsperaRoute
@@ -1876,6 +1885,7 @@ export interface FileRouteTypes {
     | '/app/sdr'
     | '/app/storefront-admin'
     | '/app/veiculos'
+    | '/atendimento/analise'
     | '/atendimento/conversas'
     | '/atendimento/entrar'
     | '/atendimento/espera'
@@ -2066,6 +2076,7 @@ export interface FileRouteTypes {
     | '/app/notificacoes'
     | '/app/sdr'
     | '/app/storefront-admin'
+    | '/atendimento/analise'
     | '/atendimento/conversas'
     | '/atendimento/entrar'
     | '/atendimento/espera'
@@ -2254,6 +2265,7 @@ export interface FileRouteTypes {
     | '/app/sdr'
     | '/app/storefront-admin'
     | '/app/veiculos'
+    | '/atendimento/analise'
     | '/atendimento/conversas'
     | '/atendimento/entrar'
     | '/atendimento/espera'
@@ -2752,6 +2764,13 @@ declare module '@tanstack/react-router' {
       path: '/conversas'
       fullPath: '/atendimento/conversas'
       preLoaderRoute: typeof AtendimentoConversasRouteImport
+      parentRoute: typeof AtendimentoRoute
+    }
+    '/atendimento/analise': {
+      id: '/atendimento/analise'
+      path: '/analise'
+      fullPath: '/atendimento/analise'
+      preLoaderRoute: typeof AtendimentoAnaliseRouteImport
       parentRoute: typeof AtendimentoRoute
     }
     '/app/veiculos': {
@@ -4324,6 +4343,7 @@ const AtendimentoConversaIdRouteWithChildren =
   )
 
 interface AtendimentoRouteChildren {
+  AtendimentoAnaliseRoute: typeof AtendimentoAnaliseRoute
   AtendimentoConversasRoute: typeof AtendimentoConversasRoute
   AtendimentoEntrarRoute: typeof AtendimentoEntrarRoute
   AtendimentoEsperaRoute: typeof AtendimentoEsperaRoute
@@ -4333,6 +4353,7 @@ interface AtendimentoRouteChildren {
 }
 
 const AtendimentoRouteChildren: AtendimentoRouteChildren = {
+  AtendimentoAnaliseRoute: AtendimentoAnaliseRoute,
   AtendimentoConversasRoute: AtendimentoConversasRoute,
   AtendimentoEntrarRoute: AtendimentoEntrarRoute,
   AtendimentoEsperaRoute: AtendimentoEsperaRoute,
