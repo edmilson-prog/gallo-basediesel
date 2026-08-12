@@ -37,7 +37,13 @@ export function PwaConversationRow({
     >
       <span className={cn("w-[3px] shrink-0", status.railClass)} aria-hidden />
       <span className="flex min-w-0 flex-1 gap-3 py-3 pl-[11px] pr-3.5">
-        <PwaAvatar initials={item.initials} size={44} highlighted={unread} />
+        <PwaAvatar
+          initials={item.initials}
+          src={item.avatarUrl}
+          isPhoneName={item.isPhoneName}
+          size={44}
+          highlighted={unread}
+        />
         <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
           <span className="flex items-baseline gap-2">
             <span

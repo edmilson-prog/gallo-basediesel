@@ -13,6 +13,7 @@ import { useConversationStatusActions } from "@/features/conversations/hooks/use
 import { useAudioRecorder } from "@/features/conversations/hooks/useAudioRecorder";
 import { useAttachmentUpload } from "@/features/conversations/hooks/useAttachmentUpload";
 import { mustAssignToReply } from "@/features/conversations/engine/assignmentGate";
+import { isPhoneLikeName } from "@/shared/utils/avatar";
 import { appendToDraft } from "@/features/part-lookup";
 import { PwaButton } from "../components/ui/PwaButton";
 import { PwaOfflineBar } from "../components/ui/PwaOfflineBar";
@@ -186,6 +187,8 @@ function PwaThreadBody({
       <PwaThreadHeader
         name={shortNameOf(name)}
         initials={initialsOf(name)}
+        avatarUrl={contact?.avatarUrl ?? null}
+        isPhoneName={isPhoneLikeName(name)}
         status={conversation.status}
         conversationId={conversationId}
         onOpenStatus={() => setSheet("status")}

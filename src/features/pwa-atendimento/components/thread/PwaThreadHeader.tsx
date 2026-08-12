@@ -8,6 +8,10 @@ import { PWA_ATENDIMENTO_STRINGS as S } from "../../i18n/pt-BR";
 interface IPwaThreadHeaderProps {
   name: string;
   initials: string;
+  /** Foto de perfil do contato, quando sincronizada. */
+  avatarUrl?: string | null;
+  /** O nome é só um telefone — o avatar usa ícone genérico. */
+  isPhoneName?: boolean;
   status: ConversationStatus;
   conversationId: string;
   onOpenStatus: () => void;
@@ -17,6 +21,8 @@ interface IPwaThreadHeaderProps {
 export function PwaThreadHeader({
   name,
   initials,
+  avatarUrl,
+  isPhoneName,
   status,
   conversationId,
   onOpenStatus,
@@ -31,7 +37,7 @@ export function PwaThreadHeader({
       >
         <Icon icon="mdi:chevron-left" size={22} />
       </Link>
-      <PwaAvatar initials={initials} size={38} />
+      <PwaAvatar initials={initials} src={avatarUrl} isPhoneName={isPhoneName} size={38} />
       <div className="ml-1 min-w-0 flex-1">
         <p className="truncate text-[14.5px] font-extrabold text-foreground">{name}</p>
         <div className="mt-px">

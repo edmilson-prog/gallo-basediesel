@@ -7,6 +7,7 @@ import { useConversationsList } from "@/features/conversations/hooks/useConversa
 import { useRelatedEntities } from "@/features/conversations/hooks/useRelatedEntities";
 import { useRealtimeConversations } from "@/features/conversations/hooks/useRealtimeConversations";
 import { formatRelativeTime } from "@/features/conversations/utils/formatRelativeTime";
+import { isPhoneLikeName } from "@/shared/utils/avatar";
 import { buildPwaPreview } from "../engine/messagePreview";
 import { EMPTY_PWA_FILTERS, type IPwaFilters } from "../engine/pwaFilters";
 import { initialsOf, shortNameOf } from "../components/ui/statusMeta";
@@ -24,6 +25,10 @@ export interface IPwaConversationVM {
   name: string;
   short: string;
   initials: string;
+  /** Foto de perfil sincronizada do WhatsApp, quando o contato tem uma. */
+  avatarUrl: string | null;
+  /** O nome resolvido é só um telefone — o avatar usa ícone, não "+5". */
+  isPhoneName: boolean;
   phone: string;
   channel: ConversationChannel;
   status: ConversationStatus;
@@ -91,6 +96,10 @@ export function usePwaConversations(params: IListConversationsParams): IUsePwaCo
         name,
         short: shortNameOf(name),
         initials: initialsOf(name),
+        // O RPC `conversation_contacts` já devolve `coalesce(cliente, lead)` —
+        // o dado sempre esteve aqui, só não chegava à tela.
+        avatarUrl: contact?.avatarUrl ?? null,
+        isPhoneName: isPhoneLikeName(name),
         phone: contact?.phone ?? "",
         channel: conversation.channel,
         status: conversation.status,
