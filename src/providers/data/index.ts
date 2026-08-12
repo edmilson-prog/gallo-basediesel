@@ -143,6 +143,7 @@ export type {
   ISdrPilotSettingsProvider,
   IConversationRescuesProvider,
   IPixKeyProvider,
+  INpsProvider,
 } from "./contracts";
 export { computeFailureRate, FETCH_ALL_PAGE_SIZE, WALLET_STALE_DAYS } from "./contracts";
 
@@ -202,6 +203,7 @@ export { useConversationParticipantsProvider } from "./hooks/useConversationPart
 export { useSdrPilotSettingsProvider } from "./hooks/useSdrPilotSettingsProvider";
 export { useConversationRescuesProvider } from "./hooks/useConversationRescuesProvider";
 export { usePixKeyProvider } from "./hooks/usePixKeyProvider";
+export { useNpsProvider } from "./hooks/useNpsProvider";
 
 export {
   statusOnAssign,

@@ -18,6 +18,7 @@ import { RankingHighlightWidget } from "@/features/gamification";
 import { CommissionsWidget } from "@/features/commissions";
 import { RecentMovementsWidget } from "@/features/inventory-movement";
 import { InsightsBanner } from "@/features/insights";
+import { useNpsMetrics } from "@/features/nps";
 import { ForecastWidget } from "@/features/sales-forecast";
 import { useEcommerceOrdersSummary } from "@/features/ecommerce-integration";
 import { useCockpitFilters } from "../hooks/useCockpitFilters";
@@ -55,6 +56,21 @@ export function ExecutiveCockpitPage() {
     [storeLocked, currentStore?.id],
   );
   const filtersCtl = useCockpitFilters(filtersCtx);
+
+  // KPI #12 — was a "Em breve" placeholder since v0.27.0 (PRD-040), now live.
+  // Below the honest minimum the hook returns a null score, so the card shows
+  // "Coletando dados (N/5)" as a tag rather than inventing a number.
+  const nps = useNpsMetrics({ windowDays: 90 });
+  const npsCollecting = nps.data?.state === "collecting";
+  const npsCardProps = {
+    value: npsCollecting ? null : (nps.data?.score ?? null),
+    isLoading: nps.isLoading,
+    hasError: nps.isError,
+    tag: npsCollecting ? S.kpiNpsCollecting(nps.data?.n ?? 0, nps.data?.minResponses ?? 5) : undefined,
+    sparkline: (nps.data?.monthly ?? [])
+      .map((point) => point.score)
+      .filter((score): score is number => score !== null),
+  };
 
   const scope = useMemo(() => {
     const scopeStoreId =
@@ -300,10 +316,9 @@ export function ExecutiveCockpitPage() {
           icon="mdi:emoticon-outline"
           label={S.kpiNps}
           helpText={S.kpiNpsHelp}
-          value={null}
+          {...npsCardProps}
           formatValue={formatNumber}
-          isLoading={false}
-          tag={S.kpiNpsSoon}
+          onClick={() => void navigate({ to: "/app/nps" })}
         />
       </section>
 

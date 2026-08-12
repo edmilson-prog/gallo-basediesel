@@ -11,6 +11,8 @@ export interface IProfileBadgesProps {
   customer: ICustomer;
   /** Slot for the optional "Histórico pré-conversão" badge (renders a popover). */
   preConversionSlot?: React.ReactNode;
+  /** Slot for the optional NPS badge — absent when the customer has no recent answer. */
+  npsSlot?: React.ReactNode;
   className?: string;
 }
 
@@ -34,7 +36,12 @@ function isPositivatedThisMonth(customer: ICustomer, now: Date = new Date()): bo
  * - "Histórico pré-conversão" — passed via slot so the popover trigger lives
  *   in the parent (which owns the lead data fetch).
  */
-export function ProfileBadges({ customer, preConversionSlot, className }: IProfileBadgesProps) {
+export function ProfileBadges({
+  customer,
+  preConversionSlot,
+  npsSlot,
+  className,
+}: IProfileBadgesProps) {
   const positivated = isPositivatedThisMonth(customer);
   return (
     <div className={cn("flex flex-wrap items-center gap-1.5", className)} role="group">
@@ -85,6 +92,7 @@ export function ProfileBadges({ customer, preConversionSlot, className }: IProfi
       </span>
 
       {preConversionSlot}
+      {npsSlot}
     </div>
   );
 }

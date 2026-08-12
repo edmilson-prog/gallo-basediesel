@@ -39,6 +39,7 @@ import { Route as PortalInicioRouteImport } from './routes/portal.inicio'
 import { Route as PortalFrotaRouteImport } from './routes/portal.frota'
 import { Route as PortalFaturamentoRouteImport } from './routes/portal.faturamento'
 import { Route as PortalAnaliseRouteImport } from './routes/portal.analise'
+import { Route as PesquisaTokenRouteImport } from './routes/pesquisa.$token'
 import { Route as LojaRecuperarSenhaRouteImport } from './routes/loja.recuperar-senha'
 import { Route as LojaLoginRouteImport } from './routes/loja.login'
 import { Route as LojaContaRouteImport } from './routes/loja.conta'
@@ -59,6 +60,7 @@ import { Route as AppStorefrontAdminRouteImport } from './routes/app.storefront-
 import { Route as AppSdrRouteImport } from './routes/app.sdr'
 import { Route as AppPedidosRouteImport } from './routes/app.pedidos'
 import { Route as AppOrcamentosRouteImport } from './routes/app.orcamentos'
+import { Route as AppNpsRouteImport } from './routes/app.nps'
 import { Route as AppNotificacoesRouteImport } from './routes/app.notificacoes'
 import { Route as AppLeadsRouteImport } from './routes/app.leads'
 import { Route as AppKitsRouteImport } from './routes/app.kits'
@@ -140,6 +142,7 @@ import { Route as AppConfiguracoesPortalClienteRouteImport } from './routes/app.
 import { Route as AppConfiguracoesPixRouteImport } from './routes/app.configuracoes.pix'
 import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configuracoes.perfil'
 import { Route as AppConfiguracoesPapeisRouteImport } from './routes/app.configuracoes.papeis'
+import { Route as AppConfiguracoesNpsRouteImport } from './routes/app.configuracoes.nps'
 import { Route as AppConfiguracoesNotificacoesRouteImport } from './routes/app.configuracoes.notificacoes'
 import { Route as AppConfiguracoesMidiasRouteImport } from './routes/app.configuracoes.midias'
 import { Route as AppConfiguracoesLojasRouteImport } from './routes/app.configuracoes.lojas'
@@ -361,6 +364,11 @@ const PortalAnaliseRoute = PortalAnaliseRouteImport.update({
   path: '/analise',
   getParentRoute: () => PortalRoute,
 } as any)
+const PesquisaTokenRoute = PesquisaTokenRouteImport.update({
+  id: '/pesquisa/$token',
+  path: '/pesquisa/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LojaRecuperarSenhaRoute = LojaRecuperarSenhaRouteImport.update({
   id: '/recuperar-senha',
   path: '/recuperar-senha',
@@ -459,6 +467,11 @@ const AppPedidosRoute = AppPedidosRouteImport.update({
 const AppOrcamentosRoute = AppOrcamentosRouteImport.update({
   id: '/orcamentos',
   path: '/orcamentos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNpsRoute = AppNpsRouteImport.update({
+  id: '/nps',
+  path: '/nps',
   getParentRoute: () => AppRoute,
 } as any)
 const AppNotificacoesRoute = AppNotificacoesRouteImport.update({
@@ -873,6 +886,11 @@ const AppConfiguracoesPerfilRoute = AppConfiguracoesPerfilRouteImport.update({
 const AppConfiguracoesPapeisRoute = AppConfiguracoesPapeisRouteImport.update({
   id: '/configuracoes/papeis',
   path: '/configuracoes/papeis',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfiguracoesNpsRoute = AppConfiguracoesNpsRouteImport.update({
+  id: '/configuracoes/nps',
+  path: '/configuracoes/nps',
   getParentRoute: () => AppRoute,
 } as any)
 const AppConfiguracoesNotificacoesRoute =
@@ -1294,6 +1312,7 @@ export interface FileRoutesByFullPath {
   '/app/kits': typeof AppKitsRouteWithChildren
   '/app/leads': typeof AppLeadsRouteWithChildren
   '/app/notificacoes': typeof AppNotificacoesRoute
+  '/app/nps': typeof AppNpsRoute
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
   '/app/pedidos': typeof AppPedidosRouteWithChildren
   '/app/sdr': typeof AppSdrRoute
@@ -1314,6 +1333,7 @@ export interface FileRoutesByFullPath {
   '/loja/conta': typeof LojaContaRouteWithChildren
   '/loja/login': typeof LojaLoginRoute
   '/loja/recuperar-senha': typeof LojaRecuperarSenhaRoute
+  '/pesquisa/$token': typeof PesquisaTokenRoute
   '/portal/analise': typeof PortalAnaliseRoute
   '/portal/faturamento': typeof PortalFaturamentoRoute
   '/portal/frota': typeof PortalFrotaRouteWithChildren
@@ -1362,6 +1382,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
+  '/app/configuracoes/nps': typeof AppConfiguracoesNpsRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/pix': typeof AppConfiguracoesPixRoute
@@ -1488,6 +1509,7 @@ export interface FileRoutesByTo {
   '/app/inicio': typeof AppInicioRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/notificacoes': typeof AppNotificacoesRoute
+  '/app/nps': typeof AppNpsRoute
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
   '/atendimento/analise': typeof AtendimentoAnaliseRoute
@@ -1504,6 +1526,7 @@ export interface FileRoutesByTo {
   '/loja/checkout': typeof LojaCheckoutRoute
   '/loja/login': typeof LojaLoginRoute
   '/loja/recuperar-senha': typeof LojaRecuperarSenhaRoute
+  '/pesquisa/$token': typeof PesquisaTokenRoute
   '/portal/analise': typeof PortalAnaliseRoute
   '/portal/faturamento': typeof PortalFaturamentoRoute
   '/portal/inicio': typeof PortalInicioRoute
@@ -1547,6 +1570,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
+  '/app/configuracoes/nps': typeof AppConfiguracoesNpsRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/pix': typeof AppConfiguracoesPixRoute
@@ -1675,6 +1699,7 @@ export interface FileRoutesById {
   '/app/kits': typeof AppKitsRouteWithChildren
   '/app/leads': typeof AppLeadsRouteWithChildren
   '/app/notificacoes': typeof AppNotificacoesRoute
+  '/app/nps': typeof AppNpsRoute
   '/app/orcamentos': typeof AppOrcamentosRouteWithChildren
   '/app/pedidos': typeof AppPedidosRouteWithChildren
   '/app/sdr': typeof AppSdrRoute
@@ -1695,6 +1720,7 @@ export interface FileRoutesById {
   '/loja/conta': typeof LojaContaRouteWithChildren
   '/loja/login': typeof LojaLoginRoute
   '/loja/recuperar-senha': typeof LojaRecuperarSenhaRoute
+  '/pesquisa/$token': typeof PesquisaTokenRoute
   '/portal/analise': typeof PortalAnaliseRoute
   '/portal/faturamento': typeof PortalFaturamentoRoute
   '/portal/frota': typeof PortalFrotaRouteWithChildren
@@ -1743,6 +1769,7 @@ export interface FileRoutesById {
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
+  '/app/configuracoes/nps': typeof AppConfiguracoesNpsRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
   '/app/configuracoes/perfil': typeof AppConfiguracoesPerfilRoute
   '/app/configuracoes/pix': typeof AppConfiguracoesPixRoute
@@ -1880,6 +1907,7 @@ export interface FileRouteTypes {
     | '/app/kits'
     | '/app/leads'
     | '/app/notificacoes'
+    | '/app/nps'
     | '/app/orcamentos'
     | '/app/pedidos'
     | '/app/sdr'
@@ -1900,6 +1928,7 @@ export interface FileRouteTypes {
     | '/loja/conta'
     | '/loja/login'
     | '/loja/recuperar-senha'
+    | '/pesquisa/$token'
     | '/portal/analise'
     | '/portal/faturamento'
     | '/portal/frota'
@@ -1948,6 +1977,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/midias'
     | '/app/configuracoes/notificacoes'
+    | '/app/configuracoes/nps'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/pix'
@@ -2074,6 +2104,7 @@ export interface FileRouteTypes {
     | '/app/inicio'
     | '/app/insights'
     | '/app/notificacoes'
+    | '/app/nps'
     | '/app/sdr'
     | '/app/storefront-admin'
     | '/atendimento/analise'
@@ -2090,6 +2121,7 @@ export interface FileRouteTypes {
     | '/loja/checkout'
     | '/loja/login'
     | '/loja/recuperar-senha'
+    | '/pesquisa/$token'
     | '/portal/analise'
     | '/portal/faturamento'
     | '/portal/inicio'
@@ -2133,6 +2165,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/midias'
     | '/app/configuracoes/notificacoes'
+    | '/app/configuracoes/nps'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/pix'
@@ -2260,6 +2293,7 @@ export interface FileRouteTypes {
     | '/app/kits'
     | '/app/leads'
     | '/app/notificacoes'
+    | '/app/nps'
     | '/app/orcamentos'
     | '/app/pedidos'
     | '/app/sdr'
@@ -2280,6 +2314,7 @@ export interface FileRouteTypes {
     | '/loja/conta'
     | '/loja/login'
     | '/loja/recuperar-senha'
+    | '/pesquisa/$token'
     | '/portal/analise'
     | '/portal/faturamento'
     | '/portal/frota'
@@ -2328,6 +2363,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/midias'
     | '/app/configuracoes/notificacoes'
+    | '/app/configuracoes/nps'
     | '/app/configuracoes/papeis'
     | '/app/configuracoes/perfil'
     | '/app/configuracoes/pix'
@@ -2454,6 +2490,7 @@ export interface RootRouteChildren {
   PortalRoute: typeof PortalRouteWithChildren
   PwaRoute: typeof PwaRouteWithChildren
   SemPermissaoRoute: typeof SemPermissaoRoute
+  PesquisaTokenRoute: typeof PesquisaTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2668,6 +2705,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalAnaliseRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/pesquisa/$token': {
+      id: '/pesquisa/$token'
+      path: '/pesquisa/$token'
+      fullPath: '/pesquisa/$token'
+      preLoaderRoute: typeof PesquisaTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/loja/recuperar-senha': {
       id: '/loja/recuperar-senha'
       path: '/recuperar-senha'
@@ -2806,6 +2850,13 @@ declare module '@tanstack/react-router' {
       path: '/orcamentos'
       fullPath: '/app/orcamentos'
       preLoaderRoute: typeof AppOrcamentosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/nps': {
+      id: '/app/nps'
+      path: '/nps'
+      fullPath: '/app/nps'
+      preLoaderRoute: typeof AppNpsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/notificacoes': {
@@ -3373,6 +3424,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/papeis'
       fullPath: '/app/configuracoes/papeis'
       preLoaderRoute: typeof AppConfiguracoesPapeisRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/configuracoes/nps': {
+      id: '/app/configuracoes/nps'
+      path: '/configuracoes/nps'
+      fullPath: '/app/configuracoes/nps'
+      preLoaderRoute: typeof AppConfiguracoesNpsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/configuracoes/notificacoes': {
@@ -4142,6 +4200,7 @@ interface AppRouteChildren {
   AppKitsRoute: typeof AppKitsRouteWithChildren
   AppLeadsRoute: typeof AppLeadsRouteWithChildren
   AppNotificacoesRoute: typeof AppNotificacoesRoute
+  AppNpsRoute: typeof AppNpsRoute
   AppOrcamentosRoute: typeof AppOrcamentosRouteWithChildren
   AppPedidosRoute: typeof AppPedidosRouteWithChildren
   AppSdrRoute: typeof AppSdrRoute
@@ -4170,6 +4229,7 @@ interface AppRouteChildren {
   AppConfiguracoesLojasRoute: typeof AppConfiguracoesLojasRoute
   AppConfiguracoesMidiasRoute: typeof AppConfiguracoesMidiasRoute
   AppConfiguracoesNotificacoesRoute: typeof AppConfiguracoesNotificacoesRoute
+  AppConfiguracoesNpsRoute: typeof AppConfiguracoesNpsRoute
   AppConfiguracoesPapeisRoute: typeof AppConfiguracoesPapeisRoute
   AppConfiguracoesPerfilRoute: typeof AppConfiguracoesPerfilRoute
   AppConfiguracoesPixRoute: typeof AppConfiguracoesPixRoute
@@ -4232,6 +4292,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppKitsRoute: AppKitsRouteWithChildren,
   AppLeadsRoute: AppLeadsRouteWithChildren,
   AppNotificacoesRoute: AppNotificacoesRoute,
+  AppNpsRoute: AppNpsRoute,
   AppOrcamentosRoute: AppOrcamentosRouteWithChildren,
   AppPedidosRoute: AppPedidosRouteWithChildren,
   AppSdrRoute: AppSdrRoute,
@@ -4262,6 +4323,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesLojasRoute: AppConfiguracoesLojasRoute,
   AppConfiguracoesMidiasRoute: AppConfiguracoesMidiasRoute,
   AppConfiguracoesNotificacoesRoute: AppConfiguracoesNotificacoesRoute,
+  AppConfiguracoesNpsRoute: AppConfiguracoesNpsRoute,
   AppConfiguracoesPapeisRoute: AppConfiguracoesPapeisRoute,
   AppConfiguracoesPerfilRoute: AppConfiguracoesPerfilRoute,
   AppConfiguracoesPixRoute: AppConfiguracoesPixRoute,
@@ -4597,6 +4659,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortalRoute: PortalRouteWithChildren,
   PwaRoute: PwaRouteWithChildren,
   SemPermissaoRoute: SemPermissaoRoute,
+  PesquisaTokenRoute: PesquisaTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
