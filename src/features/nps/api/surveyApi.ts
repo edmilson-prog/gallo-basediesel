@@ -47,8 +47,9 @@ export async function submitSurvey(
   token: string,
   score: number,
   comment: string | null,
+  reasons: string[] = [],
 ): Promise<{ status: "ok" | "responded" | "expired" | "error"; detractor: boolean }> {
-  const response = await call({ action: "submit", token, score, comment });
+  const response = await call({ action: "submit", token, score, comment, reasons });
 
   if (response.status === 409) return { status: "responded", detractor: false };
   if (response.status === 410) return { status: "expired", detractor: false };
