@@ -39,7 +39,11 @@ export function NpsTabsBar({
   openRecoveries: number;
 }) {
   return (
-    <div className="sticky top-0 z-40 -mx-6 mb-4 flex items-stretch gap-0 overflow-x-auto border-b border-border bg-background/85 px-6 backdrop-blur">
+    // Negative margins cancel DashboardLayout's padding so the rule underneath
+    // reaches the full width, then the same padding is re-applied inside to
+    // keep the tabs aligned with the content above them. Both halves have to
+    // move together with the layout's px-4 / md:px-8.
+    <div className="sticky top-0 z-40 -mx-4 mb-4 flex items-stretch gap-0 overflow-x-auto border-b border-border bg-background/85 px-4 backdrop-blur md:-mx-8 md:px-8">
       {NPS_TABS.map((item) => {
         const active = item.key === tab;
         return (

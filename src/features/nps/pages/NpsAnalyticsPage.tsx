@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { useAccessibleStores } from "@/features/multistore";
+import { DashboardLayout } from "@/features/shell/layouts";
 import { useNpsProvider } from "@/providers/data";
 import { bandsOf, targetOf } from "../engine";
 import { useNpsMetrics } from "../hooks/useNpsMetrics";
@@ -158,7 +159,11 @@ export function NpsAnalyticsPage() {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-[1320px] flex-col px-6 py-5">
+    // DashboardLayout, like every other management screen (Cockpit, Ranking,
+    // Comissões, Curva ABC). The kit's own 1320px canvas was its standalone
+    // page width, not a rule for this app — reproducing it here narrowed the
+    // screen below the shell's 1600px and left gutters on both sides.
+    <DashboardLayout>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div>
           <h1 className="font-display text-3xl font-extrabold uppercase leading-[0.96] text-foreground">
@@ -262,6 +267,6 @@ export function NpsAnalyticsPage() {
       {tab === "envio" ? <NpsEnvioTab /> : null}
       {tab === "parametros" ? <NpsParametrosTab /> : null}
       {tab === "embutidos" ? <NpsEmbutidosTab metrics={metrics.data} /> : null}
-    </div>
+    </DashboardLayout>
   );
 }
