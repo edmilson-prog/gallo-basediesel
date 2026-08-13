@@ -308,6 +308,8 @@ export const mockNpsProvider: INpsProvider = {
       .filter((survey) => new Date(survey.respondedAt ?? "").getTime() >= now - span)
       .filter((survey) => !filters.npsClass || classOf(survey.score ?? 0) === filters.npsClass)
       .filter((survey) => !search || (survey.comment ?? "").toLowerCase().includes(search))
+      .filter((survey) => !filters.hasComment || !!survey.comment)
+      .filter((survey) => !filters.reason || survey.reasons.includes(filters.reason))
       .sort((a, b) => (b.respondedAt ?? "").localeCompare(a.respondedAt ?? ""));
 
     const from = (page - 1) * pageSize;

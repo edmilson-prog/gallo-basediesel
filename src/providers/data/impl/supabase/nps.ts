@@ -485,6 +485,16 @@ export const supabaseNpsProvider: INpsProvider = {
     if (filters.search?.trim()) {
       query = query.ilike("comment", `%${filters.search.trim()}%`);
     }
+    if (filters.hasComment) {
+      // An empty string is also "no comment": the submit endpoint stores null,
+      // but a row that predates that rule would otherwise slip through as one.
+      query = query.not("comment", "is", null).neq("comment", "");
+    }
+    if (filters.reason) {
+      // Array containment, not equality — an answer usually marks several
+      // chips, and the GIN index on `reasons` serves exactly this operator.
+      query = query.contains("reasons", [filters.reason]);
+    }
 
     const { data, error, count } = await query;
     if (error) throw error;

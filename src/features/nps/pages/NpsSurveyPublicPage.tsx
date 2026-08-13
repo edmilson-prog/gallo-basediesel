@@ -81,6 +81,17 @@ const REASONS = {
   },
 } as const;
 
+/**
+ * Every chip a customer can possibly have marked, deduplicated.
+ *
+ * Derived from the offer above rather than typed out again: the panel's
+ * "Motivos" filter has to list exactly what the survey asked, and a second
+ * hand-written copy would drift the first time a chip is reworded.
+ */
+export const NPS_ALL_REASONS: string[] = [
+  ...new Set(Object.values(REASONS).flatMap((group) => group.options)),
+];
+
 function scoreColor(score: number): string {
   const npsClass = classifyScore(score);
   if (npsClass === "promoter") return C.green;

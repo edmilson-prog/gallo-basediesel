@@ -159,6 +159,10 @@ export interface INpsListFilters extends INpsFilters {
   /** Free-text search over the comment. */
   search?: string;
   npsClass?: INpsClass;
+  /** Only answers that carry a written comment. */
+  hasComment?: boolean;
+  /** Only answers that marked this chip. */
+  reason?: string;
 }
 
 export interface INpsProvider {

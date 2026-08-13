@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Icon } from "@/components/Icon";
+import { BAR_TONE, BOX_TONE, CHIP_SOFT, TEXT_TONE, scoreTone, type INpsTone } from "./npsTones";
 
 /**
  * Primitives shared by every tab of /app/nps, translated from `ui_kits/nps`
@@ -19,45 +20,6 @@ import { Icon } from "@/components/Icon";
  * colour silently disappears in the production build — a failure that only
  * shows up after deploy.
  */
-
-export type INpsTone = "primary" | "success" | "critical" | "muted";
-
-const CHIP_SOFT: Record<INpsTone, string> = {
-  primary: "bg-primary/15 text-primary ring-1 ring-inset ring-primary/40",
-  success: "bg-severity-success/15 text-severity-success ring-1 ring-inset ring-severity-success/40",
-  critical:
-    "bg-severity-critical/15 text-severity-critical ring-1 ring-inset ring-severity-critical/40",
-  muted: "bg-muted text-muted-foreground ring-1 ring-inset ring-border",
-};
-
-export const TEXT_TONE: Record<INpsTone, string> = {
-  primary: "text-primary",
-  success: "text-severity-success",
-  critical: "text-severity-critical",
-  muted: "text-muted-foreground",
-};
-
-const BOX_TONE: Record<INpsTone, string> = {
-  primary: "bg-primary/15 text-primary ring-1 ring-inset ring-primary/45",
-  success: "bg-severity-success/15 text-severity-success ring-1 ring-inset ring-severity-success/45",
-  critical:
-    "bg-severity-critical/15 text-severity-critical ring-1 ring-inset ring-severity-critical/45",
-  muted: "bg-muted text-muted-foreground ring-1 ring-inset ring-border",
-};
-
-const BAR_TONE: Record<INpsTone, string> = {
-  primary: "bg-primary",
-  success: "bg-severity-success",
-  critical: "bg-severity-critical",
-  muted: "bg-muted-foreground/40",
-};
-
-/** Tone of a raw 0–10 answer. The single place that maps score to colour. */
-export function scoreTone(score: number): INpsTone {
-  if (score >= 9) return "success";
-  if (score >= 7) return "muted";
-  return "critical";
-}
 
 /** Uppercase label pill — the kit's `NpsChip`. */
 export function NpsChip({
@@ -108,16 +70,6 @@ export function NpsAvatar({ initials, size = 26 }: { initials: string; size?: nu
       {initials}
     </span>
   );
-}
-
-/** First letters of a name, at most two — for {@link NpsAvatar}. */
-export function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const first = parts[0];
-  if (!first) return "—";
-  const last = parts.length > 1 ? parts[parts.length - 1] : undefined;
-  if (!last) return first.slice(0, 2).toUpperCase();
-  return ((first[0] ?? "") + (last[0] ?? "")).toUpperCase();
 }
 
 /** Card with an icon in its header — the kit's `NpsCard`. */

@@ -1,41 +1,43 @@
-import { useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
-import type { INpsBreakdown, INpsClass, INpsSurvey } from "@/shared/types";
-import { classifyScore, computeNps, NPS_TARGET, npsBandLabel } from "../engine";
+import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Icon } from "@/components/Icon";
+import { useAccessibleStores } from "@/features/multistore";
+import { useNpsProvider } from "@/providers/data";
+import { bandsOf, targetOf } from "../engine";
 import { useNpsMetrics } from "../hooks/useNpsMetrics";
-import { useNpsSurveys } from "../hooks/useNpsSurveys";
+import { useNpsRecoveries } from "../hooks/useNpsRecoveries";
+import { useNpsSettings } from "../hooks/useNpsSettings";
 import { S } from "../i18n/pt-BR";
-import {
-  CATEGORY,
-  NpsBreakdownRow,
-  NpsReasons,
-  NpsRuler,
-  NpsStack,
-  NpsTrendChart,
-} from "../components/NpsPanelParts";
+import { NpsSeg } from "../components/NpsKit";
+import { NpsTabsBar, parseNpsTab, type INpsTab } from "../components/NpsTabsBar";
+import { NpsPainelTab } from "../components/NpsPainelTab";
+import { NpsRespostasTab } from "../components/NpsRespostasTab";
+import { NpsRecuperacaoTab } from "../components/NpsRecuperacaoTab";
+import { NpsEnvioTab } from "../components/NpsEnvioTab";
+import { NpsParametrosTab } from "../components/NpsParametrosTab";
+import { NpsEmbutidosTab } from "../components/NpsEmbutidosTab";
 
 /**
- * /app/nps — panel, direction A · Denso from `ui_kits/nps`.
+ * /app/nps — the kit's NPS screen (`ui_kits/nps/index.html`).
  *
- * Four KPIs, then distribution and trend side by side, then the breakdowns.
- * Everything fits the first screen, which the kit calls "the direction for
- * whoever looks at the number every day" — the actual use here.
+ * Six tabs over one window: the filters at the top belong to the screen, not to
+ * a tab, so moving from the panel to the answers keeps the same period and the
+ * same store rather than silently re-asking a different question.
  *
- * Two rules survive from the PRD and are load-bearing: the score never renders
- * without its minimum sample (the hook returns null, so this page could not
- * cheat), and a month below that minimum breaks the trend line rather than
- * drawing a zero.
+ * Two rules survive from PRD-148B and are load-bearing: the score never renders
+ * without its minimum sample (the hook returns null, so no surface here could
+ * cheat), and a month below that minimum breaks the trend rather than drawing
+ * a zero.
  *
- * The per-attendant table is a deliberate reversal of PRD-148B, which excluded
- * it as compare-and-shame. The owner chose the kit's version on 2026-08-12;
- * both PRDs carry a note recording the change.
+ * The per-attendant table is a deliberate reversal of the PRD, which excluded
+ * it as compare-and-shame. The owner chose the kit's version on 2026-08-12.
  */
 
 const WINDOWS = [
+  { days: 1, label: "Hoje" },
   { days: 30, label: S.window30 },
   { days: 90, label: S.window90 },
-  { days: 180, label: S.window180 },
-  { days: 365, label: S.window365 },
+  { days: 365, label: "12 meses" },
 ] as const;
 
 const AUDIENCES = [
@@ -44,448 +46,221 @@ const AUDIENCES = [
   { value: "contact" as const, label: S.audienceContact },
 ] as const;
 
-function classTone(npsClass: INpsClass): string {
-  if (npsClass === "promoter") return "bg-severity-success/15 text-severity-success";
-  if (npsClass === "passive") return "bg-muted text-muted-foreground";
-  return "bg-severity-critical/15 text-severity-critical";
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
-
-/** Segmented control — the kit's `NpsSeg`. */
-function Seg<T>({
-  items,
-  value,
-  onChange,
-}: {
-  items: ReadonlyArray<{ value: T; label: string }>;
-  value: T;
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div className="inline-flex gap-0.5 rounded-lg border border-border bg-muted/40 p-0.5">
-      {items.map((item) => {
-        const active = item.value === value;
-        return (
-          <button
-            key={String(item.label)}
-            type="button"
-            onClick={() => onChange(item.value)}
-            className={`rounded-md px-3 py-1.5 text-xs transition-colors ${
-              active
-                ? "bg-primary font-bold text-primary-foreground"
-                : "font-semibold text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {item.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function Card({
-  title,
-  sub,
-  right,
-  children,
-  className = "",
-}: {
-  title: string;
-  sub?: string;
-  right?: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={`overflow-hidden rounded-xl border border-border bg-card ${className}`}>
-      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <span className="text-[13px] font-bold text-card-foreground">{title}</span>
-        {sub ? <span className="text-xs text-muted-foreground">{sub}</span> : null}
-        {right ? <div className="ml-auto">{right}</div> : null}
-      </div>
-      <div className="p-4">{children}</div>
-    </div>
-  );
-}
-
-function Kpi({
-  label,
-  value,
-  sub,
-  valueClass = "text-card-foreground",
-}: {
-  label: string;
-  value: React.ReactNode;
-  sub?: string;
-  valueClass?: string;
-}) {
-  return (
-    <div className="rounded-xl border border-border bg-card px-4 py-3.5">
-      <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
-        {label}
-      </div>
-      <div className={`font-display text-[34px] font-bold leading-[0.9] ${valueClass}`}>
-        {value}
-      </div>
-      {sub ? <div className="mt-1.5 text-xs text-muted-foreground">{sub}</div> : null}
-    </div>
-  );
-}
-
-/** Per-attendant table, ordered by score — the kit's `NpsAgentTable`. */
-function SellerTable({ rows, minResponses }: { rows: INpsBreakdown[]; minResponses: number }) {
-  const scored = useMemo(
-    () =>
-      rows
-        .map((row) => {
-          const responses = [
-            ...Array(row.promoters).fill({ score: 10 }),
-            ...Array(row.passives).fill({ score: 8 }),
-            ...Array(row.detractors).fill({ score: 3 }),
-          ];
-          const total = responses.length;
-          const result = computeNps(responses, { minResponses, sent: total });
-          return { ...row, score: result.score, total };
-        })
-        .sort((a, b) => (b.score ?? -101) - (a.score ?? -101)),
-    [rows, minResponses],
-  );
-
-  if (scored.length === 0) {
-    return <p className="text-sm text-muted-foreground">{S.bySellerEmpty}</p>;
-  }
-
-  return (
-    <div>
-      <div className="grid grid-cols-[1fr_52px_60px_66px] gap-2.5 border-b border-border pb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-        <span>{S.colSeller}</span>
-        <span className="text-right">NPS</span>
-        <span className="text-right">{S.colResponses}</span>
-        <span className="text-right">Detrat.</span>
-      </div>
-      {scored.map((row) => (
-        <div
-          key={row.key}
-          className="grid grid-cols-[1fr_52px_60px_66px] items-center gap-2.5 border-b border-border py-2.5 last:border-0"
-        >
-          <span className="truncate text-[13px] font-semibold text-card-foreground">
-            {row.label}
-          </span>
-          <span
-            className={`text-right font-display text-lg font-bold ${
-              row.score === null
-                ? "text-muted-foreground"
-                : row.score >= NPS_TARGET
-                  ? "text-severity-success"
-                  : row.score >= 40
-                    ? "text-primary"
-                    : "text-severity-critical"
-            }`}
-          >
-            {row.score ?? "–"}
-          </span>
-          <span className="text-right text-[13px] text-muted-foreground">{row.total}</span>
-          <span
-            className={`text-right text-[13px] font-bold ${
-              row.detractors > 3 ? "text-severity-critical" : "text-muted-foreground"
-            }`}
-          >
-            {row.detractors}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SurveyRow({ survey }: { survey: INpsSurvey }) {
-  const npsClass = classifyScore(survey.score ?? 0);
-  return (
-    <tr className="border-b border-border last:border-0">
-      <td className="whitespace-nowrap px-3 py-2 text-sm text-muted-foreground">
-        {formatDate(survey.respondedAt)}
-      </td>
-      <td className="px-3 py-2 text-sm text-foreground">{survey.recipientName ?? "—"}</td>
-      <td className="px-3 py-2">
-        <span
-          className={`inline-flex min-w-8 justify-center rounded px-2 py-0.5 text-sm font-semibold ${classTone(npsClass)}`}
-        >
-          {survey.score}
-        </span>
-      </td>
-      <td className="px-3 py-2 text-sm text-muted-foreground">{survey.comment ?? S.noComment}</td>
-      <td className="whitespace-nowrap px-3 py-2 text-sm text-muted-foreground">
-        {survey.customerId ? S.typeCustomer : S.typeContact}
-      </td>
-    </tr>
-  );
+/** RFC 4180 quoting — a comment with a comma or a quote must not shift columns. */
+function csvCell(value: string | number | null): string {
+  const text = value === null ? "" : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
 }
 
 export function NpsAnalyticsPage() {
+  const [tab, setTab] = useState<INpsTab>(() =>
+    parseNpsTab(new URLSearchParams(window.location.search).get("aba")),
+  );
   const [windowDays, setWindowDays] = useState<number>(30);
   const [audience, setAudience] = useState<"customer" | "contact" | undefined>(undefined);
-  const [search, setSearch] = useState("");
+  const [storeId, setStoreId] = useState<string | undefined>(undefined);
+  const [exporting, setExporting] = useState(false);
 
-  const filters = useMemo(() => ({ windowDays, audience }), [windowDays, audience]);
-  const metrics = useNpsMetrics(filters);
-  const surveys = useNpsSurveys({ ...filters, search, page: 1, pageSize: 30 });
+  const provider = useNpsProvider();
+  const stores = useAccessibleStores();
+  const settings = useNpsSettings();
 
-  const data = metrics.data;
-  const collecting = data?.state === "collecting";
-  const score = data?.score ?? null;
+  const filters = useMemo(
+    () => ({ windowDays, audience, storeId }),
+    [windowDays, audience, storeId],
+  );
+  const metrics = useNpsMetrics(filters, {
+    minResponses: settings.data?.minResponsesForScore,
+  });
+  const recoveries = useNpsRecoveries(filters);
 
-  const detractorRows = useMemo(
-    () =>
-      (surveys.data?.data ?? []).filter(
-        (survey) => classifyScore(survey.score ?? 0) === "detractor",
-      ),
-    [surveys.data],
+  const target = targetOf(settings.data);
+  const bands = bandsOf(settings.data);
+  const windowLabel = WINDOWS.find((item) => item.days === windowDays)?.label ?? "";
+
+  // Null while the queue is unreadable — before the migration, say — so the tab
+  // shows no badge instead of a confident zero.
+  const openRecoveries = recoveries.isError
+    ? null
+    : ((recoveries.data ?? []).filter((item) => item.recoveryStatus !== "resolvido").length ?? 0);
+
+  const goTab = useCallback((next: INpsTab) => {
+    setTab(next);
+    const url = new URL(window.location.href);
+    if (next === "painel") url.searchParams.delete("aba");
+    else url.searchParams.set("aba", next);
+    window.history.replaceState(null, "", url);
+  }, []);
+
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      // Asks for the true total first, then that many rows — paging blind would
+      // export "the first page" under a filename that claims the window.
+      const first = await provider.list({ ...filters, page: 1, pageSize: 1 });
+      const all = await provider.list({
+        ...filters,
+        page: 1,
+        pageSize: Math.max(1, Math.min(first.total, 5000)),
+      });
+
+      const header = [
+        "data",
+        "nota",
+        "categoria",
+        "contato",
+        "tipo",
+        "loja",
+        "atendente",
+        "motivos",
+        "comentario",
+      ];
+      const lines = all.data.map((survey) => {
+        const score = survey.score ?? 0;
+        const category = score >= 9 ? "promotor" : score >= 7 ? "neutro" : "detrator";
+        return [
+          csvCell(survey.respondedAt),
+          csvCell(score),
+          csvCell(category),
+          csvCell(survey.recipientName),
+          csvCell(survey.customerId ? "cliente" : "contato"),
+          csvCell(survey.storeName),
+          csvCell(survey.sellerName),
+          csvCell(survey.reasons.join(" | ")),
+          csvCell(survey.comment),
+        ].join(",");
+      });
+
+      // BOM so Excel in pt-BR opens the accents correctly instead of "avaliaÃ§Ã£o".
+      const blob = new Blob(["﻿" + [header.join(","), ...lines].join("\r\n")], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `nps-${windowDays}d-${new Date().toISOString().slice(0, 10)}.csv`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${all.data.length} respostas exportadas.`);
+    } catch {
+      toast.error("Não foi possível exportar as respostas.");
+    } finally {
+      setExporting(false);
+    }
+  }, [provider, filters, windowDays]);
+
+  const storeItems = useMemo(
+    () => [
+      { value: undefined as string | undefined, label: "Todas as lojas" },
+      ...stores.map((store) => ({ value: store.id as string | undefined, label: store.name })),
+    ],
+    [stores],
   );
 
-  const storeScore = (item: INpsBreakdown) => {
-    const responses = [
-      ...Array(item.promoters).fill({ score: 10 }),
-      ...Array(item.passives).fill({ score: 8 }),
-      ...Array(item.detractors).fill({ score: 3 }),
-    ];
-    return computeNps(responses, {
-      minResponses: data?.minResponses ?? 5,
-      sent: responses.length,
-    }).score;
-  };
-
   return (
-    <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 px-6 py-5">
-      {/* Cabeçalho + cortes */}
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="mx-auto flex w-full max-w-[1320px] flex-col px-6 py-5">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <div>
           <h1 className="font-display text-3xl font-extrabold uppercase leading-[0.96] text-foreground">
             {S.pageTitle}
           </h1>
           <div className="mt-1 text-[13px] text-muted-foreground">
-            {S.responsesOfSent(data?.n ?? 0, data?.sent ?? 0)}
+            {windowLabel} · {S.responsesOfSent(metrics.data?.n ?? 0, metrics.data?.sent ?? 0)}
           </div>
         </div>
+
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Seg
-            items={WINDOWS.map((w) => ({ value: w.days, label: w.label }))}
+          <NpsSeg
+            ariaLabel="Período"
+            items={WINDOWS.map((item) => ({ value: item.days, label: item.label }))}
             value={windowDays}
             onChange={setWindowDays}
           />
-          <Seg
-            items={AUDIENCES.map((a) => ({ value: a.value, label: a.label }))}
+          {storeItems.length > 2 ? (
+            <NpsSeg ariaLabel="Loja" items={storeItems} value={storeId} onChange={setStoreId} />
+          ) : null}
+          <NpsSeg
+            ariaLabel="Público"
+            items={AUDIENCES.map((item) => ({ value: item.value, label: item.label }))}
             value={audience}
             onChange={setAudience}
           />
+          <button
+            type="button"
+            onClick={() => void handleExport()}
+            disabled={exporting || (metrics.data?.n ?? 0) === 0}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-[7px] text-[12.5px] font-bold text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+          >
+            <Icon icon="lucide:download" size={14} />
+            {exporting ? "Exportando…" : "Exportar"}
+          </button>
         </div>
       </div>
 
-      {/* KPIs */}
-      <section className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-primary/60 bg-card px-4 py-3.5">
-          <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.13em] text-primary">
-            {S.kpiScore} · {WINDOWS.find((w) => w.days === windowDays)?.label}
-          </div>
-          {collecting ? (
-            <>
-              <div className="font-display text-2xl font-bold leading-tight text-muted-foreground">
-                {S.collecting(data?.n ?? 0, data?.minResponses ?? 5)}
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground">{S.collectingHelp}</div>
-            </>
-          ) : (
-            <>
-              <div className="flex items-baseline gap-2.5">
-                <span className="font-display text-[44px] font-extrabold leading-[0.85] text-foreground">
-                  {score}
-                </span>
-                <span className="font-display text-[12.5px] font-bold uppercase italic text-primary">
-                  {score !== null ? npsBandLabel(score) : ""}
-                </span>
-              </div>
-              {data?.delta !== null && data?.delta !== undefined ? (
-                <div
-                  className={`mt-2 text-xs ${data.delta >= 0 ? "text-severity-success" : "text-severity-critical"}`}
-                >
-                  {data.delta >= 0 ? "+" : ""}
-                  {data.delta} pts {S.kpiDelta}
-                </div>
-              ) : null}
-            </>
-          )}
+      <NpsTabsBar tab={tab} onTab={goTab} openRecoveries={openRecoveries ?? 0} />
+
+      {tab !== "painel" ? (
+        <div className="mb-4">
+          <h2 className="font-display text-3xl font-extrabold uppercase leading-[0.96] text-foreground">
+            {tab === "respostas"
+              ? "Respostas"
+              : tab === "recuperacao"
+                ? "Recuperação de detratores"
+                : tab === "envio"
+                  ? "Envio da pesquisa"
+                  : tab === "parametros"
+                    ? "Parâmetros do NPS"
+                    : "Onde o NPS aparece"}
+          </h2>
+          <p className="mt-1 max-w-[700px] text-[13px] text-muted-foreground">
+            {tab === "respostas"
+              ? "Todas as respostas do período com nota, motivos e comentário. Filtra por categoria e por motivo."
+              : tab === "recuperacao"
+                ? "Nota de 0 a 6 abre tratativa. O prazo de primeiro contato e o desfecho ficam registrados aqui."
+                : tab === "envio"
+                  ? "Gatilhos, prazo, intervalo entre pesquisas e o texto que o cliente recebe."
+                  : tab === "parametros"
+                    ? "Meta, faixas, regras da tratativa e onde o NPS aparece para a equipe. O cálculo é fixo — padrão de mercado."
+                    : "Os dois pontos em que o NPS entra em telas que já existem no app."}
+          </p>
         </div>
+      ) : null}
 
-        <Kpi
-          label={S.kpiResponses}
-          value={data?.n ?? 0}
-          sub={S.responseRateSub(Math.round((data?.responseRate ?? 0) * 100), data?.sent ?? 0)}
+      {tab === "painel" ? (
+        <NpsPainelTab
+          metrics={metrics.data}
+          windowLabel={windowLabel}
+          target={target}
+          bands={bands}
+          openRecoveries={openRecoveries}
+          onGoRecoveries={() => goTab("recuperacao")}
         />
-        <Kpi
-          label={S.kpiPromoters}
-          value={`${data && data.n > 0 ? Math.round((data.promoters / data.n) * 100) : 0}%`}
-          sub={S.promotersSub(data?.promoters ?? 0)}
-          valueClass="text-severity-success"
+      ) : null}
+
+      {tab === "respostas" ? (
+        <NpsRespostasTab
+          windowDays={windowDays}
+          audience={audience}
+          counts={{
+            total: metrics.data?.n ?? 0,
+            promoters: metrics.data?.promoters ?? 0,
+            passives: metrics.data?.passives ?? 0,
+            detractors: metrics.data?.detractors ?? 0,
+          }}
         />
-        <Kpi
-          label={S.kpiDetractors}
-          value={`${data && data.n > 0 ? Math.round((data.detractors / data.n) * 100) : 0}%`}
-          sub={S.detractorsSub(data?.detractors ?? 0)}
-          valueClass="text-severity-critical"
+      ) : null}
+
+      {tab === "recuperacao" ? (
+        <NpsRecuperacaoTab
+          windowDays={windowDays}
+          audience={audience}
+          slaHours={settings.data?.recoverySlaHours ?? 24}
         />
-      </section>
+      ) : null}
 
-      {/* Distribuição + Tendência */}
-      <section className="grid gap-4 lg:grid-cols-[1fr_1.45fr]">
-        <Card title={S.distributionTitle}>
-          <NpsStack
-            promoters={data?.promoters ?? 0}
-            passives={data?.passives ?? 0}
-            detractors={data?.detractors ?? 0}
-            height={12}
-            labels
-          />
-          <div className="mt-4">
-            <NpsRuler score={score ?? 0} />
-          </div>
-          <div className="mt-4 grid grid-cols-3 gap-2.5">
-            {(["promoter", "passive", "detractor"] as const).map((key) => {
-              const meta = CATEGORY[key];
-              const value =
-                key === "promoter"
-                  ? (data?.promoters ?? 0)
-                  : key === "passive"
-                    ? (data?.passives ?? 0)
-                    : (data?.detractors ?? 0);
-              return (
-                <div key={key} className="rounded-lg bg-muted/40 px-2.5 py-2.5">
-                  <div
-                    className={`font-display text-[10.5px] font-bold uppercase italic ${meta.toneClass}`}
-                  >
-                    {meta.short} · {meta.range}
-                  </div>
-                  <div className="mt-1 font-display text-[22px] font-bold text-card-foreground">
-                    {value}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-
-        <Card title={S.trendTitle} sub={S.trendSub}>
-          <NpsTrendChart points={data?.monthly ?? []} />
-        </Card>
-      </section>
-
-      {/* Cortes por loja e por atendente */}
-      <section className="grid gap-4 lg:grid-cols-2">
-        <Card title={S.byStoreTitle}>
-          {(data?.byStore ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">{S.empty}</p>
-          ) : (
-            (data?.byStore ?? []).map((item) => (
-              <NpsBreakdownRow key={item.key} item={item} score={storeScore(item)} />
-            ))
-          )}
-        </Card>
-
-        <Card title={S.bySellerTitle}>
-          <SellerTable rows={data?.bySeller ?? []} minResponses={data?.minResponses ?? 5} />
-        </Card>
-      </section>
-
-      {/* Motivos citados */}
-      <Card title={S.reasonsTitle} sub={S.reasonsSub}>
-        <NpsReasons up={data?.reasons.promoter ?? []} down={data?.reasons.detractor ?? []} />
-      </Card>
-
-      {/* Respostas */}
-      <Card
-        title={S.tableTitle}
-        right={
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={S.searchPlaceholder}
-            className="w-56 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground"
-          />
-        }
-      >
-        {surveys.isLoading ? (
-          <p className="text-sm text-muted-foreground">{S.loading}</p>
-        ) : (surveys.data?.data ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">{S.empty}</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border text-left">
-                  {[S.colDate, S.colName, S.colScore, S.colComment, S.colAudience].map((label) => (
-                    <th
-                      key={label}
-                      className="px-3 py-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-muted-foreground"
-                    >
-                      {label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {(surveys.data?.data ?? []).map((survey) => (
-                  <SurveyRow key={survey.id} survey={survey} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
-
-      {/* Detratores */}
-      <Card title={S.detractorsTitle}>
-        {detractorRows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{S.detractorsEmpty}</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {detractorRows.map((survey) => (
-              <li
-                key={survey.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-card-foreground">
-                    <span className={`mr-2 rounded px-2 py-0.5 ${classTone("detractor")}`}>
-                      {survey.score}
-                    </span>
-                    {survey.recipientName ?? "—"}
-                  </p>
-                  {survey.comment ? (
-                    <p className="mt-1 text-sm text-muted-foreground">{survey.comment}</p>
-                  ) : null}
-                </div>
-                {survey.conversationId ? (
-                  <Link
-                    to="/app/atendimento/$id"
-                    params={{ id: survey.conversationId }}
-                    className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-sm text-foreground hover:bg-muted"
-                  >
-                    {S.openConversation}
-                  </Link>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      {tab === "envio" ? <NpsEnvioTab /> : null}
+      {tab === "parametros" ? <NpsParametrosTab /> : null}
+      {tab === "embutidos" ? <NpsEmbutidosTab metrics={metrics.data} /> : null}
     </div>
   );
 }

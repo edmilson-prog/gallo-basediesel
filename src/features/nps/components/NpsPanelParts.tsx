@@ -1,5 +1,6 @@
 import type { INpsBreakdown, INpsReasonCount } from "@/shared/types";
-import { NPS_TARGET, npsBandLabel, rulerPosition } from "../engine";
+import { DEFAULT_NPS_BANDS, NPS_TARGET, npsBandLabel, rulerPosition } from "../engine";
+import type { INpsBandThresholds } from "../engine";
 import { S } from "../i18n/pt-BR";
 
 /**
@@ -122,9 +123,11 @@ export function NpsRuler({ score }: { score: number }) {
 export function NpsTrendChart({
   points,
   height = 158,
+  target = NPS_TARGET,
 }: {
   points: Array<{ month: string; score: number | null }>;
   height?: number;
+  target?: number;
 }) {
   const max = 70;
   const last = points.length > 0 ? points[points.length - 1] : undefined;
@@ -134,14 +137,14 @@ export function NpsTrendChart({
       <div className="mb-2.5 flex items-center gap-2">
         <span className="w-5 border-t border-dashed border-border" />
         <span className="font-display text-[10.5px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-          Meta {NPS_TARGET}
+          Meta {target}
         </span>
       </div>
 
       <div className="relative flex items-end gap-2" style={{ height }}>
         <div
           className="absolute inset-x-0 border-t border-dashed border-border"
-          style={{ bottom: `${(NPS_TARGET / max) * height}px` }}
+          style={{ bottom: `${(target / max) * height}px` }}
         />
         {points.map((point) => {
           const isLast = point.month === last?.month;
@@ -183,7 +186,17 @@ export function NpsTrendChart({
 }
 
 /** One row of the per-store breakdown. */
-export function NpsBreakdownRow({ item, score }: { item: INpsBreakdown; score: number | null }) {
+export function NpsBreakdownRow({
+  item,
+  score,
+  target = NPS_TARGET,
+  bands = DEFAULT_NPS_BANDS,
+}: {
+  item: INpsBreakdown;
+  score: number | null;
+  target?: number;
+  bands?: INpsBandThresholds;
+}) {
   const total = item.promoters + item.passives + item.detractors;
   return (
     <div className="flex items-center gap-3.5 border-b border-border py-3 last:border-0">
@@ -202,13 +215,13 @@ export function NpsBreakdownRow({ item, score }: { item: INpsBreakdown; score: n
       <div className="shrink-0 text-right">
         <div
           className={`font-display text-[28px] font-bold leading-none ${
-            score !== null && score >= NPS_TARGET ? "text-severity-success" : "text-primary"
+            score !== null && score >= target ? "text-severity-success" : "text-primary"
           }`}
         >
           {score ?? "–"}
         </div>
         <div className="font-display text-[11px] font-bold uppercase italic text-muted-foreground">
-          {score === null ? S.collectingShort : npsBandLabel(score)}
+          {score === null ? S.collectingShort : npsBandLabel(score, bands)}
         </div>
       </div>
     </div>
