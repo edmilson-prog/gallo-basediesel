@@ -212,6 +212,45 @@ export function buildIntegrationKeyCatalog(accounts: AccountForCatalog[]): IInte
         },
       ],
     },
+    {
+      id: "mercado-pago",
+      title: "Pagamentos — Mercado Pago",
+      description:
+        "Checkout transparente da loja (Pix, boleto e cartão). Produção e teste têm credenciais próprias; o webhook secret vale para os dois.",
+      icon: "mdi:credit-card-outline",
+      keys: [
+        {
+          name: "MERCADO_PAGO_ACCESS_TOKEN",
+          label: "Access token (Produção)",
+          kind: "secret",
+          help: "Suas integrações → aplicação → Credenciais de produção. Cobra de verdade.",
+        },
+        {
+          name: "MERCADO_PAGO_PUBLIC_KEY",
+          label: "Public key (Produção)",
+          kind: "config",
+          help: "Usada pelo SDK no navegador para tokenizar o cartão. Não é segredo.",
+        },
+        {
+          name: "MERCADO_PAGO_TEST_ACCESS_TOKEN",
+          label: "Access token (Teste)",
+          kind: "secret",
+          help: "Credenciais de teste da mesma aplicação. Use com os usuários de teste do Mercado Pago.",
+        },
+        {
+          name: "MERCADO_PAGO_TEST_PUBLIC_KEY",
+          label: "Public key (Teste)",
+          kind: "config",
+          help: "Par da public key de produção, para o checkout em ambiente de teste.",
+        },
+        {
+          name: "MERCADO_PAGO_WEBHOOK_SECRET",
+          label: "Webhook secret (assinatura)",
+          kind: "secret",
+          help: "Suas integrações → aplicação → Webhooks. Valida o header x-signature das notificações.",
+        },
+      ],
+    },
   ];
 
   for (const account of accounts) {

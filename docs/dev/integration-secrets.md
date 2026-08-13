@@ -56,12 +56,32 @@ grupos:
   `INVITE_REDIRECT_URL`.
 - **WhatsApp — Webhook (nível do app)** — `WHATSAPP_META_APP_SECRET`,
   `WHATSAPP_META_VERIFY_TOKEN`, `EVOLUTION_ALLOWED_IPS`.
+- **Provedores LLM** — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
+  `OPENROUTER_API_KEY`, `GOOGLE_AI_API_KEY`.
+- **Frete — Melhor Envio** — apps OAuth de produção e sandbox
+  (`MELHOR_ENVIO_CLIENT_ID`/`_CLIENT_SECRET`, `MELHOR_ENVIO_SANDBOX_*`) mais
+  `MELHOR_ENVIO_REDIRECT_URI` e `MELHOR_ENVIO_USER_AGENT`.
+- **Pagamentos — Mercado Pago** — `MERCADO_PAGO_ACCESS_TOKEN` e
+  `MERCADO_PAGO_PUBLIC_KEY` (produção), `MERCADO_PAGO_TEST_ACCESS_TOKEN` e
+  `MERCADO_PAGO_TEST_PUBLIC_KEY` (teste), `MERCADO_PAGO_WEBHOOK_SECRET`
+  (assinatura `x-signature`, vale para os dois ambientes).
 - **Uma seção por conta WhatsApp** com `credentials_ref` válido — sufixos
   exatamente como os engines resolvem: Meta `_ACCESS_TOKEN`/`_APP_SECRET`/
   `_VERIFY_TOKEN`; Evolution `_API_KEY`/`_WEBHOOK_SECRET`.
 
 Nomes obedecem `^[A-Z][A-Z0-9_]{2,64}$` (validado na tela, na função e no
 SQL). Provedores futuros (ex.: NF-e) ganham grupo novo no catálogo.
+
+> ⚠️ **Mercado Pago — divergência consciente com o PRD-132B.** O PRD escreveu
+> as entradas do Vault como `mp_access_token_<storeId>` e
+> `mp_webhook_secret_<storeId>`. Esses nomes são **minúsculos** e, portanto,
+> reprovados pelo `SECRET_NAME_PATTERN` que a tela, a Edge Function e o wrapper
+> SQL aplicam — não haveria como gravá-los pela plataforma. O catálogo adota os
+> nomes em maiúsculas acima, **sem sufixo de loja** (uma conta MP para a
+> operação atual). Quando o épico multi-loja exigir credencial por loja, o
+> caminho é o mesmo já usado pelas contas WhatsApp: um prefixo por loja
+> validado contra o mesmo padrão. Cabe ao PRD-132B ser ajustado na
+> implementação do provider.
 
 ## O que NÃO mora aqui (por natureza)
 
