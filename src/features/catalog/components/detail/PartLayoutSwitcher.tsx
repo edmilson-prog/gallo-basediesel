@@ -6,9 +6,9 @@ import { CATALOG_STRINGS } from "../../i18n/pt-BR";
 const COPY = CATALOG_STRINGS.detail.layout;
 
 const ICONS: Record<PartDetailLayout, string> = {
-  counter: "mdi:view-split-vertical",
+  counter: "mdi:view-list-outline",
   panel: "mdi:view-grid-outline",
-  sheet: "mdi:file-document-outline",
+  sheet: "mdi:file-outline",
 };
 
 const LABELS: Record<PartDetailLayout, string> = {
@@ -29,6 +29,10 @@ export interface IPartLayoutSwitcherProps {
   disabled?: boolean;
 }
 
+/**
+ * Segmented mode switch from the design kit (`CatActionHeader`): the three modes
+ * sit inside a single inset well, with the active one carried by the brand fill.
+ */
 export function PartLayoutSwitcher({
   value,
   onChange,
@@ -41,10 +45,10 @@ export function PartLayoutSwitcher({
       onValueChange={(val) => {
         if (val) onChange(val as PartDetailLayout);
       }}
-      variant="outline"
       size="sm"
       disabled={disabled}
       aria-label={COPY.ariaLabel}
+      className="gap-1 rounded-[9px] border border-border bg-muted/40 p-1"
     >
       {PART_DETAIL_LAYOUTS.map((layout) => (
         <ToggleGroupItem
@@ -52,8 +56,9 @@ export function PartLayoutSwitcher({
           value={layout}
           aria-label={LABELS[layout]}
           title={HINTS[layout]}
+          className="cursor-pointer rounded-md px-3 text-[12.5px] font-semibold text-muted-foreground data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
         >
-          <Icon icon={ICONS[layout]} size={16} />
+          <Icon icon={ICONS[layout]} size={15} />
           <span className="ml-1 hidden sm:inline">{LABELS[layout]}</span>
         </ToggleGroupItem>
       ))}

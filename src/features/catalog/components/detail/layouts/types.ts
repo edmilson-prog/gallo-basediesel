@@ -9,4 +9,6 @@ export interface IPartLayoutProps {
   onDraftChange: (patch: Partial<IPartDraft>) => void;
   priceLocked: boolean;
   errors: IPartDraftErrors;
+  /** Enter edit mode from an in-content affordance (design kit's per-row pencil). */
+  onRequestEdit?: () => void;
 }
