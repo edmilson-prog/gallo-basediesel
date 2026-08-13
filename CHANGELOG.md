@@ -4,6 +4,27 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.177.0] — Yardstick · 2026-08-13
+
+**A nota de satisfação virou régua. O painel de NPS foi refeito: a nota agora aparece numa escala de −100 a 100 com faixas que dizem o que ela significa — Crítica, Aperfeiçoamento, Qualidade, Excelência —, a meta da casa vira uma linha na evolução, e um quadro novo mostra os motivos que os clientes citaram, separando o que puxa a nota para cima do que puxa para baixo. A tela mudou de lugar: agora fica em Gestão, não mais em Atendimento. E a plataforma passou a guardar as credenciais do Mercado Pago junto com as das outras integrações.**
+
+### Added
+
+- **Quadro "Motivos citados"** no painel de NPS — a nota diz que a relação piorou; este quadro diz que foi o prazo, de novo. Contrasta o que os clientes elogiam com o que reclamam. Quem deu nota 7 ou 8 fica de fora dos dois lados de propósito: não puxa para nenhuma direção.
+- **Recortes por loja e por atendente** — a nota deixa de ser um número só da empresa e passa a mostrar onde ela se forma.
+- **Aba Parâmetros** na configuração do NPS — a meta da casa, os limites de cada faixa, as regras de recuperação de cliente insatisfeito e quem enxerga o quê, incluindo se a resposta é anônima.
+- **Motivos na pesquisa do cliente** — além da nota e do comentário livre, o cliente pode marcar em botões o que pesou na avaliação.
+- **Credenciais do Mercado Pago** em Configurações → Integrações → Chaves & API — cinco campos, com produção e teste separados, no mesmo cofre e no mesmo fluxo das outras integrações: o valor entra uma vez e nunca mais é exibido, restando a data e os quatro últimos caracteres para conferência. Guardar a chave ainda não liga a cobrança — é o passo anterior a ela.
+
+### Changed
+
+- **Painel de NPS refeito** — escala de −100 a 100, faixas nomeadas no lugar de um número solto, meta da casa marcada na linha do tempo e a distribuição entre quem recomenda, quem é indiferente e quem reclama empilhada numa barra só.
+- **A página de NPS saiu do menu Atendimento e foi para Gestão** — quem tinha o caminho antigo salvo precisa reaprender por onde entrar.
+
+### Fixed
+
+- **A pesquisa enviada ao cliente dizia sempre "Frederico Westphalen"** — o nome estava fixo no texto. Com uma loja só, passava por certo, e era justamente isso que tornava o erro perigoso: ele esperava a segunda loja para aparecer, num texto que vai direto para o cliente. Agora o nome vem da própria pesquisa.
+
 ## [0.176.0] — Barometer · 2026-08-12
 
 **Até hoje a empresa descobria que um cliente estava insatisfeito quando ele parava de comprar. Agora existe um termômetro: terminado o atendimento, o cliente recebe uma pergunta única no WhatsApp — de 0 a 10, o quanto recomendaria a GALLO — e responde numa página que abre no próprio celular, em dois toques. Nota baixa vira aviso na hora para o gestor, com a conversa a um clique. A pesquisa nasce desligada: nada é enviado até alguém ligar em Configurações → NPS.**
