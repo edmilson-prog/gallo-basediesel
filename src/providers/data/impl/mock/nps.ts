@@ -5,6 +5,7 @@ import type {
   INpsProvider,
   INpsRawMetrics,
   INpsBreakdown,
+  INpsReasonSplit,
   INpsResponsePoint,
   INpsSurvey,
 } from "@/shared/types";
@@ -154,6 +155,24 @@ const DEFAULT_SETTINGS: INpsSettings = {
 
 let mockSettings: INpsSettings = { ...DEFAULT_SETTINGS };
 
+/** Plausible chip tallies, mirroring the kit's NPS_RAZOES. */
+const MOCK_REASONS: INpsReasonSplit = {
+  promoter: [
+    { label: "Atendimento", count: 61 },
+    { label: "Diagnóstico certo", count: 44 },
+    { label: "Prazo cumprido", count: 33 },
+    { label: "Qualidade da peça", count: 28 },
+    { label: "Entrega", count: 19 },
+  ],
+  detractor: [
+    { label: "Prazo não cumprido", count: 9 },
+    { label: "Peça com defeito", count: 5 },
+    { label: "Preço", count: 4 },
+    { label: "Falta de retorno", count: 3 },
+    { label: "Garantia", count: 2 },
+  ],
+};
+
 const MOCK_SELLERS = [
   { id: "seller-1", name: "Thiago Oliveira" },
   { id: "seller-2", name: "Elaine Cruz" },
@@ -220,6 +239,7 @@ export const mockNpsProvider: INpsProvider = {
         (_survey, index) => MOCK_STORES[index % MOCK_STORES.length]?.id ?? "store-1",
         storeNames,
       ),
+      reasons: MOCK_REASONS,
       bySeller: breakdown(
         inWindow,
         (_survey, index) => MOCK_SELLERS[index % MOCK_SELLERS.length]?.id ?? "seller-1",

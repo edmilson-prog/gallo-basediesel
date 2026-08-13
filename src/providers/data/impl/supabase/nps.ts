@@ -5,6 +5,7 @@ import type {
   INpsProvider,
   INpsRawMetrics,
   INpsBreakdown,
+  INpsReasonSplit,
   INpsResponsePoint,
   INpsSurvey,
 } from "@/shared/types";
@@ -191,7 +192,36 @@ interface IAnsweredRow {
   score: number;
   responded_at: string;
   store_id: string;
+  reasons: string[] | null;
   conversations: { assigned_seller_id: string | null } | null;
+}
+
+/**
+ * Tallies the chips cited by promoters and by detractors.
+ *
+ * Passives are left out on purpose: the panel asks what pulls the score up and
+ * what pulls it down, and a passive does neither — including them would blur
+ * the two lists that the card exists to contrast.
+ */
+function splitReasons(rows: IAnsweredRow[]): INpsReasonSplit {
+  const up = new Map<string, number>();
+  const down = new Map<string, number>();
+
+  for (const row of rows) {
+    if (row.score >= 7 && row.score <= 8) continue;
+    const target = row.score >= 9 ? up : down;
+    for (const reason of row.reasons ?? []) {
+      target.set(reason, (target.get(reason) ?? 0) + 1);
+    }
+  }
+
+  const toSorted = (map: Map<string, number>) =>
+    [...map.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+  return { promoter: toSorted(up), detractor: toSorted(down) };
 }
 
 /**
@@ -253,7 +283,7 @@ export const supabaseNpsProvider: INpsProvider = {
       supabase
         .from(TABLE)
         .select(
-          "score, responded_at, customer_id, trigger, store_id, conversations(assigned_seller_id)",
+          "score, responded_at, customer_id, trigger, store_id, reasons, conversations(assigned_seller_id)",
         )
         .eq("status", "responded")
         .not("score", "is", null)
@@ -310,7 +340,15 @@ export const supabaseNpsProvider: INpsProvider = {
       countSent(previousStart, start),
     ]);
 
-    return { responses, previousResponses, sent, previousSent, byStore, bySeller };
+    return {
+      responses,
+      previousResponses,
+      sent,
+      previousSent,
+      byStore,
+      bySeller,
+      reasons: splitReasons(current),
+    };
   },
 
   async list(filters: INpsListFilters): Promise<{ data: INpsSurvey[]; total: number }> {

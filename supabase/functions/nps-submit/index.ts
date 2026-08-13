@@ -38,9 +38,12 @@ interface ISurveyRow {
   recipient_name: string | null;
   status: string;
   expires_at: string;
+  /** Embedded so the survey can name the store the customer actually dealt with. */
+  stores: { name: string } | null;
 }
 
-const SURVEY_COLUMNS = "id, store_id, conversation_id, recipient_name, status, expires_at";
+const SURVEY_COLUMNS =
+  "id, store_id, conversation_id, recipient_name, status, expires_at, stores(name)";
 
 function clientIp(req: Request): string {
   const forwarded = req.headers.get("x-forwarded-for") ?? "";
@@ -149,6 +152,9 @@ servePost(async (req, ctx) => {
         state,
         recipientFirstName: firstName(survey?.recipient_name ?? null),
         contextLabel: "seu atendimento",
+        // The store is read from the survey, never hard-coded on the page: the
+        // customer must see the unit they actually dealt with.
+        storeName: survey?.stores?.name ?? null,
       },
       200,
     );
