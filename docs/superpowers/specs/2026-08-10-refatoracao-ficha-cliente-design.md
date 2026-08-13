@@ -168,3 +168,60 @@ Nenhum primitivo `--gallo-*` e nenhum hex direto no código novo.
 - Qualquer alteração em `ProfileTabs` e, por consequência, na ficha lateral do Atendimento e no
   painel de preview da lista.
 - Módulo financeiro de contas a receber — o "usado" é derivado de pedidos, não de títulos.
+
+---
+
+# Segunda passada — fidelidade ao kit (2026-08-13)
+
+A primeira entrega acertou a **arquitetura** (4 bandas, 6 abas, severidade, colapso da banda
+comercial) e ficou devendo o **acabamento** e dois pontos de comportamento. Revisão linha a linha
+de `ui_kits/crm/*` contra a implementação encontrou 10 divergências, todas corrigidas aqui.
+
+| # | Divergência | Correção |
+|---|---|---|
+| 1 | A tela não usava **nenhuma** tipografia de marca — o kit é Saira Condensed (`--font-display`) em tudo que é estrutural, a ficha era 100% Barlow | `font-display` no nome, nas abas, nos KPIs, nos valores mono dos fatos, no crédito, no botão *Criar orçamento*, nos títulos de painel, nos empty states e nas iniciais do avatar |
+| 2 | A aba *Atendimento* fazia o oposto do kit: alertas sumiam quando vazios e o `AtendimentoTab` sempre caía no empty de "sem conversa" (a página nunca passa `conversation`) | Painel **Pendências deste cliente** com empty real (título + CTA *Agendar follow-up*); `AtendimentoTab` sai da página e fica só no `ProfileTabs`; a aba ganha contador de alertas |
+| 3 | A **data** da última compra havia sumido (valor mostrava "há N dias", hint vazio) | Valor = data, hint = recência, como no kit |
+| 4 | Curva ABC exibia só a letra; a string `abcShare` estava órfã no i18n | Chip "Curva B · 2,4%" (`ProfileBadges variant="detail"`) |
+| 5 | 5 ações rápidas ghost, sem *Agendar* e sem *Transferir carteira* | As 6 do kit, com contorno e separadores em 3+2+1. *E-mail* sai da barra (segue clicável na banda de fatos) |
+| 6 | Sub-abas flutuando acima de um bloco sem título | Movidas para o slot direito do header do painel |
+| 7 | Chips mais fracos que o kit; positivado com `●/○` | Peso 700, tracking `.07em`, ícone `check-circle`/`circle-outline` |
+| 8 | Avatar redondo tingido por hash do id | Quadrado `rounded-lg` com iniciais em `text-primary` (`shape="square"`) |
+| 9 | Empty states de uma linha em caixa tracejada | `CustomerEmptyState`: ícone em caixa, título display uppercase, texto e CTA |
+| 10 | Conteúdo das abas sem moldura | `CustomerPanel` — borda, header com título display e slot à direita |
+
+## Primitivas novas
+
+- `components/detail/CustomerPanel.tsx` — equivalente do `CrmPanel`: moldura, título em display e
+  slot `right` (onde vivem as sub-abas). `flush` desliga o padding do corpo.
+- `components/detail/CustomerEmptyState.tsx` — equivalente do `CrmEmpty`. **Não** substitui
+  `TabEmptyState`, que continua servindo a ficha lateral e o preview da lista.
+
+## Como a área congelada foi protegida
+
+`ProfileBadges`, `CustomerAvatar`, `ProfileMenu`, `CustomerVehiclesList` e as quatro tabs
+(`Quotes`, `Notes`, `Conversations`, `Recommendations`) são compartilhados com o `ProfileTabs` da
+ficha do Atendimento. Nenhum teve o comportamento padrão alterado: todo o tratamento do kit entrou
+por **prop opt-in** — `variant="detail"`, `shape="square"`, `headless`, `transferSignal` — com o
+default byte-a-byte igual ao anterior.
+
+## "Agendar retorno" ganhou destino real
+
+O kit prevê a ação, mas o app não tinha para onde mandá-la: a data de retorno é campo do contato
+da **Agenda** (`IContact.nextContactAt`), não do cliente, e `/app/agenda` não aceitava deep-link.
+A rota passou a validar `?q=` e a `ContactsPage` consome o parâmetro como busca inicial — mesmo
+padrão que `/app/atendimento` já usava. Sem isso, o botão seria mais um beco.
+
+## Desvios conscientes do kit
+
+1. **E-mail continua na banda de fatos** (o kit tem 6 fatos, a implementação tem 7). Decisão do
+   dono: a informação vale o aperto da linha.
+2. **Cores da Curva ABC preservadas** (A verde / B âmbar / C neutro). O kit pinta a curva de azul
+   em todos os casos; a escala por classe informa mais e já era decisão da plataforma. O que foi
+   adotado do kit é o **rótulo**, não a cor.
+3. **Aba Cadastro não recebeu `CustomerPanel`** — `OverviewTab` já entrega os quatro painéis do
+   kit (cadastrais, status/carteira, tags, portal); enquadrar de novo aninharia painel em painel.
+4. **IDs de pedido/orçamento seguem em `font-mono`**, não em display. Eles são renderizados por
+   `CustomerOrdersList`/`QuotesTab`, compartilhados com outras telas.
+5. **O contador "5 de 12" saiu do header de Orçamentos** ao ligar `headless` — a contagem já
+   aparece na aba e a lista tem paginação própria.

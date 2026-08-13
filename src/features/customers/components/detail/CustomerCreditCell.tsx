@@ -147,7 +147,7 @@ export function CustomerCreditCell({ customer, credit }: ICustomerCreditCellProp
           {COPY.label}
         </span>
         <div className="mt-1 flex items-baseline gap-2">
-          <span className="text-lg font-semibold leading-none text-muted-foreground/70">
+          <span className="font-display text-xl font-bold leading-none text-muted-foreground/70">
             {COPY.none}
           </span>
           {canEditCredit && (
@@ -196,7 +196,7 @@ export function CustomerCreditCell({ customer, credit }: ICustomerCreditCellProp
       </div>
 
       <div className="mt-1 flex items-baseline gap-1.5">
-        <span className="text-lg font-semibold leading-none tabular-nums text-foreground">
+        <span className="font-display text-xl font-bold leading-none tabular-nums text-foreground">
           {formatBRL(credit.free)}
         </span>
         <span className="truncate text-[11px] text-muted-foreground">

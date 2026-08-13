@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useCustomerProfile } from "../hooks/useCustomerProfile";
 import { useCustomerHeader } from "../hooks/useCustomerHeader";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
+import { getCustomerName } from "../utils/customerDisplay";
 import { ProfileSkeleton } from "../components/ProfileSkeleton";
 import { CustomerTabs, type CustomerTabKey } from "../components/CustomerTabs";
 import { CustomerIdentityBand } from "../components/detail/CustomerIdentityBand";
@@ -109,6 +110,16 @@ function CustomerDetailContent({ customer }: { customer: ICustomer }) {
     void navigate({ to: `/app/orcamentos/novo?${params.toString()}` as never });
   };
 
+  // Same destination as the header's "Agendar retorno": the follow-up date is a
+  // field of the agenda's contact record, not of the customer.
+  const handleScheduleFollowUp = () => {
+    const phoneDigits = customer.phone?.replace(/\D/g, "") ?? "";
+    void navigate({
+      to: "/app/agenda",
+      search: { q: phoneDigits || getCustomerName(customer) },
+    } as never);
+  };
+
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex min-h-full flex-col bg-background">
@@ -151,6 +162,7 @@ function CustomerDetailContent({ customer }: { customer: ICustomer }) {
           onGoToTab={goToTab}
           cadastraisEditSignal={editSignal}
           onCadastraisEditConsumed={() => setEditSignal(0)}
+          onScheduleFollowUp={handleScheduleFollowUp}
         />
       </div>
     </TooltipProvider>

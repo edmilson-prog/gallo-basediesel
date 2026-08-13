@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useVehiclesProvider } from "@/providers/data/hooks/useVehiclesProvider";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
+import { CustomerEmptyState } from "@/features/customers/components/detail/CustomerEmptyState";
 import { formatDateBR } from "@/shared/utils/format";
 import {
   STATUS_BADGE_CLASSES,
@@ -28,9 +29,18 @@ const MAX_VISIBLE = 5;
 export interface ICustomerVehiclesListProps {
   customer: ICustomer;
   className?: string;
+  /**
+   * Drops the internal title, keeping the "Adicionar veículo" button — the
+   * customer detail page frames this list in a titled `CustomerPanel`.
+   */
+  headless?: boolean;
 }
 
-export function CustomerVehiclesList({ customer, className }: ICustomerVehiclesListProps) {
+export function CustomerVehiclesList({
+  customer,
+  className,
+  headless,
+}: ICustomerVehiclesListProps) {
   const provider = useVehiclesProvider();
   const canCreate = usePermission("vehicle", "create");
   const role = useCurrentRole();
@@ -52,21 +62,27 @@ export function CustomerVehiclesList({ customer, className }: ICustomerVehiclesL
 
   return (
     <div className={cn("space-y-3", className)}>
-      <header className="flex items-center gap-2">
-        <Icon icon="mdi:truck-outline" size={16} className="text-muted-foreground" />
-        <h3 className="text-sm font-semibold text-foreground">{COPY.title}</h3>
-        {showAdd && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto gap-1"
-            onClick={() => setAddOpen(true)}
-          >
-            <Icon icon="mdi:plus" size={14} />
-            {COPY.addButton}
-          </Button>
-        )}
-      </header>
+      {(!headless || showAdd) && (
+        <header className="flex items-center gap-2">
+          {!headless && (
+            <>
+              <Icon icon="mdi:truck-outline" size={16} className="text-muted-foreground" />
+              <h3 className="text-sm font-semibold text-foreground">{COPY.title}</h3>
+            </>
+          )}
+          {showAdd && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto gap-1"
+              onClick={() => setAddOpen(true)}
+            >
+              <Icon icon="mdi:plus" size={14} />
+              {COPY.addButton}
+            </Button>
+          )}
+        </header>
+      )}
 
       {vehiclesQuery.isLoading ? (
         <div className="space-y-2">
@@ -78,10 +94,20 @@ export function CustomerVehiclesList({ customer, className }: ICustomerVehiclesL
           ))}
         </div>
       ) : vehicles.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/20 px-4 py-6 text-center">
-          <Icon icon="mdi:truck-remove-outline" size={20} className="text-muted-foreground" />
-          <p className="text-xs text-muted-foreground">{COPY.empty}</p>
-        </div>
+        headless ? (
+          <CustomerEmptyState
+            icon="mdi:truck-remove-outline"
+            title={COPY.emptyTitle}
+            text={COPY.emptyHint}
+            cta={showAdd ? COPY.addButton : undefined}
+            onCta={showAdd ? () => setAddOpen(true) : undefined}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/20 px-4 py-6 text-center">
+            <Icon icon="mdi:truck-remove-outline" size={20} className="text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">{COPY.empty}</p>
+          </div>
+        )
       ) : (
         <ul className="space-y-2">
           {visible.map((v) => (

@@ -13,6 +13,7 @@ import { formatDateBR } from "@/shared/utils/format";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
 import { TabSkeleton } from "../TabSkeleton";
 import { TabEmptyState } from "../TabEmptyState";
+import { CustomerEmptyState } from "../detail/CustomerEmptyState";
 
 const COPY = CUSTOMER_STRINGS.conversations;
 
@@ -27,9 +28,15 @@ const STATUS_LABEL: Record<IConversation["status"], string> = {
 export interface IConversationsTabProps {
   customer: ICustomer;
   currentConversation?: IConversation | null;
+  /** Drops the internal title — the detail page's `CustomerPanel` owns it. */
+  headless?: boolean;
 }
 
-export function ConversationsTab({ customer, currentConversation }: IConversationsTabProps) {
+export function ConversationsTab({
+  customer,
+  currentConversation,
+  headless,
+}: IConversationsTabProps) {
   const provider = useConversationsProvider();
   const sellersProvider = useSellersProvider();
   const navigate = useNavigate();
@@ -66,15 +73,25 @@ export function ConversationsTab({ customer, currentConversation }: IConversatio
 
   return (
     <div className="space-y-3">
-      <header className="flex items-center gap-2">
-        <Icon icon="mdi:forum-outline" size={16} className="text-muted-foreground" />
-        <h3 className="text-sm font-semibold text-foreground">{COPY.title}</h3>
-      </header>
+      {!headless && (
+        <header className="flex items-center gap-2">
+          <Icon icon="mdi:forum-outline" size={16} className="text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">{COPY.title}</h3>
+        </header>
+      )}
 
       {query.isLoading ? (
         <TabSkeleton rows={4} />
       ) : sortedItems.length === 0 ? (
-        <TabEmptyState icon="mdi:forum-off-outline" message={COPY.empty} />
+        headless ? (
+          <CustomerEmptyState
+            icon="mdi:forum-off-outline"
+            title={COPY.emptyTitle}
+            text={COPY.emptyHint}
+          />
+        ) : (
+          <TabEmptyState icon="mdi:forum-off-outline" message={COPY.empty} />
+        )
       ) : (
         <ul className="space-y-1.5">
           {sortedItems.map((conv) => {

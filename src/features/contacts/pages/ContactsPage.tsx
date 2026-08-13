@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { ContactScope, ContactSource, IContact, ID } from "@/shared/types";
@@ -57,9 +57,13 @@ interface IActionTarget {
  * `min-content` do bloco fixo e empurra o conteúdo para fora da tela.
  */
 export function ContactsPage() {
+  // `?q=` arrives from other screens handing a specific contact over — today,
+  // "Agendar retorno" on the customer detail page. `strict: false` keeps the
+  // page mountable outside the /app/agenda route.
+  const { q: searchParam } = useSearch({ strict: false }) as { q?: string };
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
   const [view, setView] = useState<ContactsView>("grid");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParam ?? "");
   const [scope, setScope] = useState<ContactScope>("todos");
   const [owner, setOwner] = useState<string>(ANY_VALUE);
   const [tag, setTag] = useState<string>(ANY_VALUE);
@@ -78,6 +82,14 @@ export function ContactsPage() {
     null,
   );
   const [linkTarget, setLinkTarget] = useState<IContact | null>(null);
+
+  // Arriving again with a different `?q=` while the page is already mounted
+  // (the initial state above only runs once) has to move the search too.
+  useEffect(() => {
+    if (!searchParam) return;
+    setSearch(searchParam);
+    setPage(1);
+  }, [searchParam]);
 
   const params = useMemo<IListContactsParams>(() => {
     const [city, uf] = cityUf === ANY_VALUE ? [undefined, undefined] : cityUf.split(" / ");

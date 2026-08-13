@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -41,6 +41,12 @@ export interface IProfileMenuProps {
    * Atendimento fiche), the action navigates to the customer detail page.
    */
   onEditData?: () => void;
+  /**
+   * Truthy pulse that opens the wallet transfer modal from outside — the detail
+   * page's quick-action bar. The modal (and its RBAC + sellers query) stays
+   * here, so the header button and the menu item can never diverge.
+   */
+  transferSignal?: number;
 }
 
 /**
@@ -51,7 +57,12 @@ export interface IProfileMenuProps {
  * The destructive "Bloquear cliente" action is gated by an `<AlertDialog>` so
  * an accidental click doesn't flip the customer's status.
  */
-export function ProfileMenu({ customer, onMutated, onEditData }: IProfileMenuProps) {
+export function ProfileMenu({
+  customer,
+  onMutated,
+  onEditData,
+  transferSignal,
+}: IProfileMenuProps) {
   const navigate = useNavigate();
   const { currentUser, hasRole } = useAuth();
   const provider = useCustomersProvider();
@@ -60,6 +71,10 @@ export function ProfileMenu({ customer, onMutated, onEditData }: IProfileMenuPro
   const [blockOpen, setBlockOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
+
+  useEffect(() => {
+    if (transferSignal) setTransferOpen(true);
+  }, [transferSignal]);
 
   // The detail screen reads from TanStack Query — refetch after every mutation
   // (the mock store mutated shared objects in place, which masked this need).

@@ -9,7 +9,6 @@ import { AttendanceHistoryPanel } from "@/features/attendance-history";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
 import type { ICustomerTabCounts } from "../hooks/useCustomerHeader";
 import type { ICustomerAlert } from "../engine/customerAlerts";
-import { AtendimentoTab } from "./tabs/AtendimentoTab";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { OrdersTab } from "./tabs/OrdersTab";
 import { QuotesTab } from "./tabs/QuotesTab";
@@ -19,8 +18,12 @@ import { NotesTab } from "./tabs/NotesTab";
 import { RecommendationsTab } from "./tabs/RecommendationsTab";
 import { CustomerAlertsBand } from "./detail/CustomerAlertsBand";
 import { CustomerRelationshipTimeline } from "./detail/CustomerRelationshipTimeline";
+import { CustomerPanel } from "./detail/CustomerPanel";
+import { CustomerEmptyState } from "./detail/CustomerEmptyState";
 
 const COPY = CUSTOMER_STRINGS.detail.tabs;
+const PANELS = CUSTOMER_STRINGS.detail.panels;
+const EMPTY = CUSTOMER_STRINGS.detail.empty;
 
 /**
  * The six consolidated tabs. Deliberately a NEW component rather than a change
@@ -40,7 +43,8 @@ interface ITabDefinition {
   key: CustomerTabKey;
   label: string;
   icon: string;
-  count?: (counts: ICustomerTabCounts) => number;
+  /** `alerts` is separate from `counts` because it is derived, not fetched. */
+  count?: (counts: ICustomerTabCounts, alerts: number) => number;
   subTabs?: { key: string; label: string }[];
 }
 
@@ -49,6 +53,7 @@ const TABS: ITabDefinition[] = [
     key: "atendimento",
     label: COPY.atendimento,
     icon: "mdi:face-agent",
+    count: (_, alerts) => alerts,
   },
   {
     key: "comercial",
@@ -105,15 +110,21 @@ export interface ICustomerTabsProps {
   /** Opens the inline cadastral editor in the Cadastro tab. */
   cadastraisEditSignal?: number;
   onCadastraisEditConsumed?: () => void;
+  /** "Agendar follow-up" on the empty pendings panel. */
+  onScheduleFollowUp?: () => void;
 }
 
 /**
  * Consolidated tab strip and its panels.
  *
- * The panels are the existing tab components, mounted unchanged — this refactor
- * regroups navigation, it does not rewrite content. Lazy rendering is preserved:
- * a panel only mounts while its tab is active, so opening "Comercial" is what
- * triggers the orders fetch, not landing on the page.
+ * Every panel is framed by `CustomerPanel`, which owns the title and the
+ * right-hand slot where the sub-tabs live — the kit pairs "Pedidos" with the
+ * Pedidos/Orçamentos switch instead of floating the switch above an untitled
+ * block. The panels themselves are the existing tab components, mounted with
+ * `headless` so their own heading does not compete with the frame.
+ *
+ * Lazy rendering is preserved: a panel only mounts while its tab is active, so
+ * opening "Comercial" is what triggers the orders fetch, not landing here.
  */
 export function CustomerTabs({
   customer,
@@ -124,12 +135,33 @@ export function CustomerTabs({
   onGoToTab,
   cadastraisEditSignal,
   onCadastraisEditConsumed,
+  onScheduleFollowUp,
 }: ICustomerTabsProps) {
   const [subTab, setSubTab] = useState<Record<string, string>>({});
   const activeDefinition = TABS.find((tab) => tab.key === activeTab);
   const activeSub = activeDefinition?.subTabs
     ? (subTab[activeTab] ?? activeDefinition.subTabs[0]?.key ?? null)
     : null;
+
+  const subTabsBar = activeDefinition?.subTabs ? (
+    <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted/40 p-0.5">
+      {activeDefinition.subTabs.map((sub) => (
+        <button
+          key={sub.key}
+          type="button"
+          onClick={() => setSubTab((prev) => ({ ...prev, [activeTab]: sub.key }))}
+          className={cn(
+            "rounded-md px-3 py-1 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            activeSub === sub.key
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {sub.label}
+        </button>
+      ))}
+    </div>
+  ) : null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -144,7 +176,7 @@ export function CustomerTabs({
           >
             {TABS.map((tab) => {
               const isActive = tab.key === activeTab;
-              const count = tab.count?.(counts) ?? 0;
+              const count = tab.count?.(counts, alerts.length) ?? 0;
               return (
                 <button
                   key={tab.key}
@@ -153,7 +185,7 @@ export function CustomerTabs({
                   aria-selected={isActive}
                   onClick={() => onActiveTabChange(tab.key)}
                   className={cn(
-                    "inline-flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-[13px] font-semibold uppercase tracking-wide transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    "inline-flex items-center gap-1.5 border-b-2 px-3.5 py-3 font-display text-sm font-bold uppercase tracking-[0.04em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isActive
                       ? "border-primary text-foreground"
                       : "border-transparent text-muted-foreground hover:text-foreground",
@@ -168,7 +200,7 @@ export function CustomerTabs({
                   {count > 0 && (
                     <span
                       className={cn(
-                        "inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums",
+                        "inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 font-sans text-[10px] font-extrabold tabular-nums tracking-normal",
                         isActive ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
                       )}
                     >
@@ -184,35 +216,26 @@ export function CustomerTabs({
         <ScrollProgressBar />
       </div>
 
-      {activeDefinition?.subTabs && (
-        <div className="flex shrink-0 items-center gap-1 px-4 pt-3 sm:px-6">
-          <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted/40 p-0.5">
-            {activeDefinition.subTabs.map((sub) => (
-              <button
-                key={sub.key}
-                type="button"
-                onClick={() => setSubTab((prev) => ({ ...prev, [activeTab]: sub.key }))}
-                className={cn(
-                  "rounded-md px-3 py-1 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  activeSub === sub.key
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {sub.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="min-h-0 flex-1 px-4 py-3 sm:px-6">
         {activeTab === "atendimento" && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className="space-y-3 lg:col-span-2">
-              <CustomerAlertsBand alerts={alerts} onGoToTab={onGoToTab} />
-              <AtendimentoTab customer={customer} />
-            </div>
+            <CustomerPanel
+              title={PANELS.pendings}
+              className="lg:col-span-2"
+              flush={alerts.length === 0}
+            >
+              {alerts.length > 0 ? (
+                <CustomerAlertsBand alerts={alerts} onGoToTab={onGoToTab} />
+              ) : (
+                <CustomerEmptyState
+                  icon="mdi:check-circle-outline"
+                  title={EMPTY.noPendingsTitle}
+                  text={EMPTY.noPendingsText}
+                  cta={onScheduleFollowUp ? EMPTY.noPendingsCta : undefined}
+                  onCta={onScheduleFollowUp}
+                />
+              )}
+            </CustomerPanel>
             <CustomerRelationshipTimeline
               customer={customer}
               onSeeAllNotes={() => onGoToTab("notas")}
@@ -221,25 +244,45 @@ export function CustomerTabs({
           </div>
         )}
 
-        {activeTab === "comercial" &&
-          (activeSub === "orcamentos" ? (
-            <QuotesTab customer={customer} />
-          ) : (
-            <OrdersTab customer={customer} />
-          ))}
-
-        {activeTab === "frota" && <VehiclesTab customer={customer} />}
-
-        {activeTab === "conversas" && activeSub === "conversas" && (
-          <ConversationsTab customer={customer} />
-        )}
-        {activeTab === "conversas" && activeSub === "midias" && (
-          <CustomerMediaTab customerId={customer.id} />
-        )}
-        {activeTab === "conversas" && activeSub === "historico" && (
-          <AttendanceHistoryPanel customerId={customer.id} />
+        {activeTab === "comercial" && (
+          <CustomerPanel
+            title={activeSub === "orcamentos" ? PANELS.quotes : PANELS.orders}
+            right={subTabsBar}
+          >
+            {activeSub === "orcamentos" ? (
+              <QuotesTab customer={customer} headless />
+            ) : (
+              <OrdersTab customer={customer} />
+            )}
+          </CustomerPanel>
         )}
 
+        {activeTab === "frota" && (
+          <CustomerPanel title={PANELS.fleet}>
+            <VehiclesTab customer={customer} headless />
+          </CustomerPanel>
+        )}
+
+        {activeTab === "conversas" && (
+          <CustomerPanel
+            title={
+              activeSub === "midias"
+                ? PANELS.media
+                : activeSub === "historico"
+                  ? PANELS.history
+                  : PANELS.conversations
+            }
+            right={subTabsBar}
+          >
+            {activeSub === "conversas" && <ConversationsTab customer={customer} headless />}
+            {activeSub === "midias" && <CustomerMediaTab customerId={customer.id} />}
+            {activeSub === "historico" && <AttendanceHistoryPanel customerId={customer.id} />}
+          </CustomerPanel>
+        )}
+
+        {/* Cadastro keeps its own card grid: `OverviewTab` already renders the
+            kit's four panels (cadastrais, status/carteira, tags, portal), so
+            framing it again would nest a panel inside a panel. */}
         {activeTab === "cadastro" && (
           <OverviewTab
             customer={customer}
@@ -250,12 +293,18 @@ export function CustomerTabs({
           />
         )}
 
-        {activeTab === "notas" &&
-          (activeSub === "recomendacoes" ? (
-            <RecommendationsTab customer={customer} />
-          ) : (
-            <NotesTab customer={customer} />
-          ))}
+        {activeTab === "notas" && (
+          <CustomerPanel
+            title={activeSub === "recomendacoes" ? PANELS.recommendations : PANELS.notes}
+            right={subTabsBar}
+          >
+            {activeSub === "recomendacoes" ? (
+              <RecommendationsTab customer={customer} headless />
+            ) : (
+              <NotesTab customer={customer} headless />
+            )}
+          </CustomerPanel>
+        )}
       </div>
     </div>
   );
