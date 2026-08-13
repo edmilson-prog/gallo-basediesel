@@ -6,7 +6,7 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [0.178.0] — Lifeline · 2026-08-13
 
-**O NPS deixou de ser uma tela para ler e virou uma tela para trabalhar. A nota continua no mesmo lugar, mas agora divide espaço com cinco abas: todas as respostas com filtro por motivo, uma fila de clientes insatisfeitos com prazo de retorno, as regras de envio, os parâmetros de leitura e um mapa de onde a nota aparece no resto do sistema. Nota de 0 a 6 abre uma tratativa com prazo de 24 horas para o primeiro contato — e no dia em que a pesquisa for ligada o histórico inteiro entra na fila, não apenas as respostas novas.**
+**O NPS deixou de ser uma tela para ler e virou uma tela para trabalhar. A nota continua no mesmo lugar, mas agora divide espaço com cinco abas: todas as respostas com filtro por motivo, uma fila de clientes insatisfeitos com prazo de retorno, as regras de envio, os parâmetros de leitura e um mapa de onde a nota aparece no resto do sistema. Nota de 0 a 6 abre uma tratativa com prazo de 24 horas para o primeiro contato — e no dia em que a pesquisa for ligada o histórico inteiro entra na fila, não apenas as respostas novas. A ficha do cliente também mudou de cara nesta versão, e ganhou um segundo formato de cabeçalho que dá para experimentar e comparar.**
 
 ### Added
 
@@ -18,15 +18,18 @@ versioning follows [SemVer](https://semver.org/).
 - **Exportar respostas** — baixa o período filtrado em planilha, com data, nota, categoria, cliente, loja, atendente, motivos e comentário. Abre com os acentos certos no Excel.
 - **Ver a pesquisa como o cliente vê** — abre a mesma página que chega no celular dele, para conferir o texto antes de ligar a pesquisa. Nada é gravado nessa prévia.
 - **Filtro por loja** e os períodos **Hoje** e **12 meses** no painel.
+- **Segundo formato de cabeçalho na ficha do cliente**, alternável por um botão ao lado do menu da ficha — de um lado as faixas empilhadas de largura total, do outro um painel de duas colunas com o gráfico e os indicadores agrupados à direita. A escolha vale para o navegador e atravessa clientes e recarregamentos. É para comparar os dois com dados reais antes de decidir qual fica; quando um vencer, o botão e o formato perdedor saem juntos. Visível para Owner e Gestor.
 
 ### Changed
 
 - **O painel ficou só com o painel** — a lista de respostas e a lista de clientes insatisfeitos saíram de baixo dos gráficos e viraram abas próprias, cada uma com seus filtros. Quem só quer ver a nota não precisa mais rolar por cima delas.
 - **Os períodos do painel mudaram** — eram 30, 90, 180 e 365 dias; agora são Hoje, 30 dias, 90 dias e 12 meses.
 - **A tabela por atendente** ganhou foto e a faixa em que cada um está, e um atalho para o Ranking.
+- **Ficha do cliente com o acabamento do desenho aprovado** — a tipografia da marca entrou no nome, nas abas, nos indicadores e nos títulos dos painéis. A última compra passou a mostrar a data, com o "há quantos dias" como complemento, e não o contrário.
 
 ### Fixed
 
+- **A aba Atendimento da ficha do cliente não falava das pendências do cliente** — quando não havia nenhuma, a aba não dizia isso; mostrava o aviso de "nenhuma conversa selecionada", que era sempre o caso ali. Agora traz o painel de pendências, com um caminho para agendar o próximo contato quando a lista está vazia.
 - **A versão anterior anunciou uma "aba Parâmetros" que ainda não existia** — o texto descrevia o desenho aprovado, não o que tinha sido entregue. Quem foi procurar não achou. A aba existe a partir desta versão; a nota da 0.177.0 foi corrigida.
 
 ## [0.177.0] — Yardstick · 2026-08-13
