@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import type { ICustomer } from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
@@ -10,7 +10,10 @@ import { PreConversionBadge } from "../PreConversionBadge";
 import { ProfileMenu } from "../ProfileMenu";
 import { getCustomerDisplay } from "../../utils/customerDisplay";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
+import type { CustomerDetailLayout } from "../../hooks/useCustomerDetailLayout";
+import { CustomerBreadcrumb } from "./CustomerBreadcrumb";
 import { CustomerQuickActions } from "./CustomerQuickActions";
+import { CustomerLayoutToggle } from "./CustomerLayoutToggle";
 import type { CustomerTabKey } from "../CustomerTabs";
 
 export interface ICustomerIdentityBandProps {
@@ -18,6 +21,8 @@ export interface ICustomerIdentityBandProps {
   latestConversationId: string | null;
   onGoToTab: (tab: CustomerTabKey) => void;
   onEditData?: () => void;
+  layout: CustomerDetailLayout;
+  onToggleLayout: () => void;
 }
 
 /**
@@ -32,6 +37,8 @@ export function CustomerIdentityBand({
   latestConversationId,
   onGoToTab,
   onEditData,
+  layout,
+  onToggleLayout,
 }: ICustomerIdentityBandProps) {
   const display = getCustomerDisplay(customer);
   const navigate = useNavigate();
@@ -46,21 +53,7 @@ export function CustomerIdentityBand({
 
   return (
     <div className="space-y-2.5 px-4 py-3 sm:px-6">
-      <nav
-        className="flex items-center gap-1 text-xs text-muted-foreground"
-        aria-label="breadcrumb"
-      >
-        <Link
-          to="/app/clientes"
-          className="rounded transition-colors hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          {CUSTOMER_STRINGS.detail.breadcrumb}
-        </Link>
-        <span aria-hidden>
-          <Icon icon="mdi:chevron-right" size={14} />
-        </span>
-        <span className="truncate text-foreground">{display.name}</span>
-      </nav>
+      <CustomerBreadcrumb name={display.name} />
 
       <div className="flex flex-wrap items-start gap-3.5">
         <CustomerAvatar
@@ -110,6 +103,7 @@ export function CustomerIdentityBand({
             <Icon icon="mdi:file-document-plus-outline" size={14} />
             {CUSTOMER_STRINGS.header.createQuote}
           </Button>
+          <CustomerLayoutToggle layout={layout} onToggle={onToggleLayout} />
           <ProfileMenu
             customer={customer}
             onEditData={onEditData}

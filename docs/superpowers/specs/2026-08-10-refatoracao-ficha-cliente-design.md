@@ -225,3 +225,49 @@ padrão que `/app/atendimento` já usava. Sem isso, o botão seria mais um beco.
    `CustomerOrdersList`/`QuotesTab`, compartilhados com outras telas.
 5. **O contador "5 de 12" saiu do header de Orçamentos** ao ligar `headless` — a contagem já
    aparece na aba e a lista tem paginação própria.
+
+---
+
+# Terceira passada — Direção B alternável (2026-08-13)
+
+O kit oferece **duas** direções de cabeçalho e uma barra no rodapé do protótipo para alternar
+entre elas. Essa barra é chrome do `CrmApp`, nunca foi para virar tela — mas a escolha de A sobre
+B, feita em 10/08, foi feita **no protótipo, não na tela real com dados reais**. O dono pediu para
+ver a B no app. A linha "Direção B — fora de escopo" acima está, portanto, **revogada**: ela
+existe agora, alternável.
+
+## Como alternar
+
+Botão ao lado do menu ⋮, **visível apenas para Owner e Gestor** (`CustomerLayoutToggle`). A
+escolha é persistida por navegador em `localStorage` (`gallo-customer-detail-layout`), então
+atravessa clientes e reloads. É controle de avaliação, não configuração por vendedor: quando uma
+direção for escolhida em definitivo, o toggle e o cabeçalho perdedor saem juntos.
+
+## O que muda de uma para outra
+
+| | A · Faixas (default) | B · Painel |
+|---|---|---|
+| Cabeçalho | 4 bandas empilhadas de largura total | 1 bloco de 2 colunas |
+| Fatos | linha única com divisores | grade 2×4 sob o nome |
+| Comercial | banda horizontal com sparkline na ponta | coluna direita: gráfico → 5 KPIs em grade → crédito |
+| Altura | só a do conteúdo; bandas somem sozinhas | fixa — as colunas seguram a altura mesmo com pouco a dizer |
+| Alertas | faixa de largura total | faixa de largura total (igual) |
+
+## Como as duas não divergem
+
+O risco óbvio de manter dois cabeçalhos é um dizer uma coisa e o outro dizer outra. Os dois
+consomem **os mesmos construtores**, espelhando o `crmKpiCells` do kit:
+
+- `detail/CustomerKpi.tsx` — `buildCustomerKpiCells(customer, openQuotes)` + a célula visual.
+- `detail/customerFactCells.ts` — `buildCustomerFactCells(customer, sellerName, storeName)`.
+- `detail/CustomerBreadcrumb.tsx` — a trilha, antes inline na banda de identidade.
+
+A e B diferem em **arranjo**, nunca em conteúdo — que é exatamente o que o kit faz. As primitivas
+(`CustomerFact`, `CustomerCreditCell`, `CustomerSparkline`, `CustomerAlertsBand`,
+`CustomerQuickActions`, `ProfileBadges`, `ProfileMenu`) são as mesmas nas duas.
+
+## Custo de manter as duas
+
+Enquanto o toggle existir, toda mudança no cabeçalho precisa ser feita nos dois — mitigado pelos
+construtores compartilhados, mas real no arranjo. **A decisão deveria ser tomada e o perdedor
+removido**; não é estado final.
