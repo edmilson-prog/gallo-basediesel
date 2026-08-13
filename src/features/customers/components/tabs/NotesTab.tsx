@@ -16,14 +16,17 @@ import { formatRelativeTimeBR } from "@/shared/utils/format";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
 import { TabSkeleton } from "../TabSkeleton";
 import { TabEmptyState } from "../TabEmptyState";
+import { CustomerEmptyState } from "../detail/CustomerEmptyState";
 
 const COPY = CUSTOMER_STRINGS.notes;
 
 export interface INotesTabProps {
   customer: ICustomer;
+  /** Drops the internal title — the detail page's `CustomerPanel` owns it. */
+  headless?: boolean;
 }
 
-export function NotesTab({ customer }: INotesTabProps) {
+export function NotesTab({ customer, headless }: INotesTabProps) {
   const provider = useCustomersProvider();
   const sellersProvider = useSellersProvider();
   const queryClient = useQueryClient();
@@ -85,16 +88,26 @@ export function NotesTab({ customer }: INotesTabProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="mb-3 flex shrink-0 items-center gap-2">
-        <Icon icon="mdi:note-text-outline" size={16} className="text-muted-foreground" />
-        <h3 className="text-sm font-semibold text-foreground">{COPY.title}</h3>
-      </header>
+      {!headless && (
+        <header className="mb-3 flex shrink-0 items-center gap-2">
+          <Icon icon="mdi:note-text-outline" size={16} className="text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">{COPY.title}</h3>
+        </header>
+      )}
 
       <div className="flex-1 space-y-2">
         {notesQuery.isLoading ? (
           <TabSkeleton rows={3} rowHeight="h-16" />
         ) : notes.length === 0 ? (
-          <TabEmptyState icon="mdi:note-off-outline" message={COPY.empty} />
+          headless ? (
+            <CustomerEmptyState
+              icon="mdi:note-off-outline"
+              title={COPY.emptyTitle}
+              text={COPY.emptyHint}
+            />
+          ) : (
+            <TabEmptyState icon="mdi:note-off-outline" message={COPY.empty} />
+          )
         ) : (
           <ul className="space-y-2">
             {notes.map((note) => (

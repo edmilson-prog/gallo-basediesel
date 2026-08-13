@@ -3,8 +3,10 @@ import { CustomerVehiclesList } from "@/features/vehicles/components/CustomerVeh
 
 export interface IVehiclesTabProps {
   customer: ICustomer;
+  /** Drops the internal title — the detail page's `CustomerPanel` owns it. */
+  headless?: boolean;
 }
 
-export function VehiclesTab({ customer }: IVehiclesTabProps) {
-  return <CustomerVehiclesList customer={customer} />;
+export function VehiclesTab({ customer, headless }: IVehiclesTabProps) {
+  return <CustomerVehiclesList customer={customer} headless={headless} />;
 }

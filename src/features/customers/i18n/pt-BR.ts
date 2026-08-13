@@ -184,6 +184,9 @@ export const CUSTOMER_STRINGS = {
   quotes: {
     title: "Orçamentos do cliente",
     empty: "Sem orçamentos para este cliente.",
+    /** Richer empty state used inside the detail page's panels. */
+    emptyTitle: "Sem orçamentos",
+    emptyHint: "Nenhuma proposta enviada para este cliente.",
     discountLabel: (value: string) => `Desconto ${value}`,
     origin: {
       sdr: "SDR",
@@ -203,6 +206,8 @@ export const CUSTOMER_STRINGS = {
   conversations: {
     title: "Histórico de conversas",
     empty: "Sem conversas com este cliente.",
+    emptyTitle: "Sem conversas",
+    emptyHint: "Nenhum atendimento registrado com este contato.",
     current: "Atual",
     resolvedAt: "Resolvida em",
     startedAt: "Iniciada em",
@@ -223,6 +228,8 @@ export const CUSTOMER_STRINGS = {
   notes: {
     title: "Notas internas",
     empty: "Nenhuma nota registrada.",
+    emptyTitle: "Nenhuma nota",
+    emptyHint: "Registre o que foi combinado com este cliente.",
     placeholder: "Adicione uma observação sobre o cliente…",
     submit: "Adicionar nota",
     submitHint: "Cmd/Ctrl + Enter",
@@ -232,6 +239,8 @@ export const CUSTOMER_STRINGS = {
   recommendations: {
     title: "Recomendações para este cliente",
     empty: "Sem recomendações ativas.",
+    emptyTitle: "Sem recomendações",
+    emptyHint: "Nada sugerido para este cliente no momento.",
     dismiss: "Dispensar",
     dismissedToast: "Recomendação dispensada.",
     priority: {
@@ -403,8 +412,37 @@ export const CUSTOMER_STRINGS = {
       callEmpty: "Sem telefone cadastrado",
       email: "Enviar e-mail",
       emailEmpty: "Sem e-mail cadastrado",
+      schedule: "Agendar retorno",
       newNote: "Nova nota",
       addVehicle: "Adicionar veículo",
+      transferWallet: "Transferir carteira",
+      transferWalletEmpty: "Cliente sem vendedor na carteira",
+    },
+    /** Header badges. The kit spells the ABC class out instead of showing a bare letter. */
+    badges: {
+      abc: (abcClass: string, share: string | null) =>
+        share ? `Curva ${abcClass} · ${share}` : `Curva ${abcClass}`,
+      positivated: "Positivado",
+      notPositivated: "Não positivado",
+    },
+    /** Section headers of the tab panels — display face, like the kit. */
+    panels: {
+      pendings: "Pendências deste cliente",
+      relationship: "Relacionamento",
+      orders: "Pedidos",
+      quotes: "Orçamentos",
+      fleet: "Frota do cliente",
+      conversations: "Conversas",
+      media: "Mídias",
+      history: "Histórico",
+      notes: "Notas internas",
+      recommendations: "Recomendações",
+    },
+    /** Empty states rendered inside the panels above. */
+    empty: {
+      noPendingsTitle: "Nenhuma pendência",
+      noPendingsText: "Nada aguardando ação neste cliente no momento.",
+      noPendingsCta: "Agendar follow-up",
     },
     /** Consolidated tab strip (10 → 6) — detail page only. */
     tabs: {

@@ -14,6 +14,7 @@ import { auditLog } from "@/features/rbac/utils/auditLog";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
 import { TabSkeleton } from "../TabSkeleton";
 import { TabEmptyState } from "../TabEmptyState";
+import { CustomerEmptyState } from "../detail/CustomerEmptyState";
 
 const COPY = CUSTOMER_STRINGS.recommendations;
 
@@ -46,9 +47,11 @@ const TYPE_META: Record<RecommendationType, { icon: string }> = {
 
 export interface IRecommendationsTabProps {
   customer: ICustomer;
+  /** Drops the internal title — the detail page's `CustomerPanel` owns it. */
+  headless?: boolean;
 }
 
-export function RecommendationsTab({ customer }: IRecommendationsTabProps) {
+export function RecommendationsTab({ customer, headless }: IRecommendationsTabProps) {
   const provider = useRecommendationsProvider();
   const queryClient = useQueryClient();
 
@@ -89,15 +92,25 @@ export function RecommendationsTab({ customer }: IRecommendationsTabProps) {
 
   return (
     <div className="space-y-3">
-      <header className="flex items-center gap-2">
-        <Icon icon="mdi:lightbulb-on-outline" size={16} className="text-muted-foreground" />
-        <h3 className="text-sm font-semibold text-foreground">{COPY.title}</h3>
-      </header>
+      {!headless && (
+        <header className="flex items-center gap-2">
+          <Icon icon="mdi:lightbulb-on-outline" size={16} className="text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">{COPY.title}</h3>
+        </header>
+      )}
 
       {query.isLoading ? (
         <TabSkeleton rows={3} rowHeight="h-20" />
       ) : items.length === 0 ? (
-        <TabEmptyState icon="mdi:lightbulb-off-outline" message={COPY.empty} />
+        headless ? (
+          <CustomerEmptyState
+            icon="mdi:lightbulb-off-outline"
+            title={COPY.emptyTitle}
+            text={COPY.emptyHint}
+          />
+        ) : (
+          <TabEmptyState icon="mdi:lightbulb-off-outline" message={COPY.empty} />
+        )
       ) : (
         <ul className="space-y-2">
           {items.map((rec) => {

@@ -1,7 +1,7 @@
 import type { ICustomer } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
-import { daysSince, formatBRL } from "@/shared/utils/format";
+import { daysSince, formatBRL, formatDateBR } from "@/shared/utils/format";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
 import { resolveLastPurchaseAt, resolvePurchaseStats } from "../../utils/dintecStats";
 import type { IMonthlyPurchasePoint } from "../../utils/purchaseSeries";
@@ -29,7 +29,7 @@ function Kpi({ label, value, hint, fromDintec, emphasis }: IKpi) {
       <div className="mt-1 flex items-baseline gap-1.5">
         <span
           className={cn(
-            "text-lg font-semibold leading-none tabular-nums",
+            "font-display text-xl font-bold leading-none tabular-nums tracking-[0.005em]",
             value == null
               ? "text-muted-foreground/60"
               : emphasis
@@ -90,9 +90,12 @@ export function CustomerCommercialBand({
       fromDintec: stats.ltv?.fromDintec,
     },
     {
+      // The date is the value and the recency is the hint, like the kit: "when"
+      // is what a seller reads out loud, "há N dias" is what they judge it by.
       label: COPY.lastPurchase,
-      value: lastPurchaseDays !== null ? COPY.lastPurchaseDays(lastPurchaseDays) : null,
-      hint: lastPurchaseDays !== null ? "" : COPY.neverPurchased,
+      value: lastPurchase ? formatDateBR(lastPurchase.value) : null,
+      hint:
+        lastPurchaseDays !== null ? COPY.lastPurchaseDays(lastPurchaseDays) : COPY.neverPurchased,
       fromDintec: lastPurchase?.fromDintec,
     },
     {

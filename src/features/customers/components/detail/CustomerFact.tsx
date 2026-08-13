@@ -61,7 +61,11 @@ export function CustomerFact({
 
   const valueClasses = cn(
     "block truncate",
-    mono ? "text-sm font-semibold tabular-nums" : "text-[13px] font-medium",
+    // Numbers, documents and phones carry the display face in the kit — it is
+    // condensed, so a phone or a CNPJ fits without shrinking the type.
+    mono
+      ? "font-display text-[15px] font-bold tabular-nums tracking-[0.01em]"
+      : "text-[13px] font-medium",
     hasValue ? "text-foreground" : "italic text-muted-foreground/70",
   );
 

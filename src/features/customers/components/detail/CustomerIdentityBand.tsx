@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ICustomer } from "@/shared/types";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,9 @@ export function CustomerIdentityBand({
 }: ICustomerIdentityBandProps) {
   const display = getCustomerDisplay(customer);
   const navigate = useNavigate();
+  // Pulse handed to ProfileMenu, which owns the transfer modal — the quick
+  // action and the menu item open the very same dialog.
+  const [transferSignal, setTransferSignal] = useState(0);
 
   const handleCreateQuote = () => {
     const params = new URLSearchParams({ customerId: customer.id });
@@ -58,12 +62,17 @@ export function CustomerIdentityBand({
         <span className="truncate text-foreground">{display.name}</span>
       </nav>
 
-      <div className="flex flex-wrap items-start gap-3">
-        <CustomerAvatar display={display} className="h-14 w-14 shrink-0 text-base" iconSize={26} />
+      <div className="flex flex-wrap items-start gap-3.5">
+        <CustomerAvatar
+          display={display}
+          shape="square"
+          className="h-[52px] w-[52px] shrink-0 text-lg"
+          iconSize={26}
+        />
 
         <div className="min-w-0 flex-1 space-y-1.5">
           <h1
-            className="truncate text-xl font-semibold uppercase leading-tight text-foreground"
+            className="truncate font-display text-2xl font-extrabold uppercase leading-none tracking-[0.01em] text-foreground sm:text-[26px]"
             title={display.name}
           >
             {display.name}
@@ -71,12 +80,13 @@ export function CustomerIdentityBand({
           <div className="flex flex-wrap items-center gap-1.5">
             <ProfileBadges
               customer={customer}
+              variant="detail"
               preConversionSlot={<PreConversionBadge customer={customer} />}
             />
             {customer.tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+                className="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.07em] text-muted-foreground"
               >
                 {tag}
               </span>
@@ -84,17 +94,27 @@ export function CustomerIdentityBand({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2.5">
           <CustomerQuickActions
             customer={customer}
             latestConversationId={latestConversationId}
             onGoToTab={onGoToTab}
+            onTransferWallet={() => setTransferSignal((n) => n + 1)}
           />
-          <Button variant="default" size="sm" className="gap-1.5" onClick={handleCreateQuote}>
+          <Button
+            variant="default"
+            size="sm"
+            className="h-[34px] gap-1.5 font-display font-bold uppercase tracking-[0.045em]"
+            onClick={handleCreateQuote}
+          >
             <Icon icon="mdi:file-document-plus-outline" size={14} />
             {CUSTOMER_STRINGS.header.createQuote}
           </Button>
-          <ProfileMenu customer={customer} onEditData={onEditData} />
+          <ProfileMenu
+            customer={customer}
+            onEditData={onEditData}
+            transferSignal={transferSignal}
+          />
         </div>
       </div>
 

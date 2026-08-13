@@ -4,6 +4,7 @@ import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { daysSince, formatDateBR } from "@/shared/utils/format";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
+import { CustomerPanel } from "./CustomerPanel";
 
 const COPY = CUSTOMER_STRINGS.detail.timeline;
 
@@ -66,12 +67,7 @@ export function CustomerRelationshipTimeline({
   }, [customer]);
 
   return (
-    <section className={cn("rounded-lg border border-border bg-card p-4", className)}>
-      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-        <Icon icon="mdi:timeline-clock-outline" size={16} className="text-muted-foreground" />
-        {COPY.title}
-      </h2>
-
+    <CustomerPanel title={COPY.title} className={className}>
       {nodes.length === 0 ? (
         <p className="text-xs text-muted-foreground">{COPY.empty}</p>
       ) : (
@@ -114,6 +110,6 @@ export function CustomerRelationshipTimeline({
           )}
         </>
       )}
-    </section>
+    </CustomerPanel>
   );
 }
