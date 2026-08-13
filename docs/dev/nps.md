@@ -84,12 +84,22 @@ Nesta ordem — cada passo exige OK explícito do dono:
    `20260812140000_nps_schema` → `20260812140050_nps_survey_candidates`.
 2. **Cadastrar o segredo `NPS_WORKER_SECRET`** (Configurações → Integrações &
    Chaves, resolução Vault-first).
-3. **Deployar as Edge Functions:**
+3. **Deployar as Edge Functions** — **ambas** com `--no-verify-jwt`:
    ```
-   npx supabase functions deploy nps-scheduler --project-ref njizaasajkdqptlxddqn --use-api
-   npx supabase functions deploy nps-submit --project-ref njizaasajkdqptlxddqn --no-verify-jwt --use-api
+   npx supabase functions deploy nps-scheduler --project-ref njizaasajkdqptlxddqn --no-verify-jwt --use-api
+   npx supabase functions deploy nps-submit    --project-ref njizaasajkdqptlxddqn --no-verify-jwt --use-api
    ```
-   ⚠️ `nps-submit` **precisa** de `--no-verify-jwt`: a landing é anônima.
+   ⚠️ A flag é obrigatória nas duas, por motivos diferentes:
+   - `nps-submit` é a landing anônima — não há sessão para verificar;
+   - `nps-scheduler` é chamada pelo **pg_cron via pg_net**, que envia apenas
+     `x-worker-secret` e **nenhum `Authorization`**. Com `verify_jwt=true` o
+     gateway devolveria 401 antes de a função rodar, e o cron falharia de hora
+     em hora em silêncio. A autenticação real é o `verifyWorkerSecret` dentro
+     da função — mesmo padrão de `sdr-backstop-tick` e `scheduled-send-worker`,
+     ambos `verify_jwt=false`.
+
+   Conferir depois do deploy: `nps-scheduler` sem o segredo deve responder
+   `{"error":"unauthorized"}` com **401 vindo da função**, não do gateway.
 4. **Aplicar o cron** `20260812140100_nps_scheduler_cron` — só depois do deploy,
    para o primeiro tick encontrar o endpoint vivo.
 5. **Revisar o texto da pesquisa** em `nps-scheduler/message.ts`.
