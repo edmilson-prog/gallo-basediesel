@@ -4,6 +4,22 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.176.0] — Barometer · 2026-08-12
+
+**Até hoje a empresa descobria que um cliente estava insatisfeito quando ele parava de comprar. Agora existe um termômetro: terminado o atendimento, o cliente recebe uma pergunta única no WhatsApp — de 0 a 10, o quanto recomendaria a GALLO — e responde numa página que abre no próprio celular, em dois toques. Nota baixa vira aviso na hora para o gestor, com a conversa a um clique. A pesquisa nasce desligada: nada é enviado até alguém ligar em Configurações → NPS.**
+
+### Added
+
+- **Pesquisa de satisfação por WhatsApp** — algumas horas depois de a conversa ser resolvida, o cliente recebe a pergunta e um link. A página abre direto no celular, mostra as notas de 0 a 10 em botões grandes e aceita um comentário opcional. Cada link vale uma resposta só e vence em sete dias.
+- **Página NPS** (menu Atendimento) — a nota geral do período com o total de respostas e quanta gente respondeu, a evolução mês a mês, a divisão entre quem recomenda, quem é indiferente e quem reclama, a lista completa das respostas com busca no comentário, e uma seção só de clientes insatisfeitos com atalho para abrir a conversa. Disponível para Owner e Gestor.
+- **Aviso de cliente insatisfeito** — nota 6 ou menos avisa o gestor e o dono em segundos, com o comentário do cliente e o caminho para a conversa. O problema chega enquanto ainda dá para resolver, não no fechamento do mês.
+- **Selo de NPS na ficha do cliente** — quem respondeu nos últimos doze meses passa a mostrar a nota ao lado do nome. Quem não respondeu não mostra nada.
+- **Tela de configuração** (Configurações → NPS) — liga e desliga a pesquisa, define quanto tempo esperar depois do atendimento, de quanto em quanto tempo a mesma pessoa pode ser consultada, o horário em que as mensagens podem sair e quantas podem sair por dia. Cada campo explica o que acontece se for mal ajustado.
+
+### Changed
+
+- **O quadro "NPS" no Cockpit saiu do "Em breve"** — promessa que estava na tela desde a versão 0.27.0. Agora mostra a nota real dos últimos 90 dias e leva à página completa ao ser clicado. Enquanto houver menos de cinco respostas, exibe "Coletando" com a contagem em vez de um número: uma nota tirada de duas respostas diria mais sobre o acaso do que sobre os clientes.
+
 ## [0.175.0] — Telemetry · 2026-08-12
 
 **O app de atendimento deixou de ser só conversas. Ganhou a aba Análise — os mesmos números que o gestor lê no computador, agora no bolso: volume, TMA, TMR, resolução, conversão, saúde por vendedor e motivos de escalação, mês a mês. E o aparelho passou a ser avisado sozinho quando sai versão nova, sem depender de alguém estar com o app aberto na hora.**
