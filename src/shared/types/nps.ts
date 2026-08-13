@@ -44,6 +44,30 @@ export interface INpsSurvey {
   respondedAt: string | null;
   expiresAt: string;
   createdAt: string;
+  /** Chips the customer marked. Empty when they answered without picking any. */
+  reasons: string[];
+  /** Resolved for display only — the survey carries ids, not names. */
+  storeName: string | null;
+  sellerName: string | null;
+}
+
+/**
+ * State of a detractor's treatment.
+ *
+ * `'novo'` is not stored: a detractor whose `recoveryStatus` column is null has
+ * never been touched, which is exactly the first column of the board. Deriving
+ * it instead of writing it means the whole history joins the queue the moment
+ * the feature is switched on, with no backfill.
+ */
+export type INpsRecoveryStatus = "novo" | "em_contato" | "resolvido";
+
+/** A detractor answer plus its treatment — one card of the recovery board. */
+export interface INpsRecovery extends INpsSurvey {
+  recoveryStatus: INpsRecoveryStatus;
+  recoveryOwnerName: string | null;
+  recoveryNote: string | null;
+  recoveryContactedAt: string | null;
+  recoveryResolvedAt: string | null;
 }
 
 /**
@@ -135,11 +159,29 @@ export interface INpsListFilters extends INpsFilters {
   /** Free-text search over the comment. */
   search?: string;
   npsClass?: INpsClass;
+  /** Only answers that carry a written comment. */
+  hasComment?: boolean;
+  /** Only answers that marked this chip. */
+  reason?: string;
 }
 
 export interface INpsProvider {
   rawMetrics(filters: INpsFilters): Promise<INpsRawMetrics>;
   list(filters: INpsListFilters): Promise<{ data: INpsSurvey[]; total: number }>;
+  /**
+   * Detractors of the window with their treatment state.
+   *
+   * Separate from {@link list} on purpose: it reads columns added by
+   * `20260813160000_nps_recovery_and_parameters.sql`, so before that migration
+   * is applied this call fails while every other panel surface keeps working.
+   */
+  listRecoveries(filters: INpsFilters, threshold?: 6 | 8): Promise<INpsRecovery[]>;
+  /** Moves one detractor between the board's columns. Writes nothing else. */
+  setRecovery(
+    surveyId: string,
+    status: Exclude<INpsRecoveryStatus, "novo"> | null,
+    note?: string | null,
+  ): Promise<void>;
   /** Most recent answered survey for a customer, or null. Powers the fiche badge. */
   latestForCustomer(customerId: string): Promise<INpsSurvey | null>;
   /** Null when the store has never been configured — the survey is then off. */
@@ -166,4 +208,24 @@ export interface INpsSettings {
   /** Backstop: ceiling of surveys per store per day. */
   dailyCap: number;
   whatsappAccountId: string | null;
+  /**
+   * Reading parameters — the panel's "Parâmetros" tab.
+   *
+   * These change how the same answers are *read*, never which answers exist:
+   * moving the target or a band cut re-labels history rather than rewriting it,
+   * which is why they live beside the sending rules instead of inside them.
+   */
+  targetScore: number;
+  bandExcellence: number;
+  bandQuality: number;
+  bandImprovement: number;
+  /** 6 = only detractors open a treatment; 8 = passives too. */
+  recoveryThreshold: 6 | 8;
+  recoverySlaHours: number;
+  recoveryOwner: "attendant" | "manager";
+  recoveryEscalate: boolean;
+  showWidget: boolean;
+  showOnFiche: boolean;
+  includeInRanking: boolean;
+  anonymousForTeam: boolean;
 }

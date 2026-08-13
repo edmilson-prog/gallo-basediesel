@@ -560,6 +560,45 @@ que este PRD também excluía), **motivos por chips** na pesquisa e no painel
 (hoje só há comentário livre), aba **Envio** e aba **Embutidos** (widget no
 Início do atendente e bloco na ficha).
 
+### DELTA 13/08/2026 — as seis abas do kit, e o que ficou de fora
+
+Fechada a lacuna acima. `/app/nps` agora tem a barra de abas do kit e as seis
+telas: **Painel · Respostas · Recuperação · Envio · Parâmetros · Embutidos**.
+Os motivos por chips já haviam entrado na migration `20260813120000_nps_reasons`
+e agora aparecem em toda parte (filtro, linha da resposta, card da tratativa,
+CSV).
+
+Duas decisões que contrariam o texto original deste PRD, tomadas com o dono:
+
+1. **Fila de recuperação existe.** O PRD a excluía; o kit a especifica e ela é o
+   único lugar onde um detrator vira ação. Estado em `nps_surveys`
+   (`recovery_*`), com **"Novo" derivado** — detrator sem linha de tratativa é
+   novo, o que faz o histórico inteiro entrar na fila no dia em que ligar, sem
+   backfill. A escrita passa por **RPC `nps_set_recovery` SECURITY DEFINER**:
+   `nps_surveys` não tem policy de UPDATE para `authenticated`, e abrir uma
+   entregaria junto a nota e o comentário — o registro do que o cliente disse,
+   que quem foi avaliado não pode reescrever.
+
+2. **Parâmetros de leitura são configuráveis.** Meta, faixas, SLA, responsável e
+   visibilidade viraram colunas de `nps_settings`. Mudam só como as mesmas
+   respostas são *lidas* — nunca quais existem, nunca reenviam nada. O cálculo
+   (0–6 / 7–8 / 9–10, promotores − detratores) segue fixo e a tela diz por quê.
+
+**Do kit e deliberadamente NÃO entregue** — porque o comportamento não existe, e
+interruptor sem comportamento é promessa que o scheduler não cumpre:
+
+| Item do kit | Por que ficou fora |
+|---|---|
+| **Reenvio único** (lembrete em 3 dias) | O `nps-scheduler` cria uma pesquisa por atendimento e nunca insiste |
+| Gatilhos **orçamento recusado** e **visita técnica** | Não há evento de recusa; INDUSTRIAL segue dormente |
+| **Lista nominal de exceções** | Sem modelo de dados; hoje a saída é o intervalo mínimo |
+| **Escalonar tratativa vencida** / **respostas anônimas** | Gravam a preferência, mas nada dispara aviso nem oculta nome ainda — marcados na própria tela |
+
+**Migration `20260813160000_nps_recovery_and_parameters.sql` NÃO aplicada.**
+Aplicar é manual e exige OK do dono. Até lá a aba Recuperação mostra o aviso e
+o resto do painel funciona normalmente — a leitura das colunas novas está
+isolada em `listRecoveries`, que é a única chamada que falha sem elas.
+
 **Deferido para a Onda 8:** canal e-mail com grade 0–10, submissão do HSM e
 roteamento pelo dispatch 141.
 

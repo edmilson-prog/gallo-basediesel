@@ -4,6 +4,7 @@ import type {
   INpsListFilters,
   INpsProvider,
   INpsRawMetrics,
+  INpsRecovery,
   INpsBreakdown,
   INpsReasonSplit,
   INpsResponsePoint,
@@ -42,12 +43,47 @@ interface NpsSurveyRow {
   responded_at: string | null;
   expires_at: string;
   created_at: string;
+  reasons: string[] | null;
+  stores?: { name: string | null } | null;
+  conversations?: { assigned_seller_id: string | null } | null;
 }
 
 const TABLE = "nps_surveys";
 const COLUMNS =
   "id, store_id, conversation_id, customer_id, lead_id, phone_digits, recipient_name, " +
-  "trigger, order_id, channel, status, score, comment, sent_at, responded_at, expires_at, created_at";
+  "trigger, order_id, channel, status, score, comment, sent_at, responded_at, expires_at, " +
+  "created_at, reasons";
+
+/**
+ * Store name and attendant, without a migration.
+ *
+ * The survey stores ids; the panel shows names. `stores(name)` rides the FK
+ * that already exists, and the attendant comes from the conversation because
+ * nps_surveys has no seller column of its own. Seller names then need one more
+ * round-trip — the nested embed would depend on a FK alias that is not
+ * guaranteed here.
+ */
+const COLUMNS_WITH_CONTEXT = COLUMNS + ", stores(name), conversations(assigned_seller_id)";
+
+/**
+ * Adds the treatment columns of
+ * `20260813160000_nps_recovery_and_parameters.sql`.
+ *
+ * Kept in its own constant, used by its own provider method: before that
+ * migration is applied this select is the one thing that fails, and the rest of
+ * the panel — which shares neither the constant nor the call — keeps working.
+ */
+const RECOVERY_COLUMNS =
+  COLUMNS_WITH_CONTEXT +
+  ", recovery_status, recovery_owner_id, recovery_note, recovery_contacted_at, recovery_resolved_at";
+
+interface NpsRecoveryRow extends NpsSurveyRow {
+  recovery_status: string | null;
+  recovery_owner_id: string | null;
+  recovery_note: string | null;
+  recovery_contacted_at: string | null;
+  recovery_resolved_at: string | null;
+}
 
 const DEFAULT_PAGE_SIZE = 30;
 
@@ -70,7 +106,41 @@ function rowToNpsSurvey(row: NpsSurveyRow): INpsSurvey {
     respondedAt: row.responded_at,
     expiresAt: row.expires_at,
     createdAt: row.created_at,
+    reasons: row.reasons ?? [],
+    storeName: row.stores?.name ?? null,
+    sellerName: null,
   };
+}
+
+/**
+ * Fills in `sellerName` for a page of surveys in one extra query.
+ *
+ * Names are resolved after the fact rather than per row: a page of thirty
+ * answers usually comes from a handful of attendants, so one `in()` beats
+ * thirty embeds — and a survey whose conversation has no attendant simply keeps
+ * a null name instead of inventing one.
+ */
+async function attachSellerNames(rows: NpsSurveyRow[], surveys: INpsSurvey[]): Promise<void> {
+  const ids = [
+    ...new Set(
+      rows.map((row) => row.conversations?.assigned_seller_id).filter((id): id is string => !!id),
+    ),
+  ];
+  if (ids.length === 0) return;
+
+  const { data } = await getSupabaseClient().from("sellers").select("id, full_name").in("id", ids);
+  const names = new Map(
+    ((data ?? []) as unknown as Array<{ id: string; full_name: string | null }>).map((row) => [
+      row.id,
+      row.full_name,
+    ]),
+  );
+
+  rows.forEach((row, index) => {
+    const sellerId = row.conversations?.assigned_seller_id;
+    const survey = surveys[index];
+    if (sellerId && survey) survey.sellerName = names.get(sellerId) ?? null;
+  });
 }
 
 function windowBounds(windowDays: number): { start: string; previousStart: string } {
@@ -118,7 +188,10 @@ const SETTINGS_COLUMNS =
   "store_id, enabled, trigger_conversation_enabled, trigger_conversation_delay_hours, " +
   "trigger_order_enabled, trigger_order_delay_hours, cooldown_days, token_expiry_days, " +
   "window_days, sampling_rate, send_window_start_hour, send_window_end_hour, " +
-  "min_responses_for_score, max_backfill_days, daily_cap, whatsapp_account_id";
+  "min_responses_for_score, max_backfill_days, daily_cap, whatsapp_account_id, " +
+  "target_score, band_excellence, band_quality, band_improvement, recovery_threshold, " +
+  "recovery_sla_hours, recovery_owner, recovery_escalate, show_widget, show_on_fiche, " +
+  "include_in_ranking, anonymous_for_team";
 
 interface NpsSettingsRow {
   store_id: string;
@@ -137,6 +210,18 @@ interface NpsSettingsRow {
   max_backfill_days: number;
   daily_cap: number;
   whatsapp_account_id: string | null;
+  target_score: number;
+  band_excellence: number;
+  band_quality: number;
+  band_improvement: number;
+  recovery_threshold: number;
+  recovery_sla_hours: number;
+  recovery_owner: string;
+  recovery_escalate: boolean;
+  show_widget: boolean;
+  show_on_fiche: boolean;
+  include_in_ranking: boolean;
+  anonymous_for_team: boolean;
 }
 
 function rowToSettings(row: NpsSettingsRow): INpsSettings {
@@ -157,6 +242,18 @@ function rowToSettings(row: NpsSettingsRow): INpsSettings {
     maxBackfillDays: row.max_backfill_days,
     dailyCap: row.daily_cap,
     whatsappAccountId: row.whatsapp_account_id,
+    targetScore: row.target_score,
+    bandExcellence: row.band_excellence,
+    bandQuality: row.band_quality,
+    bandImprovement: row.band_improvement,
+    recoveryThreshold: row.recovery_threshold === 8 ? 8 : 6,
+    recoverySlaHours: row.recovery_sla_hours,
+    recoveryOwner: row.recovery_owner === "manager" ? "manager" : "attendant",
+    recoveryEscalate: row.recovery_escalate,
+    showWidget: row.show_widget,
+    showOnFiche: row.show_on_fiche,
+    includeInRanking: row.include_in_ranking,
+    anonymousForTeam: row.anonymous_for_team,
   };
 }
 
@@ -184,6 +281,18 @@ function settingsPatchToRow(patch: Partial<INpsSettings>): Record<string, unknow
   if (patch.maxBackfillDays !== undefined) row.max_backfill_days = patch.maxBackfillDays;
   if (patch.dailyCap !== undefined) row.daily_cap = patch.dailyCap;
   if (patch.whatsappAccountId !== undefined) row.whatsapp_account_id = patch.whatsappAccountId;
+  if (patch.targetScore !== undefined) row.target_score = patch.targetScore;
+  if (patch.bandExcellence !== undefined) row.band_excellence = patch.bandExcellence;
+  if (patch.bandQuality !== undefined) row.band_quality = patch.bandQuality;
+  if (patch.bandImprovement !== undefined) row.band_improvement = patch.bandImprovement;
+  if (patch.recoveryThreshold !== undefined) row.recovery_threshold = patch.recoveryThreshold;
+  if (patch.recoverySlaHours !== undefined) row.recovery_sla_hours = patch.recoverySlaHours;
+  if (patch.recoveryOwner !== undefined) row.recovery_owner = patch.recoveryOwner;
+  if (patch.recoveryEscalate !== undefined) row.recovery_escalate = patch.recoveryEscalate;
+  if (patch.showWidget !== undefined) row.show_widget = patch.showWidget;
+  if (patch.showOnFiche !== undefined) row.show_on_fiche = patch.showOnFiche;
+  if (patch.includeInRanking !== undefined) row.include_in_ranking = patch.includeInRanking;
+  if (patch.anonymousForTeam !== undefined) row.anonymous_for_team = patch.anonymousForTeam;
   row.updated_at = new Date().toISOString();
   return row;
 }
@@ -360,7 +469,7 @@ export const supabaseNpsProvider: INpsProvider = {
 
     let query = supabase
       .from(TABLE)
-      .select(COLUMNS, { count: "exact" })
+      .select(COLUMNS_WITH_CONTEXT, { count: "exact" })
       .eq("status", "responded")
       .gte("responded_at", start)
       .order("responded_at", { ascending: false })
@@ -376,14 +485,105 @@ export const supabaseNpsProvider: INpsProvider = {
     if (filters.search?.trim()) {
       query = query.ilike("comment", `%${filters.search.trim()}%`);
     }
+    if (filters.hasComment) {
+      // An empty string is also "no comment": the submit endpoint stores null,
+      // but a row that predates that rule would otherwise slip through as one.
+      query = query.not("comment", "is", null).neq("comment", "");
+    }
+    if (filters.reason) {
+      // Array containment, not equality — an answer usually marks several
+      // chips, and the GIN index on `reasons` serves exactly this operator.
+      query = query.contains("reasons", [filters.reason]);
+    }
 
     const { data, error, count } = await query;
     if (error) throw error;
 
-    return {
-      data: ((data ?? []) as unknown as NpsSurveyRow[]).map(rowToNpsSurvey),
-      total: count ?? 0,
-    };
+    const rows = (data ?? []) as unknown as NpsSurveyRow[];
+    const surveys = rows.map(rowToNpsSurvey);
+    await attachSellerNames(rows, surveys);
+
+    return { data: surveys, total: count ?? 0 };
+  },
+
+  async listRecoveries(filters: INpsFilters, threshold: 6 | 8 = 6): Promise<INpsRecovery[]> {
+    const supabase = getSupabaseClient();
+    const { start } = windowBounds(filters.windowDays);
+    // The partial index covers score <= 6, the standard cut. A store that opens
+    // the queue to passives (0–8) falls outside it and pays a wider scan — the
+    // correct trade, since the alternative is a second index for a setting
+    // almost nobody moves.
+
+    // Ordered oldest first: the board is a queue, and the card that has been
+    // waiting longest is the one whose SLA is closest to burning.
+    const query = applySharedFilters(
+      supabase
+        .from(TABLE)
+        .select(RECOVERY_COLUMNS)
+        .eq("status", "responded")
+        .lte("score", threshold)
+        .gte("responded_at", start)
+        .order("responded_at", { ascending: true }),
+      filters,
+    );
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const rows = (data ?? []) as unknown as NpsRecoveryRow[];
+    const surveys = rows.map(rowToNpsSurvey);
+    await attachSellerNames(rows, surveys);
+
+    const ownerIds = [
+      ...new Set(rows.map((row) => row.recovery_owner_id).filter((id): id is string => !!id)),
+    ];
+    const owners = new Map<string, string | null>();
+    if (ownerIds.length > 0) {
+      const { data: ownerRows } = await supabase
+        .from("sellers")
+        .select("id, full_name")
+        .in("id", ownerIds);
+      for (const row of (ownerRows ?? []) as unknown as Array<{
+        id: string;
+        full_name: string | null;
+      }>) {
+        owners.set(row.id, row.full_name);
+      }
+    }
+
+    return rows.flatMap((row, index): INpsRecovery[] => {
+      const survey = surveys[index];
+      if (!survey) return [];
+      return [
+        {
+          ...survey,
+          // Null in the column is the "Novo" column of the board — see the type.
+          recoveryStatus: (row.recovery_status ?? "novo") as INpsRecovery["recoveryStatus"],
+          recoveryOwnerName: row.recovery_owner_id
+            ? (owners.get(row.recovery_owner_id) ?? null)
+            : null,
+          recoveryNote: row.recovery_note,
+          recoveryContactedAt: row.recovery_contacted_at,
+          recoveryResolvedAt: row.recovery_resolved_at,
+        },
+      ];
+    });
+  },
+
+  async setRecovery(
+    surveyId: string,
+    status: "em_contato" | "resolvido" | null,
+    note?: string | null,
+  ): Promise<void> {
+    // The RPC is the only write path: nps_surveys has no UPDATE policy for
+    // authenticated, and opening one would also hand over the score and the
+    // comment — the customer's own words, which nobody being rated may edit.
+    const { error } = await getSupabaseClient().rpc("nps_set_recovery", {
+      p_survey_id: surveyId,
+      p_status: status,
+      p_note: note ?? null,
+    });
+    if (error) throw error;
   },
 
   async latestForCustomer(customerId: string): Promise<INpsSurvey | null> {

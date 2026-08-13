@@ -22,6 +22,10 @@ export function useNpsSurveys(filters: INpsListFilters) {
       filters.audience ?? "any",
       filters.npsClass ?? "any",
       filters.search ?? "",
+      // Every filter that reaches the server belongs in the key. One left out
+      // means the cache answers a different question than the one asked.
+      filters.hasComment ? "commented" : "any",
+      filters.reason ?? "any",
       filters.page ?? 1,
       filters.pageSize ?? 30,
     ],

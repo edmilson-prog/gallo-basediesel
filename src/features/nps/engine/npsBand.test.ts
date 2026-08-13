@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { NPS_TARGET, npsBand, npsBandLabel, rulerPosition } from "./npsBand";
+import type { INpsBandThresholds } from "./npsBand";
+import {
+  DEFAULT_NPS_BANDS,
+  NPS_TARGET,
+  npsBand,
+  npsBandLabel,
+  npsBandRanges,
+  npsBandsAreOrdered,
+  rulerPosition,
+} from "./npsBand";
 
 describe("npsBand", () => {
   it("names the four bands from the design kit", () => {
@@ -51,5 +60,74 @@ describe("rulerPosition", () => {
 describe("NPS_TARGET", () => {
   it("is the internal goal the trend chart draws its dashed line at", () => {
     expect(NPS_TARGET).toBe(60);
+  });
+});
+
+describe("configurable thresholds", () => {
+  /** A store that decided the kit's cuts were too generous. */
+  const strict: INpsBandThresholds = { excellence: 85, quality: 65, improvement: 30 };
+
+  it("defaults to the kit's cuts when none are given", () => {
+    expect(DEFAULT_NPS_BANDS).toEqual({ excellence: 75, quality: 50, improvement: 0 });
+    expect(npsBand(60)).toBe(npsBand(60, DEFAULT_NPS_BANDS));
+  });
+
+  it("classifies by the given cuts instead of the defaults", () => {
+    expect(npsBand(70, strict)).toBe("quality");
+    // 60 is "qualidade" under the kit's cuts and only "aperfeiçoamento" here.
+    expect(npsBand(60, strict)).toBe("improvement");
+    expect(npsBand(60)).toBe("quality");
+    expect(npsBand(85, strict)).toBe("excellence");
+  });
+
+  it("keeps everything below the lowest cut critical", () => {
+    expect(npsBand(29, strict)).toBe("critical");
+    expect(npsBand(0, strict)).toBe("critical");
+  });
+
+  it("labels a custom band in pt-BR", () => {
+    expect(npsBandLabel(60, strict)).toBe("Aperfeiçoamento");
+  });
+});
+
+describe("npsBandsAreOrdered", () => {
+  it("accepts strictly decreasing cuts", () => {
+    expect(npsBandsAreOrdered(DEFAULT_NPS_BANDS)).toBe(true);
+    expect(npsBandsAreOrdered({ excellence: 85, quality: 65, improvement: 30 })).toBe(true);
+    expect(npsBandsAreOrdered({ excellence: 2, quality: 1, improvement: 0 })).toBe(true);
+  });
+
+  it("rejects cuts that touch, which would make a band unreachable", () => {
+    expect(npsBandsAreOrdered({ excellence: 50, quality: 50, improvement: 0 })).toBe(false);
+    expect(npsBandsAreOrdered({ excellence: 75, quality: 0, improvement: 0 })).toBe(false);
+  });
+
+  it("rejects inverted cuts", () => {
+    expect(npsBandsAreOrdered({ excellence: 40, quality: 60, improvement: 0 })).toBe(false);
+    expect(npsBandsAreOrdered({ excellence: 75, quality: -10, improvement: 0 })).toBe(false);
+  });
+});
+
+describe("npsBandRanges", () => {
+  it("covers the whole ruler with no gap and no overlap", () => {
+    const ranges = npsBandRanges();
+    expect(ranges.map((range) => range.band)).toEqual([
+      "excellence",
+      "quality",
+      "improvement",
+      "critical",
+    ]);
+    expect(ranges[0]).toEqual({ band: "excellence", min: 75, max: 100 });
+    expect(ranges[1]).toEqual({ band: "quality", min: 50, max: 74 });
+    expect(ranges[2]).toEqual({ band: "improvement", min: 0, max: 49 });
+    expect(ranges[3]).toEqual({ band: "critical", min: -100, max: -1 });
+  });
+
+  it("agrees with npsBand at every boundary it reports", () => {
+    const bands: INpsBandThresholds = { excellence: 85, quality: 65, improvement: 30 };
+    for (const range of npsBandRanges(bands)) {
+      expect(npsBand(range.min, bands)).toBe(range.band);
+      expect(npsBand(range.max, bands)).toBe(range.band);
+    }
   });
 });

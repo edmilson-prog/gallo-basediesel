@@ -18,7 +18,7 @@ import { RankingHighlightWidget } from "@/features/gamification";
 import { CommissionsWidget } from "@/features/commissions";
 import { RecentMovementsWidget } from "@/features/inventory-movement";
 import { InsightsBanner } from "@/features/insights";
-import { useNpsMetrics } from "@/features/nps";
+import { useNpsMetrics, useNpsSettings } from "@/features/nps";
 import { ForecastWidget } from "@/features/sales-forecast";
 import { useEcommerceOrdersSummary } from "@/features/ecommerce-integration";
 import { useCockpitFilters } from "../hooks/useCockpitFilters";
@@ -61,12 +61,15 @@ export function ExecutiveCockpitPage() {
   // Below the honest minimum the hook returns a null score, so the card shows
   // "Coletando dados (N/5)" as a tag rather than inventing a number.
   const nps = useNpsMetrics({ windowDays: 90 });
+  const npsSettings = useNpsSettings();
   const npsCollecting = nps.data?.state === "collecting";
   const npsCardProps = {
     value: npsCollecting ? null : (nps.data?.score ?? null),
     isLoading: nps.isLoading,
     hasError: nps.isError,
-    tag: npsCollecting ? S.kpiNpsCollecting(nps.data?.n ?? 0, nps.data?.minResponses ?? 5) : undefined,
+    tag: npsCollecting
+      ? S.kpiNpsCollecting(nps.data?.n ?? 0, nps.data?.minResponses ?? 5)
+      : undefined,
     sparkline: (nps.data?.monthly ?? [])
       .map((point) => point.score)
       .filter((score): score is number => score !== null),
@@ -312,14 +315,19 @@ export function ExecutiveCockpitPage() {
           tag={S.kpiStub}
           onClick={() => void navigate({ to: "/app/gestao/comissoes" })}
         />
-        <ExecutiveKpiCard
-          icon="mdi:emoticon-outline"
-          label={S.kpiNps}
-          helpText={S.kpiNpsHelp}
-          {...npsCardProps}
-          formatValue={formatNumber}
-          onClick={() => void navigate({ to: "/app/nps" })}
-        />
+        {/* "Card no Cockpit", from the NPS panel's Parâmetros tab. Hidden only
+            once the setting has actually loaded and says no — otherwise a slow
+            settings read would blink the card out of an executive dashboard. */}
+        {npsSettings.data && !npsSettings.data.showWidget ? null : (
+          <ExecutiveKpiCard
+            icon="mdi:emoticon-outline"
+            label={S.kpiNps}
+            helpText={S.kpiNpsHelp}
+            {...npsCardProps}
+            formatValue={formatNumber}
+            onClick={() => void navigate({ to: "/app/nps" })}
+          />
+        )}
       </section>
 
       <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2" aria-label={S.sectionCharts}>

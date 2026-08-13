@@ -4,6 +4,8 @@ import type {
   INpsListFilters,
   INpsProvider,
   INpsRawMetrics,
+  INpsRecovery,
+  INpsRecoveryStatus,
   INpsBreakdown,
   INpsReasonSplit,
   INpsResponsePoint,
@@ -80,6 +82,23 @@ function classOf(score: number): "promoter" | "passive" | "detractor" {
   return "promoter";
 }
 
+/** Chips offered by the public survey, per category — see NpsSurveyPublicPage. */
+const REASONS_BY_CLASS: Record<string, string[]> = {
+  promoter: ["Diagnóstico certo", "Prazo cumprido", "Atendimento", "Qualidade da peça", "Entrega"],
+  passive: ["Prazo", "Preço", "Comunicação", "Atendimento"],
+  detractor: ["Prazo não cumprido", "Falta de retorno", "Preço", "Peça com defeito", "Garantia"],
+};
+
+const MOCK_SELLER_NAMES = [
+  "Thiago Oliveira",
+  "Elaine Cruz",
+  "Marcos Reis",
+  "Jean Prass",
+  "Diego Lopes",
+];
+
+const MOCK_STORE_NAMES = ["Frederico Westphalen", "Barra Velha"];
+
 /** Built once at module load so repeated calls agree with each other. */
 const DATASET: INpsSurvey[] = (() => {
   const random = makeRandom(SEED);
@@ -113,6 +132,12 @@ const DATASET: INpsSurvey[] = (() => {
       respondedAt: respondedAt.toISOString(),
       expiresAt: new Date(sentAt.getTime() + 7 * DAY_MS).toISOString(),
       createdAt: sentAt.toISOString(),
+      // One or two chips, chosen from the set that category is actually offered.
+      reasons: (REASONS_BY_CLASS[npsClass] ?? []).filter(
+        (_reason, position) => (index + position) % 3 === 0,
+      ),
+      storeName: MOCK_STORE_NAMES[index % MOCK_STORE_NAMES.length] ?? null,
+      sellerName: MOCK_SELLER_NAMES[index % MOCK_SELLER_NAMES.length] ?? null,
     };
   });
 })();
@@ -151,9 +176,33 @@ const DEFAULT_SETTINGS: INpsSettings = {
   maxBackfillDays: 3,
   dailyCap: 50,
   whatsappAccountId: null,
+  targetScore: 60,
+  bandExcellence: 75,
+  bandQuality: 50,
+  bandImprovement: 0,
+  recoveryThreshold: 6,
+  recoverySlaHours: 24,
+  recoveryOwner: "attendant",
+  recoveryEscalate: true,
+  showWidget: true,
+  showOnFiche: true,
+  includeInRanking: false,
+  anonymousForTeam: false,
 };
 
 let mockSettings: INpsSettings = { ...DEFAULT_SETTINGS };
+
+/**
+ * Treatment state, kept in memory rather than baked into the dataset.
+ *
+ * The board is the one place in NPS the app writes to, so the mock has to hold
+ * a mutation for the tab to be testable at all — but only this, keyed by id, so
+ * the deterministic dataset itself stays immutable.
+ */
+const mockRecoveries = new Map<
+  string,
+  { status: INpsRecoveryStatus; note: string | null; contactedAt: string | null }
+>();
 
 /** Plausible chip tallies, mirroring the kit's NPS_RAZOES. */
 const MOCK_REASONS: INpsReasonSplit = {
@@ -259,10 +308,50 @@ export const mockNpsProvider: INpsProvider = {
       .filter((survey) => new Date(survey.respondedAt ?? "").getTime() >= now - span)
       .filter((survey) => !filters.npsClass || classOf(survey.score ?? 0) === filters.npsClass)
       .filter((survey) => !search || (survey.comment ?? "").toLowerCase().includes(search))
+      .filter((survey) => !filters.hasComment || !!survey.comment)
+      .filter((survey) => !filters.reason || survey.reasons.includes(filters.reason))
       .sort((a, b) => (b.respondedAt ?? "").localeCompare(a.respondedAt ?? ""));
 
     const from = (page - 1) * pageSize;
     return { data: matching.slice(from, from + pageSize), total: matching.length };
+  },
+
+  async listRecoveries(filters: INpsFilters, threshold: 6 | 8 = 6): Promise<INpsRecovery[]> {
+    const now = Date.now();
+    const span = filters.windowDays * DAY_MS;
+
+    return applyFilters(DATASET, filters)
+      .filter((survey) => (survey.score ?? 10) <= threshold)
+      .filter((survey) => new Date(survey.respondedAt ?? "").getTime() >= now - span)
+      .sort((a, b) => (a.respondedAt ?? "").localeCompare(b.respondedAt ?? ""))
+      .map((survey) => {
+        const tracked = mockRecoveries.get(survey.id);
+        return {
+          ...survey,
+          recoveryStatus: tracked?.status ?? "novo",
+          recoveryOwnerName: tracked ? (survey.sellerName ?? null) : null,
+          recoveryNote: tracked?.note ?? null,
+          recoveryContactedAt: tracked?.contactedAt ?? null,
+          recoveryResolvedAt: tracked?.status === "resolvido" ? new Date().toISOString() : null,
+        };
+      });
+  },
+
+  async setRecovery(
+    surveyId: string,
+    status: "em_contato" | "resolvido" | null,
+    note?: string | null,
+  ): Promise<void> {
+    if (status === null) {
+      mockRecoveries.delete(surveyId);
+      return;
+    }
+    const current = mockRecoveries.get(surveyId);
+    mockRecoveries.set(surveyId, {
+      status,
+      note: note ?? current?.note ?? null,
+      contactedAt: current?.contactedAt ?? new Date().toISOString(),
+    });
   },
 
   async latestForCustomer(customerId: string): Promise<INpsSurvey | null> {

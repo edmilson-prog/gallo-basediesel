@@ -4,6 +4,34 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.178.0] — Lifeline · 2026-08-13
+
+**O NPS deixou de ser uma tela para ler e virou uma tela para trabalhar. A nota continua no mesmo lugar, mas agora divide espaço com cinco abas: todas as respostas com filtro por motivo, uma fila de clientes insatisfeitos com prazo de retorno, as regras de envio, os parâmetros de leitura e um mapa de onde a nota aparece no resto do sistema. Nota de 0 a 6 abre uma tratativa com prazo de 24 horas para o primeiro contato — e no dia em que a pesquisa for ligada o histórico inteiro entra na fila, não apenas as respostas novas. A ficha do cliente também mudou de cara nesta versão, e ganhou um segundo formato de cabeçalho que dá para experimentar e comparar.**
+
+### Added
+
+- **Fila de recuperação de clientes insatisfeitos** — quadro de três colunas: quem ainda não foi procurado, quem está em contato e quem já foi resolvido. Cada ficha traz a nota, o que o cliente escreveu, os motivos que ele marcou e quanto tempo falta para vencer o prazo de retorno. Dá para iniciar o contato, encerrar com o desfecho registrado ou reabrir. A nota e o comentário do cliente não podem ser alterados por ninguém — é o registro do que ele disse.
+- **Aba Respostas** — uma linha por resposta, com a nota, quem respondeu, os motivos marcados, o comentário e o atendente que fez o atendimento. Filtra por categoria, por motivo, por quem escreveu comentário, e busca dentro do texto.
+- **Aba Envio** — quando a pesquisa é disparada, quanto tempo esperar, de quanto em quanto tempo a mesma pessoa pode ser consultada, o horário em que as mensagens saem e a prévia do texto exato que chega ao cliente.
+- **Aba Parâmetros** — a meta da casa, os limites de cada faixa, a nota que abre tratativa, o prazo de retorno, quem fica responsável e onde a nota aparece para a equipe. Duas opções ainda guardam a preferência sem efeito prático — escalonar tratativa vencida e ocultar o nome do cliente da equipe — e estão marcadas assim na própria tela.
+- **Aba Embutidos** — mostra os dois lugares fora desta tela onde a nota já aparece: o quadro do Início e o selo na ficha do cliente.
+- **Exportar respostas** — baixa o período filtrado em planilha, com data, nota, categoria, cliente, loja, atendente, motivos e comentário. Abre com os acentos certos no Excel.
+- **Ver a pesquisa como o cliente vê** — abre a mesma página que chega no celular dele, para conferir o texto antes de ligar a pesquisa. Nada é gravado nessa prévia.
+- **Filtro por loja** e os períodos **Hoje** e **12 meses** no painel.
+- **Segundo formato de cabeçalho na ficha do cliente**, alternável por um botão ao lado do menu da ficha — de um lado as faixas empilhadas de largura total, do outro um painel de duas colunas com o gráfico e os indicadores agrupados à direita. A escolha vale para o navegador e atravessa clientes e recarregamentos. É para comparar os dois com dados reais antes de decidir qual fica; quando um vencer, o botão e o formato perdedor saem juntos. Visível para Owner e Gestor.
+
+### Changed
+
+- **O painel ficou só com o painel** — a lista de respostas e a lista de clientes insatisfeitos saíram de baixo dos gráficos e viraram abas próprias, cada uma com seus filtros. Quem só quer ver a nota não precisa mais rolar por cima delas.
+- **Os períodos do painel mudaram** — eram 30, 90, 180 e 365 dias; agora são Hoje, 30 dias, 90 dias e 12 meses.
+- **A tabela por atendente** ganhou foto e a faixa em que cada um está, e um atalho para o Ranking.
+- **Ficha do cliente com o acabamento do desenho aprovado** — a tipografia da marca entrou no nome, nas abas, nos indicadores e nos títulos dos painéis. A última compra passou a mostrar a data, com o "há quantos dias" como complemento, e não o contrário.
+
+### Fixed
+
+- **A aba Atendimento da ficha do cliente não falava das pendências do cliente** — quando não havia nenhuma, a aba não dizia isso; mostrava o aviso de "nenhuma conversa selecionada", que era sempre o caso ali. Agora traz o painel de pendências, com um caminho para agendar o próximo contato quando a lista está vazia.
+- **A versão anterior anunciou uma "aba Parâmetros" que ainda não existia** — o texto descrevia o desenho aprovado, não o que tinha sido entregue. Quem foi procurar não achou. A aba existe a partir desta versão; a nota da 0.177.0 foi corrigida.
+
 ## [0.177.0] — Yardstick · 2026-08-13
 
 **A nota de satisfação virou régua. O painel de NPS foi refeito: a nota agora aparece numa escala de −100 a 100 com faixas que dizem o que ela significa — Crítica, Aperfeiçoamento, Qualidade, Excelência —, a meta da casa vira uma linha na evolução, e um quadro novo mostra os motivos que os clientes citaram, separando o que puxa a nota para cima do que puxa para baixo. A tela mudou de lugar: agora fica em Gestão, não mais em Atendimento. E a plataforma passou a guardar as credenciais do Mercado Pago junto com as das outras integrações.**
@@ -12,7 +40,6 @@ versioning follows [SemVer](https://semver.org/).
 
 - **Quadro "Motivos citados"** no painel de NPS — a nota diz que a relação piorou; este quadro diz que foi o prazo, de novo. Contrasta o que os clientes elogiam com o que reclamam. Quem deu nota 7 ou 8 fica de fora dos dois lados de propósito: não puxa para nenhuma direção.
 - **Recortes por loja e por atendente** — a nota deixa de ser um número só da empresa e passa a mostrar onde ela se forma.
-- **Aba Parâmetros** na configuração do NPS — a meta da casa, os limites de cada faixa, as regras de recuperação de cliente insatisfeito e quem enxerga o quê, incluindo se a resposta é anônima.
 - **Motivos na pesquisa do cliente** — além da nota e do comentário livre, o cliente pode marcar em botões o que pesou na avaliação.
 - **Credenciais do Mercado Pago** em Configurações → Integrações → Chaves & API — cinco campos, com produção e teste separados, no mesmo cofre e no mesmo fluxo das outras integrações: o valor entra uma vez e nunca mais é exibido, restando a data e os quatro últimos caracteres para conferência. Guardar a chave ainda não liga a cobrança — é o passo anterior a ela.
 
