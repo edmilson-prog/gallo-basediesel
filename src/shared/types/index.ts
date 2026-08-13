@@ -594,6 +594,8 @@ export type {
   INpsTrigger,
   INpsSurveyStatus,
   INpsSurvey,
+  INpsRecovery,
+  INpsRecoveryStatus,
   INpsResult,
   INpsSettings,
   INpsFilters,

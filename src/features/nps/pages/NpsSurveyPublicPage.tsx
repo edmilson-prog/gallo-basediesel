@@ -19,6 +19,16 @@ import { fetchSurveyContext, submitSurvey, type INpsSurveyState } from "../api/s
 
 type IPageState = INpsSurveyState | "loading" | "thanks" | "error";
 
+/**
+ * Reserved token that renders the survey without a survey behind it.
+ *
+ * `/app/nps` links here so the team can see exactly what the customer sees.
+ * It is a word, not an id, so it can never collide with a real token — those
+ * are random and opaque — and both the read and the write are short-circuited
+ * before any request leaves the browser.
+ */
+export const PREVIEW_TOKEN = "demo";
+
 /** The kit's light palette. Not theme tokens — see the note above. */
 const C = {
   bg: "#F6F6F7",
@@ -235,6 +245,16 @@ export function NpsSurveyPublicPage() {
 
   useEffect(() => {
     let cancelled = false;
+    // Preview reached from the panel's "Ver a pesquisa do cliente". It never
+    // touches the network in either direction, so nobody can reach a real
+    // survey — or write to one — through the reserved word.
+    if (token === PREVIEW_TOKEN) {
+      setPageState("valid");
+      setFirstName("José");
+      setContextLabel("seu atendimento de ontem");
+      setStoreName("Frederico Westphalen");
+      return;
+    }
     fetchSurveyContext(token)
       .then((context) => {
         if (cancelled) return;
@@ -260,6 +280,11 @@ export function NpsSurveyPublicPage() {
 
   const handleSubmit = useCallback(async () => {
     if (score === null || sending) return;
+    if (token === PREVIEW_TOKEN) {
+      setWasDetractor(classifyScore(score) === "detractor");
+      setPageState("thanks");
+      return;
+    }
     setSending(true);
     const result = await submitSurvey(token, score, comment.trim() || null, reasons);
     setSending(false);
@@ -287,6 +312,17 @@ export function NpsSurveyPublicPage() {
   }
 
   if (pageState === "thanks") {
+    // In preview nothing was written, and saying "registrada" would be a lie to
+    // whoever on the team is checking what the customer sees.
+    if (token === PREVIEW_TOKEN) {
+      return (
+        <Message
+          tone="ok"
+          title="Fim da prévia"
+          body="Esta é a tela que o cliente vê ao concluir. Nada foi gravado — a prévia não registra resposta."
+        />
+      );
+    }
     return (
       <Message
         tone={wasDetractor ? "alert" : "ok"}
