@@ -316,12 +316,12 @@ export const mockNpsProvider: INpsProvider = {
     return { data: matching.slice(from, from + pageSize), total: matching.length };
   },
 
-  async listRecoveries(filters: INpsFilters): Promise<INpsRecovery[]> {
+  async listRecoveries(filters: INpsFilters, threshold: 6 | 8 = 6): Promise<INpsRecovery[]> {
     const now = Date.now();
     const span = filters.windowDays * DAY_MS;
 
     return applyFilters(DATASET, filters)
-      .filter((survey) => (survey.score ?? 10) <= 6)
+      .filter((survey) => (survey.score ?? 10) <= threshold)
       .filter((survey) => new Date(survey.respondedAt ?? "").getTime() >= now - span)
       .sort((a, b) => (a.respondedAt ?? "").localeCompare(b.respondedAt ?? ""))
       .map((survey) => {

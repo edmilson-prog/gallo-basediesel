@@ -14,7 +14,7 @@ import type { INpsFilters, INpsRecovery } from "@/shared/types";
  * three silent retries would only delay the message that explains it.
  */
 
-export function useNpsRecoveries(filters: INpsFilters) {
+export function useNpsRecoveries(filters: INpsFilters, threshold: 6 | 8 = 6) {
   const provider = useNpsProvider();
 
   return useQuery<INpsRecovery[]>({
@@ -24,8 +24,11 @@ export function useNpsRecoveries(filters: INpsFilters) {
       filters.storeId ?? "all",
       filters.windowDays,
       filters.audience ?? "any",
+      // In the key because it changes which rows come back: without it, moving
+      // the cut to 0–8 would keep serving the cached detractors-only queue.
+      threshold,
     ],
-    queryFn: () => provider.listRecoveries(filters),
+    queryFn: () => provider.listRecoveries(filters, threshold),
     retry: false,
   });
 }

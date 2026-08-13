@@ -197,12 +197,14 @@ export function NpsRecuperacaoTab({
   windowDays,
   audience,
   slaHours,
+  threshold = 6,
 }: {
   windowDays: number;
   audience?: "customer" | "contact";
   slaHours: number;
+  threshold?: 6 | 8;
 }) {
-  const recoveries = useNpsRecoveries({ windowDays, audience });
+  const recoveries = useNpsRecoveries({ windowDays, audience }, threshold);
   const setRecovery = useSetNpsRecovery();
 
   const overdue = useMemo(
@@ -243,7 +245,7 @@ export function NpsRecuperacaoTab({
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-severity-critical/30 bg-severity-critical/10 px-4 py-3">
         <Icon icon="lucide:circle-alert" size={16} className="shrink-0 text-severity-critical" />
         <span className="text-[13.5px] text-card-foreground">
-          Toda nota de 0 a 6 abre uma tratativa. O prazo de primeiro contato é de{" "}
+          Toda nota de 0 a {threshold} abre uma tratativa. O prazo de primeiro contato é de{" "}
           <b>{slaHours} horas</b>
           {overdue > 0 ? (
             <>

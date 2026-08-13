@@ -72,7 +72,7 @@ export function NpsAnalyticsPage() {
   const metrics = useNpsMetrics(filters, {
     minResponses: settings.data?.minResponsesForScore,
   });
-  const recoveries = useNpsRecoveries(filters);
+  const recoveries = useNpsRecoveries(filters, settings.data?.recoveryThreshold ?? 6);
 
   const target = targetOf(settings.data);
   const bands = bandsOf(settings.data);
@@ -255,6 +255,7 @@ export function NpsAnalyticsPage() {
           windowDays={windowDays}
           audience={audience}
           slaHours={settings.data?.recoverySlaHours ?? 24}
+          threshold={settings.data?.recoveryThreshold ?? 6}
         />
       ) : null}
 

@@ -228,6 +228,7 @@ export function NpsParametrosTab() {
           <NpsConfigRow
             label="Responsável pelo contato"
             help="quem recebe a tratativa quando a nota chega"
+            note="Ainda sem efeito: a tratativa fica com quem clicar em “Iniciar contato”, independente desta escolha."
           >
             <NpsSeg
               ariaLabel="Responsável pelo contato"
@@ -273,7 +274,7 @@ export function NpsParametrosTab() {
           <NpsConfigRow
             label="NPS entra no ranking"
             help="compõe a pontuação do atendente ao lado das vendas"
-            note="Desligado por padrão: o PRD-148B recusava expor NPS por atendente, e ligar isto muda o que o time otimiza."
+            note="Ainda sem efeito: o Ranking não lê o NPS. Desligado por padrão também por escolha — o PRD-148B recusava expor NPS por atendente, e ligar isto muda o que o time otimiza."
           >
             <NpsToggle
               label="NPS entra no ranking"
@@ -311,9 +312,10 @@ export function NpsParametrosTab() {
         </NpsCard>
 
         <NpsNotWired>
-          As duas linhas marcadas acima gravam a preferência, mas ainda não têm comportamento
-          ligado. Ficam visíveis para não sumir da tela o que o kit pede — e marcadas para não
-          passar por pronto.
+          As <b>quatro linhas marcadas</b> acima gravam a preferência mas ainda não têm
+          comportamento ligado. Ficam visíveis para não sumir da tela o que o kit pede — e marcadas
+          para não passar por pronto. Todo o resto desta aba tem efeito imediato: meta, faixas,
+          corte da tratativa, prazo, card no Cockpit e selo na ficha.
         </NpsNotWired>
 
         <div className="flex flex-wrap gap-2">

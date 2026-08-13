@@ -506,9 +506,13 @@ export const supabaseNpsProvider: INpsProvider = {
     return { data: surveys, total: count ?? 0 };
   },
 
-  async listRecoveries(filters: INpsFilters): Promise<INpsRecovery[]> {
+  async listRecoveries(filters: INpsFilters, threshold: 6 | 8 = 6): Promise<INpsRecovery[]> {
     const supabase = getSupabaseClient();
     const { start } = windowBounds(filters.windowDays);
+    // The partial index covers score <= 6, the standard cut. A store that opens
+    // the queue to passives (0–8) falls outside it and pays a wider scan — the
+    // correct trade, since the alternative is a second index for a setting
+    // almost nobody moves.
 
     // Ordered oldest first: the board is a queue, and the card that has been
     // waiting longest is the one whose SLA is closest to burning.
@@ -517,7 +521,7 @@ export const supabaseNpsProvider: INpsProvider = {
         .from(TABLE)
         .select(RECOVERY_COLUMNS)
         .eq("status", "responded")
-        .lte("score", 6)
+        .lte("score", threshold)
         .gte("responded_at", start)
         .order("responded_at", { ascending: true }),
       filters,

@@ -175,7 +175,7 @@ export interface INpsProvider {
    * `20260813160000_nps_recovery_and_parameters.sql`, so before that migration
    * is applied this call fails while every other panel surface keeps working.
    */
-  listRecoveries(filters: INpsFilters): Promise<INpsRecovery[]>;
+  listRecoveries(filters: INpsFilters, threshold?: 6 | 8): Promise<INpsRecovery[]>;
   /** Moves one detractor between the board's columns. Writes nothing else. */
   setRecovery(
     surveyId: string,

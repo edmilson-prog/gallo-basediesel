@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNpsProvider } from "@/providers/data";
 import { classifyScore } from "../engine";
+import { useNpsSettings } from "../hooks/useNpsSettings";
 
 /**
  * "NPS 9 · Promotor" on the customer fiche header.
@@ -27,12 +28,18 @@ const CLASS_TONE = {
 
 export function CustomerNpsBadge({ customerId }: { customerId: string }) {
   const provider = useNpsProvider();
+  const settings = useNpsSettings();
 
   const { data } = useQuery({
     queryKey: ["nps", "customer", customerId],
     queryFn: () => provider.latestForCustomer(customerId),
     enabled: Boolean(customerId),
   });
+
+  // "Selo na ficha do cliente" in the panel's Parâmetros tab. While the
+  // settings are still loading the badge stays hidden rather than appearing
+  // and then vanishing — a flash of a score is worse than a slower one.
+  if (settings.data && !settings.data.showOnFiche) return null;
 
   if (!data || data.score === null || !data.respondedAt) return null;
 
