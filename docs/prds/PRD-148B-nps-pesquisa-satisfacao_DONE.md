@@ -538,6 +538,28 @@ deployar as duas Edge Functions (`nps-submit` exige `--no-verify-jwt`), aplicar
 o cron, revisar o texto da pesquisa, ligar o switch, e bump de versão. Passo a
 passo em `docs/dev/nps.md`.
 
+### DELTA 12/08/2026 — o design passou a ser o `ui_kits/nps`
+
+O painel foi reimplementado a partir do UI Kit oficial do projeto Claude Design
+(`ui_kits/nps/index.html`, direção **A · Denso**), que não existia no meu radar
+na primeira entrega. Vieram do kit: faixas nomeadas (Crítica / Aperfeiçoamento /
+Qualidade / Excelência), **meta interna 60** com linha tracejada na tendência,
+régua −100→100, distribuição empilhada, corte por loja e corte por atendente.
+A tela também mudou de menu: **Atendimento → Gestão**.
+
+⚠️ **Reversão explícita de escopo — NPS por atendente.** Este PRD excluía
+"NPS por vendedor como ranking comparativo (compare-and-shame — postura do
+PRD-051 mantida)". O kit traz a tabela por atendente ordenada por score, e o
+dono optou por ela em 12/08/2026, ciente do conflito. A tabela é visível apenas
+a quem tem o recurso `nps` (Owner e Gestor); Vendedor segue sem acesso. O
+README do próprio kit já listava isso como ponto "a confirmar com o cliente".
+
+**Ainda do kit e NÃO implementado** (exigem schema novo, ficam para depois):
+aba **Recuperação de detratores** (fila Novo / Em contato / Resolvido com SLA —
+que este PRD também excluía), **motivos por chips** na pesquisa e no painel
+(hoje só há comentário livre), aba **Envio** e aba **Embutidos** (widget no
+Início do atendente e bloco na ficha).
+
 **Deferido para a Onda 8:** canal e-mail com grade 0–10, submissão do HSM e
 roteamento pelo dispatch 141.
 

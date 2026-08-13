@@ -601,5 +601,6 @@ export type {
   INpsMonthlyPoint,
   INpsResponsePoint,
   INpsRawMetrics,
+  INpsBreakdown,
   INpsProvider,
 } from "./nps";

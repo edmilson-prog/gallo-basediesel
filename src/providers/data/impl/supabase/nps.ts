@@ -4,6 +4,7 @@ import type {
   INpsListFilters,
   INpsProvider,
   INpsRawMetrics,
+  INpsBreakdown,
   INpsResponsePoint,
   INpsSurvey,
 } from "@/shared/types";
@@ -186,15 +187,74 @@ function settingsPatchToRow(patch: Partial<INpsSettings>): Record<string, unknow
   return row;
 }
 
+interface IAnsweredRow {
+  score: number;
+  responded_at: string;
+  store_id: string;
+  conversations: { assigned_seller_id: string | null } | null;
+}
+
+/**
+ * Buckets answered rows by a key and resolves each key's display name in one
+ * extra round-trip.
+ *
+ * Rows whose key is null — a conversation with no attendant, say — are dropped
+ * rather than collected into an "unknown" bucket, which would sit on the panel
+ * looking like a real person with a real score.
+ */
+async function groupBy(
+  rows: IAnsweredRow[],
+  keyOf: (row: IAnsweredRow) => string | null,
+  table: string,
+  nameColumn: string,
+): Promise<INpsBreakdown[]> {
+  const buckets = new Map<string, { promoters: number; passives: number; detractors: number }>();
+
+  for (const row of rows) {
+    const key = keyOf(row);
+    if (!key) continue;
+    const bucket = buckets.get(key) ?? { promoters: 0, passives: 0, detractors: 0 };
+    if (row.score >= 9) bucket.promoters += 1;
+    else if (row.score >= 7) bucket.passives += 1;
+    else bucket.detractors += 1;
+    buckets.set(key, bucket);
+  }
+
+  if (buckets.size === 0) return [];
+
+  const { data } = await getSupabaseClient()
+    .from(table)
+    .select("id, " + nameColumn)
+    .in("id", [...buckets.keys()]);
+
+  const names = new Map(
+    ((data ?? []) as unknown as Array<Record<string, string>>).map((row) => [
+      row.id,
+      row[nameColumn] ?? "\u2014",
+    ]),
+  );
+
+  return [...buckets.entries()].map(([key, counts]) => ({
+    key,
+    label: names.get(key) ?? "\u2014",
+    ...counts,
+  }));
+}
+
 export const supabaseNpsProvider: INpsProvider = {
   async rawMetrics(filters: INpsFilters): Promise<INpsRawMetrics> {
     const supabase = getSupabaseClient();
     const { start, previousStart } = windowBounds(filters.windowDays);
 
+    // The attendant comes from the conversation, not from a column on the
+    // survey: nps_surveys has no seller of its own, and the FK to conversations
+    // lets PostgREST embed it without a migration.
     const answered = applySharedFilters(
       supabase
         .from(TABLE)
-        .select("score, responded_at, customer_id, trigger")
+        .select(
+          "score, responded_at, customer_id, trigger, store_id, conversations(assigned_seller_id)",
+        )
         .eq("status", "responded")
         .not("score", "is", null)
         .gte("responded_at", previousStart),
@@ -204,13 +264,30 @@ export const supabaseNpsProvider: INpsProvider = {
     const { data, error } = await answered;
     if (error) throw error;
 
+    const rows = (data ?? []) as unknown as IAnsweredRow[];
     const responses: INpsResponsePoint[] = [];
     const previousResponses: INpsResponsePoint[] = [];
-    for (const row of (data ?? []) as unknown as Array<{ score: number; responded_at: string }>) {
+    const current: IAnsweredRow[] = [];
+
+    for (const row of rows) {
       const point = { score: row.score, respondedAt: row.responded_at };
-      if (row.responded_at >= start) responses.push(point);
-      else previousResponses.push(point);
+      if (row.responded_at >= start) {
+        responses.push(point);
+        current.push(row);
+      } else {
+        previousResponses.push(point);
+      }
     }
+
+    const [byStore, bySeller] = await Promise.all([
+      groupBy(current, (row) => row.store_id, "stores", "name"),
+      groupBy(
+        current,
+        (row) => row.conversations?.assigned_seller_id ?? null,
+        "sellers",
+        "full_name",
+      ),
+    ]);
 
     // Denominator of the response rate: surveys that actually reached someone.
     // `failed` and `suppressed` never did, so counting them would understate
@@ -233,7 +310,7 @@ export const supabaseNpsProvider: INpsProvider = {
       countSent(previousStart, start),
     ]);
 
-    return { responses, previousResponses, sent, previousSent };
+    return { responses, previousResponses, sent, previousSent, byStore, bySeller };
   },
 
   async list(filters: INpsListFilters): Promise<{ data: INpsSurvey[]; total: number }> {

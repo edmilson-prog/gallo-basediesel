@@ -1,5 +1,5 @@
 export const S = {
-  pageTitle: "NPS — Satisfação",
+  pageTitle: "Net Promoter Score",
   pageSubtitle: "Net Promoter Score das conversas resolvidas",
 
   // Filtros
@@ -12,13 +12,22 @@ export const S = {
   audienceAll: "Todos",
   audienceCustomer: "Clientes cadastrados",
   audienceContact: "Contatos",
+  /** "128 respostas de 214 pesquisas enviadas" */
+  responsesOfSent: (n: number, sent: number) =>
+    `${n} ${n === 1 ? "resposta" : "respostas"} de ${sent} ${sent === 1 ? "pesquisa enviada" : "pesquisas enviadas"}`,
 
   // KPIs
   kpiScore: "NPS",
   kpiResponses: "Respostas",
   kpiResponseRate: "Taxa de resposta",
+  kpiPromoters: "Promotores",
+  kpiDetractors: "Detratores",
   kpiDelta: "vs. janela anterior",
+  promotersSub: (n: number) => `${n} ${n === 1 ? "cliente deu" : "clientes deram"} 9 ou 10`,
+  detractorsSub: (n: number) => `${n} ${n === 1 ? "nota" : "notas"} de 0 a 6 no período`,
+  responseRateSub: (pct: number, sent: number) => `${pct}% de ${sent} enviadas`,
   collecting: (n: number, min: number) => `Coletando dados (${n}/${min})`,
+  collectingShort: "Coletando",
   collectingHelp:
     "O score só aparece a partir do mínimo de respostas — abaixo disso, o número enganaria mais do que informaria.",
 
@@ -27,9 +36,13 @@ export const S = {
   passives: "Neutros",
   detractors: "Detratores",
 
-  // Gráficos
-  trendTitle: "Evolução mensal",
-  distributionTitle: "Distribuição por mês",
+  // Blocos do painel
+  distributionTitle: "Distribuição",
+  trendTitle: "Tendência",
+  trendSub: "NPS mensal · 12 meses",
+  byStoreTitle: "Por loja",
+  bySellerTitle: "Por atendente",
+  bySellerEmpty: "Ainda não há respostas atribuídas a atendentes nesta janela.",
 
   // Tabela
   tableTitle: "Respostas",
@@ -38,6 +51,8 @@ export const S = {
   colScore: "Nota",
   colComment: "Comentário",
   colAudience: "Tipo",
+  colSeller: "Atendente",
+  colResponses: "Resp.",
   searchPlaceholder: "Buscar no comentário…",
   noComment: "—",
   typeCustomer: "Cliente",

@@ -92,6 +92,15 @@ export interface INpsResponsePoint {
  * this way round means the data layer never has to import a feature's engine,
  * and there is exactly one implementation of the "no score without N" rule.
  */
+/** Counts for one slice of the population (a store, an attendant). */
+export interface INpsBreakdown {
+  key: string;
+  label: string;
+  promoters: number;
+  passives: number;
+  detractors: number;
+}
+
 export interface INpsRawMetrics {
   /** Answers inside the window. */
   responses: INpsResponsePoint[];
@@ -100,6 +109,10 @@ export interface INpsRawMetrics {
   /** Surveys that reached the customer in the window — the response-rate denominator. */
   sent: number;
   previousSent: number;
+  /** Per-store slice of the current window. */
+  byStore: INpsBreakdown[];
+  /** Per-attendant slice of the current window. */
+  bySeller: INpsBreakdown[];
 }
 
 export interface INpsListFilters extends INpsFilters {
