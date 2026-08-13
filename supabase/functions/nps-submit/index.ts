@@ -170,6 +170,7 @@ servePost(async (req, ctx) => {
       .update({
         score: parsed.score,
         comment: parsed.comment,
+        reasons: parsed.reasons,
         responded_at: now.toISOString(),
         status: "responded",
       })

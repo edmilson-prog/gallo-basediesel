@@ -4,6 +4,7 @@ import type {
   INpsListFilters,
   INpsProvider,
   INpsRawMetrics,
+  INpsBreakdown,
   INpsResponsePoint,
   INpsSurvey,
 } from "@/shared/types";
@@ -153,6 +154,42 @@ const DEFAULT_SETTINGS: INpsSettings = {
 
 let mockSettings: INpsSettings = { ...DEFAULT_SETTINGS };
 
+const MOCK_SELLERS = [
+  { id: "seller-1", name: "Thiago Oliveira" },
+  { id: "seller-2", name: "Elaine Cruz" },
+  { id: "seller-3", name: "Marcos Reis" },
+  { id: "seller-4", name: "Jean Prass" },
+  { id: "seller-5", name: "Diego Lopes" },
+];
+
+const MOCK_STORES = [
+  { id: "store-1", name: "Frederico Westphalen" },
+  { id: "store-2", name: "Barra Velha" },
+];
+
+/** Buckets a slice of the dataset by a key, mirroring the supabase provider. */
+function breakdown(
+  surveys: INpsSurvey[],
+  keyOf: (survey: INpsSurvey, index: number) => string,
+  names: Map<string, string>,
+): INpsBreakdown[] {
+  const buckets = new Map<string, { promoters: number; passives: number; detractors: number }>();
+  surveys.forEach((survey, index) => {
+    const key = keyOf(survey, index);
+    const bucket = buckets.get(key) ?? { promoters: 0, passives: 0, detractors: 0 };
+    const npsClass = classOf(survey.score ?? 0);
+    if (npsClass === "promoter") bucket.promoters += 1;
+    else if (npsClass === "passive") bucket.passives += 1;
+    else bucket.detractors += 1;
+    buckets.set(key, bucket);
+  });
+  return [...buckets.entries()].map(([key, counts]) => ({
+    key,
+    label: names.get(key) ?? key,
+    ...counts,
+  }));
+}
+
 export const mockNpsProvider: INpsProvider = {
   async rawMetrics(filters: INpsFilters): Promise<INpsRawMetrics> {
     const now = Date.now();
@@ -170,11 +207,24 @@ export const mockNpsProvider: INpsProvider = {
 
     const inflate = (count: number) => Math.round(count / (1 - UNANSWERED_RATIO));
 
+    const sellerNames = new Map(MOCK_SELLERS.map((seller) => [seller.id, seller.name]));
+    const storeNames = new Map(MOCK_STORES.map((store) => [store.id, store.name]));
+
     return {
       responses: inWindow.map(toPoint),
       previousResponses: inPrevious.map(toPoint),
       sent: inflate(inWindow.length),
       previousSent: inflate(inPrevious.length),
+      byStore: breakdown(
+        inWindow,
+        (_survey, index) => MOCK_STORES[index % MOCK_STORES.length]?.id ?? "store-1",
+        storeNames,
+      ),
+      bySeller: breakdown(
+        inWindow,
+        (_survey, index) => MOCK_SELLERS[index % MOCK_SELLERS.length]?.id ?? "seller-1",
+        sellerNames,
+      ),
     };
   },
 

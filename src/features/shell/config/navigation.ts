@@ -96,14 +96,6 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         permission: { resource: "contact" },
       },
       {
-        label: "NPS",
-        icon: "mdi:emoticon-outline",
-        to: ROUTES.APP_NPS,
-        // Permission only, no `roles` ceiling: the two combine with AND, and a
-        // ceiling here would make granting `nps` in the Role Editor inert.
-        permission: { resource: "nps" },
-      },
-      {
         label: "Leads",
         icon: "mdi:account-question",
         to: ROUTES.APP_LEADS,
@@ -179,6 +171,14 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         icon: "mdi:robot-happy-outline",
         to: ROUTES.GESTAO_COPILOTO,
         roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
+      },
+      {
+        label: "NPS",
+        icon: "mdi:emoticon-outline",
+        to: ROUTES.APP_NPS,
+        // Permission only, no `roles` ceiling: the two combine with AND, and a
+        // ceiling here would make granting `nps` in the Role Editor inert.
+        permission: { resource: "nps" },
       },
       {
         label: "Visão executiva",

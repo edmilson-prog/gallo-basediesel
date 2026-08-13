@@ -7,9 +7,11 @@
  */
 
 export const MAX_COMMENT_LENGTH = 1000;
+export const MAX_REASONS = 8;
+export const MAX_REASON_LENGTH = 60;
 
 export type IParsedSubmission =
-  | { ok: true; token: string; score: number; comment: string | null }
+  | { ok: true; token: string; score: number; comment: string | null; reasons: string[] }
   | { ok: false; error: string };
 
 /** Token format is checked before any query: 64 hex chars, as minted by the scheduler. */
@@ -41,11 +43,29 @@ export function parseSubmission(body: unknown): IParsedSubmission {
     return { ok: false, error: "comentário muito longo" };
   }
 
+  const rawReasons = raw.reasons;
+  if (rawReasons !== undefined && !Array.isArray(rawReasons)) {
+    return { ok: false, error: "motivos inválidos" };
+  }
+  // Bounded and de-duplicated: the chips come from a closed vocabulary, but the
+  // endpoint is public and cannot trust that the caller used it.
+  const reasons = Array.isArray(rawReasons)
+    ? [
+        ...new Set(
+          rawReasons
+            .filter((item): item is string => typeof item === "string")
+            .map((item) => item.trim())
+            .filter((item) => item.length > 0 && item.length <= MAX_REASON_LENGTH),
+        ),
+      ].slice(0, MAX_REASONS)
+    : [];
+
   return {
     ok: true,
     token: raw.token,
     score,
     comment: trimmed.length > 0 ? trimmed : null,
+    reasons,
   };
 }
 

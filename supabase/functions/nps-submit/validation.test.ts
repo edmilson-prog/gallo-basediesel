@@ -24,6 +24,7 @@ describe("parseSubmission", () => {
       token: TOKEN,
       score: 9,
       comment: "atendimento rápido",
+      reasons: [],
     });
   });
 
@@ -47,7 +48,7 @@ describe("parseSubmission", () => {
 
   it("normalises an empty or whitespace comment to null", () => {
     const result = parseSubmission({ token: TOKEN, score: 8, comment: "   " });
-    expect(result).toEqual({ ok: true, token: TOKEN, score: 8, comment: null });
+    expect(result).toEqual({ ok: true, token: TOKEN, score: 8, comment: null, reasons: [] });
   });
 
   it("trims the comment", () => {
@@ -80,5 +81,45 @@ describe("isDetractor", () => {
   it("does not mark 7 and above", () => {
     expect(isDetractor(7)).toBe(false);
     expect(isDetractor(10)).toBe(false);
+  });
+});
+
+describe("parseSubmission — motivos", () => {
+  it("accepts the chips the survey sends", () => {
+    const result = parseSubmission({ token: TOKEN, score: 3, reasons: ["Prazo", "Preço"] });
+    expect(result.ok && result.reasons).toEqual(["Prazo", "Preço"]);
+  });
+
+  it("defaults to an empty list when the customer skipped them", () => {
+    const result = parseSubmission({ token: TOKEN, score: 9 });
+    expect(result.ok && result.reasons).toEqual([]);
+  });
+
+  it("de-duplicates, since the endpoint cannot trust the caller", () => {
+    const result = parseSubmission({ token: TOKEN, score: 5, reasons: ["Prazo", "Prazo"] });
+    expect(result.ok && result.reasons).toEqual(["Prazo"]);
+  });
+
+  it("drops empties and non-strings instead of rejecting the whole answer", () => {
+    const result = parseSubmission({ token: TOKEN, score: 5, reasons: ["Prazo", "", 42, null] });
+    expect(result.ok && result.reasons).toEqual(["Prazo"]);
+  });
+
+  it("caps the list so a crafted payload cannot bloat the row", () => {
+    const many = Array.from({ length: 40 }, (_, i) => `motivo-${i}`);
+    const result = parseSubmission({ token: TOKEN, score: 5, reasons: many });
+    expect(result.ok && result.reasons.length).toBe(8);
+  });
+
+  it("drops an over-long reason", () => {
+    const result = parseSubmission({ token: TOKEN, score: 5, reasons: ["x".repeat(61)] });
+    expect(result.ok && result.reasons).toEqual([]);
+  });
+
+  it("rejects reasons that are not a list", () => {
+    expect(parseSubmission({ token: TOKEN, score: 5, reasons: "Prazo" })).toEqual({
+      ok: false,
+      error: "motivos inválidos",
+    });
   });
 });

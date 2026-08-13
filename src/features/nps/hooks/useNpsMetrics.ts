@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNpsProvider } from "@/providers/data";
-import type { INpsFilters, INpsMonthlyPoint, INpsResult } from "@/shared/types";
+import type { INpsBreakdown, INpsFilters, INpsMonthlyPoint, INpsResult } from "@/shared/types";
 import { aggregateMonthly, computeNps } from "../engine";
 
 /**
@@ -17,6 +17,9 @@ export interface INpsMetricsResult extends INpsResult {
   /** Point difference against the previous window; null when either side lacks N. */
   delta: number | null;
   minResponses: number;
+  /** Per-store and per-attendant slices, for the panel's breakdown cards. */
+  byStore: INpsBreakdown[];
+  bySeller: INpsBreakdown[];
 }
 
 /**
@@ -59,6 +62,8 @@ export function useNpsMetrics(filters: INpsFilters, opts: { minResponses?: numbe
         delta:
           current.score !== null && previous.score !== null ? current.score - previous.score : null,
         minResponses,
+        byStore: raw.byStore,
+        bySeller: raw.bySeller,
       };
     },
   });
