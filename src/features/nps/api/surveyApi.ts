@@ -12,6 +12,8 @@ export interface INpsSurveyContext {
   state: INpsSurveyState;
   recipientFirstName?: string;
   contextLabel?: string;
+  /** Real store name for this survey. Never assume a unit on the page. */
+  storeName?: string | null;
 }
 
 export interface INpsSubmitResult {

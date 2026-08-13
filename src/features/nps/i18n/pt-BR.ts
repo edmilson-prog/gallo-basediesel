@@ -44,6 +44,12 @@ export const S = {
   bySellerTitle: "Por atendente",
   bySellerEmpty: "Ainda não há respostas atribuídas a atendentes nesta janela.",
 
+  reasonsTitle: "Motivos citados",
+  reasonsSub: "chips marcados na pesquisa",
+  reasonsUp: "O que puxa pra cima",
+  reasonsDown: "O que puxa pra baixo",
+  reasonsEmpty: "Sem motivos marcados nesta janela.",
+
   // Tabela
   tableTitle: "Respostas",
   colDate: "Data",

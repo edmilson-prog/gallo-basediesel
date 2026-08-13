@@ -602,5 +602,7 @@ export type {
   INpsResponsePoint,
   INpsRawMetrics,
   INpsBreakdown,
+  INpsReasonCount,
+  INpsReasonSplit,
   INpsProvider,
 } from "./nps";

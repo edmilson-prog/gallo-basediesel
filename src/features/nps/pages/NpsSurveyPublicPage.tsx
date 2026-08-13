@@ -219,6 +219,7 @@ export function NpsSurveyPublicPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const [firstName, setFirstName] = useState("");
   const [contextLabel, setContextLabel] = useState("seu atendimento");
+  const [storeName, setStoreName] = useState<string | null>(null);
   const [score, setScore] = useState<number | null>(null);
   const [reasons, setReasons] = useState<string[]>([]);
   const [comment, setComment] = useState("");
@@ -240,6 +241,7 @@ export function NpsSurveyPublicPage() {
         setPageState(context.state);
         setFirstName(context.recipientFirstName ?? "");
         if (context.contextLabel) setContextLabel(context.contextLabel);
+        setStoreName(context.storeName ?? null);
         if (context.state === "valid" && preselected !== null) setScore(preselected);
       })
       .catch(() => {
@@ -364,9 +366,11 @@ export function NpsSurveyPublicPage() {
               >
                 {contextLabel}
               </div>
-              <div className="mt-1 text-[12px]" style={{ color: C.t3 }}>
-                GALLO Base Diesel · Frederico Westphalen
-              </div>
+              {storeName ? (
+                <div className="mt-1 text-[12px]" style={{ color: C.t3 }}>
+                  {storeName}
+                </div>
+              ) : null}
             </div>
 
             {/* 11 alvos de 52px. O 10 ocupa a linha inteira, como no kit. */}

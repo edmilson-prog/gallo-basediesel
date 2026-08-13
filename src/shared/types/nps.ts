@@ -101,6 +101,18 @@ export interface INpsBreakdown {
   detractors: number;
 }
 
+/** One reason and how many answers cited it. */
+export interface INpsReasonCount {
+  label: string;
+  count: number;
+}
+
+/** Reasons split by who cited them — the panel's "what pulls it up / down". */
+export interface INpsReasonSplit {
+  promoter: INpsReasonCount[];
+  detractor: INpsReasonCount[];
+}
+
 export interface INpsRawMetrics {
   /** Answers inside the window. */
   responses: INpsResponsePoint[];
@@ -113,6 +125,8 @@ export interface INpsRawMetrics {
   byStore: INpsBreakdown[];
   /** Per-attendant slice of the current window. */
   bySeller: INpsBreakdown[];
+  /** Chips cited in the window, split by category. */
+  reasons: INpsReasonSplit;
 }
 
 export interface INpsListFilters extends INpsFilters {

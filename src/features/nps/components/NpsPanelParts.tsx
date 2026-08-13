@@ -1,4 +1,4 @@
-import type { INpsBreakdown } from "@/shared/types";
+import type { INpsBreakdown, INpsReasonCount } from "@/shared/types";
 import { NPS_TARGET, npsBandLabel, rulerPosition } from "../engine";
 import { S } from "../i18n/pt-BR";
 
@@ -210,6 +210,56 @@ export function NpsBreakdownRow({ item, score }: { item: INpsBreakdown; score: n
         <div className="font-display text-[11px] font-bold uppercase italic text-muted-foreground">
           {score === null ? S.collectingShort : npsBandLabel(score)}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * "O que puxa pra cima / pra baixo" — the kit's `NpsReasons`.
+ *
+ * This is the card that turns the survey's chips into a diagnosis. The score
+ * says the relationship is worse this month; only this says it was the deadline
+ * again. Bars are scaled to the largest count within each column, so the two
+ * sides stay readable even when detractors are a tenth of promoters.
+ */
+export function NpsReasons({ up, down }: { up: INpsReasonCount[]; down: INpsReasonCount[] }) {
+  const bars = (list: INpsReasonCount[], barClass: string) => {
+    if (list.length === 0) {
+      return <p className="text-xs text-muted-foreground">{S.reasonsEmpty}</p>;
+    }
+    const max = Math.max(...list.map((item) => item.count));
+    return list.map((item) => (
+      <div key={item.label} className="mb-2 flex items-center gap-2.5">
+        <span className="w-24 shrink-0 truncate text-[12.5px] text-muted-foreground">
+          {item.label}
+        </span>
+        <span className="h-2 flex-1 overflow-hidden rounded bg-muted">
+          <span
+            className={`block h-full rounded ${barClass}`}
+            style={{ width: `${(item.count / max) * 100}%` }}
+          />
+        </span>
+        <span className="w-7 text-right font-display text-sm font-bold text-card-foreground">
+          {item.count}
+        </span>
+      </div>
+    ));
+  };
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <div>
+        <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
+          {S.reasonsUp}
+        </div>
+        {bars(up, "bg-severity-success")}
+      </div>
+      <div>
+        <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
+          {S.reasonsDown}
+        </div>
+        {bars(down, "bg-severity-critical")}
       </div>
     </div>
   );

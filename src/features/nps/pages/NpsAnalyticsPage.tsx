@@ -8,6 +8,7 @@ import { S } from "../i18n/pt-BR";
 import {
   CATEGORY,
   NpsBreakdownRow,
+  NpsReasons,
   NpsRuler,
   NpsStack,
   NpsTrendChart,
@@ -401,6 +402,11 @@ export function NpsAnalyticsPage() {
           <SellerTable rows={data?.bySeller ?? []} minResponses={data?.minResponses ?? 5} />
         </Card>
       </section>
+
+      {/* Motivos citados */}
+      <Card title={S.reasonsTitle} sub={S.reasonsSub}>
+        <NpsReasons up={data?.reasons.promoter ?? []} down={data?.reasons.detractor ?? []} />
+      </Card>
 
       {/* Respostas */}
       <Card
