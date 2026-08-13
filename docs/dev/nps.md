@@ -80,18 +80,56 @@ notificação de detrator ao Gestor e ao Owner (inApp + toast)
 
 Nesta ordem — cada passo exige OK explícito do dono:
 
-1. **Aplicar as migrations** (manual, via MCP):
-   `20260812140000_nps_schema` → `20260812140050_nps_survey_candidates`.
-2. **Cadastrar o segredo `NPS_WORKER_SECRET`** (Configurações → Integrações &
-   Chaves, resolução Vault-first).
-3. **Deployar as Edge Functions:**
+1. **Aplicar as migrations** (manual, via MCP), nesta ordem:
+   `20260812140000_nps_schema` → `20260812140050_nps_survey_candidates` →
+   `20260812150000_nps_worker_secret`.
+2. **O segredo `NPS_WORKER_SECRET` NÃO se cadastra pela interface.** Ele é
+   cunhado pela migration `20260812150000_nps_worker_secret`, no mesmo padrão
+   de `SDR_WORKER_SECRET` e `SCHEDULED_WORKER_SECRET`.
+
+   A tela Configurações → Integrações & Chaves é para credenciais de
+   **terceiros** (Resend, OpenAI, WAHA), que alguém precisa colar de fora.
+   Este é um segredo **interno** — o pg_cron falando com a Edge Function da
+   própria plataforma. O valor nasce no banco, ninguém precisa conhecê-lo e ele
+   nunca sai do cofre. Procurá-lo naquela tela é procurar por algo que, por
+   desenho, não está lá.
+
+   Conferir: `select public.integration_secret_get('NPS_WORKER_SECRET') is not null;`
+3. **Deployar as Edge Functions** — **ambas** com `--no-verify-jwt`:
    ```
-   npx supabase functions deploy nps-scheduler --project-ref njizaasajkdqptlxddqn --use-api
-   npx supabase functions deploy nps-submit --project-ref njizaasajkdqptlxddqn --no-verify-jwt --use-api
+   npx supabase functions deploy nps-scheduler --project-ref njizaasajkdqptlxddqn --no-verify-jwt --use-api
+   npx supabase functions deploy nps-submit    --project-ref njizaasajkdqptlxddqn --no-verify-jwt --use-api
    ```
-   ⚠️ `nps-submit` **precisa** de `--no-verify-jwt`: a landing é anônima.
+   ⚠️ A flag é obrigatória nas duas, por motivos diferentes:
+   - `nps-submit` é a landing anônima — não há sessão para verificar;
+   - `nps-scheduler` é chamada pelo **pg_cron via pg_net**, que envia apenas
+     `x-worker-secret` e **nenhum `Authorization`**. Com `verify_jwt=true` o
+     gateway devolveria 401 antes de a função rodar, e o cron falharia de hora
+     em hora em silêncio. A autenticação real é o `verifyWorkerSecret` dentro
+     da função — mesmo padrão de `sdr-backstop-tick` e `scheduled-send-worker`,
+     ambos `verify_jwt=false`.
+
+   Conferir depois do deploy: `nps-scheduler` sem o segredo deve responder
+   `{"error":"unauthorized"}` com **401 vindo da função**, não do gateway.
 4. **Aplicar o cron** `20260812140100_nps_scheduler_cron` — só depois do deploy,
    para o primeiro tick encontrar o endpoint vivo.
+
+   Teste que fecha a cadeia inteira (pg_net → segredo → função), sem depender
+   de esperar o relógio:
+   ```sql
+   select net.http_post(
+     url := 'https://njizaasajkdqptlxddqn.supabase.co/functions/v1/nps-scheduler',
+     headers := jsonb_build_object(
+       'Content-Type', 'application/json',
+       'x-worker-secret', public.integration_secret_get('NPS_WORKER_SECRET')
+     ),
+     body := '{}'::jsonb
+   );
+   -- depois: select status_code, content from net._http_response order by id desc limit 1;
+   ```
+   Com tudo certo e nenhuma loja ligada: **200** com
+   `{"stores":0,"eligible":0,...}`. Um **401** aqui significa segredo ausente ou
+   `verify_jwt=true` na função.
 5. **Revisar o texto da pesquisa** em `nps-scheduler/message.ts`.
 6. **Ligar a chave** em Configurações → NPS, loja por loja.
 
@@ -143,6 +181,7 @@ scheduler.
 | Schema e RLS | `supabase/migrations/20260812140000_nps_schema.sql` |
 | Candidatos (RPC) | `supabase/migrations/20260812140050_nps_survey_candidates.sql` |
 | Cron | `supabase/migrations/20260812140100_nps_scheduler_cron.sql` |
+| Segredo do worker | `supabase/migrations/20260812150000_nps_worker_secret.sql` |
 | Elegibilidade (puro) | `supabase/functions/nps-scheduler/eligibility.ts` |
 | Envio | `supabase/functions/nps-scheduler/sender.ts` |
 | Texto da pesquisa | `supabase/functions/nps-scheduler/message.ts` |
