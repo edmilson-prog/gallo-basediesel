@@ -385,6 +385,17 @@ export const CUSTOMER_STRINGS = {
       noHistoryHint: (n: number) => `Contato criado há ${n} ${n === 1 ? "dia" : "dias"}.`,
       firstQuoteCta: "Criar o primeiro orçamento",
       empty: "—",
+      /** Direction B only — the commercial column of the two-column header. */
+      panelTitle: "Situação comercial",
+      customerSince: (date: string) => `Cliente desde ${date}`,
+      firstQuoteButton: "Primeiro orçamento",
+    },
+    /** Header layout switch — A · Faixas (default) vs B · Painel. */
+    layout: {
+      label: "Layout da ficha",
+      faixas: "Faixas",
+      painel: "Painel",
+      switchTo: (next: string) => `Mudar para o layout ${next}`,
     },
     /** Credit cell — limit is stored, usage is derived from open orders. */
     credit: {

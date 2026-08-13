@@ -14,6 +14,8 @@ import { CustomerIdentityBand } from "../components/detail/CustomerIdentityBand"
 import { CustomerFactsBand } from "../components/detail/CustomerFactsBand";
 import { CustomerCommercialBand } from "../components/detail/CustomerCommercialBand";
 import { CustomerAlertsBand } from "../components/detail/CustomerAlertsBand";
+import { CustomerHeaderB } from "../components/detail/CustomerHeaderB";
+import { useCustomerDetailLayout } from "../hooks/useCustomerDetailLayout";
 
 export interface ICustomerDetailPageProps {
   customerId: ID;
@@ -72,6 +74,7 @@ export function CustomerDetailPage({ customerId }: ICustomerDetailPageProps) {
 function CustomerDetailContent({ customer }: { customer: ICustomer }) {
   const navigate = useNavigate();
   const header = useCustomerHeader(customer);
+  const { layout, toggle: toggleLayout } = useCustomerDetailLayout();
   const [activeTab, setActiveTab] = useState<CustomerTabKey>("comercial");
   const [editSignal, setEditSignal] = useState(0);
   const defaultTabApplied = useRef(false);
@@ -123,35 +126,58 @@ function CustomerDetailContent({ customer }: { customer: ICustomer }) {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex min-h-full flex-col bg-background">
-        {/* Header bands: identity → facts → commercial → alerts. Each one is
-            only as tall as its content, and the alert band disappears entirely
-            when there is nothing pending. */}
-        <header className="shrink-0 divide-y divide-border border-b border-border bg-card">
-          <CustomerIdentityBand
-            customer={customer}
-            latestConversationId={header.latestConversationId}
-            onGoToTab={goToTab}
-            onEditData={handleEditData}
-          />
-          <CustomerFactsBand
+        {layout === "painel" ? (
+          /* Direction B — one two-column header. Kept switchable so both
+             directions of the kit can be judged against real data. */
+          <CustomerHeaderB
             customer={customer}
             sellerName={header.sellerName}
             storeName={header.storeName}
-          />
-          <CustomerCommercialBand
-            customer={customer}
+            latestConversationId={header.latestConversationId}
             credit={header.credit}
             series={header.series}
             hasPurchaseHistory={header.hasPurchaseHistory}
             openQuotes={header.openQuotes}
+            alerts={header.alerts}
+            onGoToTab={goToTab}
+            onEditData={handleEditData}
             onCreateQuote={handleCreateQuote}
+            layout={layout}
+            onToggleLayout={toggleLayout}
           />
-          {header.alerts.length > 0 && (
-            <div className="px-4 py-3 sm:px-6">
-              <CustomerAlertsBand alerts={header.alerts} onGoToTab={goToTab} />
-            </div>
-          )}
-        </header>
+        ) : (
+          /* Direction A — header bands: identity → facts → commercial → alerts.
+             Each one is only as tall as its content, and the alert band
+             disappears entirely when there is nothing pending. */
+          <header className="shrink-0 divide-y divide-border border-b border-border bg-card">
+            <CustomerIdentityBand
+              customer={customer}
+              latestConversationId={header.latestConversationId}
+              onGoToTab={goToTab}
+              onEditData={handleEditData}
+              layout={layout}
+              onToggleLayout={toggleLayout}
+            />
+            <CustomerFactsBand
+              customer={customer}
+              sellerName={header.sellerName}
+              storeName={header.storeName}
+            />
+            <CustomerCommercialBand
+              customer={customer}
+              credit={header.credit}
+              series={header.series}
+              hasPurchaseHistory={header.hasPurchaseHistory}
+              openQuotes={header.openQuotes}
+              onCreateQuote={handleCreateQuote}
+            />
+            {header.alerts.length > 0 && (
+              <div className="px-4 py-3 sm:px-6">
+                <CustomerAlertsBand alerts={header.alerts} onGoToTab={goToTab} />
+              </div>
+            )}
+          </header>
+        )}
 
         <CustomerTabs
           customer={customer}
