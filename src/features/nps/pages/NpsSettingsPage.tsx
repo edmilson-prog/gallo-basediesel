@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useCurrentStore } from "@/features/multistore";
 import { useNpsProvider } from "@/providers/data";
 import type { INpsSettings } from "@/shared/types";
+import { NPS_PARAMETER_DEFAULTS } from "../engine";
 
 /**
  * /app/configuracoes/nps — Owner-facing knobs for the survey.
@@ -132,6 +133,10 @@ export function NpsSettingsPage() {
             maxBackfillDays: 3,
             dailyCap: 50,
             whatsappAccountId: null,
+            // Reading parameters — edited in the panel's "Parâmetros" tab, not
+            // here. Carried so the object is a complete INpsSettings and a save
+            // from this screen never blanks what that tab owns.
+            ...NPS_PARAMETER_DEFAULTS,
           },
         );
         setLoading(false);

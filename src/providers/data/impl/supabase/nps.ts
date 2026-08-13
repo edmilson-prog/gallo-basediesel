@@ -1,5 +1,6 @@
 import type {
   INpsFilters,
+  INpsFollowupOwner,
   INpsSettings,
   INpsListFilters,
   INpsProvider,
@@ -38,6 +39,7 @@ interface NpsSurveyRow {
   status: INpsSurvey["status"];
   score: number | null;
   comment: string | null;
+  reasons: string[] | null;
   sent_at: string | null;
   responded_at: string | null;
   expires_at: string;
@@ -45,9 +47,13 @@ interface NpsSurveyRow {
 }
 
 const TABLE = "nps_surveys";
+// `reasons` is gated on 20260813120000_nps_reasons.sql: naming a column the
+// database does not have makes PostgREST reject the whole select, so this list
+// and that migration ship together.
 const COLUMNS =
   "id, store_id, conversation_id, customer_id, lead_id, phone_digits, recipient_name, " +
-  "trigger, order_id, channel, status, score, comment, sent_at, responded_at, expires_at, created_at";
+  "trigger, order_id, channel, status, score, comment, reasons, sent_at, responded_at, " +
+  "expires_at, created_at";
 
 const DEFAULT_PAGE_SIZE = 30;
 
@@ -66,6 +72,7 @@ function rowToNpsSurvey(row: NpsSurveyRow): INpsSurvey {
     status: row.status,
     score: row.score,
     comment: row.comment,
+    reasons: row.reasons ?? [],
     sentAt: row.sent_at,
     respondedAt: row.responded_at,
     expiresAt: row.expires_at,
@@ -118,7 +125,11 @@ const SETTINGS_COLUMNS =
   "store_id, enabled, trigger_conversation_enabled, trigger_conversation_delay_hours, " +
   "trigger_order_enabled, trigger_order_delay_hours, cooldown_days, token_expiry_days, " +
   "window_days, sampling_rate, send_window_start_hour, send_window_end_hour, " +
-  "min_responses_for_score, max_backfill_days, daily_cap, whatsapp_account_id";
+  "min_responses_for_score, max_backfill_days, daily_cap, whatsapp_account_id, " +
+  "target_score, band_excellence_min, band_quality_min, band_improvement_min, " +
+  "followup_max_score, followup_sla_hours, followup_owner, " +
+  "followup_escalation_enabled, followup_escalation_hours, " +
+  "show_cockpit_card, show_customer_badge, show_seller_ranking, anonymize_responses";
 
 interface NpsSettingsRow {
   store_id: string;
@@ -137,6 +148,19 @@ interface NpsSettingsRow {
   max_backfill_days: number;
   daily_cap: number;
   whatsapp_account_id: string | null;
+  target_score: number;
+  band_excellence_min: number;
+  band_quality_min: number;
+  band_improvement_min: number;
+  followup_max_score: number;
+  followup_sla_hours: number;
+  followup_owner: INpsFollowupOwner;
+  followup_escalation_enabled: boolean;
+  followup_escalation_hours: number;
+  show_cockpit_card: boolean;
+  show_customer_badge: boolean;
+  show_seller_ranking: boolean;
+  anonymize_responses: boolean;
 }
 
 function rowToSettings(row: NpsSettingsRow): INpsSettings {
@@ -157,6 +181,19 @@ function rowToSettings(row: NpsSettingsRow): INpsSettings {
     maxBackfillDays: row.max_backfill_days,
     dailyCap: row.daily_cap,
     whatsappAccountId: row.whatsapp_account_id,
+    targetScore: row.target_score,
+    bandExcellenceMin: row.band_excellence_min,
+    bandQualityMin: row.band_quality_min,
+    bandImprovementMin: row.band_improvement_min,
+    followupMaxScore: row.followup_max_score,
+    followupSlaHours: row.followup_sla_hours,
+    followupOwner: row.followup_owner,
+    followupEscalationEnabled: row.followup_escalation_enabled,
+    followupEscalationHours: row.followup_escalation_hours,
+    showCockpitCard: row.show_cockpit_card,
+    showCustomerBadge: row.show_customer_badge,
+    showSellerRanking: row.show_seller_ranking,
+    anonymizeResponses: row.anonymize_responses,
   };
 }
 
@@ -184,6 +221,21 @@ function settingsPatchToRow(patch: Partial<INpsSettings>): Record<string, unknow
   if (patch.maxBackfillDays !== undefined) row.max_backfill_days = patch.maxBackfillDays;
   if (patch.dailyCap !== undefined) row.daily_cap = patch.dailyCap;
   if (patch.whatsappAccountId !== undefined) row.whatsapp_account_id = patch.whatsappAccountId;
+  if (patch.targetScore !== undefined) row.target_score = patch.targetScore;
+  if (patch.bandExcellenceMin !== undefined) row.band_excellence_min = patch.bandExcellenceMin;
+  if (patch.bandQualityMin !== undefined) row.band_quality_min = patch.bandQualityMin;
+  if (patch.bandImprovementMin !== undefined) row.band_improvement_min = patch.bandImprovementMin;
+  if (patch.followupMaxScore !== undefined) row.followup_max_score = patch.followupMaxScore;
+  if (patch.followupSlaHours !== undefined) row.followup_sla_hours = patch.followupSlaHours;
+  if (patch.followupOwner !== undefined) row.followup_owner = patch.followupOwner;
+  if (patch.followupEscalationEnabled !== undefined)
+    row.followup_escalation_enabled = patch.followupEscalationEnabled;
+  if (patch.followupEscalationHours !== undefined)
+    row.followup_escalation_hours = patch.followupEscalationHours;
+  if (patch.showCockpitCard !== undefined) row.show_cockpit_card = patch.showCockpitCard;
+  if (patch.showCustomerBadge !== undefined) row.show_customer_badge = patch.showCustomerBadge;
+  if (patch.showSellerRanking !== undefined) row.show_seller_ranking = patch.showSellerRanking;
+  if (patch.anonymizeResponses !== undefined) row.anonymize_responses = patch.anonymizeResponses;
   row.updated_at = new Date().toISOString();
   return row;
 }

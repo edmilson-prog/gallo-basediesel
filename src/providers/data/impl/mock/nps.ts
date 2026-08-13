@@ -80,6 +80,47 @@ function classOf(score: number): "promoter" | "passive" | "detractor" {
   return "promoter";
 }
 
+/** The chips the public survey actually offers, per category. */
+const REASON_OPTIONS: Record<string, string[]> = {
+  promoter: [
+    "Diagnóstico certo",
+    "Prazo cumprido",
+    "Atendimento",
+    "Qualidade da peça",
+    "Preço justo",
+    "Entrega",
+  ],
+  passive: ["Prazo", "Preço", "Comunicação", "Qualidade da peça", "Limpeza / acabamento"],
+  detractor: [
+    "Prazo não cumprido",
+    "Falta de retorno",
+    "Preço",
+    "Peça com defeito",
+    "Serviço refeito",
+    "Garantia",
+  ],
+};
+
+/**
+ * Chips for one mock survey, derived from the index rather than drawn from the
+ * generator's stream. Consuming the RNG here would shift every value after it
+ * and silently rewrite the whole dataset — scores, dates and all — for a field
+ * that only needs to be plausible and stable.
+ *
+ * Roughly a third of answers carry no chip at all, which is what the real
+ * survey produces: ticking one is optional.
+ */
+function reasonsFor(npsClass: string, index: number): string[] {
+  const options = REASON_OPTIONS[npsClass] ?? [];
+  if (options.length === 0 || index % 3 === 0) return [];
+  const first = options[index % options.length];
+  if (first === undefined) return [];
+  // Every other answer cites a second chip, so the tallies are not all 1:1.
+  if (index % 2 === 0) return [first];
+  const second = options[(index * 3 + 1) % options.length];
+  return second !== undefined && second !== first ? [first, second] : [first];
+}
+
 /** Built once at module load so repeated calls agree with each other. */
 const DATASET: INpsSurvey[] = (() => {
   const random = makeRandom(SEED);
@@ -109,6 +150,7 @@ const DATASET: INpsSurvey[] = (() => {
       status: "responded" as const,
       score,
       comment: comment || null,
+      reasons: reasonsFor(npsClass, index),
       sentAt: sentAt.toISOString(),
       respondedAt: respondedAt.toISOString(),
       expiresAt: new Date(sentAt.getTime() + 7 * DAY_MS).toISOString(),
@@ -133,7 +175,10 @@ function toPoint(survey: INpsSurvey): INpsResponsePoint {
   return { score: survey.score ?? 0, respondedAt: survey.respondedAt ?? "" };
 }
 
-/** Mirrors the column defaults in 20260812140000_nps_schema.sql. */
+/**
+ * Mirrors the column defaults in 20260812140000_nps_schema.sql and
+ * 20260813150000_nps_parameters.sql.
+ */
 const DEFAULT_SETTINGS: INpsSettings = {
   storeId: "store-1",
   enabled: false,
@@ -151,6 +196,19 @@ const DEFAULT_SETTINGS: INpsSettings = {
   maxBackfillDays: 3,
   dailyCap: 50,
   whatsappAccountId: null,
+  targetScore: 60,
+  bandExcellenceMin: 75,
+  bandQualityMin: 50,
+  bandImprovementMin: 0,
+  followupMaxScore: 6,
+  followupSlaHours: 24,
+  followupOwner: "attendant",
+  followupEscalationEnabled: true,
+  followupEscalationHours: 48,
+  showCockpitCard: true,
+  showCustomerBadge: true,
+  showSellerRanking: true,
+  anonymizeResponses: false,
 };
 
 let mockSettings: INpsSettings = { ...DEFAULT_SETTINGS };

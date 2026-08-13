@@ -604,5 +604,6 @@ export type {
   INpsBreakdown,
   INpsReasonCount,
   INpsReasonSplit,
+  INpsFollowupOwner,
   INpsProvider,
 } from "./nps";

@@ -8,6 +8,7 @@
 
 export type INpsClass = "detractor" | "passive" | "promoter";
 
+
 export type INpsTrigger = "conversation_resolved" | "order_delivered" | "manual";
 
 export type INpsSurveyStatus =
@@ -40,11 +41,23 @@ export interface INpsSurvey {
   status: INpsSurveyStatus;
   score: number | null;
   comment: string | null;
+  /**
+   * Chips the respondent ticked. Always an array — the column is
+   * `text[] not null default '{}'`, so "no reasons" is an empty list and never
+   * a null the callers would each have to guard.
+   */
+  reasons: string[];
   sentAt: string | null;
   respondedAt: string | null;
   expiresAt: string;
   createdAt: string;
+
+  // --- Recuperação de detratores (aba "Recuperação" do painel) -------------
+  // Null on every row that is not a detractor, which is what keeps the queue
+  // whole board and never walks the promoters.
+
 }
+
 
 /**
  * Result of the score computation. `state: 'collecting'` means the sample is
@@ -147,6 +160,16 @@ export interface INpsProvider {
   updateSettings(storeId: string, patch: Partial<INpsSettings>): Promise<INpsSettings>;
 }
 
+/**
+ * Who owns the follow-up of an answer that came in under the cut-off.
+ *
+ * `attendant` is whoever handled the conversation, `manager` the store's
+ * manager, `owner` the seller who owns the customer's portfolio — three people
+ * who are frequently not the same person, which is exactly why this is a
+ * setting and not a convention.
+ */
+export type INpsFollowupOwner = "attendant" | "manager" | "owner";
+
 export interface INpsSettings {
   storeId: string;
   enabled: boolean;
@@ -166,4 +189,35 @@ export interface INpsSettings {
   /** Backstop: ceiling of surveys per store per day. */
   dailyCap: number;
   whatsappAccountId: string | null;
+
+  // --- Parâmetros (aba "Parâmetros" do painel) ---------------------------
+  // Reading rules, not sending rules: none of the fields below can cause a
+  // message to leave. They decide how the number is judged, who chases a bad
+  // answer, and which surfaces are allowed to show any of it.
+
+  /** Internal goal. The trend chart draws its dashed line here. */
+  targetScore: number;
+  /** Lower bound of each named band. Must decrease strictly. */
+  bandExcellenceMin: number;
+  bandQualityMin: number;
+  bandImprovementMin: number;
+  /**
+   * Answers at or below this score open a tratativa. 6 = detractors only,
+   * 8 = detractors and passives.
+   */
+  followupMaxScore: number;
+  /** Hours allowed for the first contact after the answer arrives. */
+  followupSlaHours: number;
+  followupOwner: INpsFollowupOwner;
+  followupEscalationEnabled: boolean;
+  /** Hours past the SLA before the tratativa is escalated. */
+  followupEscalationHours: number;
+  /** Cockpit NPS card. */
+  showCockpitCard: boolean;
+  /** NPS badge on the customer fiche. */
+  showCustomerBadge: boolean;
+  /** Per-attendant table on the panel. */
+  showSellerRanking: boolean;
+  /** Hides the respondent's identity everywhere the answers are listed. */
+  anonymizeResponses: boolean;
 }
