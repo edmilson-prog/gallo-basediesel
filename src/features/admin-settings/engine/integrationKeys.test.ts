@@ -34,7 +34,13 @@ describe("buildIntegrationKeyCatalog", () => {
   it("always includes the Resend and webhook app-level groups", () => {
     const groups = buildIntegrationKeyCatalog([]);
     const ids = groups.map((group) => group.id);
-    expect(ids).toEqual(["resend", "whatsapp-webhook", "llm-providers", "melhor-envio"]);
+    expect(ids).toEqual([
+      "resend",
+      "whatsapp-webhook",
+      "llm-providers",
+      "melhor-envio",
+      "mercado-pago",
+    ]);
 
     const resend = groups[0];
     expect(resend?.keys.map((key) => key.name)).toEqual([
@@ -77,6 +83,27 @@ describe("buildIntegrationKeyCatalog", () => {
     ]);
   });
 
+  it("inclui o grupo Pagamentos — Mercado Pago com chaves por ambiente (produção + teste)", () => {
+    const groups = buildIntegrationKeyCatalog([]);
+    const mp = groups.find((group) => group.id === "mercado-pago");
+    expect(mp).toBeDefined();
+    expect(mp!.keys.map((key) => key.name)).toEqual([
+      "MERCADO_PAGO_ACCESS_TOKEN",
+      "MERCADO_PAGO_PUBLIC_KEY",
+      "MERCADO_PAGO_TEST_ACCESS_TOKEN",
+      "MERCADO_PAGO_TEST_PUBLIC_KEY",
+      "MERCADO_PAGO_WEBHOOK_SECRET",
+    ]);
+    // Access tokens and the signature secret are sensitive; public keys are meant
+    // to reach the browser, so they follow the plain-config path.
+    const secretNames = mp!.keys.filter((key) => key.kind === "secret").map((key) => key.name);
+    expect(secretNames).toEqual([
+      "MERCADO_PAGO_ACCESS_TOKEN",
+      "MERCADO_PAGO_TEST_ACCESS_TOKEN",
+      "MERCADO_PAGO_WEBHOOK_SECRET",
+    ]);
+  });
+
   it("derives Meta account keys from credentials_ref (engine convention)", () => {
     const groups = buildIntegrationKeyCatalog([META_ACCOUNT]);
     const accountGroup = groups.find((group) => group.id === "account-wa-meta-1");
@@ -107,6 +134,7 @@ describe("buildIntegrationKeyCatalog", () => {
       "whatsapp-webhook",
       "llm-providers",
       "melhor-envio",
+      "mercado-pago",
     ]);
   });
 
