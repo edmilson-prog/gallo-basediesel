@@ -1,0 +1,23 @@
+// Pure business logic for model kits — no React, no data access.
+export {
+  CATEGORY_FAMILIES,
+  KIT_FAMILIES,
+  getFamilyCoverage,
+  resolvePartFamily,
+  type IFamilyCoverage,
+  type IFamilyCoverageEntry,
+  type IFamilyResolvable,
+  type IKitFamilyMeta,
+  type KitFamily,
+} from "./kitFamilies";
+export {
+  computeKitTotals,
+  getStockState,
+  type IKitTotals,
+  type IKitTotalsLine,
+  type IKitTotalsPart,
+  type IStockState,
+  type StockTone,
+} from "./kitTotals";
+export { renameKitForModel, type IKitRenameTarget } from "./kitCopy";
+export { KIT_CATEGORY_CONFIG } from "./kitCategories";
