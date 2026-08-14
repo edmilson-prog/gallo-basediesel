@@ -60,12 +60,12 @@ export function PartCategoryGrid({
               onClick={() => pickCategory(descriptor.value)}
               aria-pressed={selected}
               className={cn(
-                "group flex min-w-0 items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left",
-                "transition-[background-color,border-color,box-shadow] duration-150 motion-reduce:transition-none",
+                "flex min-w-0 items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left",
+                "transition-[background-color,border-color] duration-150 motion-reduce:transition-none",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background",
                 selected
-                  ? "border-primary bg-primary/10 shadow-[inset_0_0_0_1px_var(--color-primary)]"
-                  : "border-border bg-muted/25 hover:border-border hover:bg-muted/60",
+                  ? "border-primary bg-primary/10 ring-1 ring-inset ring-primary"
+                  : "border-border bg-muted/25 hover:bg-muted/60",
               )}
             >
               <span
