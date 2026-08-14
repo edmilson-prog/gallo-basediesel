@@ -1,5 +1,6 @@
 import type { PartCategory } from "@/shared/types";
 import { computePrice } from "../utils/pricing";
+import { isSaleReadyFrom } from "../utils/completeness";
 
 /** Shortest code worth sending to the catalog — below this every part matches. */
 export const MIN_CODE_LENGTH = 3;
@@ -116,21 +117,21 @@ export interface IPartCompletenessInput extends IPartPricingInput {
 }
 
 /**
- * The same ruler the catalog list uses to count "prontas para venda": category
- * + manufacturer + cost + something that identifies the part (a code or an
- * application). A part that misses any of these lands in the enrichment queue
- * instead of the shelf.
+ * Literally the ruler the catalog list uses to count "prontas para venda" —
+ * `isSaleReadyFrom` is shared, and this only supplies the facts as the form
+ * holds them (strings in a text box, not a saved part).
  *
  * The cost is in the ruler because without it the margin is unknown, and a
  * price nobody can measure is a price nobody can defend at the counter.
  */
 export function isSaleReady(input: IPartCompletenessInput): boolean {
-  return (
-    !!input.category &&
-    input.brand.trim().length > 0 &&
-    input.unitCost > 0 &&
-    (input.code.trim().length >= MIN_CODE_LENGTH || input.applicationCount > 0)
-  );
+  return isSaleReadyFrom({
+    hasCategory: !!input.category,
+    hasManufacturer: input.brand.trim().length > 0,
+    hasCost: input.unitCost > 0,
+    hasCode: input.code.trim().length >= MIN_CODE_LENGTH,
+    hasApplication: input.applicationCount > 0,
+  });
 }
 
 /** A field the form still needs before it will save anything. */

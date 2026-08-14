@@ -51,18 +51,46 @@ export function missingFields(part: IPart): PartMissingField[] {
 }
 
 /**
+ * The bare facts the "ready to sell" ruler needs, stated independently of where
+ * they were read from.
+ *
+ * The list measures saved parts; the "Nova peça" form measures fields that are
+ * still strings in a text box. Both must answer the question the same way, so
+ * the rule itself lives in exactly one place and each caller supplies the facts.
+ */
+export interface ISaleReadyFacts {
+  hasCategory: boolean;
+  hasManufacturer: boolean;
+  hasCost: boolean;
+  /** An OEM/manufacturer code that identifies the part. */
+  hasCode: boolean;
+  hasApplication: boolean;
+}
+
+/**
  * Ready to sell: category + manufacturer + cost, plus at least one way for a
  * salesperson to find it (an OEM code or a vehicle application). A part can be
  * missing one of OEM/application and still be sellable — missing both makes it
  * unfindable at the counter.
  */
-export function isReadyToSell(part: IPart): boolean {
+export function isSaleReadyFrom(facts: ISaleReadyFacts): boolean {
   return (
-    Boolean(part.category) &&
-    hasManufacturer(part) &&
-    hasCost(part) &&
-    (part.oemCodes.length > 0 || part.applications.length > 0)
+    facts.hasCategory &&
+    facts.hasManufacturer &&
+    facts.hasCost &&
+    (facts.hasCode || facts.hasApplication)
   );
+}
+
+/** The ruler applied to a saved part — what the catalog list counts. */
+export function isReadyToSell(part: IPart): boolean {
+  return isSaleReadyFrom({
+    hasCategory: Boolean(part.category),
+    hasManufacturer: hasManufacturer(part),
+    hasCost: hasCost(part),
+    hasCode: part.oemCodes.length > 0,
+    hasApplication: part.applications.length > 0,
+  });
 }
 
 /**

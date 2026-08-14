@@ -115,21 +115,28 @@ digitado, o estado é `loading` e o submit fica travado.
 - **Geração de SKU inalterada** (`GAL-NEW-<timestamp>`): fora do escopo do kit.
 - **Estoque não é copiado na duplicação** — a cópia é outra peça, em outra prateleira.
 
-## Débito conhecido: régua duplicada com o PR #490
+## Régua de "pronta para venda": uma só, compartilhada com a lista
 
-O PR #490 (lista do catálogo, aberto em paralelo) criou
-`src/features/catalog/utils/completeness.ts` com `isReadyToSell(part: IPart)` — **a mesma
-regra** da `isSaleReady()` desta engine. As duas concordam hoje (categoria + fabricante +
-custo + (OEM ou aplicação)), mas leem coisas diferentes: a da lista lê uma peça salva, a
-daqui lê os campos do formulário, que ainda são strings.
+O PR #490 (lista do catálogo) mergeou durante esta refatoração e trouxe
+`src/features/catalog/utils/completeness.ts` com `isReadyToSell(part: IPart)` — a mesma
+regra que esta tela precisa. Em vez de deixar duas cópias, a regra foi **extraída para um
+núcleo único**:
 
-Não dá para importar um arquivo que só existe num PR aberto. **Quem mergear por último deve
-unificar**: extrair um núcleo que aceite `{category, brand, unitCost, hasCode, hasApplication}`
-e fazer as duas chamarem. Uma terceira cópia divergente desta regra é um problema que o
-projeto já teve.
+```ts
+// utils/completeness.ts
+export function isSaleReadyFrom(facts: ISaleReadyFacts): boolean
+```
 
-Conflito de merge esperado em `src/features/catalog/i18n/pt-BR.ts` (os dois PRs adicionam
-blocos ao mesmo objeto, em regiões diferentes).
+`ISaleReadyFacts` são os fatos crus (`hasCategory`, `hasManufacturer`, `hasCost`, `hasCode`,
+`hasApplication`), independentes de onde vieram. A lista os lê de uma `IPart` salva
+(`isReadyToSell`); o formulário os lê dos campos, que ainda são strings numa caixa de texto
+(`engine/newPart.ts` → `isSaleReady`). **A regra é escrita uma vez.**
+
+Uma terceira cópia divergente desta regra é um problema que o projeto já teve
+(`project_root_route_permission_wall`); esta é a chance de não repetir.
+
+`i18n/pt-BR.ts` recebeu blocos dos dois PRs, em regiões diferentes do mesmo objeto — o merge
+saiu sem conflito.
 
 ## Validação
 
