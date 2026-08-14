@@ -21,3 +21,10 @@ export {
 } from "./kitTotals";
 export { renameKitForModel, type IKitRenameTarget } from "./kitCopy";
 export { KIT_CATEGORY_CONFIG } from "./kitCategories";
+export {
+  applicationMatchesModel,
+  brandMatches,
+  modelDesignationMatches,
+  type IApplicationLike,
+  type ICanonicalModelLike,
+} from "./modelApplicationMatch";
