@@ -98,6 +98,29 @@ digitado, o estado é `loading` e o submit fica travado.
 - **Sem cor de fundo dourada fixa**: o dourado do kit é o `primary` do tema `diesel`; usar o
   token faz a tela seguir os 4 temas e os 2 modos.
 
+## Passada de crítica visual (pós-implementação)
+
+Quatro correções levantadas relendo a tela pronta, três delas contra a primeira versão
+desta própria refatoração:
+
+1. **Breakpoint invertido na grade de categoria.** Era
+   `grid-cols-2 sm:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3` — em 1366px a coluna direita
+   tem ~650px e o `xl` forçava **duas** colunas, gerando tiles de 320px para um rótulo de
+   11px. O erro foi dimensionar pela viewport um grid que vive dentro de uma coluna cuja
+   largura não acompanha os breakpoints. Agora
+   `grid-cols-[repeat(auto-fill,minmax(140px,1fr))]`, que é o que o kit já dizia.
+2. **A régua de 5 preços agora é permanente.** Aparecer só depois do custo empurrava o
+   layout **e** escondia justamente o que a tela quer ensinar: uma peça não nasce com *um*
+   preço, nasce em cinco tabelas. Sem custo as células mostram `—`, a Padrão mostra o preço
+   digitado se houver, e uma linha explica que as outras quatro saem do custo.
+3. **Coluna da margem com largura fixa** (`sm:grid-cols-[1fr_1fr_150px]`). Era `auto`, e
+   trocar `47%` por um texto longo redimensionava a coluna, empurrando os inputs ao lado.
+   O valor ausente agora é `—`, consistente com o que `formatBRL`/`formatPercent` devolvem.
+4. **Cabeçalho e rodapé diziam a mesma frase.** As duas réguas são diferentes — o selo do
+   cabeçalho responde "vai nascer pronta?", o rodapé responde "posso salvar?" — mas o texto
+   idêntico soava eco. O rodapé passou a dizer a **consequência** ("Ao salvar, vai direto
+   para a prateleira" / "Ao salvar, entra na fila de enriquecimento").
+
 ## Desvios conscientes do kit
 
 - **A checagem não cobre referência cruzada isolada.** `cross_references` é `jsonb` sem

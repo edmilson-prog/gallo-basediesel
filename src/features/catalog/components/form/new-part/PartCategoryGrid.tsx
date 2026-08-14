@@ -45,7 +45,9 @@ export function PartCategoryGrid({
     <div>
       <div
         className={cn(
-          "grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3",
+          // Sized by the container, not by the viewport: this grid lives in a
+          // column whose width does not track breakpoints.
+          "grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2",
           invalid && "rounded-lg ring-1 ring-severity-critical/60",
         )}
         role="group"
