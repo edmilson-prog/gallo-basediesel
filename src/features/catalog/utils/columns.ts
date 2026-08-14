@@ -14,9 +14,12 @@ export const MANDATORY_COLUMNS = ["name"] as const;
 export const OPTIONAL_COLUMNS = [
   "oem",
   "category",
+  "ficha",
   "manufacturer",
   "applications",
   "price",
+  "margin",
+  "turnover",
   "stock",
   "status",
 ] as const;
@@ -30,27 +33,47 @@ export const COLUMN_LABELS: Record<ColumnId, string> = {
   name: COPY.name,
   oem: COPY.oem,
   category: COPY.category,
+  ficha: COPY.ficha,
   manufacturer: COPY.manufacturer,
   applications: COPY.applications,
   price: COPY.price,
+  margin: COPY.margin,
+  turnover: COPY.turnover,
   stock: COPY.stock,
   status: COPY.status,
 };
 
-export const DEFAULT_VISIBLE_OPTIONAL: OptionalColumn[] = [...OPTIONAL_COLUMNS];
+/**
+ * The design kit's working-desk column set: identity, codes, category, what the
+ * record is still missing, price, margin and stock. Manufacturer and status are
+ * folded into the part cell, so they start hidden; turnover starts hidden
+ * because it costs a full orders window to compute (see `useCatalogTurnover`).
+ */
+export const DEFAULT_VISIBLE_OPTIONAL: OptionalColumn[] = [
+  "oem",
+  "category",
+  "ficha",
+  "price",
+  "margin",
+  "stock",
+];
 
-export const COLUMNS_LOCALSTORAGE_KEY = "gallo-catalog-columns";
+/** Bumped with the design-kit rebuild so stored sets do not hide the new columns. */
+export const COLUMNS_LOCALSTORAGE_KEY = "gallo-catalog-columns-v2";
 
 /** Default column widths in pixels (resizable columns persist overrides). */
 export const DEFAULT_COLUMN_WIDTHS: Record<ColumnId, number> = {
-  name: 280,
-  oem: 140,
-  category: 160,
+  name: 300,
+  oem: 165,
+  category: 150,
+  ficha: 170,
   manufacturer: 170,
   applications: 220,
-  price: 120,
-  stock: 120,
-  status: 120,
+  price: 110,
+  margin: 118,
+  turnover: 118,
+  stock: 138,
+  status: 110,
 };
 
 /** Smallest width a column can be dragged to. */

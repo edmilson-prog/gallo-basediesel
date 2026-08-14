@@ -1,75 +1,82 @@
-import { Fragment, useMemo, type MouseEvent as ReactMouseEvent } from "react";
-import type { IPart } from "@/shared/types";
+import { useMemo, type MouseEvent as ReactMouseEvent } from "react";
+import type { ID, IPart } from "@/shared/types";
 import { Icon } from "@/components/Icon";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
-import { getCategoryLabel } from "../../utils/categories";
 import { type CatalogOrderBy, type ICatalogListSort } from "../../utils/listFilters";
 import { type ColumnId, type OptionalColumn } from "../../utils/columns";
+import { turnoverFor, type IPartTurnover } from "../../utils/turnover";
 import { useCatalogColumnWidths } from "../../hooks/useCatalogColumnWidths";
-import { PartImage } from "../PartImage";
-import { StockBadge } from "../StockBadge";
 import { CatalogColumnsContextContent, CatalogColumnsDropdown } from "./CatalogColumnsMenu";
+import {
+  CategoryTile,
+  PartApplicationsCell,
+  PartCategoryCell,
+  PartCodesCell,
+  PartFichaCell,
+  PartIdentityCell,
+  PartManufacturerCell,
+  PartMarginCell,
+  PartPriceCell,
+  PartStatusCell,
+  PartStockCell,
+  PartTurnoverCell,
+} from "./CatalogRowCells";
 
 export interface ICatalogTableProps {
   parts: IPart[];
   isLoading: boolean;
   sort: ICatalogListSort;
   onSortChange: (sort: ICatalogListSort) => void;
-  onRowClick: (id: string) => void;
+  onRowClick: (id: ID) => void;
   visibleColumns: Set<OptionalColumn>;
   onToggleColumn: (id: OptionalColumn) => void;
   onShowAllColumns: () => void;
   /** Exposes the inner scroll container (drives the header progress line). */
   scrollRef?: (el: HTMLDivElement | null) => void;
+  selectedIds: Set<ID>;
+  onToggleRow: (id: ID) => void;
+  onToggleVisible: (parts: IPart[]) => void;
+  turnoverIndex: Map<ID, IPartTurnover> | null;
+  isTurnoverLoading: boolean;
+  onRestock: (part: IPart) => void;
+  onSuggestDeactivate: (part: IPart) => void;
 }
 
-/** Leading image column — fixed width, not resizable. */
-const IMAGE_COLUMN_WIDTH = 56;
+/** Leading selection column — fixed width, not resizable. */
+const SELECT_COLUMN_WIDTH = 38;
+/** Category tile column — fixed width, not resizable. */
+const TILE_COLUMN_WIDTH = 56;
 /** Trailing actions column — holds the columns menu trigger. */
 const ACTIONS_COLUMN_WIDTH = 44;
 
 interface IColumnConfig {
   id: ColumnId;
   label: string;
-  field: CatalogOrderBy;
-  align: "left" | "right";
+  /** Absent when the column has no meaningful ordering. */
+  field?: CatalogOrderBy;
 }
 
+/**
+ * Column order follows the design kit's working desk: identity, codes, the
+ * category, what the record is still missing, then the commercial numbers.
+ */
 const COLUMNS: IColumnConfig[] = [
-  { id: "name", label: CATALOG_STRINGS.columns.name, field: "name", align: "left" },
-  { id: "oem", label: CATALOG_STRINGS.columns.oem, field: "oem", align: "left" },
-  { id: "category", label: CATALOG_STRINGS.columns.category, field: "category", align: "left" },
-  {
-    id: "manufacturer",
-    label: CATALOG_STRINGS.columns.manufacturer,
-    field: "manufacturer",
-    align: "left",
-  },
-  {
-    id: "applications",
-    label: CATALOG_STRINGS.columns.applications,
-    field: "applications",
-    align: "left",
-  },
-  { id: "price", label: CATALOG_STRINGS.columns.price, field: "unitPrice", align: "left" },
-  { id: "stock", label: CATALOG_STRINGS.columns.stock, field: "stockAvailable", align: "left" },
-  { id: "status", label: CATALOG_STRINGS.columns.status, field: "status", align: "left" },
+  { id: "name", label: CATALOG_STRINGS.columns.name, field: "name" },
+  { id: "oem", label: CATALOG_STRINGS.columns.oem, field: "oem" },
+  { id: "category", label: CATALOG_STRINGS.columns.category, field: "category" },
+  { id: "ficha", label: CATALOG_STRINGS.columns.ficha, field: "ficha" },
+  { id: "manufacturer", label: CATALOG_STRINGS.columns.manufacturer, field: "manufacturer" },
+  { id: "applications", label: CATALOG_STRINGS.columns.applications, field: "applications" },
+  { id: "price", label: CATALOG_STRINGS.columns.price, field: "unitPrice" },
+  { id: "margin", label: CATALOG_STRINGS.columns.margin, field: "margin" },
+  { id: "turnover", label: CATALOG_STRINGS.columns.turnover, field: "turnover" },
+  { id: "stock", label: CATALOG_STRINGS.columns.stock, field: "stockAvailable" },
+  { id: "status", label: CATALOG_STRINGS.columns.status, field: "status" },
 ];
-
-function formatPrice(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function applicationsLabel(part: IPart): string {
-  const first = part.applications[0];
-  if (!first) return "—";
-  const head = `${first.vehicleBrand} ${first.vehicleModel}`;
-  if (part.applications.length === 1) return head;
-  return `${head} +${part.applications.length - 1}`;
-}
 
 export function CatalogTable({
   parts,
@@ -81,6 +88,13 @@ export function CatalogTable({
   onToggleColumn,
   onShowAllColumns,
   scrollRef,
+  selectedIds,
+  onToggleRow,
+  onToggleVisible,
+  turnoverIndex,
+  isTurnoverLoading,
+  onRestock,
+  onSuggestDeactivate,
 }: ICatalogTableProps) {
   const { widths, setWidth, commit } = useCatalogColumnWidths();
 
@@ -92,9 +106,13 @@ export function CatalogTable({
   );
 
   const tableWidth =
-    IMAGE_COLUMN_WIDTH +
+    SELECT_COLUMN_WIDTH +
+    TILE_COLUMN_WIDTH +
     visibleCols.reduce((sum, col) => sum + widths[col.id], 0) +
     ACTIONS_COLUMN_WIDTH;
+
+  const allVisibleSelected = parts.length > 0 && parts.every((part) => selectedIds.has(part.id));
+  const someVisibleSelected = !allVisibleSelected && parts.some((part) => selectedIds.has(part.id));
 
   const handleSort = (field: CatalogOrderBy) => {
     const active = sort.orderBy === field;
@@ -124,6 +142,42 @@ export function CatalogTable({
     document.addEventListener("mouseup", onUp);
   };
 
+  const renderCell = (col: IColumnConfig, part: IPart) => {
+    switch (col.id) {
+      case "name":
+        return <PartIdentityCell part={part} />;
+      case "oem":
+        return <PartCodesCell part={part} />;
+      case "category":
+        return <PartCategoryCell part={part} />;
+      case "ficha":
+        return <PartFichaCell part={part} />;
+      case "manufacturer":
+        return <PartManufacturerCell part={part} />;
+      case "applications":
+        return <PartApplicationsCell part={part} />;
+      case "price":
+        return <PartPriceCell part={part} />;
+      case "margin":
+        return <PartMarginCell part={part} />;
+      case "turnover":
+        return (
+          <PartTurnoverCell
+            part={part}
+            turnover={turnoverFor(turnoverIndex, part.id)}
+            isLoading={isTurnoverLoading}
+            onSuggestDeactivate={onSuggestDeactivate}
+          />
+        );
+      case "stock":
+        return <PartStockCell part={part} onRestock={onRestock} />;
+      case "status":
+        return <PartStatusCell part={part} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div ref={scrollRef} className="h-full overflow-auto">
       <table
@@ -131,7 +185,8 @@ export function CatalogTable({
         style={{ width: tableWidth }}
       >
         <colgroup>
-          <col style={{ width: IMAGE_COLUMN_WIDTH }} />
+          <col style={{ width: SELECT_COLUMN_WIDTH }} />
+          <col style={{ width: TILE_COLUMN_WIDTH }} />
           {visibleCols.map((col) => (
             <col key={col.id} style={{ width: widths[col.id] }} />
           ))}
@@ -141,29 +196,43 @@ export function CatalogTable({
           <ContextMenu>
             <ContextMenuTrigger asChild>
               <tr className="text-left [&>th:not(:last-child)]:border-r [&>th:not(:last-child)]:border-border/70">
-                <th className="px-4 py-2"></th>
+                <th className="px-3 py-2">
+                  <Checkbox
+                    checked={allVisibleSelected || (someVisibleSelected && "indeterminate")}
+                    onCheckedChange={() => onToggleVisible(parts)}
+                    disabled={parts.length === 0}
+                    aria-label={CATALOG_STRINGS.bulk.selectVisible}
+                    title={CATALOG_STRINGS.bulk.selectVisible}
+                  />
+                </th>
+                <th className="px-2 py-2" />
                 {visibleCols.map((col) => {
-                  const active = sort.orderBy === col.field;
+                  const active = col.field != null && sort.orderBy === col.field;
                   const icon = active
                     ? sort.orderDir === "asc"
                       ? "mdi:arrow-up"
                       : "mdi:arrow-down"
                     : "mdi:unfold-more-horizontal";
                   return (
-                    <th
-                      key={col.id}
-                      className={cn(
-                        "relative overflow-hidden px-2 py-2",
-                        col.align === "right" && "text-right",
-                      )}
-                    >
+                    <th key={col.id} className="relative overflow-hidden px-2 py-2">
                       <button
                         type="button"
-                        onClick={() => handleSort(col.field)}
-                        className="inline-flex max-w-full items-center gap-1 truncate text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
+                        disabled={col.field == null}
+                        onClick={() => col.field && handleSort(col.field)}
+                        className={cn(
+                          "inline-flex max-w-full items-center gap-1 truncate text-[9.5px] font-bold uppercase tracking-[0.14em]",
+                          active ? "text-foreground" : "text-muted-foreground",
+                          col.field != null && "hover:text-foreground",
+                        )}
                       >
                         <span className="truncate">{col.label}</span>
-                        <Icon icon={icon} size={12} className={cn(!active && "opacity-40")} />
+                        {col.field != null && (
+                          <Icon
+                            icon={icon}
+                            size={11}
+                            className={cn(active ? "text-primary" : "opacity-40")}
+                          />
+                        )}
                       </button>
                       <span
                         role="separator"
@@ -196,107 +265,46 @@ export function CatalogTable({
           {isLoading && parts.length === 0
             ? Array.from({ length: 8 }).map((_, i) => (
                 <tr key={`skeleton-${i}`} className="border-b border-border">
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-10 w-10 rounded-md" />
+                  <td className="px-3 py-3" />
+                  <td className="px-2 py-3">
+                    <Skeleton className="h-9 w-9 rounded-lg" />
                   </td>
                   <td className="px-2 py-3" colSpan={visibleCols.length + 1}>
                     <Skeleton className="h-4 w-3/4" />
                   </td>
                 </tr>
               ))
-            : parts.map((part) => (
-                <Fragment key={part.id}>
+            : parts.map((part) => {
+                const isSelected = selectedIds.has(part.id);
+                return (
                   <tr
+                    key={part.id}
                     onClick={() => onRowClick(part.id)}
                     className={cn(
-                      "cursor-pointer border-b border-border transition-colors hover:bg-muted/50",
+                      "cursor-pointer border-b border-border transition-colors",
+                      isSelected ? "bg-primary/5" : "hover:bg-muted/50",
                       !part.active && "opacity-60",
                     )}
                   >
-                    <td className="px-4 py-3">
-                      <PartImage part={part} size="sm" />
+                    <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => onToggleRow(part.id)}
+                        aria-label={`Selecionar ${part.name}`}
+                      />
                     </td>
-                    <td className="overflow-hidden px-2 py-3">
-                      <div className="flex flex-col">
-                        <span className="truncate font-medium uppercase text-foreground">
-                          {part.name}
-                        </span>
-                        <span className="truncate text-xs text-muted-foreground">{part.sku}</span>
-                      </div>
+                    <td className="px-2 py-2.5">
+                      <CategoryTile category={part.category} />
                     </td>
-                    {visibleColumns.has("oem") && (
-                      <td className="truncate px-2 py-3 font-mono text-xs text-foreground">
-                        {part.oemCodes[0] ?? "—"}
+                    {visibleCols.map((col) => (
+                      <td key={col.id} className="overflow-hidden px-2 py-2.5">
+                        {renderCell(col, part)}
                       </td>
-                    )}
-                    {visibleColumns.has("category") && (
-                      <td className="overflow-hidden px-2 py-3 text-foreground">
-                        <div className="flex flex-col">
-                          <span className="truncate text-xs">
-                            {getCategoryLabel(part.category)}
-                          </span>
-                          {part.subcategory && (
-                            <span className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">
-                              {part.subcategory}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                    {visibleColumns.has("manufacturer") && (
-                      <td className="overflow-hidden px-2 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="truncate text-foreground">{part.brand}</span>
-                          {part.isOriginal && (
-                            <span className="inline-flex shrink-0 items-center rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-700 dark:text-amber-300">
-                              {CATALOG_STRINGS.badges.original}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                    {visibleColumns.has("applications") && (
-                      <td className="truncate px-2 py-3 text-xs text-muted-foreground">
-                        {applicationsLabel(part)}
-                      </td>
-                    )}
-                    {visibleColumns.has("price") && (
-                      <td className="truncate px-2 py-3 font-medium text-foreground">
-                        {formatPrice(part.unitPrice)}
-                      </td>
-                    )}
-                    {visibleColumns.has("stock") && (
-                      <td className="px-2 py-3">
-                        <StockBadge part={part} variant="compact" />
-                      </td>
-                    )}
-                    {visibleColumns.has("status") && (
-                      <td className="overflow-hidden px-2 py-3">
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1 text-xs",
-                            part.active
-                              ? "text-severity-success"
-                              : "text-muted-foreground",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "h-1.5 w-1.5 shrink-0 rounded-full",
-                              part.active ? "bg-severity-success" : "bg-muted-foreground",
-                            )}
-                            aria-hidden="true"
-                          />
-                          {part.active
-                            ? CATALOG_STRINGS.status.active
-                            : CATALOG_STRINGS.status.inactive}
-                        </span>
-                      </td>
-                    )}
-                    <td className="px-1 py-3" />
+                    ))}
+                    <td className="px-1 py-2.5" />
                   </tr>
-                </Fragment>
-              ))}
+                );
+              })}
         </tbody>
       </table>
     </div>

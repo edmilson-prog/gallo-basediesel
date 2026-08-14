@@ -18,6 +18,7 @@ import { CATALOG_STRINGS } from "../../i18n/pt-BR";
 import { PART_CATEGORY_DESCRIPTORS, getSubcategoriesFor } from "../../utils/categories";
 import {
   activeFilterCount,
+  type CatalogView,
   type ICatalogListFilters,
   type OriginBucket,
   type StatusBucket,
@@ -34,6 +35,8 @@ export interface ICatalogFiltersBarProps {
   vehicleYearOptions: number[];
   stores: IStore[];
   canFilterStore: boolean;
+  view: CatalogView;
+  onViewChange: (view: CatalogView) => void;
 }
 
 export function CatalogFiltersBar({
@@ -46,6 +49,8 @@ export function CatalogFiltersBar({
   vehicleYearOptions,
   stores,
   canFilterStore,
+  view,
+  onViewChange,
 }: ICatalogFiltersBarProps) {
   const count = activeFilterCount(filters);
   const subOptions = useMemo(
@@ -318,6 +323,7 @@ export function CatalogFiltersBar({
           <SelectItem value="in_stock">{CATALOG_STRINGS.filters.stockInStock}</SelectItem>
           <SelectItem value="low">{CATALOG_STRINGS.filters.stockLow}</SelectItem>
           <SelectItem value="zero">{CATALOG_STRINGS.filters.stockZero}</SelectItem>
+          <SelectItem value="restock">{CATALOG_STRINGS.filters.stockRestock}</SelectItem>
         </SelectContent>
       </Select>
 
@@ -368,16 +374,73 @@ export function CatalogFiltersBar({
         </Popover>
       )}
 
-      {count > 0 && (
-        <Button variant="ghost" size="sm" onClick={onClear} className="ml-auto text-xs">
-          <Icon icon="mdi:close-circle-outline" size={14} />
-          {CATALOG_STRINGS.filters.clear}
-          <span className="ml-1 text-muted-foreground">·</span>
-          <span className="text-muted-foreground">
-            {CATALOG_STRINGS.filters.activeCount(count)}
-          </span>
-        </Button>
-      )}
+      <div className="ml-auto flex items-center gap-2">
+        {count > 0 && (
+          <Button variant="ghost" size="sm" onClick={onClear} className="text-xs">
+            <Icon icon="mdi:close-circle-outline" size={14} />
+            {CATALOG_STRINGS.filters.clear}
+            <span className="ml-1 text-muted-foreground">·</span>
+            <span className="text-muted-foreground">
+              {CATALOG_STRINGS.filters.activeCount(count)}
+            </span>
+          </Button>
+        )}
+        <CatalogViewToggle value={view} onChange={onViewChange} />
+      </div>
+    </div>
+  );
+}
+
+const VIEW_OPTIONS = [
+  {
+    value: "table" as const,
+    label: CATALOG_STRINGS.view.table,
+    icon: "mdi:table",
+    hint: CATALOG_STRINGS.view.tableHint,
+  },
+  {
+    value: "grouped" as const,
+    label: CATALOG_STRINGS.view.grouped,
+    icon: "mdi:format-list-group",
+    hint: CATALOG_STRINGS.view.groupedHint,
+  },
+];
+
+/** Flat working desk ⇄ grouped by category — same rows, two readings. */
+function CatalogViewToggle({
+  value,
+  onChange,
+}: {
+  value: CatalogView;
+  onChange: (view: CatalogView) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={CATALOG_STRINGS.view.label}
+      className="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-border bg-background p-0.5"
+    >
+      {VIEW_OPTIONS.map((option) => {
+        const active = value === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={active}
+            title={option.hint}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded px-2 py-1 text-[11px] font-semibold transition-colors",
+              active
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Icon icon={option.icon} size={14} />
+            <span className="hidden md:inline">{option.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

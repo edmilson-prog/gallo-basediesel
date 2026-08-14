@@ -5,17 +5,21 @@ import { usePersistedListSearch } from "@/shared/hooks/usePersistedListSearch";
 import {
   DEFAULT_PAGE_SIZE,
   DEFAULT_SORT,
+  DEFAULT_VIEW,
   EMPTY_FILTERS,
+  isCatalogView,
   PAGE_SIZES,
   type CatalogOrderBy,
   type CatalogOrderDir,
   type CatalogPageSize,
+  type CatalogView,
   type ICatalogListFilters,
   type ICatalogListSort,
   type OriginBucket,
   type StatusBucket,
   type StockBucket,
 } from "../utils/listFilters";
+import { DEFAULT_COVERAGE, isCoverageBucket, type CoverageBucket } from "../utils/completeness";
 
 const VALID_CATEGORIES = new Set<PartCategory>([
   "filtro",
@@ -30,16 +34,19 @@ const VALID_CATEGORIES = new Set<PartCategory>([
   "lubrificante",
 ]);
 
-const VALID_STOCK = new Set<StockBucket>(["any", "in_stock", "low", "zero"]);
+const VALID_STOCK = new Set<StockBucket>(["any", "in_stock", "low", "zero", "restock"]);
 const VALID_STATUS = new Set<StatusBucket>(["any", "active", "inactive"]);
 const VALID_ORIGIN = new Set<OriginBucket>(["any", "original", "equivalent"]);
 const VALID_ORDER_BY = new Set<CatalogOrderBy>([
   "name",
   "oem",
   "category",
+  "ficha",
   "manufacturer",
   "applications",
   "unitPrice",
+  "margin",
+  "turnover",
   "stockAvailable",
   "status",
 ]);
@@ -61,6 +68,10 @@ export interface ICatalogListSearch {
   status?: string;
   stores?: string;
   q?: string;
+  /** Completeness bucket from the coverage strip. */
+  cov?: string;
+  /** Flat table or grouped by category. */
+  view?: string;
   orderBy?: string;
   orderDir?: string;
   page?: number;
@@ -98,6 +109,8 @@ export function validateCatalogSearch(raw: Record<string, unknown>): ICatalogLis
   passString("status");
   passString("stores");
   passString("q");
+  passString("cov");
+  passString("view");
   passString("orderBy");
   passString("orderDir");
   const p = numberOrUndefined(raw.page);
@@ -147,7 +160,12 @@ function readFilters(search: ICatalogListSearch): ICatalogListFilters {
     status,
     storeIds: splitCsv(search.stores),
     search: search.q ?? "",
+    coverage: isCoverageBucket(search.cov) ? search.cov : DEFAULT_COVERAGE,
   };
+}
+
+function readView(search: ICatalogListSearch): CatalogView {
+  return isCatalogView(search.view) ? search.view : DEFAULT_VIEW;
 }
 
 function readSort(search: ICatalogListSearch): ICatalogListSort {
@@ -173,10 +191,13 @@ function readPage(search: ICatalogListSearch): { page: number; pageSize: Catalog
 export interface ICatalogUrlState {
   filters: ICatalogListFilters;
   sort: ICatalogListSort;
+  view: CatalogView;
   page: number;
   pageSize: CatalogPageSize;
   patchFilters: (patch: Partial<ICatalogListFilters>) => void;
   setSort: (sort: ICatalogListSort) => void;
+  setView: (view: CatalogView) => void;
+  setCoverage: (coverage: CoverageBucket) => void;
   setPage: (page: number) => void;
   setPageSize: (size: CatalogPageSize) => void;
   setSearch: (q: string) => void;
@@ -189,6 +210,7 @@ export function useCatalogUrlState(): ICatalogUrlState {
 
   const filters = useMemo(() => readFilters(search), [search]);
   const sort = useMemo(() => readSort(search), [search]);
+  const view = useMemo(() => readView(search), [search]);
   const { page, pageSize } = useMemo(() => readPage(search), [search]);
 
   usePersistedListSearch(LIST_SEARCH_STORAGE_KEY, search as Record<string, unknown>, (saved) => {
@@ -227,6 +249,7 @@ export function useCatalogUrlState(): ICatalogUrlState {
         status: f.status === "active" ? undefined : f.status,
         stores: joinCsv(f.storeIds),
         q: f.search?.trim() ? f.search.trim() : undefined,
+        cov: f.coverage === DEFAULT_COVERAGE ? undefined : f.coverage,
         page: undefined,
       });
     },
@@ -236,6 +259,7 @@ export function useCatalogUrlState(): ICatalogUrlState {
   return {
     filters,
     sort,
+    view,
     page,
     pageSize,
     patchFilters: (patch) => writeFilters({ ...filters, ...patch }),
@@ -244,6 +268,9 @@ export function useCatalogUrlState(): ICatalogUrlState {
         orderBy: next.orderBy === DEFAULT_SORT.orderBy ? undefined : next.orderBy,
         orderDir: next.orderDir === DEFAULT_SORT.orderDir ? undefined : next.orderDir,
       }),
+    setView: (next) => apply({ view: next === DEFAULT_VIEW ? undefined : next }),
+    setCoverage: (next) =>
+      apply({ cov: next === DEFAULT_COVERAGE ? undefined : next, page: undefined }),
     setPage: (p) => apply({ page: p <= 1 ? undefined : p }),
     setPageSize: (size) =>
       apply({ pageSize: size === DEFAULT_PAGE_SIZE ? undefined : size, page: undefined }),
@@ -263,6 +290,7 @@ export function useCatalogUrlState(): ICatalogUrlState {
         status: undefined,
         stores: undefined,
         q: undefined,
+        cov: undefined,
         page: undefined,
       }),
   };
