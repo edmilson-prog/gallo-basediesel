@@ -36,6 +36,8 @@ export function buildCustomerFactCells(
   customer: ICustomer,
   sellerName: string | null,
   storeName: string | null,
+  /** How many people the Agenda knows for this company. */
+  contactCount = 0,
 ): ICustomerFactCell[] {
   const rawDocument = customer.type === "B2B" ? customer.cnpj : customer.cpf;
   const document = rawDocument?.trim()
@@ -45,13 +47,19 @@ export function buildCustomerFactCells(
     : null;
   const legalName = customer.type === "B2B" ? customer.razaoSocial : customer.fullName;
   const phoneDigits = customer.phone?.replace(/\D/g, "") ?? "";
+  // A company is reached through several people. The header keeps showing the
+  // main number — the anchor every surface addresses — and adds "+N" so the
+  // existence of the others is visible in the first fold WITHOUT spending a new
+  // cell. The label follows: one number is a "Telefone", several are "Contatos".
+  const others = Math.max(0, contactCount - 1);
 
   return [
     {
       key: "phone",
-      icon: "mdi:phone-outline",
-      label: COPY.phone,
+      icon: others > 0 ? "mdi:card-account-phone-outline" : "mdi:phone-outline",
+      label: others > 0 ? COPY.contacts : COPY.phone,
       value: customer.phone ? formatPhone(customer.phone) : null,
+      suffix: others > 0 ? `+${others}` : undefined,
       href: phoneDigits ? `tel:${phoneDigits}` : undefined,
       copyable: true,
       mono: true,

@@ -144,6 +144,7 @@ function CustomerDetailContent({ customer }: { customer: ICustomer }) {
             onCreateQuote={handleCreateQuote}
             layout={layout}
             onToggleLayout={toggleLayout}
+            contactCount={header.counts.contacts}
           />
         ) : (
           /* Direction A — header bands: identity → facts → commercial → alerts.
@@ -162,6 +163,7 @@ function CustomerDetailContent({ customer }: { customer: ICustomer }) {
               customer={customer}
               sellerName={header.sellerName}
               storeName={header.storeName}
+              contactCount={header.counts.contacts}
             />
             <CustomerCommercialBand
               customer={customer}

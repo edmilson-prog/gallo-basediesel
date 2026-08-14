@@ -3,6 +3,7 @@ import type { ICustomer } from "@/shared/types";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { Icon } from "@/components/Icon";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CustomerMediaTab } from "@/features/conversations/components/media/CustomerMediaTab";
 import { AttendanceHistoryPanel } from "@/features/attendance-history";
@@ -14,6 +15,7 @@ import { OrdersTab } from "./tabs/OrdersTab";
 import { QuotesTab } from "./tabs/QuotesTab";
 import { VehiclesTab } from "./tabs/VehiclesTab";
 import { ConversationsTab } from "./tabs/ConversationsTab";
+import { ContactsTab } from "./tabs/ContactsTab";
 import { NotesTab } from "./tabs/NotesTab";
 import { RecommendationsTab } from "./tabs/RecommendationsTab";
 import { CustomerAlertsBand } from "./detail/CustomerAlertsBand";
@@ -36,6 +38,7 @@ export type CustomerTabKey =
   | "comercial"
   | "frota"
   | "conversas"
+  | "contatos"
   | "cadastro"
   | "notas";
 
@@ -81,6 +84,15 @@ const TABS: ITabDefinition[] = [
       { key: "midias", label: COPY.subMedia },
       { key: "historico", label: COPY.subHistory },
     ],
+  },
+  {
+    // The counter is the point of this tab existing: it is the only place the
+    // fact that a company speaks through five numbers is visible WITHOUT a
+    // click. Buried in a card it would announce nothing.
+    key: "contatos",
+    label: COPY.contatos,
+    icon: "mdi:card-account-phone-outline",
+    count: (c) => c.contacts,
   },
   {
     key: "cadastro",
@@ -138,6 +150,9 @@ export function CustomerTabs({
   onScheduleFollowUp,
 }: ICustomerTabsProps) {
   const [subTab, setSubTab] = useState<Record<string, string>>({});
+  // Pulse to the Contatos panel, so the header button and the empty state's CTA
+  // open the very same dialog instead of each owning a copy.
+  const [linkSignal, setLinkSignal] = useState(0);
   const activeDefinition = TABS.find((tab) => tab.key === activeTab);
   const activeSub = activeDefinition?.subTabs
     ? (subTab[activeTab] ?? activeDefinition.subTabs[0]?.key ?? null)
@@ -277,6 +292,26 @@ export function CustomerTabs({
             {activeSub === "conversas" && <ConversationsTab customer={customer} headless />}
             {activeSub === "midias" && <CustomerMediaTab customerId={customer.id} />}
             {activeSub === "historico" && <AttendanceHistoryPanel customerId={customer.id} />}
+          </CustomerPanel>
+        )}
+
+        {activeTab === "contatos" && (
+          <CustomerPanel
+            title={PANELS.contacts}
+            right={
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 text-xs"
+                onClick={() => setLinkSignal((n) => n + 1)}
+              >
+                <Icon icon="mdi:link-variant-plus" size={14} aria-hidden />
+                {CUSTOMER_STRINGS.detail.contacts.linkNumber}
+              </Button>
+            }
+            flush
+          >
+            <ContactsTab customer={customer} linkSignal={linkSignal} />
           </CustomerPanel>
         )}
 

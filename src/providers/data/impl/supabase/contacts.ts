@@ -321,6 +321,7 @@ function buildFilteredQuery(
   query = query.is("ignored_at", null);
 
   if (params.storeId) query = query.eq("store_id", params.storeId);
+  if (params.customerId) query = query.eq("customer_id", params.customerId);
   if (params.tags?.length) query = query.overlaps("tags", params.tags);
   if (params.sources?.length) query = query.in("source", params.sources);
   if (params.city) query = query.eq("city", params.city);

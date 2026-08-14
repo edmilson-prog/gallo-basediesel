@@ -44,6 +44,13 @@ export type ContactsOrderBy =
 export interface IListContactsParams extends IPaginationParams {
   storeId?: ID;
   scope?: ContactScope;
+  /**
+   * Every contact of ONE customer — the people who speak for that company.
+   * A company is reached through several numbers (owner, purchasing, counter),
+   * and this is how a customer-side surface asks for them. Distinct from
+   * `scope: "vinculados"`, which means "linked to ANY customer".
+   */
+  customerId?: ID;
   /** Matches name, phone (formatted AND digits-only), e-mail, company, role, city. */
   search?: string;
   ownerSellerIds?: ID[];
