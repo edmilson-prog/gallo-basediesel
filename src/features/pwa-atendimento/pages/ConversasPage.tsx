@@ -76,7 +76,7 @@ export function ConversasPage() {
         count={list.items.length}
       />
 
-      <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
         {list.isLoading && list.items.length === 0 ? (
           <p
             aria-busy="true"
