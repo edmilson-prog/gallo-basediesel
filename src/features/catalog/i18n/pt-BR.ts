@@ -122,6 +122,8 @@ export const CATALOG_STRINGS = {
     priceHistory: {
       empty: "Nenhuma alteração de preço registrada.",
       header: "Últimas alterações",
+      title: "Histórico de preço & custo",
+      loading: "Carregando…",
     },
     layout: {
       ariaLabel: "Escolher layout da ficha",
@@ -173,6 +175,14 @@ export const CATALOG_STRINGS = {
       type: "Tipo",
       segment: "Segmento",
       noGtin: "GTIN não cadastrado",
+      code: (sku: string) => `Cód. ${sku}`,
+      oem: (code: string) => `OEM ${code}`,
+      brand: "Marca",
+      unit: "Unidade",
+      location: "Localização",
+      locationDefined: "Definido",
+      locationUndefined: "A definir",
+      empty: "—",
     },
     sefaz: {
       validated: "Validado no SEFAZ",
@@ -185,6 +195,8 @@ export const CATALOG_STRINGS = {
     pricing: {
       title: "Tabelas de preço",
       baseCost: "Custo base",
+      standardBadge: "Padrão",
+      editTable: (label: string) => `Editar tabela ${label}`,
       table: "Tabela",
       markup: "Markup",
       price: "Preço",
@@ -221,6 +233,9 @@ export const CATALOG_STRINGS = {
       cost: "Custo",
       qty: "Qtd",
       avgCost: "Custo médio (C.M.)",
+      lastPurchase: "Última compra",
+      entryLine: (parts: string[]) => parts.join(" · "),
+      units: (n: number) => `${n} un`,
       empty: "Nenhum fornecedor registrado.",
       addTitle: "Adicionar nova entrada",
       hint: "Preencha fornecedor, custo e quantidade para registrar uma nova compra",

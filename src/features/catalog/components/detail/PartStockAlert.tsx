@@ -2,6 +2,7 @@ import { toast } from "sonner";
 import type { IPart } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { formatBRL } from "@/shared/utils/format";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
 import { buildRestockSummary, latestSupplier } from "../../utils/restock";
@@ -10,13 +11,14 @@ const COPY = CATALOG_STRINGS.detail.stockAlert;
 
 export interface IPartStockAlertProps {
   part: IPart;
+  className?: string;
 }
 
 /**
  * Actionable low-stock banner (design kit `CatStockAlert`). The CTA copies a
  * restock summary to the clipboard — there is no purchase-order module yet.
  */
-export function PartStockAlert({ part }: IPartStockAlertProps) {
+export function PartStockAlert({ part, className }: IPartStockAlertProps) {
   if (!part.active || part.stockAvailable > part.stockMinimum) return null;
 
   const supplier = latestSupplier(part.suppliers);
@@ -36,13 +38,18 @@ export function PartStockAlert({ part }: IPartStockAlertProps) {
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-severity-critical/40 bg-severity-critical/10 px-4 py-3 sm:flex-row sm:items-center">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-severity-critical/15">
+    <div
+      className={cn(
+        "flex flex-col gap-3.5 rounded-xl border border-severity-critical/40 bg-severity-critical/10 px-[18px] py-[13px] sm:flex-row sm:items-center",
+        className,
+      )}
+    >
+      <span className="grid size-[34px] shrink-0 place-items-center rounded-[9px] bg-severity-critical/20">
         <Icon icon="mdi:alert" size={18} className="text-severity-critical" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm font-bold text-foreground">{title}</p>
+        <p className="text-[12.5px] text-muted-foreground">
           {supplier ? COPY.lastSupplier(supplier.name, formatBRL(cost)) : COPY.noSupplier}
         </p>
       </div>

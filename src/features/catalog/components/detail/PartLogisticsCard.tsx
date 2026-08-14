@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
 import type { IPartDraft } from "../../utils/draft";
 import { StockBadge } from "../StockBadge";
+import { PartSpecRow } from "./PartSpecRow";
 
 const COPY = CATALOG_STRINGS.detail.logistics;
 const STOCK_COPY = CATALOG_STRINGS.detail.stock;
@@ -15,6 +16,8 @@ export interface IPartLogisticsCardProps {
   editing?: boolean;
   draft?: IPartDraft;
   onDraftChange?: (patch: Partial<IPartDraft>) => void;
+  /** Drop the card chrome — the counter layout already wraps the tab body. */
+  headless?: boolean;
 }
 
 export function PartLogisticsCard({
@@ -22,10 +25,11 @@ export function PartLogisticsCard({
   editing = false,
   draft,
   onDraftChange,
+  headless = false,
 }: IPartLogisticsCardProps) {
   if (editing && draft && onDraftChange) {
     return (
-      <div className="rounded-lg border border-border bg-card p-4">
+      <Shell headless={headless}>
         <div className="mb-3 flex items-center justify-between">
           <CardHeader />
           <StockBadge
@@ -107,7 +111,7 @@ export function PartLogisticsCard({
             />
           </EditField>
         </div>
-      </div>
+      </Shell>
     );
   }
 
@@ -119,35 +123,42 @@ export function PartLogisticsCard({
     part.unitOfMeasure;
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <Shell headless={headless}>
       <div className="mb-3 flex items-center justify-between">
         <CardHeader />
         <StockBadge part={part} />
       </div>
       {hasData ? (
-        <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-          <Field
+        <div className="grid grid-cols-1 gap-x-10 sm:grid-cols-2">
+          <PartSpecRow
             label={COPY.weight}
-            value={
-              part.weightKg != null ? `${part.weightKg.toLocaleString("pt-BR")} kg` : undefined
-            }
+            value={part.weightKg != null ? `${part.weightKg.toLocaleString("pt-BR")} kg` : "—"}
           />
-          <Field label={COPY.location} value={part.storageLocation} mono />
-          <Field
+          <PartSpecRow
+            label={COPY.location}
+            value={part.storageLocation ?? "—"}
+            mono={Boolean(part.storageLocation)}
+          />
+          <PartSpecRow
             label={COPY.boxQty}
-            value={part.boxQuantity != null ? String(part.boxQuantity) : undefined}
+            value={part.boxQuantity != null ? String(part.boxQuantity) : "—"}
           />
-          <Field
+          <PartSpecRow
             label={COPY.fractionable}
-            value={part.fractionable != null ? (part.fractionable ? COPY.yes : COPY.no) : undefined}
+            value={part.fractionable != null ? (part.fractionable ? COPY.yes : COPY.no) : "—"}
           />
-          <Field label={COPY.unit} value={part.unitOfMeasure} />
-        </dl>
+          <PartSpecRow label={COPY.unit} value={part.unitOfMeasure ?? "—"} />
+        </div>
       ) : (
         <p className="text-sm text-muted-foreground">{COPY.empty}</p>
       )}
-    </div>
+    </Shell>
   );
+}
+
+function Shell({ headless, children }: { headless: boolean; children: React.ReactNode }) {
+  if (headless) return <div>{children}</div>;
+  return <div className="rounded-lg border border-border bg-card p-4">{children}</div>;
 }
 
 function CardHeader() {
@@ -155,15 +166,6 @@ function CardHeader() {
     <div className="flex items-center gap-2">
       <Icon icon="mdi:package-variant-closed" size={18} className="text-muted-foreground" />
       <h2 className="text-sm font-semibold tracking-tight text-foreground">{COPY.title}</h2>
-    </div>
-  );
-}
-
-function Field({ label, value, mono }: { label: string; value?: string; mono?: boolean }) {
-  return (
-    <div className="rounded-md bg-muted/40 px-2.5 py-1.5">
-      <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</dt>
-      <dd className={mono ? "font-mono text-foreground" : "text-foreground"}>{value ?? "—"}</dd>
     </div>
   );
 }
