@@ -1,13 +1,13 @@
 import type { IPart, IVehicleModel, IVehicleModelKit } from "@/shared/types";
-import { normalizeToken } from "./modelKitMatching";
+import { applicationMatchesModel } from "../engine";
 
-/** True when one of a part's applications matches the model by brand + model. */
+/**
+ * True when one of a part's applications reaches the model. Delegates to the
+ * engine, which knows the supplier dialect (`fh13460` is an `FH 460`); a plain
+ * string comparison matched nothing in production.
+ */
 function partAppliesToModel(part: IPart, model: IVehicleModel): boolean {
-  return part.applications.some(
-    (app) =>
-      normalizeToken(app.vehicleBrand) === normalizeToken(model.brand) &&
-      normalizeToken(app.vehicleModel) === normalizeToken(model.model),
-  );
+  return (part.applications ?? []).some((app) => applicationMatchesModel(app, model));
 }
 
 /** Every catalog part whose applications reach this model — the pool a kit is

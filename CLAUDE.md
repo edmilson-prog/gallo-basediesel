@@ -37,6 +37,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > 🚫 **Nunca crie branches nem faça commits diretamente no diretório principal.** O diretório principal (`D:\claude\gallo-basediesel`, fora de `worktrees/`) deve **sempre** permanecer na `main`, sincronizado com `origin/main` — nunca com uma branch de feature/fix/docs checkada nele. Toda tarefa que exija modificar código, documentação, migrations ou qualquer arquivo do projeto **deve** começar criando uma **worktree isolada** (`git worktree add .claude/worktrees/<nome> -b <branch>`, ou a ferramenta `EnterWorktree` quando disponível) e trabalhar a partir dela. Essa regra é **imperativa em toda sessão nova**, independente de memória ou contexto prévio.
 
+> 🛑 **JAMAIS exclua uma worktree sem autorização expressa do dono.** Vale para qualquer forma de remoção: `git worktree remove`, `git worktree prune`, `rm -rf .claude/worktrees/<nome>`, `ExitWorktree` com remoção e a limpeza oferecida ao encerrar a sessão — em todas, o default é **manter** (`keep`). O motivo: a worktree pode conter trabalho não commitado ou não pushado, e **outras sessões podem estar trabalhando nela em paralelo** — remover destrói trabalho alheio de forma irreversível. **Mergear o PR não autoriza remover a worktree**; branch mergeada **não** é sinal de worktree descartável. Só remova quando o dono disser, nesta conversa, **qual** worktree remover — nunca por inferência, nunca "para limpar", nunca junto de outra tarefa.
+
 ## Comandos
 
 Gerenciador de pacotes: **bun** (`bun.lock` presente). Scripts em `package.json` — `bun run dev | build | lint | format | test`.
