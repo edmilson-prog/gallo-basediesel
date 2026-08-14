@@ -52,7 +52,22 @@ docs/images/*.webp
 
 # Customer PII / raw data dumps — must never reach the remote (LGPD).
 # These stay local-only; the database itself is also far over GitHub's 100MB limit.
-docs/db/*.FDB
+#
+# docs/db/ is an ALLOWLIST, not a denylist: everything is ignored by default and
+# only the curated technical docs below are versioned. The previous rule listed
+# extensions to exclude (*.FDB) and let every CSV/HTML/JSON through — which is how
+# two customer exports reached a public remote. Enumerating what to block always
+# loses to the next file type; enumerating what to keep does not.
+#
+# Adding a doc here? Confirm it carries no name, phone, CPF/CNPJ, address or
+# e-mail of a real customer before listing it.
+docs/db/*
+!docs/db/GUIA-BANCO-TURBO-DIESEL.md
+!docs/db/cutover-smoke-checklist.md
+!docs/db/performance-baseline.md
+!docs/db/performance.md
+!docs/db/rls-policies-fase2-mvp.md
+!docs/db/schema-overview.md
 docs/export/
 docs/contatos-*.txt
 docs/prds/Termo_Consentimento_*.pdf
