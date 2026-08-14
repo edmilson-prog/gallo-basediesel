@@ -21,7 +21,7 @@ function PwaImageBody({ message, outgoing }: { message: IMessage; outgoing: bool
   const [viewerOpen, setViewerOpen] = useState(false);
   const caption = message.text?.trim();
   return (
-    <div className="w-[214px]">
+    <div className="w-[214px] max-w-full">
       {url ? (
         // O balão corta a foto (`object-cover`) para a lista não virar uma
         // coluna de alturas irregulares — quem quer ver a foto inteira toca
@@ -53,7 +53,11 @@ function PwaImageBody({ message, outgoing }: { message: IMessage; outgoing: bool
           />
         </div>
       )}
-      {caption && <p className="mt-1.5 text-[13.5px] leading-snug">{caption}</p>}
+      {caption && (
+        <p className="mt-1.5 whitespace-pre-wrap break-words text-[13.5px] leading-snug">
+          {caption}
+        </p>
+      )}
 
       <PwaMediaViewer
         open={viewerOpen}
@@ -80,7 +84,7 @@ function PwaDocumentBody({ message, outgoing }: { message: IMessage; outgoing: b
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "flex min-h-[44px] w-[220px] items-center gap-2.5 rounded-sm px-2.5 py-2",
+        "flex min-h-[44px] w-[220px] max-w-full items-center gap-2.5 rounded-sm px-2.5 py-2",
         outgoing ? "bg-foreground/10" : "bg-background/10",
         !url && "pointer-events-none opacity-60",
       )}
@@ -96,7 +100,7 @@ function PwaVideoBody({ message, outgoing }: { message: IMessage; outgoing: bool
   const { data: url } = useResolvedMediaUrl(message.mediaUrl);
   const caption = message.text?.trim();
   return (
-    <div className="w-[214px]">
+    <div className="w-[214px] max-w-full">
       {url ? (
         <video src={url} controls playsInline className="max-h-[280px] w-full rounded-sm" />
       ) : (
@@ -109,7 +113,11 @@ function PwaVideoBody({ message, outgoing }: { message: IMessage; outgoing: bool
           <Icon icon="mdi:video-off-outline" size={22} className="opacity-50" />
         </div>
       )}
-      {caption && <p className="mt-1.5 text-[13.5px] leading-snug">{caption}</p>}
+      {caption && (
+        <p className="mt-1.5 whitespace-pre-wrap break-words text-[13.5px] leading-snug">
+          {caption}
+        </p>
+      )}
     </div>
   );
 }
@@ -167,7 +175,10 @@ export function PwaBubble({ message }: { message: IMessage }) {
         );
       default:
         return caption ? (
-          <WhatsAppText text={caption} className="text-[14.5px] leading-snug" />
+          <WhatsAppText
+            text={caption}
+            className="whitespace-pre-wrap break-words text-[14.5px] leading-snug"
+          />
         ) : (
           <p className="text-[13.5px] italic opacity-70">Mensagem não suportada</p>
         );
