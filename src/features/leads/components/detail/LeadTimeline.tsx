@@ -32,6 +32,18 @@ export interface ILeadTimelineProps {
   conversationAt?: string;
   messages: IMessage[];
   canEdit: boolean;
+  /**
+   * `card` — the detail page's bordered block. `panel` — inside the lateral
+   * panel, where `PanelCard` already draws the border and the 360px column
+   * cannot afford a second frame plus 16px of padding on each side.
+   */
+  variant?: "card" | "panel";
+  /**
+   * Which slice the thread opens on. The panel's "Anotações" section is this
+   * same thread pre-filtered to notes — one implementation, two entry points,
+   * rather than a second notes list to keep in sync.
+   */
+  defaultFilter?: Filter;
 }
 
 /**
@@ -52,8 +64,11 @@ export function LeadTimeline({
   conversationAt,
   messages,
   canEdit,
+  variant = "card",
+  defaultFilter = "tudo",
 }: ILeadTimelineProps) {
-  const [filter, setFilter] = useState<Filter>("tudo");
+  const [filter, setFilter] = useState<Filter>(defaultFilter);
+  const isPanel = variant === "panel";
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -135,8 +150,18 @@ export function LeadTimeline({
   };
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card">
-      <header className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
+    <section
+      className={cn(
+        "overflow-hidden",
+        !isPanel && "rounded-lg border border-border bg-card",
+      )}
+    >
+      <header
+        className={cn(
+          "flex flex-wrap items-center gap-2 border-b border-border",
+          isPanel ? "px-0 pb-2" : "px-4 py-2.5",
+        )}
+      >
         <Icon icon="mdi:history" size={14} className="text-muted-foreground" aria-hidden />
         <h2 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {COPY.title}
@@ -162,7 +187,7 @@ export function LeadTimeline({
         </div>
       </header>
 
-      <div className="px-4 py-3">
+      <div className={isPanel ? "py-3" : "px-4 py-3"}>
         {canEdit && (
           <div className="mb-4 flex gap-2">
             <Input

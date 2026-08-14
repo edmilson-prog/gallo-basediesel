@@ -38,7 +38,7 @@ export function FicheFunnelsBlock({
     storeId,
     expanded,
   });
-  const { moveStage, addToFunnel, removeFrom, pendingEntryId } = useEntryMutations({
+  const { moveStage, addToFunnel, removeFrom, setValue, pendingEntryId } = useEntryMutations({
     entriesQueryKey: ["lead-funnel-entries-via-conversation", conversationId],
     storeId,
   });
@@ -54,11 +54,15 @@ export function FicheFunnelsBlock({
   const totalReachable = view.visible.length + view.hiddenCount;
 
   return (
-    <section aria-labelledby="fiche-funnels-title" className="mb-3">
-      <div className="mb-1.5 flex items-center justify-between gap-2">
+    <section aria-labelledby="fiche-funnels-title">
+      {/* Panel grammar (ui_kits/atendimento/painel): icon + uppercase eyebrow +
+          a single action at the far right, same as every other card header in
+          the lateral panel. */}
+      <div className="mb-2.5 flex items-center gap-1.5">
+        <Icon icon="mdi:source-branch" size={12} className="text-muted-foreground" aria-hidden />
         <h3
           id="fiche-funnels-title"
-          className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+          className="flex-1 text-[10.5px] font-extrabold uppercase tracking-[0.16em] text-foreground/80"
         >
           {COPY.fiche.title}
         </h3>
@@ -74,7 +78,7 @@ export function FicheFunnelsBlock({
           {canEdit && <AddToFunnelMenu funnels={addableFunnels} onAdd={handleAdd} variant="text" />}
         </p>
       ) : (
-        <ul className="space-y-1">
+        <ul className="space-y-2">
           {view.visible.map((p) => (
             <FicheParticipationRow
               key={p.entry.id}
@@ -89,6 +93,7 @@ export function FicheFunnelsBlock({
                 moveStage(p.entry, stageId, p.funnel.name, stage.name);
               }}
               onRemove={() => removeFrom(p.entry, p.funnel.name)}
+              onSetValue={(value) => setValue(p.entry, value, p.funnel.name)}
             />
           ))}
         </ul>

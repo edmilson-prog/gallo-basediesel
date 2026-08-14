@@ -1,4 +1,5 @@
 import type { ID, ISO8601, Money } from "./common";
+import type { ICustomerAddress } from "./customer";
 
 /** Lead temperature — heuristic indicator suggested by SDR, adjustable by humans. */
 export type LeadTemperature = "frio" | "morno" | "quente";
@@ -42,6 +43,21 @@ export interface ILead {
   name: string;
   phone: string;
   email?: string;
+  /**
+   * CPF (11) or CNPJ (14), **digits only** — never masked. Captured during the
+   * conversation by the Atendimento panel's conversion checklist, and copied to
+   * `ICustomer.cpf`/`cnpj` on conversion. Column added by migration
+   * 20260814170000; the Supabase provider probes for it, so a build running
+   * against a database without that migration degrades to `undefined` instead
+   * of failing the read.
+   */
+  document?: string;
+  /**
+   * Postal address, same shape the customer carries — so conversion copies the
+   * object across instead of translating it. For a B2B lead the Receita lookup
+   * fills it; see `document` for the column-probe caveat.
+   */
+  address?: ICustomerAddress;
   /**
    * WhatsApp profile picture captured by the webhook / copied by the Frente B
    * migration (`leads.avatar_url`, migration 20260718202917). Read-only in the

@@ -1,4 +1,5 @@
 import type {
+  ICustomerAddress,
   ID,
   ILead,
   ILeadNote,
@@ -42,6 +43,9 @@ interface LeadRow {
   next_action_at: string | null;
   /** Absent from the row until migration 20260808120000 is applied. */
   next_action_kind?: LeadNextActionKind | null;
+  /** Both absent until migration 20260814170000 is applied. */
+  document?: string | null;
+  address?: ICustomerAddress | null;
   loss_reason: string | null;
   loss_notes: string | null;
   converted_to_customer_id: string | null;
@@ -58,32 +62,70 @@ const COLUMNS =
   "conversations, tags, created_at, updated_at";
 
 /**
- * `next_action_kind` arrives with migration 20260808120000, and in this project
- * merging the PR does NOT apply the migration. Naming the column in a `select`
- * before it exists answers 42703 and takes the whole screen down with it, so it
- * is requested separately and the module demotes itself on the first refusal —
- * for the rest of the session, and only for the two call sites that need it.
+ * Columns that arrive with a migration, and in this project merging the PR does
+ * NOT apply the migration. Naming one in a `select` before it exists answers
+ * 42703 and takes the whole screen down with it, so they are requested
+ * separately and the module demotes itself on the first refusal — for the rest
+ * of the session, and only for the call sites that need them.
  *
- * The list and the board never read it, which is why they stay on the fixed set
- * above: the one query that must not break is the one loading a thousand rows.
+ *  - `next_action_kind` — migration 20260808120000 (applied in prod 08/08/2026).
+ *  - `document` / `address` — migration 20260814170000, which feeds the
+ *    conversion checklist of the Atendimento panel.
+ *
+ * The list and the board never read any of them, which is why they stay on the
+ * fixed set above: the one query that must not break is the one loading a
+ * thousand rows.
  */
-let kindColumnAvailable = true;
+const OPTIONAL_COLUMNS = ["next_action_kind", "document", "address"] as const;
+type OptionalColumn = (typeof OPTIONAL_COLUMNS)[number];
 
-/** Column list for the lead DETAIL, which is the only reader of the kind. */
+const columnAvailable: Record<OptionalColumn, boolean> = {
+  next_action_kind: true,
+  document: true,
+  address: true,
+};
+
+/** Column list for the lead DETAIL, the only reader of the optional columns. */
 function detailColumns(): string {
-  return kindColumnAvailable ? `${COLUMNS}, next_action_kind` : COLUMNS;
+  const extra = OPTIONAL_COLUMNS.filter((c) => columnAvailable[c]);
+  return extra.length > 0 ? `${COLUMNS}, ${extra.join(", ")}` : COLUMNS;
 }
 
 /**
  * True — and demotes the module — only for "column does not exist". Every other
  * failure has to surface: swallowing them here would turn a permission error
- * into a silently kind-less lead.
+ * into a silently field-less lead.
+ *
+ * PostgREST names a single column per 42703 even when several are missing, so
+ * callers retry in a loop rather than once: a database with neither migration
+ * applied needs one demotion per column before the read gets through.
  */
-function isMissingKindColumn(error: { code?: string; message?: string } | null): boolean {
-  if (!error || !kindColumnAvailable) return false;
-  if (error.code !== "42703" || !(error.message ?? "").includes("next_action_kind")) return false;
-  kindColumnAvailable = false;
-  return true;
+function demoteMissingOptionalColumn(error: { code?: string; message?: string } | null): boolean {
+  if (!error || error.code !== "42703") return false;
+  const message = error.message ?? "";
+  for (const column of OPTIONAL_COLUMNS) {
+    if (columnAvailable[column] && message.includes(column)) {
+      columnAvailable[column] = false;
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Runs `attempt`, demoting one optional column per 42703 and retrying, until it
+ * succeeds or names nothing we can drop. Bounded by the column count: each pass
+ * either demotes a column that was still enabled or stops.
+ */
+async function withColumnProbe<T extends { error: { code?: string; message?: string } | null }>(
+  attempt: () => PromiseLike<T>,
+): Promise<T> {
+  let result = await attempt();
+  for (let i = 0; i < OPTIONAL_COLUMNS.length; i++) {
+    if (!demoteMissingOptionalColumn(result.error)) break;
+    result = await attempt();
+  }
+  return result;
 }
 
 function rowToLead(row: LeadRow): ILead {
@@ -94,6 +136,8 @@ function rowToLead(row: LeadRow): ILead {
     name: row.name,
     phone: row.phone,
     email: row.email ?? undefined,
+    document: row.document ?? undefined,
+    address: row.address ?? undefined,
     // avatar_url is written server-side (webhook / Frente B migration) and
     // read-only in the app: leadPatchToRow/createInputToRow never send it.
     avatarUrl: row.avatar_url ?? undefined,
@@ -130,6 +174,10 @@ export function leadPatchToRow(patch: Partial<ILead>): Record<string, unknown> {
   if (patch.name !== undefined) row.name = patch.name;
   if (patch.phone !== undefined) row.phone = patch.phone;
   if ("email" in patch) row.email = patch.email ?? null;
+  // Dropped while the column is missing, for the same reason as the kind below:
+  // a write that also carries the name still applies it instead of failing whole.
+  if ("document" in patch && columnAvailable.document) row.document = patch.document ?? null;
+  if ("address" in patch && columnAvailable.address) row.address = patch.address ?? null;
   if (patch.stage !== undefined) row.stage = patch.stage;
   if (patch.temperature !== undefined) row.temperature = patch.temperature;
   if (patch.origin !== undefined) row.origin = patch.origin;
@@ -137,7 +185,7 @@ export function leadPatchToRow(patch: Partial<ILead>): Record<string, unknown> {
   if ("nextActionAt" in patch) row.next_action_at = patch.nextActionAt ?? null;
   // Dropped entirely while the column is missing, so a write that carries the
   // kind still applies its date instead of failing whole.
-  if ("nextActionKind" in patch && kindColumnAvailable)
+  if ("nextActionKind" in patch && columnAvailable.next_action_kind)
     row.next_action_kind = patch.nextActionKind ?? null;
   if (patch.lossReason !== undefined) row.loss_reason = patch.lossReason;
   if (patch.lossNotes !== undefined) row.loss_notes = patch.lossNotes;
@@ -161,6 +209,10 @@ function createInputToRow(
     name: input.name,
     phone: input.phone,
     email: input.email ?? null,
+    // Same availability guard as the patch: naming a column the database does
+    // not have yet turns a lead creation into a 42703.
+    ...(columnAvailable.document ? { document: input.document ?? null } : {}),
+    ...(columnAvailable.address ? { address: input.address ?? null } : {}),
     stage: input.stage,
     temperature: input.temperature,
     origin: input.origin,
@@ -263,13 +315,12 @@ export const supabaseLeadsProvider: ILeadsProvider = {
   },
 
   async get(id: ID): Promise<ILead> {
-    const read = () =>
-      getSupabaseClient().from(TABLE).select(detailColumns()).eq("id", id).single();
-    // The session's first detail read is what discovers whether the migration
-    // has run. `detailColumns()` is re-evaluated inside the closure, so the
+    // The session's first detail read is what discovers whether the migrations
+    // have run. `detailColumns()` is re-evaluated inside the closure, so each
     // retry goes out already demoted.
-    let { data, error } = await read();
-    if (isMissingKindColumn(error)) ({ data, error } = await read());
+    const { data, error } = await withColumnProbe(() =>
+      getSupabaseClient().from(TABLE).select(detailColumns()).eq("id", id).single(),
+    );
     if (error) throw new Error(`[supabase] leads.get(${id}) failed: ${error.message}`);
     return rowToLead(data as unknown as LeadRow);
   },
@@ -325,18 +376,17 @@ export const supabaseLeadsProvider: ILeadsProvider = {
   },
 
   async update(id: ID, patch: Partial<ILead>): Promise<ILead> {
-    const write = () =>
+    // Same demotion as `get`: both the patch and the returning column list are
+    // rebuilt by the closure, so the retry writes what the database does have
+    // rather than losing the whole edit.
+    const { data, error } = await withColumnProbe(() =>
       getSupabaseClient()
         .from(TABLE)
         .update({ ...leadPatchToRow(patch), updated_at: new Date().toISOString() })
         .eq("id", id)
         .select(detailColumns())
-        .single();
-    // Same demotion as `get`: both the patch and the returning column list are
-    // rebuilt by the closure, so the retry writes the date without the kind
-    // rather than losing the whole edit.
-    let { data, error } = await write();
-    if (isMissingKindColumn(error)) ({ data, error } = await write());
+        .single(),
+    );
     if (error) throw new Error(`[supabase] leads.update(${id}) failed: ${error.message}`);
     return rowToLead(data as unknown as LeadRow);
   },
