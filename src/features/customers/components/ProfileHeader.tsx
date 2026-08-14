@@ -105,20 +105,33 @@ export function ProfileHeader({ customer, conversation, variant }: IProfileHeade
 }
 
 function ProfileContactRow({ customer }: { customer: ICustomer }) {
+  // A customer imported from the ERP can carry `phone: ""` (1.194 rows in
+  // production). Rendering it unguarded produced a bare phone icon with nothing
+  // beside it and a dead `tel:` link — the e-mail below already had an empty
+  // state, the phone did not.
+  const phoneDigits = customer.phone?.replace(/\D/g, "") ?? "";
+
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <a
-            href={`tel:${customer.phone.replace(/\D/g, "")}`}
-            className="inline-flex items-center gap-1 rounded transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <Icon icon="mdi:phone-outline" size={12} />
-            <span className="truncate">{formatPhone(customer.phone)}</span>
-          </a>
-        </TooltipTrigger>
-        <TooltipContent>{CUSTOMER_STRINGS.header.callPhone}</TooltipContent>
-      </Tooltip>
+      {phoneDigits ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <a
+              href={`tel:${phoneDigits}`}
+              className="inline-flex items-center gap-1 rounded transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <Icon icon="mdi:phone-outline" size={12} />
+              <span className="truncate">{formatPhone(customer.phone)}</span>
+            </a>
+          </TooltipTrigger>
+          <TooltipContent>{CUSTOMER_STRINGS.header.callPhone}</TooltipContent>
+        </Tooltip>
+      ) : (
+        <span className="inline-flex items-center gap-1 italic opacity-60">
+          <Icon icon="mdi:phone-off-outline" size={12} />
+          {CUSTOMER_STRINGS.header.noPhone}
+        </span>
+      )}
 
       {customer.email ? (
         <Tooltip>

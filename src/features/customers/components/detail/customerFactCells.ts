@@ -1,6 +1,12 @@
 import type { ICustomer, ICustomerAddress } from "@/shared/types";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
-import { formatCnpj, formatCpf, formatPhone } from "../../utils/cnpjCpf";
+import { formatCnpj, formatCpf } from "../../utils/cnpjCpf";
+// NOT `../../utils/cnpjCpf`: that `formatPhone` is a TYPING MASK — it slices to
+// 11 digits so a national number formats progressively as the user types. The
+// base stores E.164 with the 55 prefix (1.980 rows), and the mask turned
+// `+551120981133` into `(55) 11209-8113` — DDI read as DDD, last digit dropped.
+// The shared formatter is the display one and understands the prefix.
+import { formatPhone } from "@/shared/utils/format";
 import type { ICustomerFactProps } from "./CustomerFact";
 
 const COPY = CUSTOMER_STRINGS.detail.facts;
