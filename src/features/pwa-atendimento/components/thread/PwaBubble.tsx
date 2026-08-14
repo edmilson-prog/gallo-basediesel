@@ -126,7 +126,7 @@ function PwaVideoBody({ message, outgoing }: { message: IMessage; outgoing: bool
 export function PwaSystemBubble({ text, at }: { text: string; at: string }) {
   return (
     <div className="flex justify-center py-1.5">
-      <span className="rounded-sm bg-foreground/[0.05] px-2.5 py-1.5 text-[11.5px] font-semibold text-muted-foreground ring-1 ring-inset ring-border">
+      <span className="max-w-full break-words rounded-sm bg-foreground/[0.05] px-2.5 py-1.5 text-[11.5px] font-semibold text-muted-foreground ring-1 ring-inset ring-border">
         {text} · {timeOf(at)}
       </span>
     </div>

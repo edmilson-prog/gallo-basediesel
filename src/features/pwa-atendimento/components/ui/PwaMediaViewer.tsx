@@ -251,7 +251,7 @@ function ViewerBody({ onClose, kind, url, caption, fileName }: IPwaMediaViewerPr
       )}
 
       {caption?.trim() && (
-        <p className="max-h-[26svh] shrink-0 overflow-auto border-t border-border px-4 py-3 text-[13.5px] leading-snug text-foreground">
+        <p className="max-h-[26svh] shrink-0 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words border-t border-border px-4 py-3 text-[13.5px] leading-snug text-foreground">
           {caption.trim()}
         </p>
       )}

@@ -76,7 +76,7 @@ export function LoginPage() {
 
   if (mfaOpen) {
     return (
-      <div className="flex h-full flex-col overflow-auto px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
+      <div className="flex h-full flex-col overflow-y-auto overflow-x-hidden px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
         <MfaChallengeStep
           onSubmit={async (code) => {
             const result = await completeMfaChallenge(code);
@@ -99,7 +99,7 @@ export function LoginPage() {
   return (
     <form
       onSubmit={submit}
-      className="flex h-full flex-col overflow-auto px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]"
+      className="flex h-full flex-col overflow-y-auto overflow-x-hidden px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]"
     >
       <div className="mt-8">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
