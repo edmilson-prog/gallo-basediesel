@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import type { ID } from "@/shared/types";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import type { ID, IPart } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
@@ -11,11 +12,17 @@ import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 import { CatalogHeader } from "../components/list/CatalogHeader";
+import { CatalogCoverageBar } from "../components/list/CatalogCoverageBar";
 import { CatalogFiltersBar } from "../components/list/CatalogFiltersBar";
 import { CatalogTable } from "../components/list/CatalogTable";
+import { CatalogGroupedList } from "../components/list/CatalogGroupedList";
+import { CatalogBulkBar } from "../components/list/CatalogBulkBar";
 import { CatalogPagination } from "../components/list/CatalogPagination";
 import { useCatalogList } from "../hooks/useCatalogList";
+import { useCatalogTurnover } from "../hooks/useCatalogTurnover";
 import { useCatalogUrlState } from "../hooks/useCatalogUrlState";
+import { countCoverage } from "../utils/completeness";
+import { buildRestockSummary } from "../utils/restock";
 import {
   OPTIONAL_COLUMNS,
   readVisibleOptional,
@@ -24,24 +31,45 @@ import {
 } from "../utils/columns";
 import { CATALOG_STRINGS } from "../i18n/pt-BR";
 
+/** Parts updated per round in a bulk action — keeps the provider from being flooded. */
+const BULK_CHUNK_SIZE = 5;
+
 export function CatalogListPage() {
   const navigate = useNavigate();
   const role = useCurrentRole();
   const canCreate = usePermission("part", "create");
+  const canUpdate = usePermission("part", "edit");
   const isOwner = role === "Owner";
-  const { accessibleStores } = useCurrentStore();
+  const { accessibleStores, currentStoreId } = useCurrentStore();
   const partsProvider = usePartsProvider();
+  const queryClient = useQueryClient();
 
   const url = useCatalogUrlState();
-  const { filters, sort, page, pageSize } = url;
-  const list = useCatalogList(filters, sort, page, pageSize);
+  const { filters, sort, view, page, pageSize } = url;
 
-  // Auxiliary dataset for filter dropdowns — fetched once.
+  // Column visibility (persisted in localStorage).
+  const [visibleColumns, setVisibleColumns] = useState<Set<OptionalColumn>>(
+    () => new Set(readVisibleOptional()),
+  );
+
+  // Turnover costs a full orders window, so it only loads with its column on.
+  const turnoverEnabled = visibleColumns.has("turnover");
+  const turnover = useCatalogTurnover(turnoverEnabled, currentStoreId ?? undefined);
+
+  const list = useCatalogList(filters, sort, page, pageSize, turnover.index);
+
+  // Auxiliary dataset for filter dropdowns and the coverage counts — fetched once.
   const allParts = useQuery({
     queryKey: ["catalog-all-for-filters"] as const,
     queryFn: () => partsProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE }),
     staleTime: 5 * 60_000,
   });
+
+  /** Coverage describes the whole base, not the filtered page. */
+  const coverageCounts = useMemo(() => {
+    if (!allParts.data) return null;
+    return countCoverage(allParts.data.data);
+  }, [allParts.data]);
 
   const manufacturerOptions = useMemo(() => {
     const set = new Set<string>();
@@ -78,11 +106,6 @@ export function CatalogListPage() {
     return Array.from(set).sort((a, b) => b - a);
   }, [allParts.data]);
 
-  // Column visibility (persisted in localStorage).
-  const [visibleColumns, setVisibleColumns] = useState<Set<OptionalColumn>>(
-    () => new Set(readVisibleOptional()),
-  );
-
   const toggleColumn = useCallback((id: OptionalColumn) => {
     setVisibleColumns((prev) => {
       const next = new Set(prev);
@@ -101,6 +124,89 @@ export function CatalogListPage() {
     writeVisibleOptional(OPTIONAL_COLUMNS.filter((id) => visibleColumns.has(id)));
   }, [visibleColumns]);
 
+  /* ── Bulk selection ───────────────────────────────────────────────────── */
+
+  const [selectedIds, setSelectedIds] = useState<Set<ID>>(() => new Set());
+
+  const toggleRow = useCallback((id: ID) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  /** Header checkbox: clears when everything visible is already selected. */
+  const toggleVisible = useCallback((visible: IPart[]) => {
+    setSelectedIds((prev) => {
+      const allSelected = visible.length > 0 && visible.every((part) => prev.has(part.id));
+      const next = new Set(prev);
+      for (const part of visible) {
+        if (allSelected) next.delete(part.id);
+        else next.add(part.id);
+      }
+      return next;
+    });
+  }, []);
+
+  const selectMany = useCallback((parts: IPart[]) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const part of parts) next.add(part.id);
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  // Selection follows the filtered set, so it survives paging but never keeps
+  // rows the current filters have excluded.
+  const selectedParts = useMemo(
+    () => list.all.filter((part) => selectedIds.has(part.id)),
+    [list.all, selectedIds],
+  );
+
+  const applyBulk = useCallback(
+    async (ids: ID[], patch: Partial<IPart>): Promise<number> => {
+      let failed = 0;
+      for (let i = 0; i < ids.length; i += BULK_CHUNK_SIZE) {
+        const chunk = ids.slice(i, i + BULK_CHUNK_SIZE);
+        const results = await Promise.allSettled(
+          chunk.map((id) => partsProvider.update(id, patch)),
+        );
+        failed += results.filter((result) => result.status === "rejected").length;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["catalog-list"] }),
+        queryClient.invalidateQueries({ queryKey: ["catalog-all-for-filters"] }),
+      ]);
+      return failed;
+    },
+    [partsProvider, queryClient],
+  );
+
+  /* ── Row actions ──────────────────────────────────────────────────────── */
+
+  const handleRestock = useCallback(async (part: IPart) => {
+    try {
+      await navigator.clipboard.writeText(buildRestockSummary(part));
+      toast.success(CATALOG_STRINGS.detail.stockAlert.copied, {
+        icon: <Icon icon="mdi:content-copy" size={16} />,
+      });
+    } catch {
+      toast.error(CATALOG_STRINGS.detail.stockAlert.copyError);
+    }
+  }, []);
+
+  /** The honest follow-up to "desativar?" is to stage the part for the bulk bar. */
+  const handleSuggestDeactivate = useCallback((part: IPart) => {
+    setSelectedIds((prev) => new Set(prev).add(part.id));
+    toast.info(CATALOG_STRINGS.cells.suggestDeactivateTitle, {
+      icon: <Icon icon="mdi:archive-arrow-down-outline" size={16} />,
+    });
+  }, []);
+
   const handleRowClick = (id: ID) => {
     void navigate({ to: "/app/catalogo/$id", params: { id } });
   };
@@ -109,18 +215,24 @@ export function CatalogListPage() {
     void navigate({ to: "/app/catalogo/novo" });
   };
 
+  const handleClearAll = useCallback(() => {
+    clearSelection();
+    url.clearAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearSelection, url.clearAll]);
+
   const hasResults = list.data.length > 0;
   const isFirstLoad = list.isLoading && !hasResults;
   const showEmpty = !isFirstLoad && !hasResults;
 
-  // Scroll container lives inside CatalogTable (sibling of the header block),
+  // Scroll container lives inside the list body (sibling of the header block),
   // so the progress line receives it explicitly instead of walking ancestors.
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
 
   return (
     <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem-var(--shell-banner-offset,0px))]">
       {/* Fixed header block — the progress line rides its bottom edge, right
-          where the table starts scrolling. */}
+          where the list starts scrolling. */}
       <div className="relative">
         <CatalogHeader
           total={list.total}
@@ -130,16 +242,25 @@ export function CatalogListPage() {
           onCreate={handleCreate}
         />
 
+        <CatalogCoverageBar
+          counts={coverageCounts}
+          active={filters.coverage}
+          onChange={url.setCoverage}
+          isLoading={allParts.isLoading}
+        />
+
         <CatalogFiltersBar
           filters={filters}
           patch={url.patchFilters}
-          onClear={url.clearAll}
+          onClear={handleClearAll}
           manufacturerOptions={manufacturerOptions}
           vehicleBrandOptions={vehicleBrandOptions}
           vehicleModelOptions={vehicleModelOptions}
           vehicleYearOptions={vehicleYearOptions}
           stores={accessibleStores}
           canFilterStore={isOwner}
+          view={view}
+          onViewChange={url.setView}
         />
 
         <ScrollProgressBar container={scrollEl} />
@@ -150,7 +271,21 @@ export function CatalogListPage() {
           {list.isError ? (
             <ErrorState onRetry={list.refetch} />
           ) : showEmpty ? (
-            <EmptyState canCreate={canCreate} onCreate={handleCreate} onClear={url.clearAll} />
+            <EmptyState canCreate={canCreate} onCreate={handleCreate} onClear={handleClearAll} />
+          ) : view === "grouped" ? (
+            <CatalogGroupedList
+              parts={list.data}
+              isLoading={list.isLoading}
+              onRowClick={handleRowClick}
+              scrollRef={setScrollEl}
+              selectedIds={selectedIds}
+              onToggleRow={toggleRow}
+              onSelectMany={selectMany}
+              turnoverIndex={turnover.index}
+              isTurnoverLoading={turnover.isLoading}
+              onRestock={handleRestock}
+              onSuggestDeactivate={handleSuggestDeactivate}
+            />
           ) : (
             <CatalogTable
               parts={list.data}
@@ -162,6 +297,13 @@ export function CatalogListPage() {
               onToggleColumn={toggleColumn}
               onShowAllColumns={showAllColumns}
               scrollRef={setScrollEl}
+              selectedIds={selectedIds}
+              onToggleRow={toggleRow}
+              onToggleVisible={toggleVisible}
+              turnoverIndex={turnover.index}
+              isTurnoverLoading={turnover.isLoading}
+              onRestock={handleRestock}
+              onSuggestDeactivate={handleSuggestDeactivate}
             />
           )}
         </div>
@@ -173,6 +315,13 @@ export function CatalogListPage() {
           onPageSizeChange={url.setPageSize}
         />
       </div>
+
+      <CatalogBulkBar
+        selected={selectedParts}
+        onClear={clearSelection}
+        onApply={applyBulk}
+        canUpdate={canUpdate}
+      />
     </div>
   );
 }
