@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ID, IPart } from "@/shared/types";
 import { Textarea } from "@/components/ui/textarea";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
@@ -70,22 +70,22 @@ export function PartForm({
     initial ? partFormValuesFrom(initial) : blankPartFormValues(seed),
   );
 
+  // Arriving from "Duplicar peça": the source part loads after the first render.
   useEffect(() => {
     if (!initial) return;
-    const seeded = partFormValuesFrom(initial);
-    setValues(seeded);
-    onValuesChange(seeded);
-    // Re-seeding is driven by `initial` alone; `onValuesChange` is a stable
-    // reporter and including it would re-seed on every render of the page.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setValues(partFormValuesFrom(initial));
   }, [initial]);
 
+  // The page needs the current code to run the catalog lookup. Reporting from
+  // an effect — never from inside the state updater, which React may replay.
+  const report = useRef(onValuesChange);
+  report.current = onValuesChange;
+  useEffect(() => {
+    report.current(values);
+  }, [values]);
+
   const set = <K extends keyof IPartFormValues>(key: K, value: IPartFormValues[K]) => {
-    setValues((prev) => {
-      const next = { ...prev, [key]: value };
-      onValuesChange(next);
-      return next;
-    });
+    setValues((prev) => ({ ...prev, [key]: value }));
   };
 
   const completeness = useMemo(() => toCompleteness(values), [values]);
