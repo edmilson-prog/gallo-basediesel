@@ -11,8 +11,13 @@
  */
 export const RESOURCES = [
   "customer",
+  "contact",
   "vehicle",
   "lead",
+  // Funnel ADMINISTRATION — creating, renaming, editing stages, granting
+  // access, archiving. Distinct from reaching a funnel, which is governed by
+  // `lead_funnel_access` and is not an RBAC concern.
+  "funnel",
   "conversation",
   "message",
   "part",
@@ -39,6 +44,7 @@ export const RESOURCES = [
   "inventory",
   "customer_service_analytics",
   "service_volume",
+  "nps",
   "insight",
   "storefront_admin",
   "ecommerce_integration",
@@ -51,6 +57,25 @@ export const RESOURCES = [
   // (born here as data; behavior is a later DELTA).
   "manage_roles",
   "monitor",
+  // Settings areas that used to be governed by hardcoded role allowlists in
+  // SettingsLayout/route guards, which made them invisible to the Role Editor.
+  // One resource per administrative domain — deliberately coarser than
+  // one-per-screen so the matrix stays readable.
+  "settings_users",
+  // `view` reaches Templates WhatsApp; `edit` reaches the WhatsApp accounts
+  // screen (connecting/removing instances is a heavier action).
+  "settings_whatsapp",
+  "settings_api_keys",
+  "settings_ai",
+  "settings_sdr",
+  // Idle alerts, conversation rescue, echo continuity and notification sounds —
+  // the automations that act on conversations without a human in the loop.
+  "settings_automation",
+  // Environment & data source switch + session security.
+  "settings_system",
+  // NPS survey configuration: triggers, anti-fatigue windows and the two
+  // mass-dispatch backstops.
+  "settings_nps",
 ] as const;
 
 export type ResourceName = (typeof RESOURCES)[number];

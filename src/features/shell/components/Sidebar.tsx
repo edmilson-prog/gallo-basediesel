@@ -10,6 +10,7 @@ import {
   type INavGroup,
 } from "@/features/shell/config/navigation";
 import type { IRoleBearer } from "@/features/rbac/utils/hasPermission";
+import { useRbacVersion } from "@/features/rbac/hooks/useRbacVersion";
 import { ROUTES } from "@/features/shell/config/routes";
 import { useCurrentStore } from "@/features/multistore";
 import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatformSettings";
@@ -89,6 +90,9 @@ function pickActiveTo(pathname: string, tos: string[]): string | null {
 
 export function Sidebar() {
   const { currentUser } = useAuth();
+  // Re-render when the persisted RBAC matrix lands: it is fetched only once the
+  // user is signed in (RLS), so it routinely resolves after this first render.
+  useRbacVersion();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(() => readCollapsedPref());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => readCollapsedGroups());

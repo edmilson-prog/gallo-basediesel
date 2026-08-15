@@ -14,7 +14,7 @@
 import { type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
 import { createSecretResolver } from "../_shared/secrets.ts";
 import { makeSendDb, makeEngineDeps } from "../_shared/whatsappSendAdapter.ts";
-import { resolveWahaRecipient } from "../_shared/wahaSendAdapter.ts";
+import { resolveWahaRecipient, withRecipientFallback } from "../_shared/wahaSendAdapter.ts";
 import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
 import {
   processSendRequest,
@@ -51,7 +51,7 @@ async function dispatchWaha(
   const apiKey = await createSecretResolver(admin)(String(server.api_key_ref ?? ""));
   if (!apiKey) throw new HttpError(422, "chave de API do servidor WAHA não definida");
 
-  // Shared resolver: customer phone → lead phone → @lid chat JID (SDR
+  // Shared resolver: the chat's own JID → customer phone → lead phone (SDR
   // conversations are lead-only by design since Funnel Frente 3).
   const recipient = await resolveWahaRecipient(admin, conversationId);
   if (!recipient) throw new HttpError(422, "contato sem telefone cadastrado");
@@ -71,11 +71,18 @@ async function dispatchWaha(
   if (insertErr) throw new HttpError(500, `falha ao registrar a mensagem: ${insertErr.message}`);
 
   try {
-    const result = await sendWahaText(apiKey, globalThis.fetch, { baseUrl, sessionName }, {
-      toPhone: recipient.toPhone,
-      chatId: recipient.chatId,
-      text,
-    });
+    const result = await withRecipientFallback(recipient, (address) =>
+      sendWahaText(
+        apiKey,
+        globalThis.fetch,
+        { baseUrl, sessionName },
+        {
+          toPhone: address.toPhone,
+          chatId: address.chatId,
+          text,
+        },
+      ),
+    );
     await admin
       .from("messages")
       .update({ status: "sent", provider_message_id: result.providerMessageId })

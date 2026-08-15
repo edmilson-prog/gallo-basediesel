@@ -38,9 +38,9 @@ export function UrgentBroadcastClaim() {
       {queue.entries.map(({ escalation, age }) => (
         <div
           key={escalation.id}
-          className="rounded-md border border-red-500/40 bg-red-50 p-3 shadow-lg ring-1 ring-red-500/20 dark:bg-red-950/60"
+          className="rounded-md border border-severity-critical/40 bg-severity-critical/10 p-3 shadow-lg ring-1 ring-severity-critical/20"
         >
-          <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-red-700 dark:text-red-200">
+          <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-severity-critical">
             <Icon icon="mdi:alert-octagon" size={14} />
             URGENTE · aguardando há {age}s
           </div>

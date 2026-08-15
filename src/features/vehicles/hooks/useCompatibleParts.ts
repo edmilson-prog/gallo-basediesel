@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { IPart, IVehicle, IVehicleModel, IVehicleModelKit } from "@/shared/types";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 import { useVehicleModels } from "@/features/vehicle-models/hooks/useVehicleModels";
 import { useModelKits } from "@/features/model-kits/hooks/useModelKits";
@@ -26,7 +27,8 @@ export function useCompatibleParts(vehicle: IVehicle): IUseCompatibleParts {
   const partsProvider = usePartsProvider();
   const partsQuery = useQuery({
     queryKey: ["parts", "compatible-slice"],
-    queryFn: async () => (await partsProvider.list({ pageSize: 1000, active: true })).data,
+    queryFn: async () =>
+      (await partsProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE, active: true })).data,
     staleTime: 60_000,
   });
   const vehicleModelsQuery = useVehicleModels({});

@@ -37,6 +37,7 @@ export type {
   IWhatsAppAccountRef,
   IManagerDashboardSettings,
   IIdleAlertsSettings,
+  IInboxPinsSettings,
   IConversationRescueSettings,
   ICommissionSettings,
   IEcommerceIntegrationSettings,
@@ -50,13 +51,14 @@ export type {
 export { DEFAULT_SESSION_TIMEOUT } from "./platform";
 
 // Sound center (Configurações → Sons de notificação)
-export type {
-  SoundTemplateId,
-  SoundEventId,
-  ISoundEventConfig,
-  ISoundSettings,
-} from "./sound";
+export type { SoundTemplateId, SoundEventId, ISoundEventConfig, ISoundSettings } from "./sound";
 export { DEFAULT_SOUND_SETTINGS } from "./sound";
+export type { IInboundToastSettings } from "./inbound-toast";
+export {
+  DEFAULT_INBOUND_TOAST_SETTINGS,
+  INBOUND_TOAST_DURATION_MIN_SECONDS,
+  INBOUND_TOAST_DURATION_MAX_SECONDS,
+} from "./inbound-toast";
 
 // System health & observability (PRD-110)
 export type {
@@ -134,6 +136,19 @@ export type {
   SegmentScope,
 } from "./customer";
 
+// Contacts (Agenda catalog)
+export type { IContact, IContactScopeCounts, ContactSource, ContactScope } from "./contacts";
+
+// Funnel identity (multi-funnel leads foundation)
+export type {
+  FunnelAccent,
+  LeadFunnelStageKind,
+  ILeadFunnel,
+  ILeadFunnelStage,
+  ILeadFunnelEntry,
+  IFunnelBoardSummary,
+} from "./funnel";
+
 // Lead, pipeline, wallet transfer
 export type {
   ILead,
@@ -142,6 +157,7 @@ export type {
   ICarteiraTransfer,
   LeadTemperature,
   LeadOrigin,
+  LeadNextActionKind,
   CarteiraTransferType,
   CarteiraTransferStatus,
 } from "./lead";
@@ -156,6 +172,7 @@ export type {
   IMessage,
   IMessageReaction,
   IMessageReactions,
+  IMessageReplyRef,
   IWhatsAppAccount,
   IWhatsAppCapabilities,
   IWhatsAppProviderConfig,
@@ -569,3 +586,27 @@ export type {
   IAiTestConnectionResult,
 } from "./ai";
 export { AI_FEATURE_LABELS, AI_PROVIDER_LABELS, AI_SUPPORTED_PROVIDERS } from "./ai";
+
+// PIX shortcut — store-owned PIX keys (design 2026-08-07)
+export type { PixKeyType, IPixKey, IPixKeyProvider } from "./pix";
+
+// NPS transacional (PRD-148B, design 2026-08-12)
+export type {
+  INpsClass,
+  INpsTrigger,
+  INpsSurveyStatus,
+  INpsSurvey,
+  INpsRecovery,
+  INpsRecoveryStatus,
+  INpsResult,
+  INpsSettings,
+  INpsFilters,
+  INpsListFilters,
+  INpsMonthlyPoint,
+  INpsResponsePoint,
+  INpsRawMetrics,
+  INpsBreakdown,
+  INpsReasonCount,
+  INpsReasonSplit,
+  INpsProvider,
+} from "./nps";

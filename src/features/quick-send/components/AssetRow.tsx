@@ -76,7 +76,9 @@ export function AssetRow({
       <span
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground",
-          isSensitiveAsset(item) ? "bg-amber-500/10 ring-1 ring-amber-500/40" : "bg-muted",
+          isSensitiveAsset(item)
+            ? "bg-severity-warning/10 ring-1 ring-severity-warning/40"
+            : "bg-muted",
         )}
       >
         <Icon icon={blocked ? "mdi:lock-outline" : CATEGORY_ICON[item.category]} size={18} />
@@ -95,7 +97,7 @@ export function AssetRow({
         </span>
       )}
       {blocked && (
-        <span className="shrink-0 text-[10px] text-amber-600 dark:text-amber-400">
+        <span className="shrink-0 text-[10px] text-severity-warning">
           {QUICK_SEND_STRINGS.library.noPermission}
         </span>
       )}

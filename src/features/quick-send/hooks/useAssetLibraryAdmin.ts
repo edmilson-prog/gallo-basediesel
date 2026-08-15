@@ -7,12 +7,13 @@ import {
   useMediaStorageProvider,
 } from "@/providers/data";
 import { getCurrentContext } from "@/features/multistore/utils/getCurrentContext";
+import { STORAGE_BUCKET_MAX_BYTES } from "@/shared/utils/mediaLimits";
 
 /**
- * Conservative upload cap. The real bucket limit must be confirmed with
- * the Supabase Storage bucket config — TODO: update before GA.
+ * Upload cap, now pinned to the confirmed `whatsapp-media` bucket ceiling
+ * rather than a guess — see `@/shared/utils/mediaLimits`.
  */
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = STORAGE_BUCKET_MAX_BYTES;
 
 export interface IAssetCreateInput {
   title: string;

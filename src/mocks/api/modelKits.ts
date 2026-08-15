@@ -6,6 +6,7 @@ import type {
   ModelKitStatus,
 } from "@/shared/types";
 import { SEED_MODEL_KITS } from "../data/seedModelKits";
+import { selectAllQuotes } from "../store/selectors";
 import { MockNotFoundError, MockValidationError, runApi } from "./utils";
 
 export interface IListModelKitsParams {
@@ -95,6 +96,25 @@ export const modelKitsApi = {
       if (!found) throw new MockNotFoundError("modelKit", id);
       return clone(found);
     });
+  },
+
+  applicationCounts(kitIds: ID[]): Promise<Record<ID, number>> {
+    return runApi(
+      "modelKitsApi",
+      "applicationCounts",
+      () => {
+        const wanted = new Set(kitIds);
+        const counts: Record<ID, number> = {};
+        if (wanted.size === 0) return counts;
+        for (const quote of selectAllQuotes()) {
+          for (const kitId of quote.appliedKitIds ?? []) {
+            if (wanted.has(kitId)) counts[kitId] = (counts[kitId] ?? 0) + 1;
+          }
+        }
+        return counts;
+      },
+      { payload: { kitIds } },
+    );
   },
 
   create(input: ICreateModelKitInput): Promise<IVehicleModelKit> {

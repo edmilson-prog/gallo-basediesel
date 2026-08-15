@@ -1,6 +1,6 @@
 import type { IMessage } from "@/shared/types";
 import { Icon } from "@/components/Icon";
-import { BubbleChrome } from "./bubbleChrome";
+import { BubbleChrome, type IBubbleProps } from "./bubbleChrome";
 
 /**
  * Placeholder for a message that reached us with no readable content — see
@@ -12,15 +12,9 @@ import { BubbleChrome } from "./bubbleChrome";
  * would leave an unexplained gap in the thread. Follows the same visual
  * language as the "<media> indisponível" states.
  */
-export function UnsupportedBubble({
-  message,
-  onRetry,
-}: {
-  message: IMessage;
-  onRetry?: () => void;
-}) {
+export function UnsupportedBubble({ message, onRetry, ...extras }: IBubbleProps) {
   return (
-    <BubbleChrome message={message} onRetry={onRetry}>
+    <BubbleChrome message={message} onRetry={onRetry} {...extras}>
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon icon="mdi:message-off-outline" size={16} />
         <span className="text-xs italic">Mensagem não suportada</span>

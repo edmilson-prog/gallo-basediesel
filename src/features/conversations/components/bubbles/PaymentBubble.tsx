@@ -1,9 +1,8 @@
 import { toast } from "sonner";
-import type { IMessage } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { formatCNPJ, formatCPF } from "@/shared/utils/format";
 import { decodePayment } from "@/providers/whatsapp/contentFormat";
-import { BubbleChrome } from "./bubbleChrome";
+import { BubbleChrome, type IBubbleProps } from "./bubbleChrome";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 
 /** Pretty-print only the key types that have a canonical Brazilian mask; every
@@ -19,7 +18,7 @@ function displayKey(key: string, keyType: string | undefined): string {
  * carries no amount (always zero on these static-key shares), so the card
  * deliberately shows only who receives and the key itself.
  */
-export function PaymentBubble({ message, onRetry }: { message: IMessage; onRetry?: () => void }) {
+export function PaymentBubble({ message, onRetry, ...extras }: IBubbleProps) {
   const { merchant, key, keyType } = decodePayment(message.text);
 
   async function handleCopy() {
@@ -38,7 +37,7 @@ export function PaymentBubble({ message, onRetry }: { message: IMessage; onRetry
   }
 
   return (
-    <BubbleChrome message={message} onRetry={onRetry}>
+    <BubbleChrome message={message} onRetry={onRetry} {...extras}>
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
           <Icon icon="mdi:qrcode" size={22} />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -35,6 +35,18 @@ import { RenameContactDialog } from "./RenameContactDialog";
 export interface IProfileMenuProps {
   customer: ICustomer;
   onMutated?: () => void;
+  /**
+   * Called when the user picks "Editar dados". The detail page wires this to
+   * open the inline editor in the Overview tab. When omitted (e.g. the
+   * Atendimento fiche), the action navigates to the customer detail page.
+   */
+  onEditData?: () => void;
+  /**
+   * Truthy pulse that opens the wallet transfer modal from outside — the detail
+   * page's quick-action bar. The modal (and its RBAC + sellers query) stays
+   * here, so the header button and the menu item can never diverge.
+   */
+  transferSignal?: number;
 }
 
 /**
@@ -45,15 +57,24 @@ export interface IProfileMenuProps {
  * The destructive "Bloquear cliente" action is gated by an `<AlertDialog>` so
  * an accidental click doesn't flip the customer's status.
  */
-export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
+export function ProfileMenu({
+  customer,
+  onMutated,
+  onEditData,
+  transferSignal,
+}: IProfileMenuProps) {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, hasRole } = useAuth();
   const provider = useCustomersProvider();
   const sellersProvider = useSellersProvider();
   const queryClient = useQueryClient();
   const [blockOpen, setBlockOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
+
+  useEffect(() => {
+    if (transferSignal) setTransferOpen(true);
+  }, [transferSignal]);
 
   // The detail screen reads from TanStack Query — refetch after every mutation
   // (the mock store mutated shared objects in place, which masked this need).
@@ -70,6 +91,9 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
   });
 
   const canEdit = usePermission("customer", "edit");
+  // Mirror the RLS `customers_update` predicate: staff, or the wallet owner.
+  const isWalletOwner = currentUser?.sellerId != null && customer.sellerId === currentUser.sellerId;
+  const canEditData = canEdit && (hasRole(["Owner", "Gestor"]) || isWalletOwner);
   const canEditStore = usePermission("customer", "edit", "store");
   const canDelete = usePermission("customer", "delete");
   const canCreateVehicle = usePermission("vehicle", "create");
@@ -135,9 +159,15 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
               {CUSTOMER_STRINGS.menu.rename}
             </DropdownMenuItem>
           )}
-          {canEdit && (
+          {canEditData && (
             <DropdownMenuItem
-              onSelect={() => toast.info("Edição de dados será detalhada em PRD-019.")}
+              onSelect={() => {
+                if (onEditData) {
+                  onEditData();
+                } else {
+                  void navigate({ to: `/app/clientes/${customer.id}` as never });
+                }
+              }}
             >
               <Icon icon="mdi:pencil-outline" size={14} />
               {CUSTOMER_STRINGS.menu.edit}
@@ -149,7 +179,7 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
               {CUSTOMER_STRINGS.menu.markDormant}
             </DropdownMenuItem>
           )}
-          {canTransfer && (
+          {canTransfer && customer.sellerId !== null && (
             <DropdownMenuItem onSelect={() => setTransferOpen(true)}>
               <Icon icon="mdi:swap-horizontal" size={14} />
               {CUSTOMER_STRINGS.menu.transferWallet}
@@ -181,7 +211,7 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
               {canDelete && customer.status !== "perdido" && (
                 <DropdownMenuItem
                   onSelect={() => setBlockOpen(true)}
-                  className="text-rose-600 focus:bg-rose-500/10 focus:text-rose-700 dark:text-rose-400 dark:focus:text-rose-300"
+                  className="text-destructive focus:bg-destructive/10 focus:text-destructive"
                 >
                   <Icon icon="mdi:account-cancel-outline" size={14} />
                   {CUSTOMER_STRINGS.menu.blockCustomer}
@@ -211,7 +241,7 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
         open={transferOpen}
         customer={transferOpen ? customer : null}
         sellers={sellersQuery.data ?? []}
-        currentUserId={currentUser?.id ?? "system"}
+        currentSellerId={currentUser?.sellerId}
         onClose={() => setTransferOpen(false)}
         onCreated={() => {
           setTransferOpen(false);
@@ -242,7 +272,7 @@ export function ProfileMenu({ customer, onMutated }: IProfileMenuProps) {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBlock}
-              className="bg-rose-600 text-white hover:bg-rose-700"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
               {CUSTOMER_STRINGS.menu.blockConfirmCta}
             </AlertDialogAction>

@@ -35,6 +35,25 @@ describe("inferAttachmentKind", () => {
     expect(inferAttachmentKind({ type: "", name: "RELATORIO.PDF" })).toBe("document");
   });
 
+  it.each([
+    ["clipe.mp4", "video"],
+    ["FILME.MOV", "video"],
+    ["gravacao.3gp", "video"],
+    ["foto.jpg", "image"],
+    ["captura.PNG", "image"],
+    ["musica.mp3", "audio"],
+    ["nota.ogg", "audio"],
+  ])("falls back to the extension for %s when the browser reports no type", (name, expected) => {
+    expect(inferAttachmentKind({ type: "", name })).toBe(expected);
+  });
+
+  it("falls back to the extension for a generic octet-stream video", () => {
+    // Some drag sources hand over application/octet-stream instead of video/mp4.
+    expect(inferAttachmentKind({ type: "application/octet-stream", name: "clipe.mp4" })).toBe(
+      "video",
+    );
+  });
+
   it("rejects an unrecognized generic mimetype with no matching extension", () => {
     expect(
       inferAttachmentKind({ type: "application/octet-stream", name: "arquivo.bin" }),

@@ -24,14 +24,14 @@ export function VehicleStatusBanner({
     return (
       <div
         className={cn(
-          "flex flex-wrap items-center gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm",
-          "text-amber-900 dark:bg-amber-500/15 dark:text-amber-100",
+          "flex flex-wrap items-center gap-3 rounded-md border border-severity-warning/30 bg-severity-warning/10 px-4 py-3 text-sm",
+          "text-severity-warning",
         )}
       >
         <Icon
           icon="mdi:clock-alert-outline"
           size={18}
-          className="text-amber-600 dark:text-amber-300"
+          className="text-severity-warning"
         />
         <div className="min-w-0 flex-1">
           <p className="font-semibold">{COPY.pendingTitle}</p>

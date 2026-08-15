@@ -1,0 +1,1643 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!--
+  Mocks de decisao — Leads Multi-Funil (fases 3-7).
+  Fonte: artifact publicado em 2026-07-23, referenciado pela spec
+  docs/superpowers/specs/2026-07-23-leads-multi-funil-design.md.
+  Salvo no repositorio em 2026-08-04 para nao depender de URL externa.
+  Conteudo autoral preservado; apenas o runtime injetado pelo host foi removido.
+-->
+<title>Leads · Múltiplos funis — mocks de decisão</title>
+
+<style>
+  :root {
+    --ground:      #F4F6F8;
+    --surface:     #FFFFFF;
+    --surface-2:   #EAEDF1;
+    --line:        #D6DBE2;
+    --line-soft:   #E4E8ED;
+    --ink:         #10141A;
+    --ink-2:       #39414D;
+    --muted:       #6B7482;
+    --accent:      #C4151C;
+    --accent-ink:  #FFFFFF;
+    --steel:       #5B6B7A;
+    --amber:       #B08800;
+    --green:       #337648;
+    --gold:        #A67F16;
+    --crimson:     #C4151C;
+    --shadow:      0 1px 2px rgba(16,20,26,.06), 0 8px 24px -12px rgba(16,20,26,.18);
+    --mock-bg:     #0E1116;
+    --radius:      10px;
+
+    --display: ui-sans-serif, "Segoe UI Variable Display", "Segoe UI", Roboto, system-ui, sans-serif;
+    --body:    ui-sans-serif, "Segoe UI Variable Text", "Segoe UI", Roboto, system-ui, sans-serif;
+    --mono:    ui-monospace, "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:    #0E1116;
+      --surface:   #161B22;
+      --surface-2: #1D232C;
+      --line:      #2A323D;
+      --line-soft: #222933;
+      --ink:       #E7EAEF;
+      --ink-2:     #B4BCC8;
+      --muted:     #838D9C;
+      --accent:    #F0565D;
+      --accent-ink:#1A0507;
+      --steel:     #8095A8;
+      --amber:     #D2A809;
+      --green:     #4E9E68;
+      --gold:      #C79C2C;
+      --crimson:   #E8484F;
+      --shadow:    0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+    }
+  }
+
+  :root[data-theme="light"] {
+    --ground:#F4F6F8; --surface:#FFFFFF; --surface-2:#EAEDF1; --line:#D6DBE2; --line-soft:#E4E8ED;
+    --ink:#10141A; --ink-2:#39414D; --muted:#6B7482; --accent:#C4151C; --accent-ink:#FFFFFF;
+    --steel:#5B6B7A; --amber:#B08800; --green:#337648; --gold:#A67F16; --crimson:#C4151C;
+    --shadow:0 1px 2px rgba(16,20,26,.06), 0 8px 24px -12px rgba(16,20,26,.18);
+  }
+  :root[data-theme="dark"] {
+    --ground:#0E1116; --surface:#161B22; --surface-2:#1D232C; --line:#2A323D; --line-soft:#222933;
+    --ink:#E7EAEF; --ink-2:#B4BCC8; --muted:#838D9C; --accent:#F0565D; --accent-ink:#1A0507;
+    --steel:#8095A8; --amber:#D2A809; --green:#4E9E68; --gold:#C79C2C; --crimson:#E8484F;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { display: flex; flex-direction: column; gap: 0; }
+
+  .wrap {
+    width: 100%;
+    max-width: 780px;
+    margin-inline: auto;
+    padding-inline: 24px;
+  }
+
+  .bleed {
+    width: 100%;
+    max-width: 1280px;
+    margin-inline: auto;
+    padding-inline: 24px;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    padding-block: 52px 40px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 18px;
+  }
+  .eyebrow b { color: var(--accent); font-weight: 600; }
+  h1 {
+    font-family: var(--display);
+    font-weight: 800;
+    letter-spacing: -.03em;
+    font-size: clamp(32px, 6vw, 52px);
+    line-height: 1.04;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  .lede {
+    font-size: 18px;
+    color: var(--ink-2);
+    margin: 0;
+    max-width: 60ch;
+  }
+  .meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin-top: 28px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    letter-spacing: .04em;
+  }
+  .meta-strip span b { color: var(--ink-2); font-weight: 600; }
+
+  /* ---------- sections ---------- */
+
+  section { padding-block: 56px; border-bottom: 1px solid var(--line-soft); }
+  section:last-of-type { border-bottom: 0; }
+
+  .sec-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  h2 {
+    font-family: var(--display);
+    font-weight: 800;
+    letter-spacing: -.022em;
+    font-size: clamp(24px, 3.6vw, 32px);
+    line-height: 1.12;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: var(--display);
+    font-weight: 700;
+    letter-spacing: -.012em;
+    font-size: 18px;
+    margin: 32px 0 10px;
+  }
+  p { margin: 0 0 16px; max-width: 66ch; }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 650; color: var(--ink); }
+  code {
+    font-family: var(--mono);
+    font-size: .875em;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  a { color: var(--accent); }
+
+  /* ---------- decisions table ---------- */
+
+  .table-scroll { overflow-x: auto; margin-block: 8px 4px; }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14.5px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  th {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    border-bottom: 1px solid var(--line);
+  }
+  td:first-child { white-space: nowrap; font-weight: 600; }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); width: 1%; }
+
+  /* ---------- findings ---------- */
+
+  .findings { display: grid; gap: 14px; margin-top: 24px; }
+  .finding {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+  }
+  .finding .sev {
+    width: 3px; border-radius: 2px; background: var(--crimson);
+  }
+  .finding.warn .sev { background: var(--amber); }
+  .finding h4 {
+    font-family: var(--display); font-size: 15px; font-weight: 700;
+    margin: 0 0 4px; letter-spacing: -.008em;
+  }
+  .finding p { font-size: 14px; margin: 0; color: var(--ink-2); }
+  .finding .ref {
+    font-family: var(--mono); font-size: 11.5px; color: var(--muted);
+    display: block; margin-top: 6px;
+  }
+
+  /* ---------- mock chrome ---------- */
+
+  .mock-frame {
+    background: var(--mock-bg);
+    border: 1px solid #262C36;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px -30px rgba(0,0,0,.65);
+    margin-top: 22px;
+    color: #E7EAEF;
+    font-size: 12px;
+  }
+  .mock-scroll { overflow-x: auto; }
+  .mock { min-width: 900px; }
+
+  .mock-topbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px;
+    border-bottom: 1px solid #232935;
+    background: rgba(22,27,34,.85);
+  }
+  .dot-row { display: flex; gap: 6px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #333B47; }
+  .mock-url {
+    font-family: var(--mono); font-size: 11px; color: #7C8797;
+    background: #12161D; border: 1px solid #232935; border-radius: 5px;
+    padding: 3px 10px; letter-spacing: .02em;
+  }
+
+  .mock-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #232935;
+  }
+  .mock-title { font-family: var(--display); font-weight: 800; font-size: 15px; letter-spacing: -.01em; }
+  .pill {
+    font-family: var(--mono); font-size: 10.5px; font-variant-numeric: tabular-nums;
+    background: #1D232C; border: 1px solid #2A323D; border-radius: 999px;
+    padding: 2px 9px; color: #A9B3C1;
+  }
+  .spacer { flex: 1; }
+  .mock-search {
+    font-family: var(--body); font-size: 11.5px; color: #6D7787;
+    background: #12161D; border: 1px solid #262E39; border-radius: 7px;
+    padding: 5px 12px; min-width: 190px;
+  }
+  .btn {
+    font-family: var(--body); font-size: 11.5px; font-weight: 600;
+    border-radius: 7px; padding: 5px 11px;
+    border: 1px solid #2A323D; background: #1A1F28; color: #C9D1DC;
+    white-space: nowrap;
+  }
+  .btn.primary { background: #C4151C; border-color: #C4151C; color: #fff; }
+  .btn.ghost { background: transparent; }
+
+  /* funnel navigation variants */
+
+  .tabs-row {
+    display: flex; align-items: stretch; gap: 2px;
+    padding: 0 16px;
+    border-bottom: 1px solid #232935;
+    overflow-x: auto;
+  }
+  .tab {
+    display: flex; align-items: center; gap: 7px;
+    padding: 9px 14px 8px;
+    border-bottom: 2px solid transparent;
+    color: #8A94A3; white-space: nowrap; font-size: 12px; font-weight: 550;
+  }
+  .tab .swatch { width: 7px; height: 7px; border-radius: 2px; }
+  .tab .cnt { font-family: var(--mono); font-size: 10.5px; font-variant-numeric: tabular-nums; color: #6D7787; }
+  .tab.on { color: #F0F3F7; border-bottom-color: var(--tabcolor, #C4151C); background: linear-gradient(to bottom, transparent, rgba(255,255,255,.03)); }
+  .tab.on .cnt { color: #A9B3C1; }
+  .tab.add { color: #6D7787; }
+
+  .switcher-btn {
+    display: inline-flex; align-items: center; gap: 9px;
+    background: #12161D; border: 1px solid #2A323D; border-radius: 8px;
+    padding: 6px 12px; font-weight: 650; font-size: 13px; color: #E7EAEF;
+  }
+  .switcher-btn .swatch { width: 9px; height: 9px; border-radius: 3px; }
+  .switcher-btn .caret { color: #6D7787; font-size: 10px; }
+
+  .popover {
+    position: relative;
+    margin: 0 16px 14px;
+    width: 288px;
+    background: #171C24; border: 1px solid #2A323D; border-radius: 10px;
+    box-shadow: 0 20px 50px -20px rgba(0,0,0,.8);
+    overflow: hidden;
+  }
+  .popover .search {
+    font-family: var(--body); font-size: 11.5px; color: #6D7787;
+    padding: 8px 12px; border-bottom: 1px solid #232935;
+  }
+  .pop-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 12px; font-size: 12px; color: #C9D1DC;
+  }
+  .pop-item .swatch { width: 8px; height: 8px; border-radius: 2px; }
+  .pop-item .cnt { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: #6D7787; font-variant-numeric: tabular-nums; }
+  .pop-item.on { background: #1F2631; color: #fff; }
+  .pop-sep { height: 1px; background: #232935; margin: 4px 0; }
+  .pop-item.muted { color: #6D7787; }
+
+  .rail-layout { display: flex; align-items: stretch; min-height: 340px; }
+  .rail {
+    width: 176px; flex-shrink: 0;
+    border-right: 1px solid #232935;
+    padding: 10px 8px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .rail-label {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em;
+    text-transform: uppercase; color: #5E6877; padding: 4px 8px 8px;
+  }
+  .rail-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 9px; border-radius: 7px;
+    font-size: 12px; color: #98A2B0;
+  }
+  .rail-item .swatch { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .rail-item .cnt { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: #6D7787; font-variant-numeric: tabular-nums; }
+  .rail-item.on { background: #1F2631; color: #F0F3F7; box-shadow: inset 2px 0 0 var(--railcolor, #C4151C); }
+  .rail-item.drop {
+    border: 1px dashed var(--railcolor, #D2A809);
+    background: rgba(210,168,9,.08);
+    color: #D2A809;
+  }
+
+  /* kanban */
+
+  .board { display: flex; gap: 10px; padding: 12px; overflow-x: auto; flex: 1; }
+  .col {
+    width: 168px; flex-shrink: 0;
+    background: #161B22; border: 1px solid #232935; border-radius: 9px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .col-head { padding: 8px 10px; border-top: 3px solid var(--stage, #5B6B7A); }
+  .col-head .nm {
+    font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #D5DBE3;
+  }
+  .col-head .sub { font-family: var(--mono); font-size: 9.5px; color: #6D7787; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .col-body { padding: 8px; display: flex; flex-direction: column; gap: 7px; }
+
+  .card {
+    background: #1B212A; border: 1px solid #262E39;
+    border-left: 3px solid var(--stage, #5B6B7A);
+    border-radius: 6px; padding: 8px 9px;
+  }
+  .card .nm { font-size: 11.5px; font-weight: 650; color: #E7EAEF; }
+  .card .ph { font-family: var(--mono); font-size: 10px; color: #7C8797; font-variant-numeric: tabular-nums; margin-top: 1px; }
+  .card .row { display: flex; align-items: center; gap: 6px; margin-top: 7px; }
+  .chip {
+    font-size: 9.5px; font-weight: 600; border-radius: 4px; padding: 1px 6px;
+  }
+  .chip.val { font-family: var(--mono); background: transparent; color: #D5DBE3; padding-left: 0; font-variant-numeric: tabular-nums; }
+  .chip.hot { background: rgba(232,72,79,.16); color: #F0868B; }
+  .chip.warm { background: rgba(210,168,9,.16); color: #D2A809; }
+  .chip.cold { background: rgba(96,165,250,.14); color: #7FB2F5; }
+  .chip.late { background: rgba(232,72,79,.16); color: #F0868B; }
+  .chip.funnel { background: rgba(255,255,255,.06); color: #A9B3C1; display: inline-flex; align-items: center; gap: 4px; }
+  .chip.funnel .swatch { width: 6px; height: 6px; border-radius: 2px; }
+  .card .avatar {
+    margin-left: auto; width: 16px; height: 16px; border-radius: 50%;
+    background: #2A323D; color: #A9B3C1;
+    font-size: 8px; font-weight: 700; display: grid; place-items: center;
+  }
+  .more-row {
+    text-align: center; font-size: 10.5px; color: #6D7787;
+    padding: 6px; border: 1px dashed #2A323D; border-radius: 6px;
+  }
+
+  /* fiche mock */
+
+  .fiche-demo { display: flex; gap: 0; min-height: 380px; }
+  .fiche-thread { flex: 1; border-right: 1px solid #232935; padding: 14px; display: flex; flex-direction: column; gap: 9px; }
+  .bubble { max-width: 74%; border-radius: 10px; padding: 7px 11px; font-size: 11.5px; line-height: 1.5; }
+  .bubble.them { background: #1B212A; border: 1px solid #262E39; color: #C9D1DC; }
+  .bubble.me { background: #243043; border: 1px solid #2C3A50; color: #DCE4EF; align-self: flex-end; }
+  .fiche {
+    width: 300px; flex-shrink: 0; padding: 14px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .fiche-id { display: flex; gap: 10px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid #232935; }
+  .fiche-id .av { width: 38px; height: 38px; border-radius: 50%; background: #2A323D; display: grid; place-items: center; font-weight: 700; font-size: 12px; color: #A9B3C1; }
+  .fiche-id .nm { font-size: 13px; font-weight: 700; }
+  .fiche-id .ph { font-family: var(--mono); font-size: 10.5px; color: #7C8797; }
+
+  .block-label {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .13em;
+    text-transform: uppercase; color: #5E6877;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .block-label::after { content: ""; height: 1px; background: #232935; flex: 1; }
+
+  .funnel-entry {
+    background: #161B22; border: 1px solid #262E39; border-radius: 8px;
+    border-left: 3px solid var(--fcolor, #C4151C);
+    padding: 9px 10px;
+  }
+  .funnel-entry .top { display: flex; align-items: center; gap: 7px; }
+  .funnel-entry .fn { font-size: 12px; font-weight: 650; color: #E7EAEF; }
+  .funnel-entry .kebab { margin-left: auto; color: #6D7787; font-size: 13px; letter-spacing: 1px; }
+  .stage-select {
+    margin-top: 7px;
+    display: flex; align-items: center; gap: 7px;
+    background: #12161D; border: 1px solid #2A323D; border-radius: 6px;
+    padding: 5px 9px; font-size: 11.5px; color: #C9D1DC;
+  }
+  .stage-select .caret { margin-left: auto; color: #6D7787; font-size: 9px; }
+  .add-funnel {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    border: 1px dashed #2A323D; border-radius: 8px; padding: 8px;
+    font-size: 11.5px; color: #8A94A3;
+  }
+  .fiche-row { display: flex; justify-content: space-between; font-size: 11.5px; gap: 12px; }
+  .fiche-row dt { color: #7C8797; }
+  .fiche-row dd { margin: 0; color: #D5DBE3; text-align: right; }
+  .locked-note {
+    font-size: 10.5px; color: #7C8797; background: #12161D;
+    border: 1px solid #232935; border-radius: 6px; padding: 7px 9px; line-height: 1.45;
+  }
+
+  /* admin mock */
+
+  .admin { display: flex; min-height: 360px; }
+  .admin-list { width: 210px; border-right: 1px solid #232935; padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; }
+  .admin-main { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+  .stage-editor { display: flex; flex-direction: column; gap: 6px; }
+  .stage-row {
+    display: flex; align-items: center; gap: 10px;
+    background: #161B22; border: 1px solid #262E39; border-radius: 7px;
+    padding: 8px 10px; font-size: 12px;
+  }
+  .grip { color: #4E5866; letter-spacing: -2px; font-size: 13px; }
+  .stage-row .sw { width: 9px; height: 9px; border-radius: 2px; }
+  .stage-row .ord { font-family: var(--mono); font-size: 10px; color: #6D7787; margin-left: auto; font-variant-numeric: tabular-nums; }
+  .stage-row .flag { font-size: 9.5px; background: rgba(255,255,255,.06); color: #A9B3C1; border-radius: 4px; padding: 1px 6px; }
+
+  .access-grid { display: flex; flex-direction: column; gap: 5px; }
+  .access-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px; border-radius: 7px; background: #161B22; border: 1px solid #262E39;
+    font-size: 12px;
+  }
+  .access-row .av { width: 20px; height: 20px; border-radius: 50%; background: #2A323D; display: grid; place-items: center; font-size: 8.5px; font-weight: 700; color: #A9B3C1; }
+  .access-row .role { font-family: var(--mono); font-size: 10px; color: #6D7787; }
+  .toggle { margin-left: auto; width: 30px; height: 17px; border-radius: 999px; background: #2A323D; position: relative; }
+  .toggle::after { content:""; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #6D7787; }
+  .toggle.on { background: rgba(196,21,28,.55); }
+  .toggle.on::after { left: 15px; background: #F0868B; }
+  .access-row.inherited .toggle { background: #232935; }
+  .access-row.inherited { opacity: .72; }
+
+  .preview-bar {
+    display: flex; align-items: center; gap: 9px;
+    background: #1D232C; border: 1px solid #2A323D; border-radius: 8px;
+    padding: 9px 12px; font-size: 12px; color: #C9D1DC;
+  }
+  .preview-bar b { color: #F0F3F7; font-weight: 700; }
+  .preview-ico { font-size: 13px; }
+  .inherit-note {
+    font-size: 11px; color: #7C8797; margin: 8px 0 0;
+  }
+
+  /* accent slot grid */
+  .swatch-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .swatch-cell {
+    width: 44px; height: 44px; border-radius: 9px;
+    display: grid; place-items: center;
+    border: 1px solid var(--line);
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    position: relative; background: var(--surface);
+  }
+  .swatch-cell i {
+    width: 18px; height: 18px; border-radius: 5px; display: block;
+  }
+  .swatch-cell.picked { border-color: var(--ink-2); box-shadow: 0 0 0 2px var(--surface-2) inset; }
+  .swatch-cell span {
+    position: absolute; bottom: 3px; font-size: 8.5px; letter-spacing: .04em;
+  }
+
+  .do-dont { display: grid; gap: 14px; grid-template-columns: 1fr; margin-top: 22px; }
+  @media (min-width: 700px) { .do-dont { grid-template-columns: 1fr 1fr; } }
+  .dd {
+    border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px;
+    background: var(--surface); box-shadow: var(--shadow);
+  }
+  .dd h4 {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .13em;
+    text-transform: uppercase; margin: 0 0 12px;
+  }
+  .dd.yes h4 { color: var(--green); }
+  .dd.no h4 { color: var(--crimson); }
+  .dd ul { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-2); }
+  .dd li { margin-bottom: 8px; }
+  .dd li:last-child { margin-bottom: 0; }
+
+  /* card before/after */
+  .ba { display: grid; gap: 16px; grid-template-columns: 1fr; margin-top: 22px; }
+  @media (min-width: 700px) { .ba { grid-template-columns: 1fr 1fr; } }
+  .ba-panel {
+    background: var(--mock-bg); border: 1px solid #262C36; border-radius: 10px;
+    padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .ba-panel > h4 {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .13em;
+    text-transform: uppercase; color: #6D7787; margin: 0;
+  }
+  .card.slim { display: flex; flex-direction: column; gap: 5px; border-left-width: 1px; }
+  .card.slim .top { display: flex; align-items: center; gap: 8px; }
+  .card.slim .dot { width: 8px; height: 8px; border-radius: 50%; margin-left: auto; flex-shrink: 0; }
+  .card.slim .meta {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 10px; color: #98A2B0;
+    font-variant-numeric: tabular-nums;
+  }
+  .card.slim .meta .warn { color: #F0868B; }
+  .card.slim .meta .nn { color: #7C8797; }
+
+  /* option cards */
+
+  .options { display: grid; gap: 18px; margin-top: 8px; }
+  .opt-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 2px; }
+  .opt-tag {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px;
+  }
+  .opt-tag.rec { color: var(--accent); border-color: var(--accent); }
+  .verdict {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px; margin-top: 18px;
+  }
+  .verdict div {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 8px; padding: 12px 14px;
+  }
+  .verdict dt {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 5px;
+  }
+  .verdict dd { margin: 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+  .verdict .good dt { color: var(--green); }
+  .verdict .bad dt { color: var(--crimson); }
+
+  .callout {
+    background: var(--surface); border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px; padding: 16px 18px; margin-top: 22px;
+    box-shadow: var(--shadow);
+  }
+  .callout p { font-size: 14.5px; margin-bottom: 10px; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  ul.tight { margin: 0 0 16px; padding-left: 20px; max-width: 66ch; }
+  ul.tight li { margin-bottom: 7px; }
+
+  .caption {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    margin-top: 10px; letter-spacing: .02em; max-width: 70ch;
+  }
+
+  footer {
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    padding-block: 32px 44px;
+    font-family: var(--mono); font-size: 11.5px; color: var(--muted);
+    letter-spacing: .03em;
+  }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  @media (max-width: 640px) {
+    .wrap, .bleed { padding-inline: 18px; }
+    section { padding-block: 40px; }
+    .masthead { padding-block: 36px 30px; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <div class="wrap">
+      <p class="eyebrow">GALLO Base Diesel · <b>Refatoração de Leads</b> · branch feat/leads-multi-funil</p>
+      <h1>Um lead, vários funis.</h1>
+      <p class="lede">
+        A tela de Leads hoje tem um funil só, fixo, com 903 dos 957 leads empilhados numa única
+        coluna. Esta é a proposta para transformá-la em múltiplos funis por linha de produto —
+        com acesso por vendedor, controle direto na conversa e um kanban que aguenta o volume.
+      </p>
+      <div class="meta-strip">
+        <span>Decisões fechadas · <b>6</b></span>
+        <span>Modelo · <b>N:N</b></span>
+        <span>Migração · <b>957 leads → funil Geral</b></span>
+        <span>RLS de leads · <b>inalterada</b></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ 1. DECISÕES ============ -->
+  <section>
+    <div class="wrap">
+      <p class="sec-label">O que já está decidido</p>
+      <h2>As seis escolhas que definem o resto</h2>
+      <p>
+        Cada uma dessas respostas fecha um grau de liberdade do sistema. Elas estão aqui porque
+        tudo o que vem depois — schema, RLS, telas — deriva delas.
+      </p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th class="num">#</th>
+              <th>Decisão</th>
+              <th>Consequência</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="num">1</td>
+              <td>Lead em vários funis (N:N)</td>
+              <td>Nova tabela de participação: lead × funil × etapa. O campo <code>leads.stage</code> deixa de ser a verdade.</td>
+            </tr>
+            <tr>
+              <td class="num">2</td>
+              <td>Acesso por usuário explícito</td>
+              <td>Lista nominal por funil. Dono e Gestor enxergam tudo, sempre.</td>
+            </tr>
+            <tr>
+              <td class="num">3</td>
+              <td>Funil “Geral” de triagem</td>
+              <td>Recebe os 957 leads atuais e todo contato novo do WhatsApp. Acesso universal.</td>
+            </tr>
+            <tr>
+              <td class="num">4</td>
+              <td>Acesso restringe, não amplia</td>
+              <td>O funil é um filtro sobre a carteira. A RLS de <code>leads</code> não muda — zero risco de abrir carteira alheia.</td>
+            </tr>
+            <tr>
+              <td class="num">5</td>
+              <td>Multi-funil + redesign juntos</td>
+              <td>Uma entrega, 5–6 fases, um PR.</td>
+            </tr>
+            <tr>
+              <td class="num">6</td>
+              <td>Conversão é por funil</td>
+              <td>Fechar catalisador não encerra filtros. A conversão desce do lead para a participação.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2. DIAGNÓSTICO ============ -->
+  <section>
+    <div class="wrap">
+      <p class="sec-label">Diagnóstico</p>
+      <h2>Três problemas que o multi-funil não resolve sozinho</h2>
+      <p>
+        Vale separar o que é falta de funil do que é dívida acumulada da tela. Se estes três
+        ficarem de fora, o multi-funil nasce em cima de uma base que já está no limite.
+      </p>
+
+      <div class="findings">
+        <div class="finding">
+          <div class="sev"></div>
+          <div>
+            <h4>A tela inteira roda em memória do navegador</h4>
+            <p>
+              O kanban busca <strong>1000 leads de uma vez</strong> e aplica todos os filtros no
+              cliente — temperatura, origem, vendedor, período, valor, busca textual. Com 957 leads
+              a janela já está praticamente cheia; o funil precisa virar filtro no servidor, senão
+              a próxima centena de leads começa a sumir silenciosamente da tela.
+            </p>
+            <span class="ref">src/features/leads/hooks/useLeadsList.ts:38–50</span>
+          </div>
+        </div>
+
+        <div class="finding">
+          <div class="sev"></div>
+          <div>
+            <h4>903 cards montados no DOM ao mesmo tempo</h4>
+            <p>
+              A coluna renderiza um componente por lead, sem virtualização nem paginação. Cada card
+              tem avatar, três chips e cálculo de data. A coluna “Novo” sozinha responde por 94% da
+              base.
+            </p>
+            <span class="ref">src/features/leads/components/kanban/KanbanColumn.tsx:82</span>
+          </div>
+        </div>
+
+        <div class="finding">
+          <div class="sev"></div>
+          <div>
+            <h4>A barra de métricas mostra zero por construção</h4>
+            <p>
+              Taxa de conversão, tempo médio e valor médio são calculados sobre os leads
+              convertidos — que o filtro padrão da tela <strong>já removeu da lista</strong> antes
+              de o cálculo rodar. O resultado é sempre 0,0% · 0 dias · —, exatamente o que aparece
+              na sua tela hoje. São 52px de altura permanente exibindo informação falsa.
+            </p>
+            <span class="ref">leadMetrics.ts:39–63 ← useLeadsList.ts:71</span>
+          </div>
+        </div>
+
+        <div class="finding warn">
+          <div class="sev"></div>
+          <div>
+            <h4>Nenhum caminho por teclado para mover um lead</h4>
+            <p>
+              O arraste usa a API nativa do navegador, que só responde a mouse. Não há como mover
+              um lead de etapa sem mouse — e a plataforma já tem a solução instalada e validada na
+              tela de Rodízio, que usa uma biblioteca com suporte a teclado.
+            </p>
+            <span class="ref">LeadsKanban.tsx:53–110 · solução em RotationQueueManager.tsx:141–144</span>
+          </div>
+        </div>
+
+        <div class="finding warn">
+          <div class="sev"></div>
+          <div>
+            <h4>A etapa de fechamento é uma constante no código</h4>
+            <p>
+              Soltar um card na última coluna dispara o modal de conversão porque o id da etapa está
+              fixo em <code>CLOSING_STAGE_ID</code>. Com etapas próprias por funil isso precisa virar
+              uma propriedade da etapa — cada funil terá a sua etapa terminal.
+            </p>
+            <span class="ref">src/features/leads/components/kanban/LeadsKanban.tsx:88</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. NAVEGAÇÃO ============ -->
+  <section>
+    <div class="bleed">
+      <div style="max-width:780px;margin-inline:auto;">
+        <p class="sec-label">Decisão em aberto</p>
+        <h2>Como se troca de funil?</h2>
+        <p>
+          Esta é a única escolha visual que muda a arquitetura da tela — as outras são refinamento.
+          Três padrões, mockados na proporção real do app, com dados reais da sua base.
+        </p>
+      </div>
+    </div>
+
+    <!-- OPÇÃO A -->
+    <div class="bleed" style="margin-top:36px;">
+      <div style="max-width:780px;margin-inline:auto;">
+        <div class="opt-head">
+          <h3 style="margin:0;font-size:21px;">Opção A · Abas horizontais</h3>
+          <span class="opt-tag">familiar</span>
+        </div>
+        <p style="margin-bottom:0;">
+          Uma faixa de abas entre o cabeçalho e o board. Todos os funis à vista, contagem em cada um,
+          um clique para trocar. É o padrão do Pipedrive.
+        </p>
+      </div>
+
+      <div class="mock-frame">
+        <div class="mock-topbar">
+          <div class="dot-row"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+          <span class="mock-url">crm.gallobasediesel.com.br/app/leads</span>
+        </div>
+        <div class="mock-scroll">
+          <div class="mock">
+            <div class="mock-header">
+              <span class="mock-title">Leads</span>
+              <span class="pill">54 ativos</span>
+              <span class="spacer"></span>
+              <span class="mock-search">Buscar por nome ou telefone…</span>
+              <span class="btn">Kanban</span>
+              <span class="btn ghost">Lista</span>
+              <span class="btn primary">+ Novo lead</span>
+            </div>
+
+            <div class="tabs-row">
+              <span class="tab on" style="--tabcolor:#C4151C">
+                <i class="swatch" style="background:#C4151C"></i>Catalisador<i class="cnt">32</i>
+              </span>
+              <span class="tab"><i class="swatch" style="background:#D2A809"></i>Filtros<i class="cnt">18</i></span>
+              <span class="tab"><i class="swatch" style="background:#337648"></i>Módulos<i class="cnt">4</i></span>
+              <span class="tab"><i class="swatch" style="background:#5B6B7A"></i>Geral<i class="cnt">903</i></span>
+              <span class="tab add">+ Novo funil</span>
+            </div>
+
+            <div class="board">
+              <div class="col" style="--stage:#5B6B7A">
+                <div class="col-head"><div class="nm">Novo</div><div class="sub">9 leads · 4,9 dias</div></div>
+                <div class="col-body">
+                  <div class="card" style="--stage:#5B6B7A">
+                    <div class="nm">Vinny Nogueira</div>
+                    <div class="ph">+55 11 94878-1957</div>
+                    <div class="row"><span class="chip val">R$ 4,2 mil</span><span class="chip cold">frio</span><span class="avatar">LC</span></div>
+                  </div>
+                  <div class="card" style="--stage:#5B6B7A">
+                    <div class="nm">Fernanda Prado</div>
+                    <div class="ph">+55 11 97889-7303</div>
+                    <div class="row"><span class="chip val">R$ 2,8 mil</span><span class="chip warm">morno</span><span class="avatar">WN</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col" style="--stage:#D2A809">
+                <div class="col-head"><div class="nm">Em qualificação</div><div class="sub">7 leads · 12,4 dias</div></div>
+                <div class="col-body">
+                  <div class="card" style="--stage:#D2A809">
+                    <div class="nm">Sra. Sarah Silva</div>
+                    <div class="ph">+55 38 99847-9405</div>
+                    <div class="row"><span class="chip val">R$ 6,1 mil</span><span class="chip hot">quente</span><span class="avatar">LC</span></div>
+                  </div>
+                  <div class="card" style="--stage:#D2A809">
+                    <div class="nm">Dr. Leonardo Moraes</div>
+                    <div class="ph">+55 42 92552-2964</div>
+                    <div class="row"><span class="chip val">R$ 4,1 mil</span><span class="chip late">38 dias</span><span class="avatar">WN</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col" style="--stage:#337648">
+                <div class="col-head"><div class="nm">Orçamento enviado</div><div class="sub">8 leads · 21,0 dias</div></div>
+                <div class="col-body">
+                  <div class="card" style="--stage:#337648">
+                    <div class="nm">Maria Eduarda Reis</div>
+                    <div class="ph">+55 95 91387-4045</div>
+                    <div class="row"><span class="chip val">R$ 5,3 mil</span><span class="chip cold">frio</span><span class="avatar">CB</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col" style="--stage:#C79C2C">
+                <div class="col-head"><div class="nm">Em negociação</div><div class="sub">6 leads · 34,2 dias</div></div>
+                <div class="col-body">
+                  <div class="card" style="--stage:#C79C2C">
+                    <div class="nm">Rafaela Melo</div>
+                    <div class="ph">+55 96 98551-7228</div>
+                    <div class="row"><span class="chip val">R$ 10,8 mil</span><span class="chip hot">quente</span><span class="avatar">WN</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col" style="--stage:#C4151C">
+                <div class="col-head"><div class="nm">Convertido / Perdido</div><div class="sub">2 leads · 55 dias</div></div>
+                <div class="col-body">
+                  <div class="card" style="--stage:#C4151C">
+                    <div class="nm">Liz Santos</div>
+                    <div class="ph">+55 73 93328-9758</div>
+                    <div class="row"><span class="chip val">R$ 10,7 mil</span><span class="avatar">LC</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="caption bleed" style="padding-inline:0;max-width:780px;margin-inline:auto;">
+        Repare no custo: “Geral · 903” fica permanentemente ao lado de funis de duas dezenas. A aba
+        que ninguém quer abrir é a mais gorda da fila.
+      </p>
+
+      <div style="max-width:780px;margin-inline:auto;">
+        <dl class="verdict">
+          <div class="good"><dt>A favor</dt><dd>Todos os funis e contagens visíveis sem clique. Zero curva de aprendizado.</dd></div>
+          <div class="bad"><dt>Contra</dt><dd>Quebra a partir de 6–7 funis: vira barra de rolagem horizontal. Em telefone, some.</dd></div>
+          <div><dt>Com 1 funil só</dt><dd>Faixa com uma aba solitária — ruído puro.</dd></div>
+        </dl>
+      </div>
+    </div>
+
+    <!-- OPÇÃO B -->
+    <div class="bleed" style="margin-top:52px;">
+      <div style="max-width:780px;margin-inline:auto;">
+        <div class="opt-head">
+          <h3 style="margin:0;font-size:21px;">Opção B · Seletor no cabeçalho</h3>
+          <span class="opt-tag">escala</span>
+        </div>
+        <p style="margin-bottom:0;">
+          O nome do funil vira o título da tela, clicável. Abre uma lista com busca. O board fica com
+          100% da largura. É o padrão do HubSpot e de todo seletor de projeto que você já usou.
+        </p>
+      </div>
+
+      <div class="mock-frame">
+        <div class="mock-topbar">
+          <div class="dot-row"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+          <span class="mock-url">crm.gallobasediesel.com.br/app/leads?funil=catalisador</span>
+        </div>
+        <div class="mock-scroll">
+          <div class="mock">
+            <div class="mock-header">
+              <span class="mock-title" style="color:#8A94A3;font-weight:600;">Leads /</span>
+              <span class="switcher-btn">
+                <i class="swatch" style="background:#C4151C"></i>Catalisador<i class="caret">▾</i>
+              </span>
+              <span class="pill">32 ativos</span>
+              <span class="spacer"></span>
+              <span class="mock-search">Buscar por nome ou telefone…</span>
+              <span class="btn">Kanban</span>
+              <span class="btn ghost">Lista</span>
+              <span class="btn primary">+ Novo lead</span>
+            </div>
+
+            <div class="popover">
+              <div class="search">Buscar funil…</div>
+              <div style="padding:4px 0;">
+                <div class="pop-item on"><i class="swatch" style="background:#C4151C"></i>Catalisador<i class="cnt">32</i></div>
+                <div class="pop-item"><i class="swatch" style="background:#D2A809"></i>Filtros<i class="cnt">18</i></div>
+                <div class="pop-item"><i class="swatch" style="background:#337648"></i>Módulos<i class="cnt">4</i></div>
+                <div class="pop-item"><i class="swatch" style="background:#5B6B7A"></i>Geral<i class="cnt">903</i></div>
+                <div class="pop-sep"></div>
+                <div class="pop-item muted">+ Novo funil</div>
+                <div class="pop-item muted">Gerenciar funis</div>
+              </div>
+            </div>
+
+            <div class="board" style="padding-top:0;">
+              <div class="col" style="--stage:#5B6B7A">
+                <div class="col-head"><div class="nm">Novo</div><div class="sub">9 leads · 4,9 dias</div></div>
+                <div class="col-body">
+                  <div class="card" style="--stage:#5B6B7A">
+                    <div class="nm">Rubens Franco</div>
+                    <div class="ph">+55 41 99887-452</div>
+                    <div class="row"><span class="chip val">R$ 3,1 mil</span><span class="chip cold">frio</span><span class="avatar">RS</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col" style="--stage:#D2A809">
+                <div class="col-head"><div class="nm">Em qualificação</div><div class="sub">7 leads · 12,4 dias</div></div>
+                <div class="col-body">
+                  <div class="card" style="--stage:#D2A809">
+                    <div class="nm">Cauã Saraiva</div>
+                    <div class="ph">+55 30 92715-1174</div>
+                    <div class="row"><span class="chip val">R$ 4,7 mil</span><span class="chip hot">quente</span><span class="avatar">CB</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col" style="--stage:#337648">
+                <div class="col-head"><div class="nm">Orçamento enviado</div><div class="sub">8 leads · 21,0 dias</div></div>
+                <div class="col-body">
+                  <div class="card" style="--stage:#337648">
+                    <div class="nm">Dr. Joaquim Carvalho</div>
+                    <div class="ph">+55 98 91922-9897</div>
+                    <div class="row"><span class="chip val">R$ 10,8 mil</span><span class="chip warm">morno</span><span class="avatar">CB</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col" style="--stage:#C79C2C">
+                <div class="col-head"><div class="nm">Em negociação</div><div class="sub">6 leads · 34,2 dias</div></div>
+                <div class="col-body">
+                  <div class="card" style="--stage:#C79C2C">
+                    <div class="nm">Felipe Souza</div>
+                    <div class="ph">+55 20 91472-4441</div>
+                    <div class="row"><span class="chip val">R$ 7,4 mil</span><span class="chip late">40 dias</span><span class="avatar">WN</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col" style="--stage:#C4151C">
+                <div class="col-head"><div class="nm">Convertido / Perdido</div><div class="sub">2 leads · 55 dias</div></div>
+                <div class="col-body">
+                  <div class="card" style="--stage:#C4151C">
+                    <div class="nm">Sophia Martins</div>
+                    <div class="ph">+55 47 93710-9316</div>
+                    <div class="row"><span class="chip val">R$ 7,0 mil</span><span class="avatar">LC</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="caption" style="max-width:780px;margin-inline:auto;">
+        O board ganha a largura inteira e o número de funis deixa de importar — mas os outros funis
+        só existem depois de um clique.
+      </p>
+
+      <div style="max-width:780px;margin-inline:auto;">
+        <dl class="verdict">
+          <div class="good"><dt>A favor</dt><dd>Escala para qualquer quantidade de funis. Some sozinho para quem só tem um. Funciona em telefone.</dd></div>
+          <div class="bad"><dt>Contra</dt><dd>Não há visão periférica: ninguém percebe que o funil vizinho acumulou 40 leads parados.</dd></div>
+          <div><dt>Com N:N</dt><dd>Sem alvo para arrastar. Adicionar a outro funil vira menu de contexto.</dd></div>
+        </dl>
+      </div>
+    </div>
+
+    <!-- OPÇÃO C -->
+    <div class="bleed" style="margin-top:52px;">
+      <div style="max-width:780px;margin-inline:auto;">
+        <div class="opt-head">
+          <h3 style="margin:0;font-size:21px;">Opção C · Trilho lateral</h3>
+          <span class="opt-tag rec">recomendada</span>
+        </div>
+        <p style="margin-bottom:0;">
+          Uma coluna estreita à esquerda do board, colapsável para só os ícones. Os funis ficam
+          permanentemente visíveis com suas contagens — e, o que decide a escolha: <strong>viram alvo
+          de arraste</strong>. Puxar um card do board para o trilho adiciona o lead àquele funil.
+        </p>
+      </div>
+
+      <div class="mock-frame">
+        <div class="mock-topbar">
+          <div class="dot-row"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+          <span class="mock-url">crm.gallobasediesel.com.br/app/leads?funil=catalisador</span>
+        </div>
+        <div class="mock-scroll">
+          <div class="mock">
+            <div class="mock-header">
+              <span class="mock-title">Leads</span>
+              <span class="pill">32 ativos em Catalisador</span>
+              <span class="spacer"></span>
+              <span class="mock-search">Buscar por nome ou telefone…</span>
+              <span class="btn">Kanban</span>
+              <span class="btn ghost">Lista</span>
+              <span class="btn primary">+ Novo lead</span>
+            </div>
+
+            <div class="rail-layout">
+              <div class="rail">
+                <div class="rail-label">Funis</div>
+                <div class="rail-item on" style="--railcolor:#C4151C">
+                  <i class="swatch" style="background:#C4151C"></i>Catalisador<i class="cnt">32</i>
+                </div>
+                <div class="rail-item drop" style="--railcolor:#D2A809">
+                  <i class="swatch" style="background:#D2A809"></i>Filtros<i class="cnt">+</i>
+                </div>
+                <div class="rail-item"><i class="swatch" style="background:#337648"></i>Módulos<i class="cnt">4</i></div>
+                <div class="rail-item"><i class="swatch" style="background:#5B6B7A"></i>Geral<i class="cnt">903</i></div>
+                <div style="height:1px;background:#232935;margin:8px 6px;"></div>
+                <div class="rail-item" style="color:#6D7787;">+ Novo funil</div>
+              </div>
+
+              <div class="board">
+                <div class="col" style="--stage:#5B6B7A">
+                  <div class="col-head"><div class="nm">Novo</div><div class="sub">9 leads · 4,9 dias</div></div>
+                  <div class="col-body">
+                    <div class="card" style="--stage:#5B6B7A;opacity:.45;border-style:dashed;">
+                      <div class="nm">Maria Alice Macedo</div>
+                      <div class="ph">+55 51 92031-4419</div>
+                      <div class="row"><span class="chip val">R$ 8,2 mil</span><span class="chip hot">quente</span><span class="avatar">WN</span></div>
+                    </div>
+                    <div class="card" style="--stage:#5B6B7A">
+                      <div class="nm">MANINHO</div>
+                      <div class="ph">+55 49 9111-5153</div>
+                      <div class="row"><span class="chip val">R$ 1,9 mil</span><span class="chip cold">frio</span><span class="avatar">RS</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col" style="--stage:#D2A809">
+                  <div class="col-head"><div class="nm">Em qualificação</div><div class="sub">7 leads · 12,4 dias</div></div>
+                  <div class="col-body">
+                    <div class="card" style="--stage:#D2A809">
+                      <div class="nm">Sr. Samuel Nogueira</div>
+                      <div class="ph">+55 22 97369-1754</div>
+                      <div class="row">
+                        <span class="chip val">R$ 3,0 mil</span>
+                        <span class="chip funnel"><i class="swatch" style="background:#D2A809"></i>+1</span>
+                        <span class="avatar">RS</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col" style="--stage:#337648">
+                  <div class="col-head"><div class="nm">Orçamento enviado</div><div class="sub">8 leads · 21,0 dias</div></div>
+                  <div class="col-body">
+                    <div class="card" style="--stage:#337648">
+                      <div class="nm">Srta. Fabrícia Batista</div>
+                      <div class="ph">+55 24 99848-1067</div>
+                      <div class="row"><span class="chip val">R$ 8,3 mil</span><span class="chip warm">morno</span><span class="avatar">CB</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col" style="--stage:#C79C2C">
+                  <div class="col-head"><div class="nm">Em negociação</div><div class="sub">6 leads · 34,2 dias</div></div>
+                  <div class="col-body">
+                    <div class="card" style="--stage:#C79C2C">
+                      <div class="nm">Sr. César Costa</div>
+                      <div class="ph">+55 15 91998-5511</div>
+                      <div class="row"><span class="chip val">R$ 4,5 mil</span><span class="chip hot">quente</span><span class="avatar">WN</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col" style="--stage:#C4151C">
+                  <div class="col-head"><div class="nm">Fechamento</div><div class="sub">2 leads · 55 dias</div></div>
+                  <div class="col-body">
+                    <div class="card" style="--stage:#C4151C">
+                      <div class="nm">Sr. Marcelo Franco</div>
+                      <div class="ph">+55 85 99478-9568</div>
+                      <div class="row"><span class="chip val">R$ 12,4 mil</span><span class="avatar">LC</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="caption" style="max-width:780px;margin-inline:auto;">
+        Estado de arraste: “Maria Alice” foi levantada do board e “Filtros” acendeu como alvo. Soltar
+        ali cria a segunda participação sem sair da tela — o gesto que o modelo N:N pede.
+        O card do “Sr. Samuel” já mostra o selo <b>+1</b>: ele vive em dois funis.
+      </p>
+
+      <div style="max-width:780px;margin-inline:auto;">
+        <dl class="verdict">
+          <div class="good"><dt>A favor</dt><dd>Contagens sempre à vista, e o único padrão em que “adicionar a outro funil” é um gesto, não um menu.</dd></div>
+          <div class="bad"><dt>Contra</dt><dd>Consome ~176px de largura. Colapsado para ícones cai a ~56px.</dd></div>
+          <div><dt>Com 1 funil só</dt><dd>O trilho não é montado. A tela fica idêntica à de hoje.</dd></div>
+        </dl>
+      </div>
+
+      <div class="callout" style="max-width:780px;margin-inline:auto;">
+        <p><strong>Por que esta.</strong> Você escolheu N:N — e num modelo N:N a operação mais
+        frequente deixa de ser “mover de etapa” e passa a ser “também colocar em outro funil”.
+        A opção A não tem alvo de arraste; a B esconde os outros funis atrás de um clique. Só o
+        trilho transforma essa operação em um gesto de um segundo.</p>
+        <p>Em telas abaixo de 1280px o trilho colapsa para ícones automaticamente; abaixo de 768px
+        ele vira o seletor da opção B. Não são padrões rivais — B é o modo compacto de C.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4. FICHA DA CONVERSA ============ -->
+  <section>
+    <div class="bleed">
+      <div style="max-width:780px;margin-inline:auto;">
+        <p class="sec-label">Painel direito do Atendimento</p>
+        <h2>Controle de funil dentro da conversa</h2>
+        <p>
+          O vendedor descobre a linha de produto conversando, não olhando o kanban. O bloco de funis
+          entra logo abaixo da identidade, antes dos dados do lead — é a primeira coisa acionável da
+          ficha. Cada participação é uma linha: nome do funil, etapa em um seletor, menu para sair
+          do funil.
+        </p>
+      </div>
+
+      <div class="mock-frame">
+        <div class="mock-topbar">
+          <div class="dot-row"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+          <span class="mock-url">crm.gallobasediesel.com.br/app/atendimento/conv-8821</span>
+        </div>
+        <div class="mock-scroll">
+          <div class="mock fiche-demo">
+            <div class="fiche-thread">
+              <div class="bubble them">Bom dia! Preciso de orçamento do catalisador do Scania R450 2019</div>
+              <div class="bubble me">Bom dia, Samuel! Já verifico a disponibilidade pra você.</div>
+              <div class="bubble them">E aproveita e vê o filtro de ar também, por favor</div>
+              <div class="bubble me">Fechado — vou montar os dois no mesmo orçamento.</div>
+            </div>
+
+            <div class="fiche">
+              <div class="fiche-id">
+                <div class="av">SN</div>
+                <div>
+                  <div class="nm">Sr. Samuel Nogueira</div>
+                  <div class="ph">+55 22 97369-1754</div>
+                </div>
+              </div>
+
+              <div class="block-label">Funis</div>
+
+              <div class="funnel-entry" style="--fcolor:#C4151C">
+                <div class="top">
+                  <i class="swatch" style="width:8px;height:8px;border-radius:2px;background:#C4151C;display:inline-block;"></i>
+                  <span class="fn">Catalisador</span>
+                  <span class="kebab">···</span>
+                </div>
+                <div class="stage-select">Em qualificação<i class="caret">▾</i></div>
+              </div>
+
+              <div class="funnel-entry" style="--fcolor:#D2A809">
+                <div class="top">
+                  <i class="swatch" style="width:8px;height:8px;border-radius:2px;background:#D2A809;display:inline-block;"></i>
+                  <span class="fn">Filtros</span>
+                  <span class="kebab">···</span>
+                </div>
+                <div class="stage-select">Novo<i class="caret">▾</i></div>
+              </div>
+
+              <div class="add-funnel">+ Adicionar a um funil</div>
+
+              <div class="locked-note">
+                🔒 +2 funis que você não acessa
+              </div>
+
+              <div class="block-label">Dados</div>
+              <dl style="display:flex;flex-direction:column;gap:7px;margin:0;">
+                <div class="fiche-row"><dt>Responsável</dt><dd>Ramon Silveira</dd></div>
+                <div class="fiche-row"><dt>Criado em</dt><dd>14/07/2026</dd></div>
+                <div class="fiche-row"><dt>Valor estimado</dt><dd>R$ 3.000,00</dd></div>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="caption" style="max-width:780px;margin-inline:auto;">
+        Duas participações, duas etapas independentes. A linha cinza diz que existem funis fora do
+        alcance <b>sem revelar quais</b> — sem ela ninguém entende por que a lista parece incompleta;
+        com os nomes, ela vazaria a estrutura comercial que o controle de acesso protege.
+      </p>
+
+      <div style="max-width:780px;margin-inline:auto;">
+        <h3>Estados que o bloco precisa cobrir</h3>
+        <ul class="tight">
+          <li><strong>Sem funil nenhum</strong> — só o botão “Adicionar a um funil”, com o Geral sugerido em primeiro.</li>
+          <li><strong>Sem permissão de edição</strong> — etapa vira texto, não seletor; sem menu, sem botão de adicionar.</li>
+          <li><strong>Mudança em andamento</strong> — o seletor mostra o valor novo imediatamente e reverte com aviso se o servidor recusar.</li>
+          <li><strong>Já convertido naquele funil</strong> — linha com selo “Convertido” e atalho para a ficha do cliente; as outras participações seguem editáveis.</li>
+        </ul>
+        <p>
+          A confirmação é o próprio <em>toast</em> com ação de desfazer — mudar etapa é reversível e
+          frequente demais para merecer um diálogo modal.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. ADMIN ============ -->
+  <section>
+    <div class="bleed">
+      <div style="max-width:780px;margin-inline:auto;">
+        <p class="sec-label">Configurações → Atendimento → Funis</p>
+        <h2>Onde Dono e Gestor criam os funis</h2>
+        <p>
+          A tela que existe hoje nesse endereço é somente leitura, com o aviso “edição visual na
+          Fase 2”. Ela vira esta: lista de funis à esquerda, e à direita duas seções — as etapas do
+          funil selecionado e quem tem acesso a ele.
+        </p>
+      </div>
+
+      <div class="mock-frame">
+        <div class="mock-topbar">
+          <div class="dot-row"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+          <span class="mock-url">crm.gallobasediesel.com.br/app/configuracoes/atendimento/funis</span>
+        </div>
+        <div class="mock-scroll">
+          <div class="mock admin">
+            <div class="admin-list">
+              <div class="rail-label">Funis da loja</div>
+              <div class="rail-item on" style="--railcolor:#C4151C"><i class="swatch" style="background:#C4151C"></i>Catalisador<i class="cnt">32</i></div>
+              <div class="rail-item"><i class="swatch" style="background:#D2A809"></i>Filtros<i class="cnt">18</i></div>
+              <div class="rail-item"><i class="swatch" style="background:#337648"></i>Módulos<i class="cnt">4</i></div>
+              <div class="rail-item"><i class="swatch" style="background:#5B6B7A"></i>Geral<i class="cnt">903</i></div>
+              <div style="height:1px;background:#232935;margin:8px 6px;"></div>
+              <div class="rail-item" style="color:#6D7787;">+ Novo funil</div>
+            </div>
+
+            <div class="admin-main">
+              <div>
+                <div class="block-label" style="margin-bottom:10px;">Etapas · Catalisador</div>
+                <div class="stage-editor">
+                  <div class="stage-row"><span class="grip">⣿</span><i class="sw" style="background:#5B6B7A"></i>Novo<span class="ord">1</span></div>
+                  <div class="stage-row"><span class="grip">⣿</span><i class="sw" style="background:#D2A809"></i>Em qualificação<span class="ord">2</span></div>
+                  <div class="stage-row"><span class="grip">⣿</span><i class="sw" style="background:#337648"></i>Orçamento enviado<span class="ord">3</span></div>
+                  <div class="stage-row"><span class="grip">⣿</span><i class="sw" style="background:#C79C2C"></i>Em negociação<span class="ord">4</span></div>
+                  <div class="stage-row">
+                    <span class="grip">⣿</span><i class="sw" style="background:#C4151C"></i>Fechamento
+                    <span class="flag">etapa final</span><span class="ord">5</span>
+                  </div>
+                  <div class="more-row" style="margin-top:2px;">+ Adicionar etapa</div>
+                </div>
+              </div>
+
+              <div>
+                <div class="block-label" style="margin-bottom:10px;">Quem acessa este funil</div>
+
+                <div class="preview-bar">
+                  <span class="preview-ico">👥</span>
+                  <b>4 pessoas</b> enxergam este funil
+                </div>
+
+                <p class="inherit-note">Donos e gestores enxergam todos os funis.</p>
+
+                <div class="access-grid" style="margin-top:10px;">
+                  <div class="access-row">
+                    <span class="av">LC</span>Lucas Cardoso<span class="role">vendedor</span>
+                    <span class="toggle on"></span>
+                  </div>
+                  <div class="access-row">
+                    <span class="av">WN</span>Wellington Nunes<span class="role">vendedor</span>
+                    <span class="toggle on"></span>
+                  </div>
+                  <div class="access-row">
+                    <span class="av">TR</span>Tiago Ribeiro<span class="role">vendedor</span>
+                    <span class="toggle"></span>
+                  </div>
+                  <div class="access-row">
+                    <span class="av">RS</span>Ramon Silveira<span class="role">vendedor</span>
+                    <span class="toggle"></span>
+                  </div>
+                </div>
+                <p class="caption" style="margin-top:10px;color:#6D7787;">
+                  O contador no topo recalcula a cada clique. Se zerar, ele fica âmbar e o botão de
+                  salvar passa a dizer “Salvar sem acesso” — configurar um funil que ninguém enxerga
+                  exige consentimento explícito.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width:780px;margin-inline:auto;">
+        <h3>Duas regras que a tela precisa impor</h3>
+        <ul class="tight">
+          <li><strong>Todo funil tem exatamente uma etapa final.</strong> É ela que dispara a conversão em cliente. Sem isso o lead entra e nunca fecha.</li>
+          <li><strong>Excluir funil com leads dentro é bloqueado.</strong> A ação oferece arquivar — some da navegação, mantém o histórico e os indicadores.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5.5 COR POR FUNIL ============ -->
+  <section>
+    <div class="wrap">
+      <p class="sec-label">A tensão que precisava ser resolvida</p>
+      <h2>Cor de funil não é uma cor</h2>
+      <p>
+        O projeto proíbe cor fixa em componente — tudo passa por tokens, porque a mesma tela roda
+        em 4 identidades visuais × claro e escuro. Mas a cor do funil é escolha do usuário. Parece
+        contradição.
+      </p>
+      <p>
+        Não é. O usuário não está escolhendo <em>uma cor</em>; está escolhendo <strong>qual das
+        identidades do sistema aquele funil ocupa</strong>. O que se guarda no banco é um número de
+        1 a 8 — um slot. O valor de cada slot é calibrado uma vez, nos 4 temas × 2 modos, e vive
+        onde todas as outras cores vivem.
+      </p>
+
+      <div class="swatch-grid" role="img" aria-label="Grade de oito identidades de funil">
+        <span class="swatch-cell picked"><i style="background:#C4151C"></i><span>1</span></span>
+        <span class="swatch-cell"><i style="background:#D2A809"></i><span>2</span></span>
+        <span class="swatch-cell"><i style="background:#337648"></i><span>3</span></span>
+        <span class="swatch-cell"><i style="background:#5B6B7A"></i><span>4</span></span>
+        <span class="swatch-cell"><i style="background:#8250C4"></i><span>5</span></span>
+        <span class="swatch-cell"><i style="background:#1E7A8C"></i><span>6</span></span>
+        <span class="swatch-cell"><i style="background:#C4661B"></i><span>7</span></span>
+        <span class="swatch-cell"><i style="background:#A03E7C"></i><span>8</span></span>
+      </div>
+      <p class="caption">
+        Oito é teto proposital. O nono funil repete uma identidade — e tudo bem, porque quem
+        carrega o significado é o <strong>ícone</strong>, não a cor.
+      </p>
+
+      <p style="margin-top:22px;">
+        A regra que sustenta o sistema inteiro em uma linha: <strong>a cor do funil nunca é a cor de
+        um texto.</strong> Ela vive em pontos, bordas e fundos de 12% de opacidade — superfícies que
+        precisam de 3:1, não de 4,5:1. O nome do funil é sempre a cor normal de texto. Assim a
+        acessibilidade fica garantida por construção, e não por sorte na escolha do usuário.
+      </p>
+
+      <div class="do-dont">
+        <div class="dd yes">
+          <h4>Faz</h4>
+          <ul>
+            <li>Ícone obrigatório por funil, escolhido numa lista curada do mundo de peças pesadas — filtro, turbo, injeção, freio.</li>
+            <li>Ponto de 8px, borda de 2px, fundo suave. Superfícies não-textuais.</li>
+            <li>Funil Geral em cinza neutro, fora dos 8 slots — ele é caixa de entrada, não linha de negócio. Com 903 leads, se tivesse cor forte dominaria a tela inteira.</li>
+            <li>Item ativo marcado por peso da fonte + barra indicadora. Cor é o terceiro reforço.</li>
+          </ul>
+        </div>
+        <div class="dd no">
+          <h4>Não faz</h4>
+          <ul>
+            <li>Seletor de cor livre. Grade fechada de 8, com sugestão automática do próximo slot livre.</li>
+            <li>Nome do funil colorido — em lugar nenhum: trilho, abas, seletor, ficha ou lista.</li>
+            <li>Pintar superfície grande por funil (fundo do board, cabeçalho). Faz a mesma tela parecer produtos diferentes a cada troca.</li>
+            <li>Usar as cores de severidade como identidade de funil. Um funil “vermelho-crítico” mata a força de todo alerta real da tela.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout">
+        <p><strong>Dívida que vem junto.</strong> As etapas já sofrem exatamente deste problema
+        <em>em produção</em>: a cor da etapa é um valor livre do banco usado como cor de texto na
+        ficha e na lista. O tom cinza-aço que já está lá rende cerca de 2,5:1 sobre o fundo escuro —
+        reprova em acessibilidade, sem correção possível. A mesma solução conserta os dois.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5.7 SELETOR DE EXIBIÇÃO ============ -->
+  <section>
+    <div class="wrap">
+      <p class="sec-label">Sua decisão</p>
+      <h2>Os três padrões, escolhidos por quem usa</h2>
+      <p>
+        Em vez de eu eleger um, os três são implementados e cada pessoa escolhe o seu — gravado no
+        navegador, como o tema. O que isso exige, tecnicamente: <strong>um único estado com três
+        projeções</strong>. Trilho, seletor e abas são vistas puras sobre o mesmo dado. Nenhum deles
+        pode ter um recurso que os outros não tenham.
+      </p>
+
+      <h3>Onde fica o controle</h3>
+      <p>
+        Em dois lugares, e só dois: dentro do próprio seletor de funil — onde o olho já está quando
+        a pessoa pensa “queria isso de outro jeito” — e em Configurações, ao lado de tema e modo.
+        <strong>Não</strong> num terceiro botão no cabeçalho: já existe o Kanban/Lista ali, e dois
+        controles de “modo” lado a lado, um mudando o conteúdo e outro a navegação, confunde.
+      </p>
+
+      <h3>Trocar de padrão não pode perder o lugar</h3>
+      <p>
+        O funil ativo vive na URL (<code>?funil=catalisador</code>), não na preferência. Quem troca
+        de trilho para abas continua no mesmo funil, no mesmo scroll, com os mesmos filtros — e
+        ainda pode mandar o link do board pelo WhatsApp para o gestor.
+      </p>
+
+      <h3>A preferência é um desejo, não um contrato</h3>
+      <p>
+        Abaixo de 1024px o trilho não cabe e as abas criariam dois scrolls horizontais aninhados —
+        o pior padrão de toque que existe. Nessas larguras qualquer preferência resolve para o
+        seletor. Com 9 funis ou mais, as abas também. <strong>E a preferência gravada nunca é
+        reescrita por isso</strong> — ela volta sozinha quando a janela volta a ser grande.
+        Sobrescrever a escolha de alguém porque girou o tablet é como se perde a confiança do
+        usuário em configurar qualquer coisa.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 5.8 CARD ============ -->
+  <section>
+    <div class="wrap">
+      <p class="sec-label">Densidade</p>
+      <h2>O card, cortado ao osso</h2>
+      <p>
+        Sete informações em 96px. O único dado que muda o comportamento de alguém — “esse está
+        atrasado” — tem exatamente o mesmo peso visual de “veio do WhatsApp”, que é verdade para 9
+        em cada 10 leads da base.
+      </p>
+
+      <div class="ba">
+        <div class="ba-panel">
+          <h4>Hoje · ~96px</h4>
+          <div class="card" style="--stage:#D2A809">
+            <div style="display:flex;align-items:flex-start;gap:7px;">
+              <span style="width:26px;height:26px;border-radius:50%;background:#2A323D;display:grid;place-items:center;font-size:9px;font-weight:700;color:#A9B3C1;flex-shrink:0;">SN</span>
+              <div style="min-width:0;">
+                <div class="nm">Sr. Samuel Nogueira</div>
+                <div class="ph">+55 22 97369-1754</div>
+              </div>
+              <span class="chip warm" style="margin-left:auto;">☀</span>
+            </div>
+            <div class="row" style="justify-content:space-between;">
+              <span class="chip val">R$ 3,0 mil</span>
+              <span class="chip late">⏰ Atrasada há 12 dias</span>
+            </div>
+            <div class="row" style="justify-content:space-between;">
+              <span class="chip" style="background:rgba(37,211,102,.14);color:#5DD98C;">✆ WhatsApp</span>
+              <span style="display:flex;align-items:center;gap:4px;color:#7C8797;font-size:9.5px;">
+                <span class="avatar" style="margin:0;">RS</span>Ramon S.
+              </span>
+            </div>
+          </div>
+          <p style="font-family:var(--mono);font-size:10px;color:#6D7787;margin:0;line-height:1.6;">
+            7 dados · 3 chips coloridos de mesma<br>intensidade · ~4 cards visíveis por coluna
+          </p>
+        </div>
+
+        <div class="ba-panel">
+          <h4>Proposto · ~60px</h4>
+          <div class="card slim" style="--stage:#D2A809">
+            <div class="top">
+              <span class="nm">Sr. Samuel Nogueira</span>
+              <span class="dot" style="background:#D2A809" title="Lead morno"></span>
+            </div>
+            <div class="meta">
+              <span>R$ 3,0 mil</span>
+              <span class="warn">⏰ 12 dias</span>
+              <span class="nn">⑃ 2</span>
+              <span class="avatar" style="margin-left:auto;">RS</span>
+            </div>
+          </div>
+          <div class="card slim" style="--stage:#D2A809">
+            <div class="top">
+              <span class="nm">Cauã Saraiva</span>
+              <span class="dot" style="background:#E8484F" title="Lead quente"></span>
+            </div>
+            <div class="meta">
+              <span>R$ 4,7 mil</span>
+              <span class="avatar" style="margin-left:auto;">CB</span>
+            </div>
+          </div>
+          <p style="font-family:var(--mono);font-size:10px;color:#6D7787;margin:0;line-height:1.6;">
+            4 dados · 1 sinal de urgência · ~9 cards<br>por coluna · resto no hover
+          </p>
+        </div>
+      </div>
+
+      <h3>O que sai, e por quê</h3>
+      <ul class="tight">
+        <li><strong>Avatar do lead</strong> — inicial genérica de contato sem foto, custando 26px de altura e 40 de largura.</li>
+        <li><strong>Telefone</strong> — ninguém liga a partir do kanban. Vai para o hover.</li>
+        <li><strong>Origem</strong> — praticamente constante na base. Vira filtro, não adorno.</li>
+        <li><strong>Próxima ação quando não é urgente</strong> — “em 12 dias” gasta espaço para dizer “não faça nada”. Só aparece quando é hoje ou está atrasada.</li>
+        <li><strong>Borda colorida da etapa</strong> — a coluna já diz de que etapa se trata.</li>
+        <li><strong>Nome do vendedor</strong> — fica só o avatar, e some quando o board já está filtrado por um vendedor, que é o caso do vendedor comum.</li>
+      </ul>
+
+      <h3>Como o card avisa que o lead está em outros funis</h3>
+      <p>
+        Um indicador discreto e sem cor: <span style="font-family:var(--mono)">⑃ 2</span> — “também
+        está em 2 outros funis”. Deliberadamente apagado, porque estar em vários funis é contexto,
+        não urgência; ele não pode competir com o aviso de atraso. O hover lista os funis com etapa
+        de cada um, e cada linha leva ao board correspondente.
+      </p>
+      <p>
+        <strong>O número conta apenas funis que a pessoa acessa.</strong> Se o lead está em 4 e ela
+        alcança 2, o card mostra <span style="font-family:var(--mono)">⑃ 1</span> — mostrar o total
+        real vazaria a estrutura comercial que o controle de acesso existe para proteger.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 6. KANBAN DENSO ============ -->
+  <section>
+    <div class="wrap">
+      <p class="sec-label">O elefante da tela</p>
+      <h2>A coluna de 903 cards</h2>
+      <p>
+        O multi-funil ameniza o sintoma — os 903 vão para o Geral e os funis de trabalho nascem
+        magros — mas não cura. O funil Geral continua sendo uma coluna com centenas de cards, e é
+        justamente ele a caixa de entrada que alguém precisa trabalhar todo dia.
+      </p>
+
+      <h3>Carregar aos poucos, não virtualizar</h3>
+      <p>
+        A resposta instintiva a 903 cards é virtualização. É a resposta errada aqui, por três
+        motivos concretos: virtualização e arraste se hostilizam (arrastar para um alvo fora da
+        janela renderizada é a classe de bug que volta a cada release); ela quebra o
+        <kbd>Ctrl+F</kbd> do navegador, que é como as pessoas realmente acham um nome numa coluna
+        longa; e sobretudo <strong>não resolve o problema humano</strong> — 903 cards virtualizados
+        continuam sendo 903 cards que ninguém vai olhar.
+      </p>
+      <p>
+        Então: <strong>40 por coluna, com “carregar mais” no fim</strong> e o total real vindo do
+        servidor no cabeçalho. É o que o HubSpot faz. Se alguma coluna legítima passar de ~300
+        renderizados em produção, aí sim virtualiza-se aquela coluna, e só quando não houver arraste
+        ativo.
+      </p>
+
+      <h3>O cabeçalho da coluna passa a informar</h3>
+      <p>
+        Hoje ele mostra “25 leads · Média 60,4 dias”. Média de dias é número de relatório, não de
+        operação. No lugar entram <strong>a soma dos valores</strong> — o que o gestor procura — e
+        <strong>“12 atrasados” clicável</strong>, que aplica o filtro na hora. É o único número da
+        coluna que faz alguém agir.
+      </p>
+      <ul class="tight">
+        <li><strong>Ordenação por coluna</strong>, e o padrão muda conforme o tipo da etapa: na etapa de entrada, mais antigos primeiro — o lead velho é o que apodrece. Hoje o board fica em ordem de criação decrescente, ou seja, o lead esquecido é o último dos 903.</li>
+        <li><strong>Colunas colapsáveis</strong> para 44px, com o nome na vertical.</li>
+        <li><strong>Arraste com suporte a teclado</strong>, migrando para a biblioteca que a tela de Rodízio já usa. Hoje não existe forma de mover um lead sem mouse.</li>
+      </ul>
+
+      <h3>E a triagem, que é o que realmente esvazia o Geral</h3>
+      <p>
+        Quando a etapa de entrada passa de 50 leads, o cabeçalho <strong>troca de modo</strong>: em
+        vez de empilhar cards que ninguém vai arrastar um a um, mostra a contagem real, há quanto
+        tempo está o mais antigo, e dois botões — <strong>Triar em lista</strong> e
+        <strong>Distribuir</strong>. Na lista, com seleção múltipla, a ação canônica é
+        <em>Adicionar ao funil…</em> em lote.
+      </p>
+      <p>
+        Isso, e não scroll mais rápido, é o que tira 903 leads da caixa de entrada. Sem essa saída,
+        o funil Geral vira depósito permanente — e o problema que estamos resolvendo volta com outro
+        nome.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 7. BORDA ============ -->
+  <section>
+    <div class="wrap">
+      <p class="sec-label">Caso de borda</p>
+      <h2>O lead que sumiria</h2>
+      <p>
+        Você escolheu que o acesso <em>restringe</em>. Isso cria uma situação que precisa de resposta
+        explícita antes de virar código: <strong>Lucas é dono de um lead que está apenas no funil
+        Módulos, ao qual ele não tem acesso.</strong>
+      </p>
+      <p>
+        Com interseção pura, esse lead desaparece da tela do próprio dono — sem erro, sem aviso.
+        É o tipo de comportamento que consome uma tarde de suporte.
+      </p>
+      <div class="callout">
+        <p><strong>Proposta:</strong> o funil filtra o <em>board</em>, nunca a existência do lead.
+        Na visão Lista o vendedor sempre vê tudo que é dele, com a coluna Funis mostrando
+        <span style="font-family:var(--mono);font-size:12.5px;">Módulos 🔒</span> em vez do nome
+        clicável. Ele sabe que o lead existe e onde está; só não abre aquele board.</p>
+        <p>Alternativa, se preferir rigor absoluto: um alerta na tela de admin listando leads presos
+        em funis sem acesso para o próprio dono, para o gestor resolver. Mais limpo
+        conceitualmente, mais trabalho recorrente para o gestor.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      GALLO Base Diesel · v0.154.0 “Dossier” · mocks de decisão para a branch
+      <span style="color:var(--ink-2)">feat/leads-multi-funil</span> · nenhum código escrito ainda
+    </div>
+  </footer>
+
+</div>
+
+
+</body>
+</html>

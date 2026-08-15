@@ -12,6 +12,7 @@ import type {
 import type { IAssetLibraryProvider } from "../../contracts/assetLibrary";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link IAssetLibraryProvider} (PRD-027 D-15).
@@ -194,29 +195,37 @@ async function fetchAssetsByIds(ids: ID[]): Promise<IAssetLibraryItem[]> {
 
 export const supabaseAssetLibraryProvider: IAssetLibraryProvider = {
   async list(filter: IAssetLibraryListParams): Promise<IPaginatedResult<IAssetLibraryItem>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
-
-    if (filter.storeId !== undefined) query = query.eq("store_id", filter.storeId);
-    if (filter.category !== undefined) query = query.eq("category", filter.category);
-    if (filter.brand !== undefined) query = query.eq("brand", filter.brand);
-    if (filter.productLine !== undefined) query = query.eq("product_line", filter.productLine);
-    if (filter.status !== undefined) query = query.eq("status", filter.status);
-    if (filter.search) query = query.ilike("title", `%${filter.search}%`);
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      if (filter.storeId !== undefined) query = query.eq("store_id", filter.storeId);
+      if (filter.category !== undefined) query = query.eq("category", filter.category);
+      if (filter.brand !== undefined) query = query.eq("brand", filter.brand);
+      if (filter.productLine !== undefined) query = query.eq("product_line", filter.productLine);
+      if (filter.status !== undefined) query = query.eq("status", filter.status);
+      if (filter.search) query = query.ilike("title", `%${filter.search}%`);
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(filter.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(filter.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(filter.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query
-      .order("updated_at", { ascending: false })
-      .range(from, to);
-
-    if (error) throw new Error(`[supabase] assetLibrary.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<AssetRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("updated_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] assetLibrary.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as AssetRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as AssetRow[]).map(rowToAsset),
-      total: count ?? 0,
+      data: data.map(rowToAsset),
+      total,
       page,
       pageSize,
     };

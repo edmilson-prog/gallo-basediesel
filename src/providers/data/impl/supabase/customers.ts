@@ -10,10 +10,43 @@ import type {
   IPortalContract,
   IPortalSettings,
 } from "@/shared/types";
-import type { IListCustomersParams, ICustomersProvider, IConvertPendingContactInput } from "../../contracts/customers";
+import type {
+  IListCustomersParams,
+  ICustomersProvider,
+  IConvertPendingContactInput,
+  ICustomerDocumentMatch,
+  IWalletStats,
+  IWalletStatsParams,
+} from "../../contracts/customers";
 import type { IPaginatedResult } from "../../contracts/_shared";
+import { FETCH_ALL_PAGE_SIZE } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { buildDigitSearchCandidates } from "@/shared/utils/digitSearch";
+import { fetchLargePage } from "./_pagination";
+import { aggregateWalletStats } from "../_walletAggregate";
+
+/**
+ * Statuses that make up a wallet — the same three `useSellerCustomers` uses to
+ * build a coverage. `perdido` is excluded: those customers are not worked, so
+ * counting them would inflate every seller's carteira and drown the stale
+ * signal the board exists to show.
+ */
+const WALLET_STATUSES: ICustomer["status"][] = ["ativo", "recuperacao", "dormente"];
+
+/** Minimal projection `walletStats` reads — two columns, no payload bloat. */
+interface WalletStatsRow {
+  seller_id: string | null;
+  last_purchase_at: string | null;
+}
+
+/** Row shape returned by the `find_customers_by_document` RPC. */
+interface DocumentMatchRow {
+  id: string;
+  type: ICustomer["type"];
+  display_name: string;
+  seller_id: string | null;
+  seller_name: string | null;
+}
 
 /**
  * Supabase implementation of {@link ICustomersProvider} (PRD-110+).
@@ -55,6 +88,8 @@ interface CustomerRow {
   dintec_ultima_compra: string | null;
   dintec_abc_class: ABCClass | null;
   dintec_pct_receita: number | null;
+  dintec_credit_limit: number | null;
+  credit_limit: number | null;
   overdue_titles_count: number | null;
   portal: IPortalSettings | null;
   is_guest_checkout: boolean | null;
@@ -89,7 +124,7 @@ const COLUMNS =
   "purchase_stats, abc_class, abc_share, overdue_titles_count, portal, is_guest_checkout, " +
   "has_b2b_portal, portal_contract, avatar_url, whatsapp_name, cnpj, razao_social, nome_fantasia, contact_name, cpf, " +
   "full_name, created_at, dintec_ticket_medio, dintec_ltv, dintec_frequencia, dintec_primeira_compra, " +
-  "dintec_ultima_compra, dintec_abc_class, dintec_pct_receita";
+  "dintec_ultima_compra, dintec_abc_class, dintec_pct_receita, dintec_credit_limit, credit_limit";
 const NOTE_COLUMNS = "id, customer_id, author_id, content, created_at";
 
 function rowToCustomerNote(row: CustomerNoteRow): ICustomerNote {
@@ -128,6 +163,8 @@ function rowToCustomerBase(row: CustomerRow): Omit<ICustomer, "type" | "id"> {
     dintecLastPurchaseAt: row.dintec_ultima_compra ?? undefined,
     dintecAbcClass: row.dintec_abc_class ?? undefined,
     dintecPctReceita: row.dintec_pct_receita ?? undefined,
+    dintecCreditLimit: row.dintec_credit_limit ?? undefined,
+    creditLimit: row.credit_limit ?? undefined,
     overdueTitlesCount: row.overdue_titles_count ?? undefined,
     portal: row.portal ?? undefined,
     isGuestCheckout: row.is_guest_checkout ?? undefined,
@@ -166,14 +203,24 @@ function rowToCustomer(row: CustomerRow, notes: ICustomerNote[] = []): ICustomer
 }
 
 /** Maps a camelCase patch to snake_case columns. `id`/`storeId`/`createdAt` and
- *  the embedded `notes` array are never written here. */
-function customerPatchToRow(patch: Partial<ICustomer>): Record<string, unknown> {
+ *  the embedded `notes` array are never written here.
+ *
+ *  `email`/`address` are the inline-editable nullable fields (see
+ *  `buildCustomerPatch`, which emits `{ field: undefined }` to mean "clear this
+ *  field"). For those two, presence of the key in the patch — not just a defined
+ *  value — decides whether the column is written, and an `undefined` value
+ *  coalesces to `null` so a clear actually clears the row instead of silently
+ *  no-oping (same fix as `leadPatchToRow`). The other optional columns below are
+ *  never cleared via this flow, so they keep the plain `!== undefined` guard.
+ *
+ *  Exported for unit testing; the production call site is `update` below. */
+export function customerPatchToRow(patch: Partial<ICustomer>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
   if (patch.type !== undefined) row.type = patch.type;
-  if (patch.email !== undefined) row.email = patch.email;
+  if ("email" in patch) row.email = patch.email ?? null;
   if (patch.phone !== undefined) row.phone = patch.phone;
   if (patch.whatsappStatus !== undefined) row.whatsapp_status = patch.whatsappStatus;
-  if (patch.address !== undefined) row.address = patch.address;
+  if ("address" in patch) row.address = patch.address ?? null;
   if (patch.sellerId !== undefined) row.seller_id = patch.sellerId;
   if (patch.status !== undefined) row.status = patch.status;
   if (patch.tags !== undefined) row.tags = patch.tags;
@@ -188,6 +235,10 @@ function customerPatchToRow(patch: Partial<ICustomer>): Record<string, unknown> 
   if (patch.purchaseStats !== undefined) row.purchase_stats = patch.purchaseStats;
   if (patch.abcClass !== undefined) row.abc_class = patch.abcClass;
   if (patch.abcShare !== undefined) row.abc_share = patch.abcShare;
+  // Clearable like email/address: `{ creditLimit: undefined }` means "no limit
+  // defined" and must write null, while `0` is a real value (credit blocked).
+  // `dintecCreditLimit` is intentionally absent — the ERP snapshot is read-only.
+  if ("creditLimit" in patch) row.credit_limit = patch.creditLimit ?? null;
   if (patch.overdueTitlesCount !== undefined) row.overdue_titles_count = patch.overdueTitlesCount;
   if (patch.portal !== undefined) row.portal = patch.portal;
   if (patch.isGuestCheckout !== undefined) row.is_guest_checkout = patch.isGuestCheckout;
@@ -288,64 +339,109 @@ export function buildCustomerSearchOr(search: string): string | null {
 
 export const supabaseCustomersProvider: ICustomersProvider = {
   async list(params: IListCustomersParams = {}): Promise<IPaginatedResult<ICustomer>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
 
-    if (params.storeIds && params.storeIds.length > 0) {
-      query = query.in("store_id", params.storeIds);
-    } else if (params.storeId !== undefined) {
-      query = query.eq("store_id", params.storeId);
-    }
+      if (params.storeIds && params.storeIds.length > 0) {
+        query = query.in("store_id", params.storeIds);
+      } else if (params.storeId !== undefined) {
+        query = query.eq("store_id", params.storeId);
+      }
 
-    if (params.statuses && params.statuses.length > 0) {
-      query = query.in("status", params.statuses);
-    } else if (params.status !== undefined) {
-      query = query.eq("status", params.status);
-    }
+      if (params.statuses && params.statuses.length > 0) {
+        query = query.in("status", params.statuses);
+      } else if (params.status !== undefined) {
+        query = query.eq("status", params.status);
+      }
 
-    if (params.type !== undefined) query = query.eq("type", params.type);
+      if (params.type !== undefined) query = query.eq("type", params.type);
 
-    if (params.sellerIds && params.sellerIds.length > 0) {
-      query = query.in("seller_id", params.sellerIds);
-    } else if (params.sellerId !== undefined) {
-      query = query.eq("seller_id", params.sellerId);
-    }
+      if (params.sellerIds && params.sellerIds.length > 0) {
+        query = query.in("seller_id", params.sellerIds);
+      } else if (params.sellerId !== undefined) {
+        query = query.eq("seller_id", params.sellerId);
+      }
 
-    if (params.hasB2BPortal) query = query.eq("has_b2b_portal", true);
+      if (params.unassignedOnly) query = query.is("seller_id", null);
 
-    // Hide imported `pending_review` contacts (array overlap, negated): drop any
-    // row whose tags intersect excludeTags. Server-side so count/pagination match.
-    if (params.excludeTags && params.excludeTags.length > 0) {
-      query = query.not("tags", "ov", `{${params.excludeTags.join(",")}}`);
-    }
+      if (params.hasB2BPortal) query = query.eq("has_b2b_portal", true);
 
-    // Include filters: OR semantics — customer must carry ANY of the selected tags.
-    if (params.tag) {
-      query = query.overlaps("tags", [params.tag]);
-    }
-    if (params.tags && params.tags.length > 0) {
-      query = query.overlaps("tags", params.tags);
-    }
+      // Hide imported `pending_review` contacts (array overlap, negated): drop any
+      // row whose tags intersect excludeTags. Server-side so count/pagination match.
+      if (params.excludeTags && params.excludeTags.length > 0) {
+        query = query.not("tags", "ov", `{${params.excludeTags.join(",")}}`);
+      }
 
-    const searchOr = params.search ? buildCustomerSearchOr(params.search) : null;
-    if (searchOr) query = query.or(searchOr);
+      // Include filters: OR semantics — customer must carry ANY of the selected tags.
+      if (params.tag) {
+        query = query.overlaps("tags", [params.tag]);
+      }
+      if (params.tags && params.tags.length > 0) {
+        query = query.overlaps("tags", params.tags);
+      }
+
+      const searchOr = params.search ? buildCustomerSearchOr(params.search) : null;
+      if (searchOr) query = query.or(searchOr);
+
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query
-      .order("created_at", { ascending: true })
-      .range(from, to);
-
-    if (error) throw new Error(`[supabase] customers.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<CustomerRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] customers.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as CustomerRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as CustomerRow[]).map((row) => rowToCustomer(row)),
-      total: count ?? 0,
+      data: data.map((row) => rowToCustomer(row)),
+      total,
       page,
       pageSize,
     };
+  },
+
+  async walletStats(params: IWalletStatsParams = {}): Promise<IWalletStats> {
+    const statuses = params.statuses ?? WALLET_STATUSES;
+
+    const buildQuery = () => {
+      let query = getSupabaseClient()
+        .from(TABLE)
+        .select("seller_id, last_purchase_at", { count: "exact" });
+
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (statuses.length > 0) query = query.in("status", statuses);
+      if (params.excludeTags && params.excludeTags.length > 0) {
+        query = query.not("tags", "ov", `{${params.excludeTags.join(",")}}`);
+      }
+      return query;
+    };
+
+    const { data } = await fetchLargePage<WalletStatsRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] customers.walletStats failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as WalletStatsRow[], count: count ?? 0 };
+      },
+      0,
+      FETCH_ALL_PAGE_SIZE,
+    );
+
+    return aggregateWalletStats(
+      data.map((row) => ({ sellerId: row.seller_id, lastPurchaseAt: row.last_purchase_at })),
+    );
   },
 
   async get(id: ID): Promise<ICustomer> {
@@ -428,6 +524,22 @@ export const supabaseCustomersProvider: ICustomersProvider = {
       );
     if (!data) return null;
     return rowToCustomer(data as unknown as CustomerRow, []);
+  },
+
+  async findByDocument(document: string): Promise<ICustomerDocumentMatch[]> {
+    const digits = document.replace(/\D/g, "");
+    if (!digits) return [];
+    const { data, error } = await getSupabaseClient().rpc("find_customers_by_document", {
+      p_document: digits,
+    });
+    if (error) throw new Error(`[supabase] customers.findByDocument failed: ${error.message}`);
+    return ((data ?? []) as DocumentMatchRow[]).map((row) => ({
+      id: row.id,
+      type: row.type,
+      displayName: row.display_name,
+      sellerId: row.seller_id ?? null,
+      sellerName: row.seller_name ?? null,
+    }));
   },
 
   async convertPendingContact(input: IConvertPendingContactInput): Promise<ICustomer> {

@@ -24,8 +24,8 @@ export function StatusStepper({ steps, terminal, className }: IStatusStepperProp
   if (terminal) {
     const tone =
       terminal.tone === "bad"
-        ? "border-rose-500/30 bg-rose-500/5 text-rose-700 dark:text-rose-300"
-        : "border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-300";
+        ? "border-severity-critical/30 bg-severity-critical/5 text-severity-critical"
+        : "border-severity-warning/30 bg-severity-warning/5 text-severity-warning";
     return (
       <div
         className={cn(

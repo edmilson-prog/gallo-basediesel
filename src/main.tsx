@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { getRouter } from "@/router";
 import { initObservability } from "@/shared/lib/observability";
+import { initInstallPromptCapture } from "@/shared/lib/installPrompt";
 import { initPreloadErrorHandler } from "@/features/version-update";
 import "@/styles.css";
 
@@ -13,6 +14,12 @@ initObservability();
 // Recover a failed lazy-chunk load (removed by a newer deploy) by reloading onto
 // the new build instead of throwing — see src/features/version-update.
 initPreloadErrorHandler();
+
+// The browser offers the install exactly once per page load, about a second
+// after `load`, and never repeats it. Listening from here — before the first
+// route mounts — is what keeps the offer available to whichever screen the
+// user happens to reach later. See src/shared/lib/installPrompt.ts.
+initInstallPromptCapture();
 
 // QueryClientProvider e ThemeProvider são injetados pelo RootComponent
 // em src/routes/__root.tsx — o queryClient sai do router context.

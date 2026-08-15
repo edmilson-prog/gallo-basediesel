@@ -11,6 +11,7 @@ import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
 import { getCustomerDisplay } from "../utils/customerDisplay";
 import { ProfileBadges } from "./ProfileBadges";
 import { PreConversionBadge } from "./PreConversionBadge";
+import { CustomerNpsBadge } from "@/features/nps/components/CustomerNpsBadge";
 import { ProfileMenu } from "./ProfileMenu";
 import { CoverageBanner } from "@/features/carteira/components/CoverageBanner";
 
@@ -61,6 +62,7 @@ export function ProfileHeader({ customer, conversation, variant }: IProfileHeade
           <ProfileBadges
             customer={customer}
             preConversionSlot={<PreConversionBadge customer={customer} />}
+            npsSlot={<CustomerNpsBadge customerId={customer.id} />}
           />
         </div>
       </div>

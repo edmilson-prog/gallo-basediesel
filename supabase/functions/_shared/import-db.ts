@@ -135,7 +135,31 @@ export function makeImportDb(
         })
         .select("id")
         .single();
-      if (error) throw new Error(`createConversation: ${error.message}`);
+      if (error) {
+        if (error.code === "23505") {
+          // Lost a race against the live webhook (the mid-July WAHA migration
+          // produced exactly this class of duplicate): the partial unique
+          // index vetoed the INSERT — append the import into the winner's
+          // open conversation instead.
+          let winnerQuery = admin
+            .from("conversations")
+            .select("id")
+            .eq("whatsapp_account_id", input.accountId)
+            .not("status", "in", "(resolvida,arquivada)");
+          winnerQuery = input.customerId
+            ? winnerQuery.eq("customer_id", input.customerId)
+            : winnerQuery.eq("lead_id", input.leadId as string);
+          const { data: winner, error: winnerErr } = await winnerQuery
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (winner) return { id: winner.id as string };
+          throw new Error(
+            `createConversation race recovery failed: ${winnerErr?.message ?? "no open conversation found"}`,
+          );
+        }
+        throw new Error(`createConversation: ${error.message}`);
+      }
       return { id: data.id as string };
     },
     async filterKnownProviderMessageIds(ids) {

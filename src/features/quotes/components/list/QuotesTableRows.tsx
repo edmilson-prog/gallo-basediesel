@@ -25,7 +25,7 @@ function validityLabel(validUntil: string, now: Date): { text: string; className
   const days = daysUntil(validUntil, now);
   if (bucket === "expired") return { text: "vencido", className: "text-destructive" };
   if (bucket === "critical" || bucket === "warning") {
-    return { text: `vence em ${days}d`, className: "text-amber-600 dark:text-amber-400" };
+    return { text: `vence em ${days}d`, className: "text-severity-warning" };
   }
   return { text: `válido · ${days}d`, className: "text-muted-foreground" };
 }

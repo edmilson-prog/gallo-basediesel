@@ -1,6 +1,23 @@
 import type { ABCClass, ICustomer, ICustomerNote, ID } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
+/**
+ * Minimal identification of a customer that already holds a given document —
+ * the duplicate guard's payload. Deliberately narrow (no address, e-mail or
+ * financials): it answers "this CNPJ/CPF is already a customer of this store,
+ * owned by X" for any member of the store, which the per-carteira
+ * `customers_select` policy would otherwise hide.
+ */
+export interface ICustomerDocumentMatch {
+  id: ID;
+  type: ICustomer["type"];
+  /** nomeFantasia → razaoSocial → fullName, whichever is filled first. */
+  displayName: string;
+  sellerId: ID | null;
+  /** Wallet owner's name, null when the customer sits in the queue. */
+  sellerName: string | null;
+}
+
 export interface IConvertPendingContactInput {
   customerId: ID;
   type: ICustomer["type"];
@@ -16,6 +33,57 @@ export interface IConvertPendingContactInput {
 
 /** Recency bucket — days since last purchase. */
 export type RecencyBucket = "0-30" | "31-90" | "91-180" | "180+";
+
+/**
+ * Days without a paid purchase after which a wallet customer is counted as
+ * parado (stalled) by {@link IWalletSellerStats.stale}. Matches the "0-30"
+ * {@link RecencyBucket} boundary so both readings of recency agree.
+ */
+export const WALLET_STALE_DAYS = 30;
+
+/** One seller's slice of the store's wallet. */
+export interface IWalletSellerStats {
+  sellerId: ID;
+  /** Customers currently owned by this seller. */
+  customers: number;
+  /**
+   * Owned customers with no paid purchase in the last {@link WALLET_STALE_DAYS}
+   * days — customers who never bought are included, since they are the extreme
+   * case of the same problem.
+   */
+  stale: number;
+  /** Owned customers whose latest purchase falls in the current calendar month. */
+  positivados: number;
+}
+
+/**
+ * The store's wallet at a glance: how many customers each seller holds and how
+ * many sit outside every wallet. Answers "how is the carteira doing" without
+ * listing a single customer, so the Gestão de carteira board can render it in
+ * one round-trip instead of one count per seller.
+ *
+ * RLS still governs: a caller who only sees their own carteira gets numbers for
+ * that carteira alone. The screen is gated to Owner/Gestor, who see the store.
+ */
+export interface IWalletStats {
+  /** Customers in scope — assigned and unassigned together. */
+  total: number;
+  /**
+   * Customers with no wallet owner. They fall out of positivação, meta and
+   * rodízio, which is why the board surfaces them as their own row.
+   */
+  unassigned: number;
+  /** One entry per seller that owns at least one customer in scope. */
+  bySeller: IWalletSellerStats[];
+}
+
+export interface IWalletStatsParams {
+  storeId?: ID;
+  /** Defaults to the commercially live statuses when omitted. */
+  statuses?: ICustomer["status"][];
+  /** Same semantics as {@link IListCustomersParams.excludeTags}. */
+  excludeTags?: string[];
+}
 
 /** Range bucket used for ticket médio / LTV filters. */
 export interface INumericRange {
@@ -36,6 +104,13 @@ export interface IListCustomersParams extends IPaginationParams {
   /** Legacy single-select seller. */
   sellerId?: ID;
   sellerIds?: ID[];
+  /**
+   * Only customers with no wallet owner (`seller_id IS NULL`) — the ones that
+   * fall out of positivação, meta and rodízio. Ignored when false/omitted.
+   * Applied on top of {@link sellerId}/{@link sellerIds}, not instead of them,
+   * so passing both yields nothing (a customer cannot be owned and unowned).
+   */
+  unassignedOnly?: boolean;
   search?: string;
   /** Legacy single-tag filter. */
   tag?: string;
@@ -92,6 +167,12 @@ export interface IListCustomersParams extends IPaginationParams {
  */
 export interface ICustomersProvider {
   list(params?: IListCustomersParams): Promise<IPaginatedResult<ICustomer>>;
+  /**
+   * Wallet composition for the whole store — see {@link IWalletStats}. Reads
+   * only the two columns the aggregation needs (`seller_id`, `last_purchase_at`)
+   * so the board costs one scan instead of `2N + 2` counts.
+   */
+  walletStats(params?: IWalletStatsParams): Promise<IWalletStats>;
   get(id: ID): Promise<ICustomer>;
   create(input: Omit<ICustomer, "id" | "createdAt" | "notes">): Promise<ICustomer>;
   update(id: ID, patch: Partial<ICustomer>): Promise<ICustomer>;
@@ -109,6 +190,16 @@ export interface ICustomersProvider {
    * `conversation_customer` RPC. Notes are not embedded on this pool path.
    */
   getViaConversation(conversationId: ID): Promise<ICustomer | null>;
+  /**
+   * Customers of the current store already holding `document` (CNPJ or CPF),
+   * compared digits-only so masked input matches. Powers the duplicate guard in
+   * the lead→customer conversion: a plain {@link list} search cannot do this
+   * job because `customers_select` hides other sellers' customers from a
+   * non-staff caller, so the check would report "none" and the duplicate would
+   * be created anyway. Supabase: the SECURITY DEFINER `find_customers_by_document`
+   * RPC (store-scoped, minimal columns). Empty array when nothing matches.
+   */
+  findByDocument(document: string): Promise<ICustomerDocumentMatch[]>;
   /** Promote an imported pending_review contact to a real customer. */
   convertPendingContact(input: IConvertPendingContactInput): Promise<ICustomer>;
   /** Mark a pending_review contact as reviewed-and-not-a-customer (archived). */

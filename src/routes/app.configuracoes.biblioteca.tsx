@@ -5,7 +5,7 @@ import { LibraryManagerPage } from "@/features/quick-send";
 
 export const Route = createFileRoute("/app/configuracoes/biblioteca")({
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner", "Gestor"]),
+    requireAuth(location.pathname, undefined, { resource: "asset_library", action: "view" }),
   component: () => (
     <SettingsLayout>
       <LibraryManagerPage />

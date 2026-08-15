@@ -35,7 +35,14 @@ export function defaultRedirectForRole(role: RoleName): string {
     case "Gestor":
     case "Financeiro":
       return "/app/inicio";
+    // Vendedor now has a real home at /app/inicio (the personal dashboard).
+    // It used to point at the Central because /app/inicio rendered a blocked
+    // "painel não disponível para o seu papel" placeholder for this role.
     case "Vendedor":
+      return "/app/inicio";
+    // VendedorExterno and SDR stay on the Central: /app/inicio renders the
+    // manager dashboard for them, whose data is gated to Owner/Gestor, so
+    // they would land on an empty shell.
     case "VendedorExterno":
     case "SDR":
       return "/app/atendimento";

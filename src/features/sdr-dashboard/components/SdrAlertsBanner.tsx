@@ -3,11 +3,9 @@ import { cn } from "@/lib/utils";
 import type { ISdrAlert, SdrAlertSeverity } from "../hooks/useSdrAlerts";
 
 const SEVERITY_CLASS: Record<SdrAlertSeverity, string> = {
-  info: "border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-900/40 dark:bg-blue-500/10 dark:text-blue-100",
-  warning:
-    "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-500/10 dark:text-amber-100",
-  danger:
-    "border-red-200 bg-red-50 text-red-900 dark:border-red-900/40 dark:bg-red-500/10 dark:text-red-100",
+  info: "border-severity-info/30 bg-severity-info/10 text-severity-info",
+  warning: "border-severity-warning/30 bg-severity-warning/10 text-severity-warning",
+  danger: "border-severity-critical/30 bg-severity-critical/10 text-severity-critical",
 };
 
 const SEVERITY_ICON: Record<SdrAlertSeverity, string> = {

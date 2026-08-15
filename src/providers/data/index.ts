@@ -21,7 +21,15 @@ export type {
   IPaginationParams,
   ICustomersProvider,
   IListCustomersParams,
+  IWalletStats,
+  IWalletStatsParams,
+  IWalletSellerStats,
   IConvertPendingContactInput,
+  ICustomerDocumentMatch,
+  IContactsProvider,
+  IListContactsParams,
+  ContactsOrderBy,
+  ContactRecencyBucket,
   IVehiclesProvider,
   IListVehiclesParams,
   IAddServiceEntryInput,
@@ -103,6 +111,8 @@ export type {
   ITrackableLinkProvider,
   IScheduledSendProvider,
   IConversationNotesProvider,
+  IConversationPinsProvider,
+  IConversationPin,
   IStorefrontProvider,
   ISystemHealthProvider,
   IWebhookDeliveriesProvider,
@@ -132,12 +142,16 @@ export type {
   IConversationParticipantsProvider,
   ISdrPilotSettingsProvider,
   IConversationRescuesProvider,
+  IPixKeyProvider,
+  INpsProvider,
 } from "./contracts";
-export { computeFailureRate } from "./contracts";
+export { computeFailureRate, FETCH_ALL_PAGE_SIZE, WALLET_STALE_DAYS } from "./contracts";
 
 export { useCustomersProvider } from "./hooks/useCustomersProvider";
+export { useContactsProvider } from "./hooks/useContactsProvider";
 export { useVehiclesProvider } from "./hooks/useVehiclesProvider";
 export { useLeadsProvider } from "./hooks/useLeadsProvider";
+export { useLeadFunnelsProvider } from "./hooks/useLeadFunnelsProvider";
 export { useConversationsProvider } from "./hooks/useConversationsProvider";
 export { useMessagesProvider } from "./hooks/useMessagesProvider";
 export { usePartsProvider } from "./hooks/usePartsProvider";
@@ -170,6 +184,7 @@ export { useQuickReplyProvider } from "./hooks/useQuickReplyProvider";
 export { useTrackableLinkProvider } from "./hooks/useTrackableLinkProvider";
 export { useScheduledSendProvider } from "./hooks/useScheduledSendProvider";
 export { useConversationNotesProvider } from "./hooks/useConversationNotesProvider";
+export { useConversationPinsProvider } from "./hooks/useConversationPinsProvider";
 export { useStorefrontProvider } from "./hooks/useStorefrontProvider";
 export { useSystemHealthProvider } from "./hooks/useSystemHealthProvider";
 export { useWebhookDeliveriesProvider } from "./hooks/useWebhookDeliveriesProvider";
@@ -187,6 +202,8 @@ export { useConversationTagsProvider } from "./hooks/useConversationTagsProvider
 export { useConversationParticipantsProvider } from "./hooks/useConversationParticipantsProvider";
 export { useSdrPilotSettingsProvider } from "./hooks/useSdrPilotSettingsProvider";
 export { useConversationRescuesProvider } from "./hooks/useConversationRescuesProvider";
+export { usePixKeyProvider } from "./hooks/usePixKeyProvider";
+export { useNpsProvider } from "./hooks/useNpsProvider";
 
 export {
   statusOnAssign,

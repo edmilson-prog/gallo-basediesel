@@ -235,6 +235,27 @@ export interface IMessageReactions {
 }
 
 /**
+ * Mensagem citada por outra (reply/quote).
+ *
+ * É um SNAPSHOT: o conteúdo é a cópia feita no momento da citação, não uma
+ * leitura viva da mensagem original. Isso mantém a bolha renderizável sem
+ * consulta extra, preserva o texto mesmo quando a original é apagada, e cobre
+ * a citação de mensagem que nunca entrou no nosso histórico.
+ */
+export interface IMessageReplyRef {
+  /** Nossa mensagem citada. Ausente quando ela não existe no histórico local —
+   *  a citação ainda renderiza (pelo snapshot), mas não é clicável. */
+  messageId?: ID;
+  /** Id do provider da mensagem citada: serializado quando resolvemos a
+   *  original; cru (só o hash, como o WAHA manda) quando não. */
+  providerMessageId?: string;
+  /** Trecho já truncado na gravação (ver QUOTED_TEXT_MAX). */
+  text?: string;
+  mediaType?: MessageMediaType;
+  direction?: MessageDirection;
+}
+
+/**
  * Message — a single utterance inside an `IConversation`.
  *
  * @see ../../../docs/glossario.md#janela-de-24h-whatsapp
@@ -253,6 +274,8 @@ export interface IMessage {
   mediaUrl?: string;
   /** Original filename of the media (documents) — falls back to the storage path tail when absent. */
   mediaFilename?: string;
+  /** Mensagem que esta cita (reply/quote). Ausente na grande maioria. */
+  replyTo?: IMessageReplyRef;
   status: MessageStatus;
   /**
    * When the customer actually sent the message — the original WhatsApp

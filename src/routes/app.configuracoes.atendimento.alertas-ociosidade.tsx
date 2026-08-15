@@ -5,7 +5,7 @@ import { IdleAlertsSettingsPage } from "@/features/admin-settings";
 
 export const Route = createFileRoute("/app/configuracoes/atendimento/alertas-ociosidade")({
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner"], { resource: "settings", action: "edit" }),
+    requireAuth(location.pathname, undefined, { resource: "settings_automation", action: "edit" }),
   component: () => (
     <SettingsLayout>
       <IdleAlertsSettingsPage />

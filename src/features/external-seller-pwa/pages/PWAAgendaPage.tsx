@@ -13,8 +13,8 @@ import { PWA_STRINGS as S, VISIT_STATUS_LABEL } from "../i18n/pt-BR";
 
 const STATUS_TONE: Record<string, string> = {
   agendada: "border-primary/40 bg-primary/10 text-primary",
-  realizada: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-  remarcada: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300",
+  realizada: "border-severity-success/40 bg-severity-success/10 text-severity-success",
+  remarcada: "border-severity-warning/40 bg-severity-warning/10 text-severity-warning",
   cancelada: "border-muted-foreground/30 bg-muted text-muted-foreground",
 };
 

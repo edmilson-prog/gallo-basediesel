@@ -450,6 +450,65 @@ describe("parseWahaMessageEvent — reply to a WhatsApp Status", () => {
     expect(parsed.contentType).toBe("text");
     expect(parsed.mediaId).toBeUndefined();
   });
+
+  // A Status comment quotes something OUTSIDE the conversation — the quoted
+  // media is already consumed as this message's OWN media (see extractContent),
+  // so emitting a quote here would point at a message that isn't in the thread.
+  it("does NOT emit a quote reference for a comment on a WhatsApp Status", () => {
+    const parsed = parseWahaMessageEvent(statusReplyPayload, "acc-1");
+    expect(parsed.replyTo).toBeUndefined();
+  });
+});
+
+describe("parseWahaMessageEvent — quoted reply (in-chat)", () => {
+  const quotedPayload = {
+    id: "false_5555912345678@c.us_A5458535B99785B0084742B6E0DC759C",
+    timestamp: 1786000000,
+    from: "5555912345678@c.us",
+    fromMe: false,
+    body: "esse mesmo",
+    replyTo: {
+      id: "A55995F4894E267BE03B5F864110C5CB",
+      body: "Tem o filtro de óleo do Volvo FH?",
+      hasMedia: false,
+    },
+  };
+
+  it("carries the quoted reference on an inbound message", () => {
+    const parsed = parseWahaMessageEvent(quotedPayload, "acc-1");
+    expect(parsed.replyTo).toEqual({
+      providerMessageId: "A55995F4894E267BE03B5F864110C5CB",
+      text: "Tem o filtro de óleo do Volvo FH?",
+    });
+  });
+
+  it("carries the quoted reference on an outbound echo (seller quoted from the phone)", () => {
+    const parsed = parseWahaMessageEvent({ ...quotedPayload, fromMe: true }, "acc-1");
+    expect(parsed.type).toBe("outbound-echo");
+    expect(parsed.replyTo?.providerMessageId).toBe("A55995F4894E267BE03B5F864110C5CB");
+  });
+
+  it("derives the quoted media type from the quoted media mimetype", () => {
+    const parsed = parseWahaMessageEvent(
+      {
+        ...quotedPayload,
+        replyTo: {
+          id: "A55995F4894E267BE03B5F864110C5CB",
+          body: "",
+          hasMedia: true,
+          media: { url: "https://waha.example/x.jpg", mimetype: "image/jpeg" },
+        },
+      },
+      "acc-1",
+    );
+    expect(parsed.replyTo?.mediaType).toBe("image");
+    expect(parsed.replyTo?.text).toBeUndefined();
+  });
+
+  it("leaves replyTo undefined on a plain message", () => {
+    const parsed = parseWahaMessageEvent({ ...quotedPayload, replyTo: null }, "acc-1");
+    expect(parsed.replyTo).toBeUndefined();
+  });
 });
 
 /**

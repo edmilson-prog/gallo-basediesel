@@ -17,6 +17,7 @@ import type {
 } from "../../contracts/commissions";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link ICommissionsProvider} (PRD-047 / PRD-120+).
@@ -182,40 +183,50 @@ function createInputToRow(input: ICreateCommissionInput, id: string): Record<str
 
 export const supabaseCommissionsProvider: ICommissionsProvider = {
   async list(params: IListCommissionsParams = {}): Promise<IPaginatedResult<ICommission>> {
-    let query = getSupabaseClient()
-      .from(TABLE)
-      .select(`${COLUMNS}, order:orders(number)`, { count: "exact" });
+    const buildQuery = () => {
+      let query = getSupabaseClient()
+        .from(TABLE)
+        .select(`${COLUMNS}, order:orders(number)`, { count: "exact" });
 
-    if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
 
-    if (params.sellerIds && params.sellerIds.length > 0) {
-      query = query.in("seller_id", params.sellerIds);
-    } else if (params.sellerId !== undefined) {
-      query = query.eq("seller_id", params.sellerId);
-    }
+      if (params.sellerIds && params.sellerIds.length > 0) {
+        query = query.in("seller_id", params.sellerIds);
+      } else if (params.sellerId !== undefined) {
+        query = query.eq("seller_id", params.sellerId);
+      }
 
-    if (params.statuses && params.statuses.length > 0) {
-      query = query.in("status", params.statuses);
-    } else if (params.status !== undefined) {
-      query = query.eq("status", params.status);
-    }
+      if (params.statuses && params.statuses.length > 0) {
+        query = query.in("status", params.statuses);
+      } else if (params.status !== undefined) {
+        query = query.eq("status", params.status);
+      }
 
-    if (params.period !== undefined) query = query.eq("period", params.period);
+      if (params.period !== undefined) query = query.eq("period", params.period);
+
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query
-      .order("created_at", { ascending: false })
-      .range(from, to);
-
-    if (error) throw new Error(`[supabase] commissions.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<CommissionRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] commissions.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as CommissionRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as CommissionRow[]).map(rowToCommission),
-      total: count ?? 0,
+      data: data.map(rowToCommission),
+      total,
       page,
       pageSize,
     };

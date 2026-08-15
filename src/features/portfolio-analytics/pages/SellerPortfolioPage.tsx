@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/Icon";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { formatPercent } from "@/shared/utils/format";
-import { useCustomersProvider, useSellersProvider } from "@/providers/data";
+import { FETCH_ALL_PAGE_SIZE, useCustomersProvider, useSellersProvider } from "@/providers/data";
 import { PortfolioHeader } from "../components/PortfolioHeader";
 import { PortfolioKpis } from "../components/PortfolioKpis";
 import { PortfolioDistributionChart } from "../components/PortfolioDistributionChart";
@@ -105,7 +105,7 @@ export function SellerPortfolioPage() {
       customersProvider.list({
         storeId: scopeStoreId,
         sellerIds: [sellerId],
-        pageSize: 3000,
+        pageSize: FETCH_ALL_PAGE_SIZE,
       }),
     staleTime: 30_000,
     enabled: !accessDenied,

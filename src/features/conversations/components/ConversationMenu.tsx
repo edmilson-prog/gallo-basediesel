@@ -42,7 +42,7 @@ import { RenameContactDialog } from "@/features/customers/components/RenameConta
 import { TransferDialog } from "./dialogs/TransferDialog";
 import { NoteDialog } from "./dialogs/NoteDialog";
 import { StatusControlModeSubmenu } from "./status/StatusControlModeSubmenu";
-import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
+import { CONVERSATION_STRINGS, INBOX_STRINGS } from "../i18n/pt-BR";
 import { useReturnToQueue } from "../hooks/useReturnToQueue";
 import { getLeadMenuAction } from "../utils/leadMenuAction";
 import { canReturnToQueue, isOwnConversation } from "../engine/assignmentGate";
@@ -59,6 +59,12 @@ export interface IConversationMenuProps {
    *  provider-specific actions like the photo re-sync. */
   whatsappAccount?: IWhatsAppAccount | null;
   onMutated?: () => void;
+  /** Pinned to the top of this attendant's Inbox. */
+  isPinned?: boolean;
+  /** False once the pin cap is reached. */
+  canPin?: boolean;
+  /** Absent ⇒ the pin item is not rendered. */
+  onTogglePin?: () => void;
   /** Status-control display mode (lifted to the page; shared with the kebab). */
   statusControlMode: StatusControlMode;
   onStatusControlModeChange: (mode: StatusControlMode) => void;
@@ -85,6 +91,9 @@ export function ConversationMenu({
   contact,
   whatsappAccount,
   onMutated,
+  isPinned = false,
+  canPin = true,
+  onTogglePin,
   statusControlMode,
   onStatusControlModeChange,
 }: IConversationMenuProps) {
@@ -423,6 +432,24 @@ export function ConversationMenu({
           <TooltipContent>{CONVERSATION_STRINGS.moreActions}</TooltipContent>
         </Tooltip>
         <DropdownMenuContent align="end" className="w-56">
+          {onTogglePin && (
+            <DropdownMenuItem
+              onSelect={() => {
+                if (!isPinned && !canPin) {
+                  toast.info(INBOX_STRINGS.pin.limitTooltip);
+                  return;
+                }
+                onTogglePin();
+              }}
+            >
+              <Icon
+                icon={isPinned ? "mdi:pin-off-outline" : "mdi:pin-outline"}
+                size={14}
+                className="mr-2"
+              />
+              {isPinned ? INBOX_STRINGS.pin.unfix : INBOX_STRINGS.pin.fix}
+            </DropdownMenuItem>
+          )}
           {canEditOwn && (
             <DropdownMenuItem onSelect={handleResolveToggle}>
               <Icon icon="mdi:check-circle-outline" size={14} className="mr-2" />

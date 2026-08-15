@@ -15,7 +15,12 @@ import { RecentBadgesCard } from "../components/RecentBadgesCard";
 import { useBadges } from "../hooks/useBadges";
 import { GAMIFICATION_STRINGS as S } from "../i18n/pt-BR";
 
-const ALLOWED_ROLES = new Set(["Owner", "Gestor", "Vendedor", "Financeiro"]);
+// "Vendedor" removed (issue #421): `useRanking` scores every seller from
+// store-wide orders/customers, but per-seller RLS returns only the caller's
+// own rows for non-staff, so all colleagues score 0 and the viewer always
+// ranks #1. Staff (Owner/Gestor) read the whole store, so their view is
+// correct. Restore once a SECURITY DEFINER ranking RPC exists.
+const ALLOWED_ROLES = new Set(["Owner", "Gestor", "Financeiro"]);
 
 /**
  * Main ranking page (`/app/gestao/ranking`) — PRD-043.
@@ -25,9 +30,11 @@ const ALLOWED_ROLES = new Set(["Owner", "Gestor", "Vendedor", "Financeiro"]);
  * badges of the period.
  *
  * Permissions:
- *  - Vendedor: scope locked to their own store; their row highlighted.
  *  - Gestor: scope locked to their store.
  *  - Owner / Financeiro: cross-store and store selector.
+ *  - Vendedor: NO ACCESS (issue #421) — see the note on `ALLOWED_ROLES`. The
+ *    remaining `userRole === "Vendedor"` branches below are now unreachable;
+ *    they are kept as defence-in-depth for when the role is readmitted.
  */
 export function RankingPage() {
   const navigate = useNavigate();

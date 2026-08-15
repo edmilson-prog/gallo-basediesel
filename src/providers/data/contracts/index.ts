@@ -6,8 +6,10 @@
  */
 
 import type { ICustomersProvider } from "./customers";
+import type { IContactsProvider } from "./contacts";
 import type { IVehiclesProvider } from "./vehicles";
 import type { ILeadsProvider } from "./leads";
+import type { ILeadFunnelsProvider } from "./leadFunnels";
 import type { IConversationsProvider } from "./conversations";
 import type { IMessagesProvider } from "./messages";
 import type { IPartsProvider } from "./parts";
@@ -40,6 +42,7 @@ import type { IQuickReplyProvider } from "./quickReply";
 import type { ITrackableLinkProvider } from "./trackableLink";
 import type { IScheduledSendProvider } from "./scheduledSend";
 import type { IConversationNotesProvider } from "./conversationNotes";
+import type { IConversationPinsProvider } from "./conversationPins";
 import type { IStorefrontProvider } from "./storefront";
 import type { ISystemHealthProvider } from "./systemHealth";
 import type { IWebhookDeliveriesProvider } from "./webhookDeliveries";
@@ -57,10 +60,28 @@ import type { IConversationTagsProvider } from "./conversationTags";
 import type { IConversationParticipantsProvider } from "./conversationParticipants";
 import type { ISdrPilotSettingsProvider } from "./sdrPilotSettings";
 import type { IConversationRescuesProvider } from "./conversationRescues";
+import type { IPixKeyProvider } from "./pixKey";
+import type { INpsProvider } from "./nps";
 
 export type { IPaginatedResult, IPaginationParams } from "./_shared";
+export { FETCH_ALL_PAGE_SIZE } from "./_shared";
 
-export type { ICustomersProvider, IListCustomersParams, IConvertPendingContactInput } from "./customers";
+export type {
+  ICustomersProvider,
+  IListCustomersParams,
+  IConvertPendingContactInput,
+  ICustomerDocumentMatch,
+  IWalletStats,
+  IWalletStatsParams,
+  IWalletSellerStats,
+} from "./customers";
+export { WALLET_STALE_DAYS } from "./customers";
+export type {
+  IContactsProvider,
+  IListContactsParams,
+  ContactsOrderBy,
+  ContactRecencyBucket,
+} from "./contacts";
 export type {
   IVehiclesProvider,
   IListVehiclesParams,
@@ -69,6 +90,7 @@ export type {
   VehiclesOrderDir,
 } from "./vehicles";
 export type { ILeadsProvider, IListLeadsParams } from "./leads";
+export type { ILeadFunnelsProvider } from "./leadFunnels";
 export type {
   IConversationsProvider,
   IListConversationsParams,
@@ -145,6 +167,7 @@ export type { IQuickReplyProvider } from "./quickReply";
 export type { ITrackableLinkProvider } from "./trackableLink";
 export type { IScheduledSendProvider } from "./scheduledSend";
 export type { IConversationNotesProvider } from "./conversationNotes";
+export type { IConversationPinsProvider, IConversationPin } from "./conversationPins";
 export type { IStorefrontProvider } from "./storefront";
 export type { ISystemHealthProvider } from "./systemHealth";
 export type { IWebhookDeliveriesProvider } from "./webhookDeliveries";
@@ -175,11 +198,7 @@ export type {
   ICreateGoServerInput,
   IGoServerPatch,
 } from "./whatsappGoServers";
-export type {
-  IWahaServersProvider,
-  ICreateWahaServerInput,
-  IWahaServerPatch,
-} from "./wahaServers";
+export type { IWahaServersProvider, ICreateWahaServerInput, IWahaServerPatch } from "./wahaServers";
 export type {
   IWhatsAppOpenWaServersProvider,
   ICreateOpenWaServerInput,
@@ -187,6 +206,8 @@ export type {
 } from "./whatsappOpenWaServers";
 export type { ISdrPilotSettingsProvider } from "./sdrPilotSettings";
 export type { IConversationRescuesProvider } from "./conversationRescues";
+export type { IPixKeyProvider } from "./pixKey";
+export type { INpsProvider } from "./nps";
 
 /**
  * Aggregate of every data provider returned by `getDataProviders()`. The factory
@@ -195,8 +216,10 @@ export type { IConversationRescuesProvider } from "./conversationRescues";
  */
 export interface IDataProviders {
   customers: ICustomersProvider;
+  contacts: IContactsProvider;
   vehicles: IVehiclesProvider;
   leads: ILeadsProvider;
+  leadFunnels: ILeadFunnelsProvider;
   conversations: IConversationsProvider;
   messages: IMessagesProvider;
   parts: IPartsProvider;
@@ -229,6 +252,7 @@ export interface IDataProviders {
   trackableLink: ITrackableLinkProvider;
   scheduledSend: IScheduledSendProvider;
   conversationNotes: IConversationNotesProvider;
+  conversationPins: IConversationPinsProvider;
   storefront: IStorefrontProvider;
   systemHealth: ISystemHealthProvider;
   webhookDeliveries: IWebhookDeliveriesProvider;
@@ -246,4 +270,6 @@ export interface IDataProviders {
   conversationParticipants: IConversationParticipantsProvider;
   sdrPilotSettings: ISdrPilotSettingsProvider;
   conversationRescues: IConversationRescuesProvider;
+  pixKey: IPixKeyProvider;
+  nps: INpsProvider;
 }

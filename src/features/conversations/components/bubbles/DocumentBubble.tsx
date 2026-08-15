@@ -1,7 +1,7 @@
 import type { IMessage } from "@/shared/types";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
-import { BubbleChrome } from "./bubbleChrome";
+import { BubbleChrome, type IBubbleProps } from "./bubbleChrome";
 import { WhatsAppText } from "./WhatsAppText";
 import { fileNameFromUrl, formatFileSize, mediaIcon } from "../../utils/messageDisplay";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
@@ -14,7 +14,7 @@ function deterministicSize(id: string): number {
   return 80_000 + (Math.abs(h) % 4_500_000);
 }
 
-export function DocumentBubble({ message, onRetry }: { message: IMessage; onRetry?: () => void }) {
+export function DocumentBubble({ message, onRetry, ...extras }: IBubbleProps) {
   // Inbound documents/videos are private storage paths; sign on demand for the
   // download link. When unresolved (failed download), the link is hidden.
   const { data: url } = useResolvedMediaUrl(message.mediaUrl);
@@ -23,7 +23,7 @@ export function DocumentBubble({ message, onRetry }: { message: IMessage; onRetr
   const icon = mediaIcon(message.mediaType, fileName);
 
   return (
-    <BubbleChrome message={message} onRetry={onRetry}>
+    <BubbleChrome message={message} onRetry={onRetry} {...extras}>
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
           <Icon icon={icon} size={22} />

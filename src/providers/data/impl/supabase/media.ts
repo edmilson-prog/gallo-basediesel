@@ -9,7 +9,9 @@ import type {
 } from "@/shared/types";
 import type { IMediaStorageProvider } from "../../contracts/mediaStorage";
 import type { IPaginatedResult } from "../../contracts/_shared";
+import { FETCH_ALL_PAGE_SIZE } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 import { contentHash, mediaHashSeed } from "@/features/media/engine/contentHash";
 import { classifyMedia } from "@/features/media/engine/classifyMedia";
 import { isSensitiveClassification } from "@/features/media/engine/sensitiveAccess";
@@ -235,34 +237,49 @@ async function fetchAssetByContentHash(hash: string): Promise<IMediaAsset | unde
 
 export const supabaseMediaProvider: IMediaStorageProvider = {
   async list(filter: IListMediaParams): Promise<IPaginatedResult<IMediaAsset>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+    // The contract carries no page/pageSize — this op returns the COMPLETE
+    // filtered set. Drained in ≤1000-row chunks (PostgREST caps any single
+    // request at 1000 rows, so an unbounded select would silently truncate).
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
 
-    if (filter.storeId !== undefined) query = query.eq("store_id", filter.storeId);
-    if (filter.conversationId !== undefined)
-      query = query.eq("conversation_id", filter.conversationId);
-    if (filter.customerId !== undefined) query = query.eq("customer_id", filter.customerId);
-    if (filter.kind !== undefined) query = query.eq("kind", filter.kind);
-    if (filter.classification !== undefined)
-      query = query.eq("classification", filter.classification);
-    if (filter.authorType !== undefined) query = query.eq("author_type", filter.authorType);
-    if (filter.from !== undefined) query = query.gte("created_at", filter.from);
-    if (filter.to !== undefined) query = query.lte("created_at", filter.to);
-    if (filter.search) {
-      const term = `%${filter.search}%`;
-      query = query.or(
-        `file_name.ilike.${term},ocr_text.ilike.${term},transcription.ilike.${term}`,
-      );
-    }
+      if (filter.storeId !== undefined) query = query.eq("store_id", filter.storeId);
+      if (filter.conversationId !== undefined)
+        query = query.eq("conversation_id", filter.conversationId);
+      if (filter.customerId !== undefined) query = query.eq("customer_id", filter.customerId);
+      if (filter.kind !== undefined) query = query.eq("kind", filter.kind);
+      if (filter.classification !== undefined)
+        query = query.eq("classification", filter.classification);
+      if (filter.authorType !== undefined) query = query.eq("author_type", filter.authorType);
+      if (filter.from !== undefined) query = query.gte("created_at", filter.from);
+      if (filter.to !== undefined) query = query.lte("created_at", filter.to);
+      if (filter.search) {
+        const term = `%${filter.search}%`;
+        query = query.or(
+          `file_name.ilike.${term},ocr_text.ilike.${term},transcription.ilike.${term}`,
+        );
+      }
+      return query;
+    };
 
-    const { data, error, count } = await query.order("created_at", { ascending: false });
-    if (error) throw new Error(`[supabase] media.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<MediaAssetRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] media.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as MediaAssetRow[], count: count ?? 0 };
+      },
+      0,
+      FETCH_ALL_PAGE_SIZE,
+    );
 
-    const rows = data as unknown as MediaAssetRow[];
     return {
-      data: rows.map(rowToMediaAsset),
-      total: count ?? rows.length,
+      data: data.map(rowToMediaAsset),
+      total,
       page: 1,
-      pageSize: rows.length,
+      pageSize: data.length,
     };
   },
 

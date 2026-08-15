@@ -10,6 +10,7 @@ import type {
 import type { IIndicatorsProvider, IListIndicatorsParams } from "../../contracts/indicators";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link IIndicatorsProvider} (PRD-046 / PRD-120+).
@@ -114,29 +115,37 @@ function indicatorToRow(indicator: IProductIndicator): Record<string, unknown> {
 
 export const supabaseIndicatorsProvider: IIndicatorsProvider = {
   async list(params: IListIndicatorsParams = {}): Promise<IPaginatedResult<IProductIndicator>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
-
-    if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
-    if (params.scopeLevel !== undefined) query = query.eq("scope_level", params.scopeLevel);
-    if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
-    if (params.metric !== undefined) query = query.eq("metric", params.metric);
-    if (params.status !== undefined) query = query.eq("status", params.status);
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (params.scopeLevel !== undefined) query = query.eq("scope_level", params.scopeLevel);
+      if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
+      if (params.metric !== undefined) query = query.eq("metric", params.metric);
+      if (params.status !== undefined) query = query.eq("status", params.status);
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
     // The mock sorts desc by `period.end`; mirror it on the jsonb path.
-    const { data, error, count } = await query
-      .order("period->>end", { ascending: false })
-      .range(from, to);
-
-    if (error) throw new Error(`[supabase] indicators.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<IndicatorRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("period->>end", { ascending: false })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] indicators.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as IndicatorRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as IndicatorRow[]).map(rowToIndicator),
-      total: count ?? 0,
+      data: data.map(rowToIndicator),
+      total,
       page,
       pageSize,
     };

@@ -1,116 +1,125 @@
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ILead, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { formatBRL, formatDateBR, formatPhone } from "@/shared/utils/format";
-import {
-  TEMPERATURE_META,
-  daysInStage,
-  getInitials,
-  getNextActionInfo,
-  getOriginMeta,
-  isConverted,
-  isLost,
-} from "../../utils/leadDisplay";
-import { LEAD_TEMPERATURES } from "../../utils/listFilters";
-import type { ILeadDraft, ILeadDraftErrors } from "../../utils/leadDraft";
+import { formatDateBR, formatPhone } from "@/shared/utils/format";
+import { tagColorHex } from "@/features/conversations/engine/tagCatalog";
+import { getInitials, isLost } from "../../utils/leadDisplay";
 import { matchCatalogTag } from "../../utils/leadTagCatalog";
 import { useLeadTagCatalog } from "../../hooks/useLeadTagCatalog";
-import { tagColorHex } from "@/features/conversations/engine/tagCatalog";
 import { LeadTagPicker } from "./LeadTagPicker";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 
 const COPY = LEADS_STRINGS.detail;
+const DAY_MS = 86_400_000;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export interface ILeadDataCardProps {
   lead: ILead;
   seller?: ISeller;
-  editing: boolean;
-  draft: ILeadDraft;
-  onDraftChange: (patch: Partial<ILeadDraft>) => void;
-  errors: ILeadDraftErrors;
+  canEdit: boolean;
+  pendingField: string | null;
+  onEmailChange: (email: string | undefined) => void;
+  onTagsChange: (tags: string[]) => void;
 }
 
+/**
+ * The lead's own data, edited where it is read.
+ *
+ * What this card no longer holds is most of the point: the stage moved to the
+ * funnels card (there is one per funnel, not one per lead), the estimated value
+ * went with it, the next action became the "Agora" block, and temperature,
+ * origin and creation date live on the header's state rule. What is left is
+ * identity — and it is editable in place, so the page-wide "Editar" mode and
+ * its save bar are gone.
+ *
+ * An empty field stops being a dash and becomes an invitation. A dash says "há
+ * um campo aqui e ele está vazio"; "+ adicionar e-mail" says what to do about
+ * it, which is the only reason to render the row at all.
+ */
 export function LeadDataCard({
   lead,
   seller,
-  editing,
-  draft,
-  onDraftChange,
-  errors,
+  canEdit,
+  pendingField,
+  onEmailChange,
+  onTagsChange,
 }: ILeadDataCardProps) {
-  const tempMeta = TEMPERATURE_META[lead.temperature];
-  const originMeta = getOriginMeta(lead.origin);
-  const nextAction = getNextActionInfo(lead.nextActionAt);
-  const converted = isConverted(lead);
-  const lost = isLost(lead);
-  const stageDays = daysInStage(lead);
   const tagCatalog = useLeadTagCatalog(lead.storeId);
+  const lost = isLost(lead);
+  const ageDays = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(lead.createdAt).getTime()) / DAY_MS),
+  );
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <h2 className="mb-3 text-sm font-semibold text-foreground">{COPY.data}</h2>
+    <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <header className="flex items-center gap-2 border-b border-border px-4 py-2.5">
+        <Icon icon="mdi:card-account-details-outline" size={14} className="text-muted-foreground" aria-hidden />
+        <h2 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {COPY.data}
+        </h2>
+        {canEdit && (
+          <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground/70">
+            <Icon icon="mdi:pencil-outline" size={11} aria-hidden />
+            {COPY.inline.hint}
+          </span>
+        )}
+      </header>
 
-      {/* Status strip */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
-        <span
-          className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium"
-          style={{ borderColor: lead.stage.color, color: lead.stage.color }}
-        >
-          {lead.stage.name}
-        </span>
-        <Badge className={tempMeta.tone} icon={tempMeta.icon}>
-          {tempMeta.label}
-        </Badge>
-        <Badge className={originMeta.tone} icon={originMeta.icon}>
-          {originMeta.label}
-        </Badge>
-        {converted && (
-          <Badge
-            className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-            icon="mdi:check-decagram"
-          >
-            {LEADS_STRINGS.card.converted}
-          </Badge>
-        )}
-        {lost && (
-          <Badge className="bg-red-500/15 text-red-700 dark:text-red-300" icon="mdi:close-octagon">
-            {LEADS_STRINGS.card.lost}
-          </Badge>
-        )}
+      <div className="grid gap-x-6 gap-y-4 px-4 py-4 sm:grid-cols-2">
+        <Fact label={COPY.fields.phone}>
+          <span className="tabular-nums">{formatPhone(lead.phone)}</span>
+        </Fact>
+
+        <InlineText
+          label={COPY.fields.email}
+          value={lead.email}
+          empty={COPY.inline.addEmail}
+          type="email"
+          canEdit={canEdit}
+          pending={pendingField === "email"}
+          validate={(v) => (EMAIL_RE.test(v) ? null : LEADS_STRINGS.fiche.invalidEmail)}
+          onSave={onEmailChange}
+        />
+
+        <Fact label={COPY.seller}>
+          {seller ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="grid size-5 shrink-0 place-items-center rounded-full bg-muted text-[9px] font-semibold text-muted-foreground">
+                {getInitials(seller.fullName)}
+              </span>
+              {seller.fullName}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">{COPY.state.sellerQueue}</span>
+          )}
+        </Fact>
+
+        <Fact label={COPY.inline.leadAge}>
+          {COPY.inline.leadAgeValue(ageDays)}
+          <span className="ml-1 text-xs font-normal text-muted-foreground">
+            {COPY.inline.since(formatDateBR(lead.createdAt))}
+          </span>
+        </Fact>
       </div>
 
-      {/* Loss reason/notes — read-only, only for lost leads (lost leads aren't editable) */}
       {lost && (lead.lossReason || lead.lossNotes) && (
-        <Section title={LEADS_STRINGS.card.lost}>
+        <div className="grid gap-x-6 gap-y-4 border-t border-border px-4 py-4 sm:grid-cols-2">
           {lead.lossReason && (
             <Fact label={COPY.lossReason}>
-              <span className="text-red-700 dark:text-red-300">{lead.lossReason}</span>
+              <span className="text-severity-critical">{lead.lossReason}</span>
             </Fact>
           )}
           {lead.lossNotes && <Fact label={COPY.lossNotes}>{lead.lossNotes}</Fact>}
-        </Section>
+        </div>
       )}
 
-      {/* Tags block */}
-      <div className="border-b border-border py-3">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          {COPY.fields.tags}
-        </p>
-        {editing ? (
-          <LeadTagPicker
-            selected={draft.tags}
-            catalog={tagCatalog}
-            onChange={(tags) => onDraftChange({ tags })}
-          />
+      <div className="border-t border-border px-4 py-3">
+        <p className="mb-2 text-[11px] text-muted-foreground">{COPY.fields.tags}</p>
+        {canEdit ? (
+          <LeadTagPicker selected={lead.tags} catalog={tagCatalog} onChange={onTagsChange} />
         ) : lead.tags.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {lead.tags.map((tag) => {
@@ -123,7 +132,7 @@ export function LeadDataCard({
                   {match ? (
                     <span
                       aria-hidden
-                      className="inline-block h-2 w-2 shrink-0 rounded-full"
+                      className="inline-block size-2 shrink-0 rounded-full"
                       style={{ backgroundColor: tagColorHex(match.color) }}
                     />
                   ) : (
@@ -138,196 +147,134 @@ export function LeadDataCard({
           <p className="text-xs text-muted-foreground">{COPY.noTags}</p>
         )}
       </div>
+    </section>
+  );
+}
 
-      {/* Commercial */}
-      <Section title={COPY.groups.commercial}>
-        {editing ? (
-          <EditCommercialSlot draft={draft} onDraftChange={onDraftChange} errors={errors} />
-        ) : (
-          <>
-            <Fact label={COPY.fields.estimatedValue}>
-              {lead.estimatedValue !== undefined ? formatBRL(lead.estimatedValue) : <Dim>—</Dim>}
-            </Fact>
-            <Fact label={COPY.fields.nextAction}>
-              {lead.nextActionAt ? (
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium",
-                    nextAction.tone,
-                  )}
-                >
-                  {nextAction.label}
-                </span>
-              ) : (
-                <Dim>{nextAction.label}</Dim>
-              )}
-            </Fact>
-          </>
-        )}
-      </Section>
-
-      {/* Contact */}
-      <Section title={COPY.groups.contact}>
-        <Fact label={COPY.fields.phone}>{formatPhone(lead.phone)}</Fact>
-        {editing ? (
-          <EditEmailSlot draft={draft} onDraftChange={onDraftChange} errors={errors} />
-        ) : (
-          <Fact label={COPY.fields.email}>{lead.email ?? <Dim>—</Dim>}</Fact>
-        )}
-      </Section>
-
-      {/* Management */}
-      <Section title={COPY.groups.management} last>
-        <Fact label={COPY.seller}>
-          {seller ? (
-            <span className="inline-flex items-center gap-1.5">
-              <span className="grid h-5 w-5 place-items-center rounded-full bg-muted text-[9px] font-semibold text-muted-foreground">
-                {getInitials(seller.fullName)}
-              </span>
-              {seller.fullName}
-            </span>
-          ) : (
-            <Dim>—</Dim>
-          )}
-        </Fact>
-        <Fact label={COPY.createdAt}>{formatDateBR(lead.createdAt)}</Fact>
-        <Fact label={COPY.inStageFor}>
-          {stageDays} {stageDays === 1 ? "dia" : "dias"}
-        </Fact>
-      </Section>
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className="text-[11px] text-muted-foreground">{label}</span>
+      <span className="truncate text-sm font-medium text-foreground">{children}</span>
     </div>
   );
 }
 
-function Badge({
-  className,
-  icon,
-  children,
-}: {
-  className: string;
-  icon: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium",
-        className,
-      )}
-    >
-      <Icon icon={icon} size={12} />
-      {children}
-    </span>
-  );
+interface IInlineTextProps {
+  label: string;
+  value: string | undefined;
+  empty: string;
+  type?: "text" | "email";
+  canEdit: boolean;
+  pending: boolean;
+  /** Returns an error message, or null when the value is acceptable. */
+  validate?: (value: string) => string | null;
+  onSave: (value: string | undefined) => void;
 }
 
-function Section({
-  title,
-  last,
-  children,
-}: {
-  title: string;
-  last?: boolean;
-  children: React.ReactNode;
-}) {
+/** A value that becomes an input where it stands, and an invitation when empty. */
+function InlineText({
+  label,
+  value,
+  empty,
+  type = "text",
+  canEdit,
+  pending,
+  validate,
+  onSave,
+}: IInlineTextProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) ref.current?.focus();
+  }, [editing]);
+
+  const commit = () => {
+    const trimmed = draft.trim();
+    if (trimmed && validate) {
+      const message = validate(trimmed);
+      if (message) {
+        setError(message);
+        // Stays in edit mode: blurring away from an invalid value and having it
+        // silently vanish is worse than being held there with the reason.
+        ref.current?.focus();
+        return;
+      }
+    }
+    setError(null);
+    setEditing(false);
+    const next = trimmed || undefined;
+    if (next !== value) onSave(next);
+  };
+
+  if (!canEdit) {
+    return (
+      <Fact label={label}>
+        {value ?? <span className="font-normal text-muted-foreground">—</span>}
+      </Fact>
+    );
+  }
+
   return (
-    <div className={cn("py-3", !last && "border-b border-border")}>
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {title}
-      </p>
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">{children}</dl>
-    </div>
-  );
-}
-
-function Fact({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-right text-sm font-medium text-foreground">{children}</dd>
-    </div>
-  );
-}
-
-function Dim({ children }: { children: React.ReactNode }) {
-  return <span className="font-normal text-muted-foreground">{children}</span>;
-}
-
-// --- Edit slots ---
-
-function EditCommercialSlot({
-  draft,
-  onDraftChange,
-  errors,
-}: {
-  draft: ILeadDraft;
-  onDraftChange: (p: Partial<ILeadDraft>) => void;
-  errors: ILeadDraftErrors;
-}) {
-  return (
-    <>
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">{COPY.fields.estimatedValue}</Label>
-        <Input
-          value={draft.estimatedValue}
-          inputMode="decimal"
-          onChange={(e) => onDraftChange({ estimatedValue: e.target.value })}
-        />
-        {errors.estimatedValue && (
-          <p className="text-[11px] text-red-600 dark:text-red-400">{errors.estimatedValue}</p>
-        )}
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">{COPY.fields.nextAction}</Label>
-        <Input
-          type="date"
-          value={draft.nextActionAt}
-          onChange={(e) => onDraftChange({ nextActionAt: e.target.value })}
-        />
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">{COPY.fields.temperature}</Label>
-        <Select
-          value={draft.temperature}
-          onValueChange={(v) => onDraftChange({ temperature: v as ILeadDraft["temperature"] })}
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className="text-[11px] text-muted-foreground">{label}</span>
+      {editing ? (
+        <>
+          <Input
+            ref={ref}
+            type={type}
+            value={draft}
+            aria-label={label}
+            aria-invalid={error ? true : undefined}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commit();
+              if (e.key === "Escape") {
+                setDraft(value ?? "");
+                setError(null);
+                setEditing(false);
+              }
+            }}
+            className={cn("h-8 text-sm", error && "border-severity-critical")}
+          />
+          {error && <span className="text-[11px] text-severity-critical">{error}</span>}
+        </>
+      ) : (
+        <button
+          type="button"
+          disabled={pending}
+          aria-label={COPY.inline.edit(label)}
+          onClick={() => {
+            setDraft(value ?? "");
+            setEditing(true);
+          }}
+          className="group -mx-1.5 inline-flex min-w-0 items-center gap-1.5 rounded px-1.5 py-0.5 text-left transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LEAD_TEMPERATURES.map((t) => (
-              <SelectItem key={t} value={t}>
-                <span className="inline-flex items-center gap-2">
-                  <Icon icon={TEMPERATURE_META[t].icon} size={12} />
-                  {TEMPERATURE_META[t].label}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </>
-  );
-}
-
-function EditEmailSlot({
-  draft,
-  onDraftChange,
-  errors,
-}: {
-  draft: ILeadDraft;
-  onDraftChange: (p: Partial<ILeadDraft>) => void;
-  errors: ILeadDraftErrors;
-}) {
-  return (
-    <div className="space-y-1">
-      <Label className="text-xs text-muted-foreground">{COPY.fields.email}</Label>
-      <Input
-        value={draft.email}
-        inputMode="email"
-        onChange={(e) => onDraftChange({ email: e.target.value })}
-      />
-      {errors.email && <p className="text-[11px] text-red-600 dark:text-red-400">{errors.email}</p>}
+          {value ? (
+            <>
+              <span className="truncate text-sm font-medium text-foreground">{value}</span>
+              <Icon
+                icon="mdi:pencil-outline"
+                size={11}
+                aria-hidden
+                className="shrink-0 text-muted-foreground opacity-0 transition group-hover:opacity-100"
+              />
+            </>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-sm text-muted-foreground transition group-hover:text-primary">
+              <Icon icon="mdi:plus" size={12} aria-hidden />
+              {empty}
+            </span>
+          )}
+          {pending && (
+            <Icon icon="svg-spinners:ring-resize" size={12} aria-hidden className="shrink-0" />
+          )}
+        </button>
+      )}
     </div>
   );
 }

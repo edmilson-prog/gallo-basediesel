@@ -164,7 +164,7 @@ export function ABCSettingsPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Icon icon="mdi:alpha-a-circle-outline" size={18} className="text-emerald-600" />
+              <Icon icon="mdi:alpha-a-circle-outline" size={18} className="text-severity-success" />
               <span className="text-sm font-medium">{S.adminClassALabel}</span>
             </div>
             <div className="text-right">
@@ -186,7 +186,7 @@ export function ABCSettingsPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Icon icon="mdi:alpha-b-circle-outline" size={18} className="text-amber-600" />
+              <Icon icon="mdi:alpha-b-circle-outline" size={18} className="text-severity-warning" />
               <span className="text-sm font-medium">{S.adminClassBLabel}</span>
             </div>
             <div className="text-right">
@@ -283,8 +283,8 @@ function PreviewClass({
               <span
                 className={
                   delta > 0
-                    ? "ml-2 text-xs font-medium text-emerald-600 dark:text-emerald-400"
-                    : "ml-2 text-xs font-medium text-amber-600 dark:text-amber-400"
+                    ? "ml-2 text-xs font-medium text-severity-success"
+                    : "ml-2 text-xs font-medium text-severity-warning"
                 }
               >
                 {delta > 0 ? `+${delta}` : delta}

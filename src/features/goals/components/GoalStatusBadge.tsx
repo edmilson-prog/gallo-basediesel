@@ -9,20 +9,17 @@ import {
 } from "../utils/labels";
 
 const PROGRESS_COLORS: Record<GoalProgressStatus, string> = {
-  no_caminho:
-    "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 border-emerald-500/40",
-  atencao:
-    "bg-amber-500/10 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 border-amber-500/40",
-  atrasada: "bg-red-500/10 text-red-700 dark:bg-red-500/15 dark:text-red-300 border-red-500/40",
-  concluida:
-    "bg-emerald-600/20 text-emerald-800 dark:bg-emerald-500/25 dark:text-emerald-200 border-emerald-500/60",
+  no_caminho: "border-severity-success/40 bg-severity-success/10 text-severity-success",
+  atencao: "border-severity-warning/40 bg-severity-warning/10 text-severity-warning",
+  atrasada: "border-severity-critical/40 bg-severity-critical/10 text-severity-critical",
+  concluida: "border-severity-success/60 bg-severity-success/20 text-severity-success",
 };
 
 const LIFECYCLE_COLORS: Record<GoalStatus, string> = {
   ativa: "bg-primary/10 text-primary border-primary/40",
-  concluida: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/40",
+  concluida: "border-severity-success/40 bg-severity-success/10 text-severity-success",
   arquivada: "bg-muted text-muted-foreground border-border",
-  cancelada: "bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/40",
+  cancelada: "border-severity-critical/40 bg-severity-critical/10 text-severity-critical",
 };
 
 const LIFECYCLE_ICONS: Record<GoalStatus, string> = {

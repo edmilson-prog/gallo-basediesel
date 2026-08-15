@@ -163,7 +163,7 @@ export function SalesForecastPage() {
         {forecast.lowConfidence && (
           <div
             role="status"
-            className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300"
+            className="flex items-start gap-2 rounded-md border border-severity-warning/40 bg-severity-warning/10 px-4 py-3 text-sm text-severity-warning"
           >
             <Icon icon="mdi:alert-circle-outline" size={18} className="mt-0.5 shrink-0" />
             <span>

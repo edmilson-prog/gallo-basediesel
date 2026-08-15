@@ -21,6 +21,7 @@ interface SellerRow {
   attendant_name: string | null;
   email: string;
   phone: string | null;
+  avatar_url: string | null;
   type: ISeller["type"];
   availability: ISeller["availability"];
   divisions: Division[];
@@ -43,7 +44,10 @@ interface SellerRow {
 
 const TABLE = "sellers";
 const COLUMNS =
-  "id, store_id, full_name, attendant_name, email, phone, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, department_id, rotation, work_schedule, schedule_overrides, access_grant, session_timeout_override, active, created_at, deleted_at";
+  "id, store_id, full_name, attendant_name, email, phone, avatar_url, type, availability, divisions, theme_preference, region, commission_tier, parent_seller_id, commission_rule, vehicle_cadastro_mode, department_id, rotation, work_schedule, schedule_overrides, access_grant, session_timeout_override, active, created_at, deleted_at";
+
+/** Public bucket that already backs product images and avatars (PRD-106). */
+const AVATAR_BUCKET = "avatars";
 
 function rowToSeller(row: SellerRow): ISeller {
   return {
@@ -53,6 +57,7 @@ function rowToSeller(row: SellerRow): ISeller {
     attendantName: row.attendant_name ?? undefined,
     email: row.email,
     phone: row.phone ?? undefined,
+    avatarUrl: row.avatar_url ?? null,
     type: row.type,
     availability: row.availability,
     divisions: row.divisions,
@@ -82,6 +87,8 @@ function sellerPatchToRow(patch: Partial<ISeller>): Record<string, unknown> {
   if (patch.attendantName !== undefined) row.attendant_name = patch.attendantName;
   if (patch.email !== undefined) row.email = patch.email;
   if (patch.phone !== undefined) row.phone = patch.phone;
+  // Nullable: `null` removes the photo; `undefined` leaves it untouched.
+  if (patch.avatarUrl !== undefined) row.avatar_url = patch.avatarUrl ?? null;
   if (patch.type !== undefined) row.type = patch.type;
   if (patch.availability !== undefined) row.availability = patch.availability;
   if (patch.divisions !== undefined) row.divisions = patch.divisions;
@@ -149,6 +156,29 @@ export const supabaseSellersProvider: ISellersProvider = {
       .single();
     if (error) throw new Error(`[supabase] sellers.update(${id}) failed: ${error.message}`);
     return rowToSeller(data as SellerRow);
+  },
+
+  async uploadAvatar(id: ID, file: File): Promise<string> {
+    const supabase = getSupabaseClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const authUserId = sessionData.session?.user.id;
+    if (!authUserId) {
+      throw new Error(`[supabase] sellers.uploadAvatar(${id}) failed: no active session`);
+    }
+    // One stable object per user (`<auth uid>/avatar`), overwritten on every
+    // change: the storage policy gates writes on that prefix and nothing is
+    // orphaned. The CDN caches by path, so the persisted URL carries a version
+    // query so a new photo is actually seen.
+    const objectPath = `${authUserId}/avatar`;
+    const { error } = await supabase.storage.from(AVATAR_BUCKET).upload(objectPath, file, {
+      contentType: file.type,
+      upsert: true,
+    });
+    if (error) {
+      throw new Error(`[supabase] sellers.uploadAvatar(${id}) failed: ${error.message}`);
+    }
+    const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(objectPath);
+    return `${data.publicUrl}?v=${Date.now()}`;
   },
 
   async create(input: ICreateSellerInput): Promise<ISeller> {

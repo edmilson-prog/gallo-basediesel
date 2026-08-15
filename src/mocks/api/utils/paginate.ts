@@ -15,13 +15,22 @@ export interface IPaginationParams {
   pageSize?: number;
 }
 
+/**
+ * Ceiling for a single page. Mirrors FETCH_ALL_PAGE_SIZE (10_000) in
+ * `src/providers/data/contracts/_shared.ts` so fetch-all callers are not
+ * silently truncated to 200 rows in mock/demo mode. The value is duplicated
+ * here on purpose: importing it from `@/providers/data` would create a
+ * mocks ↔ providers import cycle.
+ */
+const MAX_PAGE_SIZE = 10_000;
+
 /** Default page (1) and pageSize (20). */
 export function resolvePagination(params: IPaginationParams = {}): {
   page: number;
   pageSize: number;
 } {
   const page = Math.max(1, Math.floor(params.page ?? 1));
-  const pageSize = Math.max(1, Math.min(200, Math.floor(params.pageSize ?? 20)));
+  const pageSize = Math.max(1, Math.min(MAX_PAGE_SIZE, Math.floor(params.pageSize ?? 20)));
   return { page, pageSize };
 }
 

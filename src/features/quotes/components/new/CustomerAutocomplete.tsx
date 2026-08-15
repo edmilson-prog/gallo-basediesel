@@ -4,6 +4,7 @@ import type { ICustomer, ID } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Input } from "@/components/ui/input";
 import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
+import { useDebounce } from "@/shared/hooks/useDebounce";
 
 function nameOf(c: ICustomer): string {
   return c.type === "B2B" ? c.nomeFantasia || c.razaoSocial : c.fullName;
@@ -22,33 +23,37 @@ export function CustomerAutocomplete({
   const provider = useCustomersProvider();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  // Last-picked customer kept locally: the server-side search below narrows the
+  // result set, so the chosen customer may no longer be in it after typing.
+  const [picked, setPicked] = useState<ICustomer | null>(null);
 
+  const debouncedQuery = useDebounce(query.trim(), 300);
+
+  // Server-side search: customers exceed any client-side slice (3k+ rows), so
+  // the typed term goes to the provider (`search` → buildCustomerSearchOr on
+  // supabase) instead of filtering a pre-fetched page locally.
   const customersQuery = useQuery({
-    queryKey: ["customers-autocomplete", sellerIdFilter] as const,
-    queryFn: () => provider.list({ pageSize: 500, sellerId: sellerIdFilter ?? undefined }),
+    queryKey: ["customers-autocomplete", sellerIdFilter, debouncedQuery] as const,
+    queryFn: () =>
+      provider.list({
+        search: debouncedQuery || undefined,
+        pageSize: 20,
+        sellerId: sellerIdFilter ?? undefined,
+      }),
     staleTime: 60_000,
   });
 
-  const filtered = useMemo(() => {
-    const list = customersQuery.data?.data ?? [];
-    if (!query.trim()) return list.slice(0, 10);
-    const q = query.toLowerCase();
-    return list
-      .filter((c) => {
-        const name = nameOf(c).toLowerCase();
-        if (name.includes(q)) return true;
-        if (c.type === "B2B" && c.cnpj.toLowerCase().includes(q)) return true;
-        if (c.type === "B2C" && c.cpf.toLowerCase().includes(q)) return true;
-        if (c.email?.toLowerCase().includes(q)) return true;
-        return false;
-      })
-      .slice(0, 10);
-  }, [customersQuery.data, query]);
+  const suggestions = useMemo(
+    () => (customersQuery.data?.data ?? []).slice(0, 10),
+    [customersQuery.data],
+  );
 
   const selected = useMemo(() => {
     if (!value) return null;
+    if (picked?.id === value) return picked;
+    // Fallback for an externally-set value: best-effort lookup in the current page.
     return (customersQuery.data?.data ?? []).find((c) => c.id === value) ?? null;
-  }, [customersQuery.data, value]);
+  }, [picked, customersQuery.data, value]);
 
   if (selected) {
     return (
@@ -65,6 +70,7 @@ export function CustomerAutocomplete({
           className="text-xs text-muted-foreground hover:text-foreground"
           onClick={() => {
             onChange(null);
+            setPicked(null);
             setQuery("");
           }}
         >
@@ -95,14 +101,17 @@ export function CustomerAutocomplete({
           onBlur={() => setTimeout(() => setOpen(false), 150)}
         />
       </div>
-      {open && filtered.length > 0 && (
+      {open && suggestions.length > 0 && (
         <div className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-border bg-popover shadow-md">
-          {filtered.map((c) => (
+          {suggestions.map((c) => (
             <button
               key={c.id}
               type="button"
               className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-muted"
-              onMouseDown={() => onChange(c)}
+              onMouseDown={() => {
+                setPicked(c);
+                onChange(c);
+              }}
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-foreground">{nameOf(c)}</p>

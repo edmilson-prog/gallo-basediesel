@@ -1,5 +1,7 @@
 import type { ICustomer } from "@/shared/types";
+import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
+import { formatPercent } from "@/shared/utils/format";
 import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
 import {
   ABC_BADGE_CLASSES,
@@ -7,10 +9,21 @@ import {
   TYPE_BADGE_CLASSES,
 } from "../utils/customerDisplay";
 
+const DETAIL_COPY = CUSTOMER_STRINGS.detail.badges;
+
 export interface IProfileBadgesProps {
   customer: ICustomer;
   /** Slot for the optional "Histórico pré-conversão" badge (renders a popover). */
   preConversionSlot?: React.ReactNode;
+  /** Slot for the optional NPS badge — absent when the customer has no recent answer. */
+  npsSlot?: React.ReactNode;
+  /**
+   * `detail` is the CRM kit's chip treatment used by the detail page: heavier
+   * weight, wider tracking, the ABC class spelled out ("Curva B · 2,4%") and an
+   * icon on the positivation chip. Opt-in — `default` keeps the compact chips
+   * the Atendimento fiche and the list preview were built around.
+   */
+  variant?: "default" | "detail";
   className?: string;
 }
 
@@ -34,57 +47,71 @@ function isPositivatedThisMonth(customer: ICustomer, now: Date = new Date()): bo
  * - "Histórico pré-conversão" — passed via slot so the popover trigger lives
  *   in the parent (which owns the lead data fetch).
  */
-export function ProfileBadges({ customer, preConversionSlot, className }: IProfileBadgesProps) {
+export function ProfileBadges({
+  customer,
+  preConversionSlot,
+  npsSlot,
+  variant = "default",
+  className,
+}: IProfileBadgesProps) {
   const positivated = isPositivatedThisMonth(customer);
+  const isDetail = variant === "detail";
+  // One shared chip shape so the four badges never drift apart. The kit's chips
+  // are heavier and wider-tracked than the compact ones used in the fiche.
+  const chip = isDetail
+    ? "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.07em]"
+    : "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide";
+
   return (
     <div className={cn("flex flex-wrap items-center gap-1.5", className)} role="group">
-      <span
-        className={cn(
-          "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-          TYPE_BADGE_CLASSES[customer.type],
-        )}
-      >
+      <span className={cn(chip, TYPE_BADGE_CLASSES[customer.type])}>
         {CUSTOMER_STRINGS.contactType[customer.type]}
       </span>
 
       {customer.abcClass && (
         <span
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-            ABC_BADGE_CLASSES[customer.abcClass],
-          )}
+          className={cn(chip, !isDetail && "font-semibold", ABC_BADGE_CLASSES[customer.abcClass])}
           title={CUSTOMER_STRINGS.abc[customer.abcClass]}
         >
           {customer.abcClass === "A" && <span aria-hidden>★</span>}
-          {customer.abcClass}
+          {isDetail
+            ? DETAIL_COPY.abc(
+                customer.abcClass,
+                customer.abcShare != null ? formatPercent(customer.abcShare) : null,
+              )
+            : customer.abcClass}
         </span>
       )}
 
-      <span
-        className={cn(
-          "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-          STATUS_BADGE_CLASSES[customer.status],
-        )}
-      >
+      <span className={cn(chip, STATUS_BADGE_CLASSES[customer.status])}>
         {CUSTOMER_STRINGS.lifecycle[customer.status]}
       </span>
 
       <span
         className={cn(
-          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+          chip,
           positivated
-            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+            ? "bg-severity-success/15 text-severity-success border border-severity-success/30"
             : "bg-muted text-muted-foreground border border-border",
         )}
         title={
           positivated ? "Cliente positivado: comprou neste mês" : "Cliente não positivado neste mês"
         }
       >
-        <span aria-hidden>{positivated ? "●" : "○"}</span>
-        {positivated ? "Positivado" : "Não positivado"}
+        {isDetail ? (
+          <Icon
+            icon={positivated ? "mdi:check-circle-outline" : "mdi:circle-outline"}
+            size={11}
+            aria-hidden
+          />
+        ) : (
+          <span aria-hidden>{positivated ? "●" : "○"}</span>
+        )}
+        {positivated ? DETAIL_COPY.positivated : DETAIL_COPY.notPositivated}
       </span>
 
       {preConversionSlot}
+      {npsSlot}
     </div>
   );
 }

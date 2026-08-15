@@ -259,6 +259,9 @@ export const VEHICLE_STRINGS = {
     title: "Veículos do cliente",
     addButton: "Adicionar veículo",
     empty: "Este cliente ainda não tem veículos cadastrados.",
+    /** Richer empty state used inside the customer detail page's panel. */
+    emptyTitle: "Sem veículos",
+    emptyHint: "Cadastre a frota para receber recomendações de manutenção.",
     seeAll: (n: number) => `Ver todos os ${n} veículos`,
   },
 } as const;

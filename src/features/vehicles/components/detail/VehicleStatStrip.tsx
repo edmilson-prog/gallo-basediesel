@@ -67,7 +67,7 @@ export function VehicleStatStrip({ vehicle, now = new Date() }: IVehicleStatStri
           <dd
             className={cn(
               "mt-1 text-sm font-semibold tabular-nums text-foreground",
-              cell.accent === "warn" && "text-amber-600 dark:text-amber-300",
+              cell.accent === "warn" && "text-severity-warning",
               cell.accent === "danger" && "text-destructive",
             )}
           >

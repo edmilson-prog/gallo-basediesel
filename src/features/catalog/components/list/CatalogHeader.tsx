@@ -68,10 +68,10 @@ export function CatalogHeader({
           <Icon icon="mdi:package-variant-closed" size={20} />
         </div>
         <div>
-          <h1 className="text-base font-semibold tracking-tight text-foreground">
+          <h1 className="font-display text-xl font-extrabold uppercase leading-none tracking-[0.01em] text-foreground">
             {CATALOG_STRINGS.pageTitle}
           </h1>
-          <p className="text-xs text-muted-foreground">{countLabel}</p>
+          <p className="mt-0.5 text-[11.5px] tabular-nums text-muted-foreground">{countLabel}</p>
         </div>
       </div>
 

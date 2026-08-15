@@ -105,4 +105,8 @@ export const STOREFRONT_PRODUCT_STRINGS = {
   // Gallery
   galleryAlt: (name: string) => `Imagem do produto ${name}`,
   galleryLightboxClose: "Fechar visualização ampliada",
+  // sr-only header of the lightbox — Radix logs an error when a Dialog has no
+  // accessible name, and a warning when it has no description.
+  galleryLightboxTitle: "Imagem ampliada do produto",
+  galleryLightboxDescription: "Visualização ampliada da imagem do produto.",
 } as const;

@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ID, IPart } from "@/shared/types";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 
 export interface IUsePartsIndex {
@@ -20,7 +21,8 @@ export function usePartsIndex(enabled = true): IUsePartsIndex {
   const partsProvider = usePartsProvider();
   const partsQuery = useQuery({
     queryKey: ["parts-for-quote"] as const,
-    queryFn: async () => (await partsProvider.list({ pageSize: 1000, active: true })).data,
+    queryFn: async () =>
+      (await partsProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE, active: true })).data,
     enabled,
     staleTime: 60_000,
   });

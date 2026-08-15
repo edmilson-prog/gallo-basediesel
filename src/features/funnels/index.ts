@@ -1,0 +1,18 @@
+export { getAccentClasses, FUNNEL_ACCENT_SLOTS } from "./engine/accentClasses";
+export type { IFunnelAccentClasses } from "./engine/accentClasses";
+export { isClosingKind, resolveStageKind } from "./engine/stageKind";
+export { hexToAccentSlot } from "./engine/legacyStageColor";
+export { planAddToFunnel, planRemoveFromFunnel } from "./engine/membershipRules";
+export { resolveAccessibleFunnels } from "./engine/accessibleFunnels";
+export { planStageTransition } from "./engine/stageTransition";
+export { countDistinctLeads, daysInStage, summariseStage } from "./engine/funnelMetrics";
+export { resolveLayout, FUNNEL_LAYOUTS, DEFAULT_FUNNEL_LAYOUT } from "./engine/resolveLayout";
+export type { FunnelLayout, IResolvedLayout } from "./engine/resolveLayout";
+export { resolveInitialFunnel, ALL_FUNNELS } from "./engine/resolveInitialFunnel";
+export type { IInitialFunnelResolution } from "./engine/resolveInitialFunnel";
+export { useFunnelNavigation } from "./hooks/useFunnelNavigation";
+export type { IUseFunnelNavigationResult } from "./hooks/useFunnelNavigation";
+export { useFunnelLayoutPreference } from "./hooks/useFunnelLayoutPreference";
+export { COPY as FUNNELS_COPY } from "./i18n/pt-BR";
+export { FunnelNav } from "./components/FunnelNav";
+export type { IFunnelViewProps, ActiveFunnel } from "./components/types";

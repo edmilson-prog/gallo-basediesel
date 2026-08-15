@@ -14,19 +14,6 @@ import type {
   IVehicleModelKit,
   QuotePaymentMethod,
 } from "@/shared/types";
-import { Icon } from "@/components/Icon";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
@@ -38,11 +25,10 @@ import { auditLog } from "@/features/rbac/utils/auditLog";
 import { calculateShipping } from "@/features/shipping/api/calculate";
 import { recalculateQuote, requiresDiscountApproval, round2 } from "../../utils/quoteTotals";
 import { composePaymentCondition, generateQuoteNumber } from "../../utils/quoteNumber";
-import { addOrIncrementItem, swapItemPart } from "../../utils/quoteItemOps";
+import { addOrIncrementItem, buildFreeItem, swapItemPart } from "../../utils/quoteItemOps";
 import { quoteAggregates } from "../../utils/quoteItemDisplay";
 import { useModelKits } from "@/features/model-kits/hooks/useModelKits";
-import { findKitsForVehicle } from "@/features/model-kits/utils/modelKitMatching";
-import { ApplyKitDialog, KitSuggestionBanner } from "@/features/model-kits";
+import { KitSuggestionBanner } from "@/features/model-kits";
 import { recordAuditLogSync } from "@/providers/data";
 import { readCurrentUserSync } from "@/features/auth/guards";
 import { usePartsIndex } from "../../hooks/usePartsIndex";
@@ -50,13 +36,15 @@ import { useQuoteDraft } from "../../hooks/useQuoteDraft";
 import { useShippingQuote } from "../../hooks/useShippingQuote";
 import { quoteLayoutClasses } from "../../utils/layoutClasses";
 import { useQuoteEditorPrefs } from "../../hooks/useQuoteEditorPrefs";
+import { pickSuggestedKit, rankKitsByFleet } from "../../utils/kitRanking";
 import { QuoteActionBar } from "./layout/QuoteActionBar";
+import { QuoteDraftBanner } from "./layout/QuoteDraftBanner";
 import { CustomerChip } from "./customer/CustomerChip";
-import { ItemAdder } from "./items/ItemAdder";
-import { KitPicker } from "./items/KitPicker";
-import { QuoteItemsTable } from "./items/QuoteItemsTable";
-import { FreeItemDialog } from "./items/FreeItemDialog";
+import { QuoteItemsPanel } from "./items/QuoteItemsPanel";
 import { QuoteSummaryPanel } from "./summary/QuoteSummaryPanel";
+import { QuoteConditions } from "./summary/QuoteConditions";
+import { QuoteNotes } from "./summary/QuoteNotes";
+import { QuoteSendBar } from "./summary/QuoteSendBar";
 
 function addDays(d: Date, days: number): Date {
   const out = new Date(d);
@@ -104,8 +92,8 @@ export function QuoteEditor() {
   const [customer, setCustomer] = useState<ICustomer | null>(null);
   const [items, setItems] = useState<IQuoteItem[]>([]);
   const [appliedKitIds, setAppliedKitIds] = useState<ID[]>([]);
-  const [kitToApply, setKitToApply] = useState<IVehicleModelKit | null>(null);
-  const [freeOpen, setFreeOpen] = useState(false);
+  // `undefined` = sheet closed; `null` = open on the first kit; an id = that kit.
+  const [openKitId, setOpenKitId] = useState<ID | null | undefined>(undefined);
   const [highlightId, setHighlightId] = useState<ID | null>(null);
   const [discountInput, setDiscountInput] = useState<string>("0");
   const [discountReason, setDiscountReason] = useState("");
@@ -253,15 +241,18 @@ export function QuoteEditor() {
   // --- Kit auto-suggestion (PRD-035) ---
   const [suggestionDismissed, setSuggestionDismissed] = useState(false);
 
+  // Store kits ordered by the customer's fleet — drives both the sheet's list
+  // and the unprompted suggestion.
+  const rankedKits = useMemo(() => rankKitsByFleet(kits, vehicles), [kits, vehicles]);
+
   // --- applyKitId from URL (RF-014) ---
-  // Guard ref ensures we only pre-open the dialog once even on re-renders.
+  // Guard ref ensures we only pre-open the sheet once even on re-renders.
   const appliedFromUrlRef = useRef(false);
   useEffect(() => {
     if (!applyKitId || appliedFromUrlRef.current || kits.length === 0) return;
-    const kit = kits.find((k) => k.id === applyKitId);
-    if (kit) {
+    if (kits.some((k) => k.id === applyKitId)) {
       appliedFromUrlRef.current = true;
-      setKitToApply(kit);
+      setOpenKitId(applyKitId);
     }
   }, [applyKitId, kits]);
 
@@ -270,16 +261,12 @@ export function QuoteEditor() {
     setSuggestionDismissed(false);
   }, [customer?.id]);
 
-  // First vehicle of the customer (string-matched to kits).
-  const suggestionVehicle = vehicles[0] ?? null;
-
-  const suggestedKit = useMemo(() => {
-    if (!customer || !suggestionVehicle) return null;
-    const matched = findKitsForVehicle(suggestionVehicle, kits).filter(
-      (k) => k.status === "oficial" && k.category === "filtros",
-    );
-    return matched[0] ?? null;
-  }, [customer, suggestionVehicle, kits]);
+  const suggested = useMemo(
+    () => (customer ? pickSuggestedKit(rankedKits) : null),
+    [customer, rankedKits],
+  );
+  const suggestedKit = suggested?.kit ?? null;
+  const suggestionVehicle = suggested ? (vehicles[suggested.matchedVehicleIndex] ?? null) : null;
 
   // True when the quote already contains at least one filter part.
   const hasFilterItem = useMemo(
@@ -311,12 +298,17 @@ export function QuoteEditor() {
       }),
     );
   };
-  const handleAddPart = (part: IPart) => {
-    const result = addOrIncrementItem(items, part);
+  const handleAddPart = (part: IPart, quantity = 1) => {
+    const result = addOrIncrementItem(items, part, quantity);
     setItems(result.items);
     setHighlightId(result.affectedId);
   };
-  const handleAddFreeItem = (item: IQuoteItem) => {
+  const handleAddFreeItem = (input: { name: string; unitPrice: number; quantity: number }) => {
+    const item = buildFreeItem({
+      name: input.name,
+      unitPrice: input.unitPrice,
+      quantity: input.quantity,
+    });
     setItems((prev) => [...prev, item]);
     setHighlightId(item.id);
   };
@@ -325,8 +317,10 @@ export function QuoteEditor() {
     setItems(result.items);
     setHighlightId(result.affectedId);
   };
-  const handleApplyKit = (selection: { part: IPart; quantity: number }[]) => {
-    if (!kitToApply) return;
+  const handleApplyKit = (
+    kit: IVehicleModelKit,
+    selection: { part: IPart; quantity: number }[],
+  ) => {
     const prevItems = items;
     const prevAppliedKitIds = appliedKitIds;
 
@@ -340,16 +334,17 @@ export function QuoteEditor() {
     setItems(next);
     setHighlightId(lastId);
 
-    setAppliedKitIds((prev) => (prev.includes(kitToApply.id) ? prev : [...prev, kitToApply.id]));
+    setAppliedKitIds((prev) => (prev.includes(kit.id) ? prev : [...prev, kit.id]));
 
     toast.success(
-      `${selection.length} ${selection.length === 1 ? "item adicionado" : "itens adicionados"} ao orçamento`,
+      `${selection.length} ${selection.length === 1 ? "item" : "itens"} de ${kit.name}`,
       {
         action: {
           label: "Desfazer",
           onClick: () => {
             setItems(prevItems);
             setAppliedKitIds(prevAppliedKitIds);
+            setSuggestionDismissed(false);
           },
         },
       },
@@ -360,10 +355,11 @@ export function QuoteEditor() {
       actorId: user?.id ?? "mock-user",
       action: "apply",
       resource: "modelKit",
-      resourceId: kitToApply.id,
+      resourceId: kit.id,
     });
 
-    setKitToApply(null);
+    setOpenKitId(undefined);
+    setSuggestionDismissed(true);
   };
 
   // Quantity already in the quote, summed per partId (for adder badges).
@@ -377,6 +373,21 @@ export function QuoteEditor() {
 
   // --- Validation ---
   const canSubmit = customer !== null && items.length > 0 && !justificationMissing;
+  /** What is still missing, written out for the send bar. */
+  const blocker = !customer
+    ? items.length === 0
+      ? "Selecione o cliente e adicione ao menos um item."
+      : "Selecione o cliente para salvar."
+    : items.length === 0
+      ? "Adicione ao menos um item."
+      : justificationMissing
+        ? `Justifique o desconto acima de ${(thresholdPct * 100).toFixed(0)}% para salvar.`
+        : null;
+
+  // Margin actually earned: the line margins less the global discount, which
+  // comes off the seller's own take rather than out of the lines.
+  const netMargin = round2(aggregates.totalMargin - totals.discount);
+  const netMarginPct = totals.subtotal > 0 ? netMargin / totals.subtotal : 0;
 
   // --- Shipping ---
   const handleCalcShipping = () => {
@@ -470,6 +481,53 @@ export function QuoteEditor() {
     }
   };
 
+  const summaryProps = {
+    itemCount: items.length,
+    unitCount: items.reduce((sum, it) => sum + it.quantity, 0),
+    subtotal: totals.subtotal,
+    discountInput,
+    onDiscountInput: setDiscountInput,
+    discountPct,
+    thresholdPct,
+    shipping,
+    onShipping: handleManualShipping,
+    onCalcShipping: handleCalcShipping,
+    discountTotal: totals.discount,
+    shippingTotal: totals.shipping,
+    total: totals.total,
+    needsJustification,
+    discountReason,
+    onDiscountReason: setDiscountReason,
+    totalWeightKg: aggregates.totalWeightKg,
+    totalMargin: netMargin,
+    marginPct: netMarginPct,
+    showMargin: isManagerOrOwner,
+    quote: meEnabled
+      ? {
+          enabled: true,
+          loading: autoShipping.loading,
+          source: quoteResult?.source,
+          options: quoteResult?.source === "melhor_envio" ? quoteResult.options : [],
+          selectedServiceId: effectiveOption?.serviceId ?? null,
+          freeShippingApplied: quoteResult?.freeShippingApplied,
+          onSelectOption: handleSelectShippingOption,
+        }
+      : undefined,
+  };
+
+  const conditions = (variant: "rail" | "card") => (
+    <QuoteConditions
+      variant={variant}
+      paymentMethod={paymentMethod}
+      onPaymentMethod={setPaymentMethod}
+      paymentTerms={paymentTerms}
+      onPaymentTerms={setPaymentTerms}
+      validUntil={validUntil}
+      onValidUntil={setValidUntil}
+      defaultValidityDays={validityDaysDefault}
+    />
+  );
+
   return (
     <div className={classes.root}>
       <QuoteActionBar
@@ -483,20 +541,15 @@ export function QuoteEditor() {
         needsApproval={needsJustification}
         onSaveDraft={() => void handleSave(false)}
         onSaveSend={() => void handleSave(true)}
+        savedAt={savedAt}
       />
 
-      {draftOffer && items.length === 0 && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
-          <p className="text-xs text-foreground">
-            <Icon icon="mdi:history" size={14} className="mr-1 inline" />
-            Há um rascunho não salvo de {new Date(draftOffer.savedAt).toLocaleString("pt-BR")}.
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
+      <div className={classes.grid}>
+        <main className={classes.body}>
+          {draftOffer && items.length === 0 && (
+            <QuoteDraftBanner
+              savedAt={draftOffer.savedAt}
+              onRestore={() => {
                 setItems(draftOffer.items);
                 setDiscountInput(draftOffer.discountInput);
                 setShipping(draftOffer.shipping);
@@ -511,212 +564,91 @@ export function QuoteEditor() {
                 setDraftOffer(null);
                 toast.success("Rascunho restaurado.");
               }}
-            >
-              Restaurar
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
+              onDiscard={() => {
                 clearDraft();
                 setDraftOffer(null);
               }}
-            >
-              Descartar
-            </Button>
-          </div>
-        </div>
-      )}
-      {savedAt && (
-        <p className="mb-2 text-right text-[11px] text-muted-foreground">
-          <Icon icon="mdi:content-save-check-outline" size={12} className="mr-1 inline" />
-          Rascunho salvo às{" "}
-          {new Date(savedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-        </p>
-      )}
-
-      <div className={classes.grid}>
-        <div className={classes.body}>
-          {/* Cliente */}
-          <Card className="p-4">
-            <SectionTitle icon="mdi:account-outline" title="Cliente" />
-            <CustomerChip
-              customer={customer}
-              onChange={setCustomer}
-              sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
-              vehicles={vehicles}
             />
-          </Card>
+          )}
 
-          {/* Items */}
-          <Card className="p-4">
-            <SectionTitle icon="mdi:format-list-bulleted" title="Itens" />
-            <div className="mb-2 flex items-center justify-end">
-              <KitPicker kits={kits} onPickKit={setKitToApply} />
-            </div>
-            <ItemAdder
-              key={customer?.id ?? "none"}
-              mode={prefs.addMode}
-              onModeChange={prefs.setAddMode}
-              vehicles={vehicles}
-              orders={orders}
-              inQuoteQtyByPart={inQuoteQtyByPart}
-              onAddPart={handleAddPart}
-              onAddFreeItemClick={() => setFreeOpen(true)}
-            />
-            {suggestedKit && !suggestionDismissed && !hasFilterItem && (
-              <div className="mt-4">
+          <CustomerChip
+            customer={customer}
+            onChange={setCustomer}
+            sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
+            vehicles={vehicles}
+          />
+
+          <QuoteItemsPanel
+            adderResetKey={customer?.id ?? "none"}
+            items={items}
+            subtotal={totals.subtotal}
+            mode={prefs.addMode}
+            onModeChange={prefs.setAddMode}
+            density={prefs.density}
+            grow={classes.itemsGrow}
+            vehicles={vehicles}
+            orders={orders}
+            inQuoteQtyByPart={inQuoteQtyByPart}
+            onAddPart={handleAddPart}
+            onAddFreeItem={handleAddFreeItem}
+            rankedKits={rankedKits}
+            kitsLoading={modelKitsQuery.isLoading}
+            onApplyKit={handleApplyKit}
+            openKitId={openKitId}
+            onOpenKitIdChange={setOpenKitId}
+            kitBanner={
+              suggestedKit && suggestionVehicle && !suggestionDismissed && !hasFilterItem ? (
                 <KitSuggestionBanner
                   kit={suggestedKit}
-                  vehicleLabel={`${suggestionVehicle!.brand} ${suggestionVehicle!.model}`}
-                  onApply={() => setKitToApply(suggestedKit)}
+                  vehicleLabel={`${suggestionVehicle.brand} ${suggestionVehicle.model}`}
+                  onApply={() => setOpenKitId(suggestedKit.id)}
                   onDismiss={() => setSuggestionDismissed(true)}
                 />
-              </div>
-            )}
-
-            <div className="mt-6">
-              <div className="mb-3 flex items-center gap-3" aria-hidden="true">
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Orçamento
-                </span>
-                <span className="h-px flex-1 bg-border" />
-              </div>
-              <QuoteItemsTable
-                items={items}
-                subtotal={totals.subtotal}
-                onPatch={handleItemPatch}
-                onRemove={handleRemoveItem}
-                highlightId={highlightId}
-                partsById={partsById}
-                allParts={allParts}
-                showMargin={isManagerOrOwner}
-                onSwapEquivalent={handleSwapEquivalent}
-                density={prefs.density}
-              />
-            </div>
-          </Card>
-
-          {/* Condições de pagamento */}
-          <Card className="p-4">
-            <SectionTitle icon="mdi:credit-card-outline" title="Condições de pagamento" />
-            <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <Label>Forma de pagamento</Label>
-                <Select
-                  value={paymentMethod}
-                  onValueChange={(v) => setPaymentMethod(v as QuotePaymentMethod)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pix">PIX</SelectItem>
-                    <SelectItem value="boleto">Boleto</SelectItem>
-                    <SelectItem value="cartao">Cartão</SelectItem>
-                    <SelectItem value="prazo">Prazo</SelectItem>
-                    <SelectItem value="outro">Outro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="terms">Prazo</Label>
-                <Input
-                  id="terms"
-                  value={paymentTerms}
-                  onChange={(e) => setPaymentTerms(e.target.value)}
-                  placeholder="ex.: 30/60/90 dias"
-                />
-              </div>
-              <div>
-                <Label htmlFor="valid">Válido até</Label>
-                <Input
-                  id="valid"
-                  type="date"
-                  value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
-                />
-              </div>
-            </div>
-          </Card>
-
-          {/* Notas internas */}
-          <Card className="p-4">
-            <SectionTitle icon="mdi:note-text-outline" title="Notas internas" />
-            <Textarea
-              rows={3}
-              placeholder="Observações internas (não enviadas ao cliente)"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </Card>
-        </div>
-
-        {/* Resumo */}
-        <div className={classes.summary}>
-          <QuoteSummaryPanel
-            itemCount={items.length}
-            unitCount={items.reduce((sum, it) => sum + it.quantity, 0)}
-            subtotal={totals.subtotal}
-            discountInput={discountInput}
-            onDiscountInput={setDiscountInput}
-            discountPct={discountPct}
-            thresholdPct={thresholdPct}
-            shipping={shipping}
-            onShipping={handleManualShipping}
-            onCalcShipping={handleCalcShipping}
-            discountTotal={totals.discount}
-            shippingTotal={totals.shipping}
-            total={totals.total}
-            needsJustification={needsJustification}
-            discountReason={discountReason}
-            onDiscountReason={setDiscountReason}
-            compact={classes.summaryAsFooterBar}
-            totalWeightKg={aggregates.totalWeightKg}
-            totalMargin={aggregates.totalMargin}
-            marginPct={aggregates.marginPct}
-            showMargin={isManagerOrOwner}
-            quote={
-              meEnabled
-                ? {
-                    enabled: true,
-                    loading: autoShipping.loading,
-                    source: quoteResult?.source,
-                    options: quoteResult?.source === "melhor_envio" ? quoteResult.options : [],
-                    selectedServiceId: effectiveOption?.serviceId ?? null,
-                    freeShippingApplied: quoteResult?.freeShippingApplied,
-                    onSelectOption: handleSelectShippingOption,
-                  }
-                : undefined
+              ) : null
             }
+            onPatch={handleItemPatch}
+            onRemove={handleRemoveItem}
+            onSwapEquivalent={handleSwapEquivalent}
+            highlightId={highlightId}
+            partsById={partsById}
+            allParts={allParts}
+            showMargin={isManagerOrOwner}
           />
-        </div>
+
+          {!classes.summaryAsRail && (
+            <>
+              {conditions("card")}
+              <QuoteNotes variant="card" notes={notes} onNotes={setNotes} />
+              {!classes.summaryAsFooterBar && (
+                <QuoteSummaryPanel {...summaryProps} variant="card" />
+              )}
+            </>
+          )}
+        </main>
+
+        {classes.summaryAsRail && (
+          <aside className={classes.summary}>
+            <div className="min-h-0 flex-1 lg:overflow-y-auto">
+              <QuoteSummaryPanel {...summaryProps} variant="rail" />
+              {conditions("rail")}
+              <QuoteNotes variant="rail" notes={notes} onNotes={setNotes} />
+            </div>
+            <QuoteSendBar
+              canSubmit={canSubmit}
+              submitting={submitting}
+              needsApproval={needsJustification}
+              blocker={blocker}
+              onSaveSend={() => void handleSave(true)}
+            />
+          </aside>
+        )}
       </div>
 
-      <FreeItemDialog
-        open={freeOpen}
-        onClose={() => setFreeOpen(false)}
-        onAdd={handleAddFreeItem}
-      />
-
-      <ApplyKitDialog
-        kit={kitToApply}
-        partsById={partsById}
-        onOpenChange={(o) => {
-          if (!o) setKitToApply(null);
-        }}
-        onConfirm={handleApplyKit}
-      />
-    </div>
-  );
-}
-
-function SectionTitle({ icon, title }: { icon: string; title: string }) {
-  return (
-    <div className="mb-3 flex items-center gap-2">
-      <Icon icon={icon} size={16} className="text-muted-foreground" />
-      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+      {classes.summaryAsFooterBar && (
+        <div className={classes.summary}>
+          <QuoteSummaryPanel {...summaryProps} variant="bar" />
+        </div>
+      )}
     </div>
   );
 }

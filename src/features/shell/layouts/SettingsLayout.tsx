@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getActiveDataSource } from "@/providers/data";
 import { useAuth } from "@/features/auth/useAuth";
-import { hasPermission } from "@/features/rbac/utils/hasPermission";
+import { hasPermission, type IRoleBearer } from "@/features/rbac/utils/hasPermission";
+import { useRbacVersion } from "@/features/rbac/hooks/useRbacVersion";
 import type { ResourceName } from "@/features/rbac/permissions/resources";
 
-interface ISettingsItem {
+export interface ISettingsItem {
   label: string;
   icon: string;
   to: string;
@@ -23,12 +24,23 @@ interface ISettingsItem {
   demoOnly?: boolean;
 }
 
-interface ISettingsGroup {
+export interface ISettingsGroup {
   label: string;
   items: ISettingsItem[];
 }
 
-const SETTINGS_GROUPS: ISettingsGroup[] = [
+/**
+ * Roles that can actually reach /app — mirrors the guard in `src/routes/app.tsx`.
+ *
+ * Personal settings (profile, appearance, tours, notifications, copilot, about)
+ * belong to every staff member, so they gate on this list instead of an RBAC
+ * resource. Listing SDR/VendedorExterno/Financeiro here would be dead code: the
+ * /app guard turns them away before any settings screen renders. Widening access
+ * is a product decision that starts in `app.tsx`, not here.
+ */
+const STAFF_ROLES: RoleName[] = ["Owner", "Gestor", "Vendedor"];
+
+export const SETTINGS_GROUPS: ISettingsGroup[] = [
   {
     label: "Pessoal",
     items: [
@@ -36,31 +48,31 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Perfil",
         icon: "mdi:account-circle-outline",
         to: "/app/configuracoes/perfil",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+        roles: STAFF_ROLES,
       },
       {
         label: "Aparência",
         icon: "mdi:palette-outline",
         to: "/app/configuracoes/aparencia",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+        roles: STAFF_ROLES,
       },
       {
         label: "Tours & Ajuda",
         icon: "mdi:help-circle-outline",
         to: "/app/configuracoes/tours",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+        roles: STAFF_ROLES,
       },
       {
         label: "Notificações",
         icon: "mdi:bell-outline",
         to: "/app/configuracoes/notificacoes",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+        roles: STAFF_ROLES,
       },
       {
         label: "Copiloto",
         icon: "mdi:lightbulb-on-outline",
         to: "/app/configuracoes/copiloto",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno"],
+        roles: STAFF_ROLES,
       },
     ],
   },
@@ -71,7 +83,7 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Usuários",
         icon: "mdi:account-group-outline",
         to: "/app/configuracoes/usuarios",
-        roles: ["Owner"],
+        permission: { resource: "settings_users", action: "view" },
       },
       {
         label: "Departamentos",
@@ -106,7 +118,13 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Templates WhatsApp",
         icon: "mdi:message-text-clock-outline",
         to: "/app/configuracoes/templates-whatsapp",
-        roles: ["Owner", "Gestor"],
+        permission: { resource: "settings_whatsapp", action: "view" },
+      },
+      {
+        label: "Funis",
+        icon: "mdi:filter-variant",
+        to: "/app/configuracoes/atendimento/funis",
+        permission: { resource: "funnel", action: "view" },
       },
       {
         label: "Pipeline de leads",
@@ -142,19 +160,37 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Alertas de ociosidade",
         icon: "mdi:timer-alert-outline",
         to: "/app/configuracoes/atendimento/alertas-ociosidade",
-        roles: ["Owner"],
+        permission: { resource: "settings_automation", action: "edit" },
       },
       {
         label: "Resgate de conversas",
         icon: "mdi:account-switch-outline",
         to: "/app/configuracoes/atendimento/resgate-conversas",
-        roles: ["Owner"],
+        permission: { resource: "settings_automation", action: "edit" },
+      },
+      {
+        label: "Continuidade de conversas",
+        icon: "mdi:history",
+        to: "/app/configuracoes/atendimento/continuidade",
+        permission: { resource: "settings_automation", action: "edit" },
+      },
+      {
+        label: "Conversas fixadas",
+        icon: "mdi:pin-outline",
+        to: "/app/configuracoes/atendimento/fixadas",
+        permission: { resource: "settings_automation", action: "edit" },
+      },
+      {
+        label: "NPS — Pesquisa de satisfação",
+        icon: "mdi:emoticon-outline",
+        to: "/app/configuracoes/nps",
+        permission: { resource: "settings_nps", action: "view" },
       },
       {
         label: "Sons de notificação",
         icon: "mdi:music-note-outline",
         to: "/app/configuracoes/sons",
-        roles: ["Owner"],
+        permission: { resource: "settings_automation", action: "edit" },
       },
       {
         label: "Cadastro de veículos",
@@ -177,19 +213,25 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Biblioteca de ativos",
         icon: "mdi:bookshelf",
         to: "/app/configuracoes/biblioteca",
-        roles: ["Owner", "Gestor"],
+        permission: { resource: "asset_library", action: "view" },
       },
       {
         label: "Respostas rápidas",
         icon: "mdi:message-flash-outline",
         to: "/app/configuracoes/respostas-rapidas",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR"],
+        permission: { resource: "quick_reply", action: "view" },
+      },
+      {
+        label: "Chaves PIX",
+        icon: "mdi:qrcode",
+        to: "/app/configuracoes/pix",
+        permission: { resource: "settings", action: "edit" },
       },
       {
         label: "Mídias (retenção)",
         icon: "mdi:database-clock-outline",
         to: "/app/configuracoes/midias",
-        roles: ["Owner", "Gestor"],
+        permission: { resource: "media", action: "edit" },
       },
     ],
   },
@@ -200,19 +242,19 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Simulador",
         icon: "mdi:robot-happy-outline",
         to: "/app/configuracoes/sdr/simulador",
-        roles: ["Owner", "Gestor"],
+        permission: { resource: "settings_sdr", action: "view" },
       },
       {
         label: "Templates de mensagem",
         icon: "mdi:message-text-outline",
         to: "/app/configuracoes/sdr/templates",
-        roles: ["Owner"],
+        permission: { resource: "settings_sdr", action: "edit" },
       },
       {
         label: "Orçamento automático",
         icon: "mdi:file-document-edit-outline",
         to: "/app/configuracoes/sdr/orcamento",
-        roles: ["Owner"],
+        permission: { resource: "settings_sdr", action: "edit" },
       },
     ],
   },
@@ -223,19 +265,19 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Inteligência artificial",
         icon: "mdi:robot-happy-outline",
         to: "/app/configuracoes/ia",
-        roles: ["Owner"],
+        permission: { resource: "settings_ai", action: "edit" },
       },
       {
         label: "WhatsApp",
         icon: "mdi:whatsapp",
         to: "/app/configuracoes/whatsapp",
-        roles: ["Owner"],
+        permission: { resource: "settings_whatsapp", action: "edit" },
       },
       {
         label: "Chaves & API",
         icon: "mdi:key-variant",
         to: "/app/configuracoes/chaves",
-        roles: ["Owner"],
+        permission: { resource: "settings_api_keys", action: "view" },
       },
       {
         label: "Portal do cliente",
@@ -253,56 +295,59 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Gamificação",
         icon: "mdi:trophy-outline",
         to: "/app/configuracoes/gamificacao",
-        roles: ["Owner"],
+        roles: ["Owner", "Gestor"],
         upcoming: true,
       },
       {
         label: "Comissões",
         icon: "mdi:cash-multiple",
         to: "/app/configuracoes/comissoes",
-        roles: ["Owner"],
+        // Deliberately the `settings` umbrella, not `commission`: this screen
+        // configures payout rules, and granting `commission:edit` would leak
+        // into money-touching checks elsewhere. Reproduces Owner+Gestor exactly.
+        permission: { resource: "settings", action: "edit" },
       },
       {
         label: "Financeiro / DRE",
         icon: "mdi:file-chart-outline",
         to: "/app/configuracoes/financeiro",
-        roles: ["Owner", "Financeiro"],
+        permission: { resource: "dre", action: "edit" },
       },
       {
         label: "Estoque (análise)",
         icon: "mdi:warehouse",
         to: "/app/configuracoes/estoque-analise",
-        roles: ["Owner"],
+        permission: { resource: "inventory", action: "edit" },
       },
       {
         label: "Insights",
         icon: "mdi:brain",
         to: "/app/configuracoes/insights",
-        roles: ["Owner"],
+        permission: { resource: "settings", action: "edit" },
       },
       {
         label: "Forecast",
         icon: "mdi:chart-bell-curve-cumulative",
         to: "/app/configuracoes/forecast",
-        roles: ["Owner"],
+        permission: { resource: "settings", action: "edit" },
       },
       {
         label: "Vitrine pública",
         icon: "mdi:storefront-outline",
         to: "/app/storefront-admin",
-        roles: ["Owner"],
+        permission: { resource: "storefront_admin", action: "view" },
       },
       {
         label: "Integração E-commerce",
         icon: "mdi:cart-arrow-down",
         to: "/app/configuracoes/ecommerce-integracao",
-        roles: ["Owner"],
+        permission: { resource: "ecommerce_integration", action: "edit" },
       },
       {
         label: "Divisões",
         icon: "mdi:shape-outline",
         to: "/app/configuracoes/divisoes",
-        roles: ["Owner"],
+        roles: ["Owner", "Gestor"],
         upcoming: true,
       },
       {
@@ -315,13 +360,13 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Ambiente & Dados",
         icon: "mdi:swap-horizontal-circle-outline",
         to: "/app/configuracoes/ambiente",
-        roles: ["Owner"],
+        permission: { resource: "settings_system", action: "edit" },
       },
       {
         label: "Segurança da sessão",
         icon: "mdi:timer-lock-outline",
         to: "/app/configuracoes/sessao",
-        roles: ["Owner"],
+        permission: { resource: "settings_system", action: "edit" },
       },
     ],
   },
@@ -332,28 +377,53 @@ const SETTINGS_GROUPS: ISettingsGroup[] = [
         label: "Sobre",
         icon: "mdi:information-outline",
         to: "/app/configuracoes/sobre",
-        roles: ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"],
+        roles: STAFF_ROLES,
       },
     ],
   },
 ];
 
+/**
+ * Decides whether a settings entry is visible — the same hybrid gate the main
+ * sidebar uses (see `isNavItemVisible`): a `permission` item is matrix-driven,
+ * so the Role Editor and custom roles govern it; otherwise the `roles`
+ * allowlist applies. No gate ⇒ hidden (fail-closed).
+ *
+ * Exported so the visibility contract is unit-testable without mounting the
+ * layout — each entry here must mirror the `requireAuth` guard of the route it
+ * points at, or the screen becomes reachable-but-unnavigable (or the reverse).
+ */
+export function isSettingsItemVisible(
+  item: ISettingsItem,
+  user: IRoleBearer | null,
+  userRole: RoleName | null,
+  isDemo: boolean,
+): boolean {
+  if (item.demoOnly && !isDemo) return false;
+  if (item.permission) {
+    return hasPermission(user, item.permission.resource, item.permission.action);
+  }
+  if (item.roles && userRole) return item.roles.includes(userRole);
+  return false;
+}
+
 function useVisibleGroups() {
   const { currentUser, userRole } = useAuth();
+  // The persisted matrix is fetched after sign-in (RLS), so it can land after
+  // this memo first runs — recompute when it does.
+  const rbacVersion = useRbacVersion();
   return useMemo(() => {
     const isDemo = getActiveDataSource() === "mock";
     return SETTINGS_GROUPS.map((group) => ({
       ...group,
-      items: group.items.filter((item) => {
-        if (item.demoOnly && !isDemo) return false;
-        if (item.permission) {
-          return hasPermission(currentUser, item.permission.resource, item.permission.action);
-        }
-        if (item.roles && userRole) return item.roles.includes(userRole);
-        return false;
-      }),
+      items: group.items.filter((item) =>
+        isSettingsItemVisible(item, currentUser, userRole, isDemo),
+      ),
     })).filter((group) => group.items.length > 0);
-  }, [currentUser, userRole]);
+    // `rbacVersion` looks unused to the linter — it is the invalidation token
+    // for the module-level cache `hasPermission()` reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, userRole, rbacVersion]);
 }
 
 interface ISidebarContentProps {
@@ -424,10 +494,11 @@ export function SettingsLayout({ children }: { children?: ReactNode }) {
   }, [groups, location.pathname]);
 
   return (
-    // Fill <main> minus the sticky TopBar (4rem) and, on desktop, the AppFooter
-    // (2rem) — same `md:h-[calc(100vh-6rem)]` convention the list pages use,
-    // so <main> doesn't overflow and show a phantom outer scrollbar.
-    <div className="flex h-[calc(100vh-4rem)] md:h-[calc(100vh-6rem)]">
+    // Fill <main> minus the sticky TopBar (4rem), the AlertBannerStack
+    // (dynamic, --shell-banner-offset) and, on desktop, the AppFooter (2rem)
+    // — same `md:h-[calc(100vh-6rem)]` convention the list pages use, so
+    // <main> doesn't overflow and show a phantom outer scrollbar.
+    <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] md:h-[calc(100vh-6rem-var(--shell-banner-offset,0px))]">
       <aside className="hidden w-64 shrink-0 overflow-y-auto border-r border-border bg-card lg:block">
         <div className="px-4 py-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Configurações

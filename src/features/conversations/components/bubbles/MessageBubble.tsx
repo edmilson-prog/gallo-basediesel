@@ -1,4 +1,5 @@
 import type { IMessage } from "@/shared/types";
+import type { IBubbleProps } from "./bubbleChrome";
 import { TextBubble } from "./TextBubble";
 import { ImageBubble } from "./ImageBubble";
 import { AudioBubble } from "./AudioBubble";
@@ -17,10 +18,7 @@ import { LinkBubble, decodeLinkMarker } from "@/features/quick-send/components/L
 import { useConversationLinks } from "@/features/quick-send/hooks/useConversationLinks";
 import { TRACKABLE_LINK_MARKER } from "@/features/quick-send/engine/trackableLink";
 
-export interface IMessageBubbleProps {
-  message: IMessage;
-  onRetry?: () => void;
-}
+export type IMessageBubbleProps = IBubbleProps;
 
 const TEMPLATE_PREFIX = "[template]";
 
@@ -30,7 +28,7 @@ const TEMPLATE_PREFIX = "[template]";
  * Plain text always falls through to `<TextBubble>` so templates and
  * normal outbound text don't diverge in look-and-feel.
  */
-export function MessageBubble({ message, onRetry }: IMessageBubbleProps) {
+export function MessageBubble({ message, onRetry, ...extras }: IMessageBubbleProps) {
   if (message.authorType === "system") {
     return <SystemBubble message={message} />;
   }
@@ -39,13 +37,13 @@ export function MessageBubble({ message, onRetry }: IMessageBubbleProps) {
   // name happens to start with a marker (`[produto]`, `[template]`, …) can't be
   // hijacked into the wrong bubble.
   if (message.mediaType === "location") {
-    return <LocationBubble message={message} onRetry={onRetry} />;
+    return <LocationBubble message={message} onRetry={onRetry} {...extras} />;
   }
   if (message.mediaType === "contact") {
-    return <ContactBubble message={message} onRetry={onRetry} />;
+    return <ContactBubble message={message} onRetry={onRetry} {...extras} />;
   }
   if (message.mediaType === "payment") {
-    return <PaymentBubble message={message} onRetry={onRetry} />;
+    return <PaymentBubble message={message} onRetry={onRetry} {...extras} />;
   }
   if (
     message.text.startsWith(TEMPLATE_PREFIX) ||
@@ -53,45 +51,39 @@ export function MessageBubble({ message, onRetry }: IMessageBubbleProps) {
       message.mediaType === undefined &&
       message.text.startsWith("📋 "))
   ) {
-    return <TemplateBubble message={message} onRetry={onRetry} />;
+    return <TemplateBubble message={message} onRetry={onRetry} {...extras} />;
   }
   if (message.text.startsWith(PRODUCT_CARD_MARKER)) {
-    return <ProductCardBubble message={message} onRetry={onRetry} />;
+    return <ProductCardBubble message={message} onRetry={onRetry} {...extras} />;
   }
   if (message.text.startsWith(TRACKABLE_LINK_MARKER)) {
-    return <LinkBubbleWithLiveData message={message} onRetry={onRetry} />;
+    return <LinkBubbleWithLiveData message={message} onRetry={onRetry} {...extras} />;
   }
   if (message.mediaType === "image" || message.mediaType === "sticker") {
-    return <ImageBubble message={message} onRetry={onRetry} />;
+    return <ImageBubble message={message} onRetry={onRetry} {...extras} />;
   }
   if (message.mediaType === "audio") {
-    return <AudioBubble message={message} onRetry={onRetry} />;
+    return <AudioBubble message={message} onRetry={onRetry} {...extras} />;
   }
   if (message.mediaType === "video") {
-    return <VideoBubble message={message} onRetry={onRetry} />;
+    return <VideoBubble message={message} onRetry={onRetry} {...extras} />;
   }
   if (message.mediaType === "document") {
-    return <DocumentBubble message={message} onRetry={onRetry} />;
+    return <DocumentBubble message={message} onRetry={onRetry} {...extras} />;
   }
   // Last resort before TextBubble, which would otherwise render an empty
   // balloon (it pads blank text with a space to keep its height). Only reached
   // by rows that carry neither text nor media — see isContentFreeMessage.
   if (isContentFreeMessage(message)) {
-    return <UnsupportedBubble message={message} onRetry={onRetry} />;
+    return <UnsupportedBubble message={message} onRetry={onRetry} {...extras} />;
   }
-  return <TextBubble message={message} onRetry={onRetry} />;
+  return <TextBubble message={message} onRetry={onRetry} {...extras} />;
 }
 
 /** Co-located wrapper so the hook only runs for link messages (Rules of Hooks). */
-function LinkBubbleWithLiveData({
-  message,
-  onRetry,
-}: {
-  message: IMessage;
-  onRetry?: () => void;
-}) {
+function LinkBubbleWithLiveData({ message, onRetry, ...extras }: IBubbleProps) {
   const payload = decodeLinkMarker(message.text);
   const { byId } = useConversationLinks(message.conversationId);
   const link = payload ? (byId.get(payload.linkId) ?? null) : null;
-  return <LinkBubble message={message} link={link} onRetry={onRetry} />;
+  return <LinkBubble message={message} link={link} onRetry={onRetry} {...extras} />;
 }

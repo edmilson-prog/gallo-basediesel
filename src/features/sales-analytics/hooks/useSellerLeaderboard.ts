@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
 import type { ID } from "@/shared/types";
 import {
+  FETCH_ALL_PAGE_SIZE,
   useCustomersProvider,
   useGoalsProvider,
   useOrdersProvider,
@@ -93,7 +94,7 @@ export function useSellerLeaderboard(
       },
       {
         queryKey: ["seller-leaderboard", "customers", storeId],
-        queryFn: () => customersProvider.list({ storeId, pageSize: 2000 }),
+        queryFn: () => customersProvider.list({ storeId, pageSize: FETCH_ALL_PAGE_SIZE }),
         staleTime: STALE_MS,
       },
     ],

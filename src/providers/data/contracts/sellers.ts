@@ -37,6 +37,12 @@ export interface ISellersProvider {
    * users CRUD — Owner editing team members).
    */
   update(id: ID, patch: Partial<ISeller>): Promise<ISeller>;
+  /**
+   * Uploads a profile photo and returns its public URL — the caller persists it
+   * via `update(id, { avatarUrl })`. The bytes land in the public `avatars`
+   * bucket under a per-user prefix; the mock backend returns a local data URL.
+   */
+  uploadAvatar(id: ID, file: File): Promise<string>;
   /** Creates a new seller with defaults (offline, parts, active). */
   create(input: ICreateSellerInput): Promise<ISeller>;
   /** Soft delete — sets deletedAt, deactivates and revokes login (if any). */

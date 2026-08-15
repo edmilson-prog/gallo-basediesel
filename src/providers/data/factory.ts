@@ -1,8 +1,10 @@
 import type { IDataProviders } from "./contracts";
 
 import { mockCustomersProvider } from "./impl/mock/customers";
+import { mockContactsProvider } from "./impl/mock/contacts";
 import { mockVehiclesProvider } from "./impl/mock/vehicles";
 import { mockLeadsProvider } from "./impl/mock/leads";
+import { mockLeadFunnelsProvider } from "./impl/mock/leadFunnels";
 import { mockConversationsProvider } from "./impl/mock/conversations";
 import { mockMessagesProvider } from "./impl/mock/messages";
 import { mockPartsProvider } from "./impl/mock/parts";
@@ -35,6 +37,7 @@ import { mockQuickReplyProvider } from "./impl/mock/quickReply";
 import { mockTrackableLinkProvider } from "./impl/mock/trackableLink";
 import { mockScheduledSendProvider } from "./impl/mock/scheduledSend";
 import { mockConversationNotesProvider } from "./impl/mock/conversationNotes";
+import { mockConversationPinsProvider } from "./impl/mock/conversationPins";
 import { mockStorefrontProvider } from "./impl/mock/storefront";
 import { mockSystemHealthProvider } from "./impl/mock/systemHealth";
 import { mockWebhookDeliveriesProvider } from "./impl/mock/webhookDeliveries";
@@ -52,10 +55,14 @@ import { mockConversationTagsProvider } from "./impl/mock/conversationTags";
 import { mockConversationParticipantsProvider } from "./impl/mock/conversationParticipants";
 import { mockSdrPilotSettingsProvider } from "./impl/mock/sdrPilotSettings";
 import { mockConversationRescuesProvider } from "./impl/mock/conversationRescues";
+import { mockPixKeyProvider } from "./impl/mock/pixKey";
+import { mockNpsProvider } from "./impl/mock/nps";
 
 import { supabaseCustomersProvider } from "./impl/supabase/customers";
+import { supabaseContactsProvider } from "./impl/supabase/contacts";
 import { supabaseVehiclesProvider } from "./impl/supabase/vehicles";
 import { supabaseLeadsProvider } from "./impl/supabase/leads";
+import { supabaseLeadFunnelsProvider } from "./impl/supabase/leadFunnels";
 import { supabaseConversationsProvider } from "./impl/supabase/conversations";
 import { supabaseMessagesProvider } from "./impl/supabase/messages";
 import { supabasePartsProvider } from "./impl/supabase/parts";
@@ -88,6 +95,7 @@ import { supabaseQuickReplyProvider } from "./impl/supabase/quickReply";
 import { supabaseTrackableLinkProvider } from "./impl/supabase/trackableLink";
 import { supabaseScheduledSendProvider } from "./impl/supabase/scheduledSend";
 import { supabaseConversationNotesProvider } from "./impl/supabase/conversationNotes";
+import { supabaseConversationPinsProvider } from "./impl/supabase/conversationPins";
 import { supabaseStorefrontProvider } from "./impl/supabase/storefront";
 import { supabaseSystemHealthProvider } from "./impl/supabase/systemHealth";
 import { supabaseWebhookDeliveriesProvider } from "./impl/supabase/webhookDeliveries";
@@ -105,6 +113,8 @@ import { supabaseConversationTagsProvider } from "./impl/supabase/conversationTa
 import { supabaseConversationParticipantsProvider } from "./impl/supabase/conversationParticipants";
 import { supabaseSdrPilotSettingsProvider } from "./impl/supabase/sdrPilotSettings";
 import { supabaseConversationRescuesProvider } from "./impl/supabase/conversationRescues";
+import { supabasePixKeyProvider } from "./impl/supabase/pixKey";
+import { supabaseNpsProvider } from "./impl/supabase/nps";
 
 import {
   DATA_SOURCE_OVERRIDE_KEY,
@@ -140,8 +150,10 @@ if (import.meta.env.DEV) {
 
 const mockProviders: IDataProviders = {
   customers: mockCustomersProvider,
+  contacts: mockContactsProvider,
   vehicles: mockVehiclesProvider,
   leads: mockLeadsProvider,
+  leadFunnels: mockLeadFunnelsProvider,
   conversations: mockConversationsProvider,
   messages: mockMessagesProvider,
   parts: mockPartsProvider,
@@ -174,6 +186,7 @@ const mockProviders: IDataProviders = {
   trackableLink: mockTrackableLinkProvider,
   scheduledSend: mockScheduledSendProvider,
   conversationNotes: mockConversationNotesProvider,
+  conversationPins: mockConversationPinsProvider,
   storefront: mockStorefrontProvider,
   systemHealth: mockSystemHealthProvider,
   webhookDeliveries: mockWebhookDeliveriesProvider,
@@ -191,12 +204,16 @@ const mockProviders: IDataProviders = {
   conversationParticipants: mockConversationParticipantsProvider,
   sdrPilotSettings: mockSdrPilotSettingsProvider,
   conversationRescues: mockConversationRescuesProvider,
+  pixKey: mockPixKeyProvider,
+  nps: mockNpsProvider,
 };
 
 const supabaseProviders: IDataProviders = {
   customers: supabaseCustomersProvider,
+  contacts: supabaseContactsProvider,
   vehicles: supabaseVehiclesProvider,
   leads: supabaseLeadsProvider,
+  leadFunnels: supabaseLeadFunnelsProvider,
   conversations: supabaseConversationsProvider,
   messages: supabaseMessagesProvider,
   parts: supabasePartsProvider,
@@ -229,6 +246,7 @@ const supabaseProviders: IDataProviders = {
   trackableLink: supabaseTrackableLinkProvider,
   scheduledSend: supabaseScheduledSendProvider,
   conversationNotes: supabaseConversationNotesProvider,
+  conversationPins: supabaseConversationPinsProvider,
   storefront: supabaseStorefrontProvider,
   systemHealth: supabaseSystemHealthProvider,
   webhookDeliveries: supabaseWebhookDeliveriesProvider,
@@ -246,6 +264,8 @@ const supabaseProviders: IDataProviders = {
   conversationParticipants: supabaseConversationParticipantsProvider,
   sdrPilotSettings: supabaseSdrPilotSettingsProvider,
   conversationRescues: supabaseConversationRescuesProvider,
+  pixKey: supabasePixKeyProvider,
+  nps: supabaseNpsProvider,
 };
 
 /**

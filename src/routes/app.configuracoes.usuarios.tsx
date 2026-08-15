@@ -4,7 +4,7 @@ import { requireAuth } from "@/features/auth/guards";
 import { UsersPage } from "@/features/admin-settings";
 
 export const Route = createFileRoute("/app/configuracoes/usuarios")({
-  beforeLoad: ({ location }) => requireAuth(location.pathname, ["Owner"]),
+  beforeLoad: ({ location }) => requireAuth(location.pathname, undefined, { resource: "settings_users", action: "view" }),
   component: () => (
     <SettingsLayout>
       <UsersPage />

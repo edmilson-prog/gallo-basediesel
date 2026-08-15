@@ -11,6 +11,7 @@ import type {
   ID,
 } from "@/shared/types";
 import {
+  FETCH_ALL_PAGE_SIZE,
   useCustomersProvider,
   useGoalsProvider,
   useOrdersProvider,
@@ -23,7 +24,7 @@ import { detectInsights } from "../engine";
 import { isStillDismissed, useDismissalsStore } from "../store/dismissalsStore";
 
 const STALE_MS = 60 * 60 * 1000; // 1h — the engine recomputes well below the daily cadence required by PRD-053.
-const PAGE_SIZE = 1000;
+const PAGE_SIZE = FETCH_ALL_PAGE_SIZE;
 
 export interface IUseInsightsDailyDetectionResult {
   isLoading: boolean;

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { ID, IMessage } from "@/shared/types";
+import type { ID, IMessage, IMessageReplyRef } from "@/shared/types";
 import { getActiveDataSource } from "@/providers/data";
 import { subscribeToTable } from "@/shared/lib/realtime";
 
@@ -31,6 +31,7 @@ export interface IMessageRealtimeRow {
   transcription: string | null;
   transcription_status: IMessage["transcriptionStatus"] | null;
   reactions: IMessage["reactions"] | null;
+  reply_to: IMessageReplyRef | null;
 }
 
 /** Debounce window collapsing a burst of conversation touches into one sync. */
@@ -68,6 +69,7 @@ export function rowToMessage(row: IMessageRealtimeRow): IMessage {
     mediaType: row.media_type ?? undefined,
     mediaUrl: row.media_url ?? undefined,
     mediaFilename: row.media_filename ?? undefined,
+    replyTo: row.reply_to ?? undefined,
     status: row.status,
     sentAt: row.sent_at,
     deliveredAt: row.delivered_at ?? undefined,

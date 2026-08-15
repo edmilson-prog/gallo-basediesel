@@ -30,8 +30,13 @@ interface ISendBody {
   mediaUrl?: string;
   mediaType?: "image" | "audio" | "video" | "document";
   filename?: string;
+  /** Byte size of the file — lets the WAHA path route a video inline vs. as a document. */
+  sizeBytes?: number;
   /** Client-generated id — lets the optimistic bubble and the persisted row share one id. */
   messageId?: string;
+  /** Our id of the message being quoted (reply/quote). The snapshot and the
+   *  provider id are resolved server-side — the client never sends them. */
+  replyToMessageId?: string;
 }
 
 async function resolveSender(req: Request): Promise<{
@@ -119,6 +124,7 @@ servePost(async (req, ctx) => {
             text: body.text ?? "",
             sellerId,
             messageId: body.messageId,
+            replyToMessageId: body.replyToMessageId,
           })
         : await dispatchWahaMedia(admin, {
             conversationId: body.conversationId,
@@ -127,8 +133,10 @@ servePost(async (req, ctx) => {
             mediaType: body.mediaType ?? "document",
             fileName: body.filename,
             caption: body.text,
+            sizeBytes: body.sizeBytes,
             sellerId,
             messageId: body.messageId,
+            replyToMessageId: body.replyToMessageId,
           });
 
     return json(

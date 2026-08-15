@@ -13,11 +13,127 @@ export const CARTEIRA_STRINGS = {
     newPermanentBatch: "Permanente em lote",
     activeSummary: (active: number, temporary: number) =>
       `${active} ativa${active === 1 ? "" : "s"} · ${temporary} temporária${temporary === 1 ? "" : "s"} em vigência`,
+    /** Header summary — the wallet answers "how are we doing" before anything else. */
+    newCoverage: "Nova cobertura",
+    transferCustomers: "Transferir clientes",
+    transferCustomersHint:
+      "Transferência permanente acontece na lista de clientes, com o cliente à vista.",
+    walletSummary: (customers: number, sellers: number) =>
+      `${customers.toLocaleString("pt-BR")} cliente${customers === 1 ? "" : "s"} entre ${sellers} vendedor${sellers === 1 ? "" : "es"}`,
+    coverageSummary: (coverages: number, customers: number) =>
+      `${coverages} cobertura${coverages === 1 ? "" : "s"} em vigor sobre ${customers} cliente${customers === 1 ? "" : "s"}`,
+    noCoverage: "nenhuma cobertura em vigor",
+    unassignedSummary: (n: number) => `${n} sem responsável`,
   },
   tabs: {
+    wallet: "Carteira",
     active: "Ativas",
     history: "Histórico",
     audit: "Auditoria",
+  },
+  wallet: {
+    boardTitle: "A carteira hoje",
+    boardCount: (sellers: number, customers: number) =>
+      `${sellers} vendedor${sellers === 1 ? "" : "es"} · ${customers.toLocaleString("pt-BR")} cliente${customers === 1 ? "" : "s"}`,
+    columns: {
+      seller: "Vendedor",
+      wallet: "Carteira",
+      risk: "Risco",
+      situation: "Situação",
+    },
+    customersWithShare: (n: number, share: number) =>
+      `cliente${n === 1 ? "" : "s"} · ${Math.round(share * 100)}%`,
+    /**
+     * The risk column reads last PURCHASE, not last conversation: the customer
+     * record carries `lastPurchaseAt` and nothing equivalent for contact, so the
+     * label says what is actually being measured.
+     */
+    staleLabel: "sem compra 30d",
+    staleTooltip: (n: number) =>
+      `${n} cliente${n === 1 ? "" : "s"} sem compra registrada há mais de 30 dias`,
+    ownWallet: "carteira própria",
+    coveredBy: (seller: string, until: string) => `coberto por ${seller} até ${until}`,
+    covering: "cobrindo",
+    coveringFor: (n: number, seller: string) => `+${n} de ${seller}`,
+    registerCoverage: "Registrar cobertura",
+    viewCoverage: "Ver cobertura",
+    sellerActions: (seller: string) => `Ações de ${seller}`,
+    unassignedTitle: (n: number) => `${n} cliente${n === 1 ? "" : "s"} sem responsável`,
+    unassignedDescription: "Fora de carteira: não entram em positivação, meta nem rodízio",
+    distribute: "Distribuir",
+    loadError: "Não foi possível carregar a composição da carteira.",
+    emptySellers: "Nenhum vendedor ativo nesta loja.",
+  },
+  coverage: {
+    sectionTitle: "Cobertura em vigor",
+    sectionHint: "volta sozinha na data final",
+    daysLeft: (n: number) => `faltam ${n} dia${n === 1 ? "" : "s"}`,
+    endingToday: "termina hoje",
+    viewCustomers: "Ver clientes",
+    returnNow: "Devolver agora",
+    autoRevert: "Devolução automática",
+    registeredBy: "Registrado por",
+    note: "Observação",
+    emptyTitle: "Ninguém está afastado agora",
+    emptyDescription:
+      "Férias, licença ou treinamento: registre a cobertura e os clientes voltam sozinhos na data final.",
+  },
+  changes: {
+    sectionTitle: "Mudanças recentes",
+    sectionCount: (n: number) => `${n} nos últimos 30 dias`,
+    sectionHint: "permanentes — não expiram sozinhas",
+    seeFullHistory: "Ver histórico completo",
+    emptyTitle: "Nenhuma mudança permanente em 30 dias",
+    emptyDescription: "Transferências definitivas de carteira aparecem aqui assim que acontecerem.",
+    columns: {
+      type: "Tipo",
+      route: "De → Para",
+      customers: "Clientes",
+      reason: "Motivo",
+      executedBy: "Executado por",
+      when: "Quando",
+    },
+    batch: "Em lote",
+    individual: "Individual",
+    revert: "Reverter",
+    daysAgo: (n: number) => `${n}d`,
+  },
+  sellerModal: {
+    walletCustomers: "clientes na carteira",
+    positivados: "positivados no mês",
+    stale: "sem compra há 30d",
+    movementTitle: "Movimentação — 30 dias",
+    received: "recebeu",
+    handedOver: "passou",
+    net: (n: number) => `${n >= 0 ? "+" : ""}${n} líquido`,
+    viewCustomers: "Ver clientes",
+    handWallet: "Passar carteira",
+    awayNotice: (reason: string, until: string, covering: string) =>
+      `Em ${reason.toLowerCase()} até ${until}. A carteira está com ${covering} e volta sozinha na data final.`,
+  },
+  unassignedModal: {
+    title: "Distribuir clientes sem responsável",
+    subtitle: (n: number) => `${n} cliente${n === 1 ? "" : "s"} fora de carteira`,
+    pickSeller: "Escolher o vendedor que assume",
+    pickSellerPlaceholder: "Selecionar…",
+    /**
+     * Only the single-owner mode is offered. Round-robin by city proximity and
+     * one-by-one triage were part of the design but have no engine behind them
+     * yet, and a button that silently does something else would be worse than
+     * one that is not there.
+     */
+    explanation: (n: number, seller: string) =>
+      `Os ${n} cliente${n === 1 ? "" : "s"} passam a ser responsabilidade de ${seller} e voltam a contar em positivação, meta e rodízio.`,
+    preview: "Clientes que serão distribuídos",
+    previewMore: (shown: number, total: number) => `mostrando ${shown} de ${total}`,
+    submit: "Distribuir",
+    submitting: "Distribuindo…",
+    empty: "Nenhum cliente sem responsável nesta loja.",
+    successToast: (n: number, seller: string) =>
+      `${n} cliente${n === 1 ? "" : "s"} agora ${n === 1 ? "é" : "são"} de ${seller}.`,
+    partialToast: (ok: number, failed: number) =>
+      `${ok} cliente${ok === 1 ? "" : "s"} distribuído${ok === 1 ? "" : "s"}; ${failed} falhou${failed === 1 ? "" : "ram"}.`,
+    failureToast: "Não foi possível distribuir os clientes.",
   },
   type: {
     temporary: "Temporária",
@@ -67,6 +183,19 @@ export const CARTEIRA_STRINGS = {
     clear: "Limpar filtros",
   },
   modals: {
+    /**
+     * Every transfer is stamped with the acting seller (`created_by` → sellers).
+     * A staff account without a linked seller cannot sign one, so the form
+     * blocks instead of failing at the database constraint.
+     */
+    missingSellerError:
+      "Seu usuário não está vinculado a um vendedor, então não é possível registrar a transferência. Peça ao administrador para vincular seu cadastro.",
+    /**
+     * Imported contacts pending review carry no wallet owner, so there is no
+     * origin seller to transfer from.
+     */
+    missingOwnerError:
+      "Este cliente ainda não tem vendedor responsável, então não há carteira a transferir. Defina um responsável antes.",
     temporary: {
       title: "Nova transferência temporária",
       description:

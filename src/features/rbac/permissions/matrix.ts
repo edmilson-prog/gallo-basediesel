@@ -34,8 +34,10 @@ function p(
 
 const OWNER_ENTRIES: ScopedActions[] = [
   p("customer", CRUD, "all"),
+  p("contact", CRUD, "all"),
   p("vehicle", CRUD, "all"),
   p("lead", CRUD, "all"),
+  p("funnel", CRUD, "all"),
   p("conversation", CRUD, "all"),
   p("message", CRUD, "all"),
   p("part", CRUD, "all"),
@@ -65,6 +67,7 @@ const OWNER_ENTRIES: ScopedActions[] = [
   p("inventory", ["view", "edit"], "all"),
   p("customer_service_analytics", ["view"], "all"),
   p("service_volume", ["view"], "all"),
+  p("nps", ["view"], "all"),
   p("insight", ["view", "edit", "delete"], "all"),
   p("storefront_admin", ["view", "edit"], "all"),
   p("ecommerce_integration", ["view", "edit"], "all"),
@@ -76,12 +79,25 @@ const OWNER_ENTRIES: ScopedActions[] = [
   // Role administration & monitoring (PRD-211 Task 16) — Owner only.
   p("manage_roles", CRUD, "all"),
   p("monitor", ["view"], "all"),
+  // Settings areas lifted out of hardcoded role allowlists.
+  p("settings_users", ["view", "edit"], "all"),
+  p("settings_whatsapp", ["view", "edit"], "all"),
+  p("settings_api_keys", ["view", "edit"], "all"),
+  p("settings_ai", ["view", "edit"], "all"),
+  p("settings_sdr", ["view", "edit"], "all"),
+  p("settings_automation", ["view", "edit"], "all"),
+  p("settings_system", ["view", "edit"], "all"),
+  p("settings_nps", ["view", "edit"], "all"),
 ];
 
 const GESTOR_ENTRIES: ScopedActions[] = [
   p("customer", CRUD, "store"),
+  p("contact", CRUD, "store"),
   p("vehicle", CRUD, "store"),
   p("lead", CRUD, "store"),
+  // Administrar funil e decisao de estrutura comercial. O vendedor nao recebe:
+  // o que ele alcanca e governado por lead_funnel_access, que e outra coisa.
+  p("funnel", CRUD, "store"),
   p("conversation", CRUD, "store"),
   p("message", ["create"], "store"),
   p("part", ["view", "create", "edit"], "store"),
@@ -95,9 +111,17 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("recommendation", ["view"], "store"),
   p("transfer", CRUD, "store"),
   p("segment", CRUD, "store"),
-  p("seller", ["view"], "store"),
+  // `edit` unlocks Departamentos and the rotation queue — team administration is
+  // the Gestor's job. Assigning platform roles stays Owner-only (see the Edge).
+  p("seller", ["view", "edit"], "store"),
   p("store", ["view"], "own"),
-  p("settings", ["view"], "store"),
+  // The `settings` umbrella governs the operational settings screens that have
+  // no domain resource of their own: Distribuição, Pipeline de leads, Motivos de
+  // perda, Tags, Ciclo de vida, Horário comercial, Cadastro de veículos, Frete,
+  // Insights, Comissões, Forecast, Chaves PIX e Curva ABC.
+  // Conversation automations moved to `settings_automation` and the SDR agent
+  // screens to `settings_sdr`, so this umbrella stops growing without bound.
+  p("settings", ["view", "edit"], "store"),
   p("audit_log", ["view"], "store"),
   p("media", ["view", "edit", "delete"], "store"),
   p("role", ["view"], "store"),
@@ -106,21 +130,37 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("expense", ["view"], "store"),
   p("cashflow", ["view"], "store"),
   p("profitability", ["view"], "store"),
-  p("inventory", ["view"], "store"),
+  // `edit` unlocks Estoque (análise) — stock policy is store operation.
+  p("inventory", ["view", "edit"], "store"),
   p("customer_service_analytics", ["view"], "store"),
   p("service_volume", ["view"], "store"),
+  p("nps", ["view"], "store"),
   p("insight", ["view", "edit"], "store"),
   // Gestor: read-only on the storefront admin dashboard/analysis (PRD-066 RF-023).
   p("storefront_admin", ["view"], "store"),
+  p("ecommerce_integration", ["view", "edit"], "store"),
   // Quick Send & Asset Library (PRD-027 D-12) — manage at store scope.
   p("asset_library", CRUD, "store"),
   p("quick_reply", CRUD, "store"),
   p("trackable_link", CRUD, "store"),
   p("scheduled_send", CRUD, "store"),
+  // Settings areas: these grants reproduce exactly the access the Gestor already
+  // had through the hardcoded allowlists they replace — no widening.
+  p("settings_users", ["view", "edit"], "store"),
+  // `view` only: Templates WhatsApp was Owner+Gestor, the accounts screen
+  // (which requires `edit`) was Owner-only.
+  p("settings_whatsapp", ["view"], "store"),
+  p("settings_sdr", ["view", "edit"], "store"),
+  p("settings_automation", ["view", "edit"], "store"),
+  // Read-only: the Gestor sees how the NPS survey is tuned, but only the Owner
+  // changes triggers, cooldown and the mass-dispatch backstops.
+  p("settings_nps", ["view"], "store"),
+  // Not granted (Owner-only today): settings_api_keys, settings_ai, settings_system.
 ];
 
 const VENDEDOR_ENTRIES: ScopedActions[] = [
   p("customer", ["view", "edit"], "own"),
+  p("contact", ["view", "create", "edit"], "own"),
   p("vehicle", ["view", "edit"], "own"),
   p("lead", ["view", "edit"], "own"),
   p("conversation", ["view", "edit"], "own"),
@@ -147,6 +187,7 @@ const VENDEDOR_ENTRIES: ScopedActions[] = [
 
 const SDR_ENTRIES: ScopedActions[] = [
   p("customer", ["view"], "store"),
+  p("contact", ["view"], "own"),
   p("vehicle", ["view"], "store"),
   p("lead", ["view", "create"], "own"),
   p("conversation", ["view", "create"], "own"),
@@ -174,6 +215,7 @@ const CLIENTE_ENTRIES: ScopedActions[] = [
 
 const VENDEDOR_EXTERNO_ENTRIES: ScopedActions[] = [
   p("customer", ["view", "edit"], "own"),
+  p("contact", ["view", "edit"], "own"),
   p("vehicle", ["view", "edit"], "own"),
   p("lead", ["view", "edit"], "own"),
   p("conversation", ["view", "edit"], "own"),
@@ -192,6 +234,7 @@ const VENDEDOR_EXTERNO_ENTRIES: ScopedActions[] = [
 
 const FINANCEIRO_ENTRIES: ScopedActions[] = [
   p("customer", ["view"], "store"),
+  p("contact", ["view"], "store"),
   p("quote", ["view"], "store"),
   p("order", ["view"], "store"),
   p("commission", ["view", "approve"], "store"),

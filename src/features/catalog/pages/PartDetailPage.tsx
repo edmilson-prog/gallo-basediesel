@@ -180,26 +180,32 @@ export function PartDetailPage() {
     onDraftChange: handleDraftChange,
     priceLocked,
     errors,
+    onRequestEdit: canEdit ? handleStartEdit : undefined,
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col bg-background">
-      <PartDetailHeader
-        part={part}
-        canEdit={canEdit}
-        canToggle={canToggle}
-        layout={layout}
-        onLayoutChange={setLayout}
-        onBack={handleBack}
-        onEdit={handleStartEdit}
-        onDuplicate={handleDuplicate}
-        onToggleActive={() => setConfirmToggleOpen(true)}
-        editing={editing}
-      />
+    <div className="flex min-h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] flex-col bg-background">
+      <div className="mx-auto w-full max-w-[1360px] flex-1 px-4 pb-10 pt-[22px] sm:px-[26px]">
+        <div className="mb-5">
+          <PartDetailHeader
+            part={part}
+            canEdit={canEdit}
+            canToggle={canToggle}
+            layout={layout}
+            onLayoutChange={setLayout}
+            onBack={handleBack}
+            onEdit={handleStartEdit}
+            onDuplicate={handleDuplicate}
+            onToggleActive={() => setConfirmToggleOpen(true)}
+            editing={editing}
+          />
+        </div>
 
-      <div className="mx-auto w-full max-w-[1600px] flex-1 space-y-6 px-4 py-6 sm:px-6">
-        <PartStatStrip part={part} draft={editing ? (draft ?? undefined) : undefined} />
-        <PartStockAlert part={part} />
+        <div className="mb-4">
+          <PartStatStrip part={part} draft={editing ? (draft ?? undefined) : undefined} />
+        </div>
+        <PartStockAlert part={part} className="mb-4" />
+
         {layout === "counter" && <PartLayoutCounter {...layoutProps} />}
         {layout === "panel" && <PartLayoutPanel {...layoutProps} />}
         {layout === "sheet" && <PartLayoutSheet {...layoutProps} />}
@@ -207,7 +213,7 @@ export function PartDetailPage() {
 
       {editing && (
         <div className="sticky bottom-0 z-10 border-t border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:px-6">
-          <div className="mx-auto flex w-full max-w-[1600px] items-center justify-end gap-2">
+          <div className="mx-auto flex w-full max-w-[1360px] items-center justify-end gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -264,7 +270,7 @@ export function PartDetailPage() {
 
 function DetailSkeleton() {
   return (
-    <div className="flex h-[calc(100vh-4rem)] items-center justify-center text-muted-foreground">
+    <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] items-center justify-center text-muted-foreground">
       <Icon icon="svg-spinners:ring-resize" size={28} />
     </div>
   );

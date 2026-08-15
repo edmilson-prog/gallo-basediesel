@@ -85,17 +85,17 @@ export function PartStatStrip({ part, draft }: IPartStatStripProps) {
   ];
 
   return (
-    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3 lg:grid-cols-5">
+    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3 lg:grid-cols-5">
       {cells.map((cell) => (
-        <div key={cell.label} className="bg-card px-4 py-3.5">
-          <dt className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-            <Icon icon={cell.icon} size={12} />
+        <div key={cell.label} className="bg-card px-[18px] py-[15px]">
+          <dt className="flex items-center gap-[7px] text-[10.5px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
+            <Icon icon={cell.icon} size={13} className="shrink-0" />
             {cell.label}
           </dt>
-          <dd className="mt-2">
+          <dd className="mt-[9px]">
             <span
               className={cn(
-                "block truncate text-2xl font-bold leading-none tracking-tight tabular-nums text-foreground",
+                "block truncate font-display text-[26px] font-bold uppercase leading-none tabular-nums text-foreground",
                 cell.valueClass,
               )}
             >
@@ -103,11 +103,11 @@ export function PartStatStrip({ part, draft }: IPartStatStripProps) {
             </span>
             <span
               className={cn(
-                "mt-1.5 flex items-center gap-1 text-xs text-muted-foreground",
+                "mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground",
                 cell.subClass,
               )}
             >
-              {cell.subIcon && <Icon icon={cell.subIcon} size={12} />}
+              {cell.subIcon && <Icon icon={cell.subIcon} size={12} className="shrink-0" />}
               {cell.sub}
             </span>
           </dd>

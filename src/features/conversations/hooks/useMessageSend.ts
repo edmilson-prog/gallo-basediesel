@@ -4,6 +4,7 @@ import type {
   ID,
   IConversation,
   IMessage,
+  IMessageReplyRef,
   IWhatsAppAccount,
   MessageMediaType,
 } from "@/shared/types";
@@ -74,6 +75,8 @@ export interface ISendOptions {
   mediaUrl?: string;
   /** Original filename of an attached file — labels documents for the recipient (PRD-119). */
   fileName?: string;
+  /** Byte size of the attached file — lets WAHA route a video inline vs. as a document. */
+  mediaSizeBytes?: number;
   /** Marks this message as a template HSM send (uses provider = meta). */
   template?: boolean;
   /** Real HSM payload (PRD-116) — supabase source sends kind='template'. */
@@ -86,6 +89,18 @@ export interface ISendOptions {
   overrideInvalid?: boolean;
   /** Failed message this send retries — NEW message, original preserved (PRD-118). */
   retryOfMessageId?: string;
+  /**
+   * Skips the attendant signature. For payload messages that must stay
+   * byte-exact — a signed PIX key pastes into the bank app as
+   * `*Nome:* 11222333000181` and fails.
+   */
+  unsigned?: boolean;
+  /**
+   * Mensagem citada por este envio. O snapshot é usado na bolha otimista; o
+   * servidor monta o seu próprio a partir de `replyTo.messageId` (fonte da
+   * verdade) e emite o `reply_to` para a WAHA.
+   */
+  replyTo?: IMessageReplyRef;
 }
 
 export interface IUseMessageSendResult {
@@ -119,10 +134,13 @@ export function useMessageSend(
       mediaType,
       mediaUrl,
       fileName,
+      mediaSizeBytes,
       template,
       templateMeta,
       overrideInvalid,
       retryOfMessageId,
+      unsigned,
+      replyTo,
     }: ISendOptions) => {
       const now = new Date().toISOString();
       // Client-generated id: the optimistic bubble and the Realtime INSERT
@@ -134,7 +152,9 @@ export function useMessageSend(
       // persisted text is already signed). The helper also leaves structured
       // markers (product/link) and empty captions (media w/o caption) untouched.
       const signedText =
-        template || retryOfMessageId ? text : applyAttendantSignature(text, attendantName);
+        template || retryOfMessageId || unsigned
+          ? text
+          : applyAttendantSignature(text, attendantName);
       const optimistic: IMessage = {
         id: messageId,
         conversationId: conversation.id,
@@ -152,6 +172,7 @@ export function useMessageSend(
         mediaType,
         mediaUrl,
         mediaFilename: fileName,
+        replyTo,
         // Starts "queued" (🕐) and becomes "sent" (✓) on commit, then
         // delivered/read (✓✓) via Realtime — one bubble, honest lifecycle.
         status: "queued",
@@ -178,8 +199,14 @@ export function useMessageSend(
                   kind: mediaType ? "media" : "text",
                   text: optimistic.text,
                   messageId,
+                  ...(replyTo?.messageId ? { replyToMessageId: replyTo.messageId } : {}),
                   ...(mediaType
-                    ? { mediaUrl, mediaType, ...(fileName ? { filename: fileName } : {}) }
+                    ? {
+                        mediaUrl,
+                        mediaType,
+                        ...(fileName ? { filename: fileName } : {}),
+                        ...(mediaSizeBytes !== undefined ? { sizeBytes: mediaSizeBytes } : {}),
+                      }
                     : {}),
                 })
               : await invokeSendFunction(

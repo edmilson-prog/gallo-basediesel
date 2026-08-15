@@ -35,7 +35,7 @@ export function GoalHistorySection({ goalId }: IGoalHistorySectionProps) {
     staleTime: 60_000,
   });
 
-  const entries = data?.items ?? [];
+  const entries = data?.data ?? [];
 
   return (
     <Card className="flex flex-col gap-4 p-5">

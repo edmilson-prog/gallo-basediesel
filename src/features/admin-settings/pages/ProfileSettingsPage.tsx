@@ -1,26 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Icon } from "@/components/Icon";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/features/auth/useAuth";
-import { useSellersProvider } from "@/providers/data";
+import { CURRENT_USER_AVATAR_KEY } from "@/features/auth/useCurrentUserAvatar";
+import { useSellersProvider, useStoresProvider } from "@/providers/data";
 import type { ISeller } from "@/shared/types";
 import { SectionHeader } from "../components/SectionHeader";
 import { UnsavedChangesDialog } from "../components/UnsavedChangesDialog";
 import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
+import { useProfileAccount } from "../hooks/useProfileAccount";
+import { formatInitials, validateAvatarFile } from "../engine/avatarFile";
+import { formatLastAccess, formatMemberSince } from "../engine/profileFormat";
+import {
+  AvatarCropDialog,
+  ProfileContactCard,
+  ProfileDangerZone,
+  ProfileIdentityHeader,
+  ProfileSaveBar,
+  ProfileSecurityCard,
+  ProfileSessionsCard,
+  type IProfileContactDraft,
+} from "../components/profile";
 
-interface IProfileDraft {
-  fullName: string;
-  email: string;
-  phone: string;
-  region: string;
-}
-
-function toDraft(seller: ISeller): IProfileDraft {
+function toDraft(seller: ISeller): IProfileContactDraft {
   return {
     fullName: seller.fullName,
     email: seller.email,
@@ -29,7 +32,7 @@ function toDraft(seller: ISeller): IProfileDraft {
   };
 }
 
-function shallowEqual(a: IProfileDraft, b: IProfileDraft) {
+function shallowEqual(a: IProfileContactDraft, b: IProfileContactDraft) {
   return (
     a.fullName === b.fullName && a.email === b.email && a.phone === b.phone && a.region === b.region
   );
@@ -38,10 +41,17 @@ function shallowEqual(a: IProfileDraft, b: IProfileDraft) {
 export function ProfileSettingsPage() {
   const { currentUser } = useAuth();
   const sellersProvider = useSellersProvider();
+  const storesProvider = useStoresProvider();
+  const account = useProfileAccount();
+  const queryClient = useQueryClient();
+
   const [seller, setSeller] = useState<ISeller | null>(null);
+  const [storeName, setStoreName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [draft, setDraft] = useState<IProfileDraft | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
+  const [draft, setDraft] = useState<IProfileContactDraft | null>(null);
 
   const sellerId = currentUser?.sellerId ?? null;
 
@@ -70,6 +80,22 @@ export function ProfileSettingsPage() {
     };
   }, [sellerId, sellersProvider]);
 
+  // Store label for the identity header — cosmetic, so a failure is silent.
+  useEffect(() => {
+    const storeId = seller?.storeId;
+    if (!storeId) return;
+    let cancelled = false;
+    void storesProvider
+      .get(storeId)
+      .then((store) => {
+        if (!cancelled) setStoreName(store.name);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [seller?.storeId, storesProvider]);
+
   const dirty = useMemo(() => {
     if (!seller || !draft) return false;
     return !shallowEqual(draft, toDraft(seller));
@@ -97,7 +123,7 @@ export function ProfileSettingsPage() {
       });
       setSeller(next);
       setDraft(toDraft(next));
-      toast.success("Perfil atualizado", { icon: <Icon icon="mdi:check" size={16} /> });
+      toast.success("Perfil salvo", { description: "O registro foi gerado na auditoria." });
     } catch {
       toast.error("Não foi possível salvar seu perfil.");
     } finally {
@@ -109,9 +135,56 @@ export function ProfileSettingsPage() {
     if (seller) setDraft(toDraft(seller));
   };
 
+  // Picking only opens the framing dialog — the upload happens on confirm, with
+  // the cropped result.
+  const handlePickPhoto = (file: File) => {
+    if (!seller) return;
+    const validation = validateAvatarFile(file);
+    if (!validation.ok) {
+      toast.error(validation.error);
+      return;
+    }
+    setPendingPhoto(file);
+  };
+
+  // The photo is applied immediately — it is not part of the contact draft, so
+  // it never leaves the save bar in a half-pending state.
+  const handleConfirmPhoto = async (cropped: File) => {
+    if (!seller) return;
+    setUploadingAvatar(true);
+    try {
+      const url = await sellersProvider.uploadAvatar(seller.id, cropped);
+      const next = await sellersProvider.update(seller.id, { avatarUrl: url });
+      setSeller(next);
+      setPendingPhoto(null);
+      // Refreshes the avatar shown in the top bar without a reload.
+      void queryClient.invalidateQueries({ queryKey: [CURRENT_USER_AVATAR_KEY] });
+      toast.success("Foto de perfil atualizada");
+    } catch {
+      toast.error("Não foi possível enviar a foto. Tente novamente.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!seller) return;
+    setUploadingAvatar(true);
+    try {
+      const next = await sellersProvider.update(seller.id, { avatarUrl: null });
+      setSeller(next);
+      void queryClient.invalidateQueries({ queryKey: [CURRENT_USER_AVATAR_KEY] });
+      toast.success("Foto removida");
+    } catch {
+      toast.error("Não foi possível remover a foto.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   if (!sellerId) {
     return (
-      <div className="space-y-6">
+      <div className="mx-auto w-full max-w-5xl space-y-6">
         <SectionHeader title="Meu perfil" description="Atualize seus dados de contato." />
         <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
           Este perfil não está vinculado a um vendedor cadastrado. Apenas usuários da equipe podem
@@ -123,92 +196,74 @@ export function ProfileSettingsPage() {
 
   if (loading || !seller || !draft) {
     return (
-      <div className="space-y-6">
+      <div className="mx-auto w-full max-w-5xl space-y-4">
         <SectionHeader title="Meu perfil" description="Atualize seus dados de contato." />
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-56 w-full rounded-xl" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-4">
       <SectionHeader
         title="Meu perfil"
-        description="Atualize seus dados de contato. As mudanças geram registro na auditoria."
+        description="Atualize seus dados de contato e a segurança da sua conta. As mudanças geram registro na auditoria."
       />
 
-      <div className="rounded-lg border border-border bg-card p-6">
-        <div className="flex items-center gap-4 border-b border-border pb-6">
-          <div
-            className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary"
-            aria-hidden
-          >
-            {currentUser?.avatarInitials ?? seller.fullName.slice(0, 2).toUpperCase()}
-          </div>
-          <div>
-            <p className="text-sm font-semibold">{seller.fullName}</p>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">{currentUser?.role}</Badge>
-              <span className="text-xs text-muted-foreground">{seller.email}</span>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Foto de perfil estará disponível na Fase 2 (upload via Supabase Storage).
-            </p>
-          </div>
-        </div>
+      <ProfileIdentityHeader
+        fullName={seller.fullName}
+        initials={currentUser?.avatarInitials ?? formatInitials(seller.fullName)}
+        role={currentUser?.role ?? null}
+        email={seller.email}
+        storeName={storeName}
+        memberSince={formatMemberSince(seller.createdAt)}
+        lastAccess={formatLastAccess(account.lastSignInAt)}
+        avatarUrl={seller.avatarUrl ?? null}
+        uploading={uploadingAvatar}
+        onPickFile={handlePickPhoto}
+        onRemovePhoto={() => void handleRemovePhoto()}
+      />
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="profile-name">Nome completo</Label>
-            <Input
-              id="profile-name"
-              value={draft.fullName}
-              onChange={(e) => setDraft({ ...draft, fullName: e.target.value })}
-              autoComplete="name"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="profile-email">Email</Label>
-            <Input
-              id="profile-email"
-              type="email"
-              value={draft.email}
-              onChange={(e) => setDraft({ ...draft, email: e.target.value })}
-              autoComplete="email"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="profile-phone">Telefone</Label>
-            <Input
-              id="profile-phone"
-              value={draft.phone}
-              placeholder="(55) 99000-0000"
-              onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
-              autoComplete="tel"
-            />
-          </div>
-          {seller.type !== "internal" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="profile-region">Região</Label>
-              <Input
-                id="profile-region"
-                value={draft.region}
-                placeholder="Ex.: Médio Alto Uruguai"
-                onChange={(e) => setDraft({ ...draft, region: e.target.value })}
-              />
-            </div>
-          )}
-        </div>
+      <AvatarCropDialog
+        file={pendingPhoto}
+        busy={uploadingAvatar}
+        onCancel={() => setPendingPhoto(null)}
+        onConfirm={(cropped) => void handleConfirmPhoto(cropped)}
+      />
 
-        <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-border pt-6">
-          <Button variant="outline" onClick={handleReset} disabled={!dirty || saving}>
-            Descartar
-          </Button>
-          <Button onClick={handleSave} disabled={!dirty || saving}>
-            {saving ? "Salvando…" : "Salvar alterações"}
-          </Button>
-        </div>
+      <ProfileContactCard
+        draft={draft}
+        onChange={(key, value) => setDraft({ ...draft, [key]: value })}
+        roleLabel={currentUser?.role ?? null}
+        showRegion={seller.type !== "internal"}
+        emailVerified={account.emailVerified}
+      />
+
+      <ProfileSecurityCard
+        email={seller.email}
+        emailVerified={account.emailVerified}
+        passwordChangeEnabled={account.authIsReal}
+        changingPassword={account.changingPassword}
+        onChangePassword={account.changePassword}
+      />
+
+      <div className="grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
+        <ProfileSessionsCard signedInAt={formatLastAccess(account.lastSignInAt)} />
+        <ProfileDangerZone
+          enabled={account.authIsReal}
+          busy={account.signingOut}
+          onSignOutEverywhere={() => void account.signOutEverywhere()}
+        />
       </div>
+
+      <ProfileSaveBar
+        dirty={dirty}
+        saving={saving}
+        onSave={() => void handleSave()}
+        onDiscard={handleReset}
+      />
 
       <UnsavedChangesDialog
         open={unsaved.promptOpen}

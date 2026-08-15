@@ -5,7 +5,7 @@ import { MediaRetentionSettingsPage } from "@/features/admin-settings";
 
 export const Route = createFileRoute("/app/configuracoes/midias")({
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner", "Gestor"]),
+    requireAuth(location.pathname, undefined, { resource: "media", action: "edit" }),
   component: () => (
     <SettingsLayout>
       <MediaRetentionSettingsPage />

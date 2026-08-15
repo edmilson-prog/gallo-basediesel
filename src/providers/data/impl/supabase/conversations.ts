@@ -174,8 +174,13 @@ function buildSearchRpcParams(params: IListConversationsParams, page: number, pa
     // `p_search` has no SQL default (unlike the other params) — PostgREST can't
     // resolve the function overload if this key is omitted from the JSON body,
     // which happens whenever `params.search` is `undefined` (JSON.stringify drops
-    // undefined keys). Always send a string; each RPC's own length(trim(...))>0
-    // guard already treats an empty term as "no match" (0 rows).
+    // undefined keys). Always send a string.
+    //
+    // That guard is real as of migration 20260811150000 — it was NOT before, and
+    // this comment asserting it was the reason the 2026-08-11 timeout hunt first
+    // chased the wrong lead. An empty term used to match every row through the
+    // search arm; today `search_conversations` returns 0 rows for it. The
+    // caller-side check in `list` below stays as the first line of defence.
     p_search: params.search ?? "",
     p_store_id: params.storeId ?? null,
     // Search keeps the scalar `unassigned` param for non-Inbox callers. The
@@ -334,6 +339,7 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       : getSupabaseClient().from(TABLE).select(COLUMNS);
 
     if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+    if (params.ids && params.ids.length > 0) query = query.in("id", params.ids);
     if (params.assignedSellerId !== undefined)
       query = query.eq("assigned_seller_id", params.assignedSellerId);
     if (params.unassigned) query = query.is("assigned_seller_id", null);
@@ -442,7 +448,22 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       .eq("id", id)
       .select(COLUMNS)
       .single();
-    if (error) throw new Error(`[supabase] conversations.update(${id}) failed: ${error.message}`);
+    if (error) {
+      if (
+        error.code === "23505" &&
+        patch.status !== undefined &&
+        !["resolvida", "arquivada"].includes(patch.status)
+      ) {
+        // Reopen vetoed by the one-open-per-contact-per-account unique index
+        // (migration 20260723165509): another conversation of this contact is
+        // already open on the same instance — surface a human message instead
+        // of the raw constraint error (undo toasts / status dropdown).
+        throw new Error(
+          "Este contato já tem outra conversa aberta nesta instância. Continue por ela — ou resolva-a antes de reabrir esta.",
+        );
+      }
+      throw new Error(`[supabase] conversations.update(${id}) failed: ${error.message}`);
+    }
     return rowToConversation(data as ConversationRow);
   },
 
@@ -554,8 +575,36 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       ad_referral: null,
     };
     const { error } = await getSupabaseClient().from(TABLE).insert(row);
-    if (error)
+    if (error) {
+      if (error.code === "23505") {
+        // The one-open-conversation-per-contact-per-account unique index
+        // (migration 20260723165509) vetoed the INSERT: an open conversation
+        // already exists for this contact on this instance. Reuse it — the
+        // dialog then navigates into the existing thread instead of failing.
+        // RLS scopes this read: a seller without access to the open thread
+        // gets the pt-BR error below instead of a duplicate.
+        const { data: existing, error: recoveryError } = await getSupabaseClient()
+          .from(TABLE)
+          .select(COLUMNS)
+          .eq("customer_id", input.customerId)
+          .eq("whatsapp_account_id", input.whatsappAccountId)
+          .in("status", ["aguardando", "em_andamento", "aguardando_cliente"])
+          .order("last_message_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        // A transient failure here must read as retryable — not as the
+        // "no access" message below.
+        if (recoveryError)
+          throw new Error(
+            `[supabase] conversations.createOutbound recovery lookup failed: ${recoveryError.message}`,
+          );
+        if (existing) return rowToConversation(existing as ConversationRow);
+        throw new Error(
+          "Já existe uma conversa aberta para este contato nesta instância, mas você não tem acesso a ela.",
+        );
+      }
       throw new Error(`[supabase] conversations.createOutbound failed: ${error.message}`);
+    }
     return rowToConversation(row);
   },
 

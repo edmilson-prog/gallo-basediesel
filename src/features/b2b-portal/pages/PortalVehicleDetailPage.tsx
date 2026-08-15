@@ -93,11 +93,11 @@ export function PortalVehicleDetailPage() {
         </TabsContent>
 
         <TabsContent value="maintenance" className="space-y-3">
-          <Card className="flex items-center gap-3 border-amber-500/40 bg-amber-500/5 p-4">
+          <Card className="flex items-center gap-3 border-severity-warning/40 bg-severity-warning/5 p-4">
             <Icon
               icon="mdi:wrench-clock"
               size={20}
-              className="text-amber-600 dark:text-amber-400"
+              className="text-severity-warning"
               aria-hidden
             />
             <div>

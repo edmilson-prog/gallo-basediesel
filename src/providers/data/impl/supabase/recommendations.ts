@@ -10,6 +10,7 @@ import type {
 } from "../../contracts/recommendations";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link IRecommendationsProvider} (PRD-053 / PRD-150+).
@@ -75,37 +76,50 @@ function rowToRecommendation(row: RecommendationRow): IRecommendation {
 
 export const supabaseRecommendationsProvider: IRecommendationsProvider = {
   async list(params: IListRecommendationsParams = {}): Promise<IPaginatedResult<IRecommendation>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+    const buildQuery = () => {
+      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
+      if (params.subjectId !== undefined) query = query.eq("subject_id", params.subjectId);
+      if (typeof params.resolved === "boolean") query = query.eq("resolved", params.resolved);
 
-    if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
-    if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
-    if (params.subjectId !== undefined) query = query.eq("subject_id", params.subjectId);
-    if (typeof params.resolved === "boolean") query = query.eq("resolved", params.resolved);
+      if (params.type) {
+        const allowed = Array.isArray(params.type) ? params.type : [params.type];
+        query = query.in("type", allowed);
+      }
 
-    if (params.type) {
-      const allowed = Array.isArray(params.type) ? params.type : [params.type];
-      query = query.in("type", allowed);
-    }
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query.range(from, to);
-
-    if (error) throw new Error(`[supabase] recommendations.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<RecommendationRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] recommendations.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as RecommendationRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     // The mock sorts the full set by priority descending before paginating.
-    // PostgREST cannot order by a CASE-derived rank, so the slice is sorted in
-    // memory; deterministic among the page for matching the mock's surfacing.
-    const sorted = (data as unknown as RecommendationRow[])
+    // PostgREST cannot order by a CASE-derived rank, so the concatenated set is
+    // sorted in memory ONCE here — sorting must happen after all chunks are
+    // gathered (not inside fetchChunk), otherwise each 1000-row chunk would
+    // only be internally sorted, not the full requested page.
+    const sorted = data
       .slice()
       .sort((a, b) => PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority]);
 
     return {
       data: sorted.map(rowToRecommendation),
-      total: count ?? 0,
+      total,
       page,
       pageSize,
     };
