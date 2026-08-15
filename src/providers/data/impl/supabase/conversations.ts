@@ -101,6 +101,10 @@ interface ConversationContactRow {
   phone: string | null;
   avatar_url: string | null;
   temperature: string | null;
+  /** Company the person speaks for. Absent until the contact-id migration runs. */
+  company_id?: string | null;
+  company_name?: string | null;
+  role?: string | null;
 }
 
 const TABLE = "conversations";
@@ -421,6 +425,13 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       temperature: LEAD_TEMPERATURES.has(r.temperature as LeadTemperature)
         ? (r.temperature as LeadTemperature)
         : null,
+      // Optional-chained on purpose: the deployed RPC does not return these
+      // until its migration is applied, and reading a missing key must degrade
+      // to "no company" rather than throw. Merging the PR does not run the
+      // migration, so both shapes are live at the same time.
+      companyId: r.company_id ?? null,
+      companyName: r.company_name ?? null,
+      role: r.role ?? null,
     }));
   },
 

@@ -175,12 +175,22 @@ export interface IConversationContact {
   /** Customer or lead id — seeds the avatar's stable hue. */
   refId: ID;
   isLead: boolean;
-  /** Resolved display name (B2B nomeFantasia / B2C fullName / lead name). */
+  /**
+   * The PERSON on the other side: the linked Agenda contact's name, falling
+   * back to the lead's and finally to the company's. A company speaks through
+   * several people, so its name is context (see `companyName`) and must never
+   * stand in for whoever is actually typing.
+   */
   name: string;
   phone: string;
   avatarUrl?: string;
   /** Lead temperature when the contact is a lead; null/absent for customers. */
   temperature?: LeadTemperature | null;
+  /** Company this person speaks for — absent while the contact is loose. */
+  companyId?: ID | null;
+  companyName?: string | null;
+  /** Job title on that company ("Compras", "Balcão"). */
+  role?: string | null;
 }
 
 /** Direction of a message relative to the company. */

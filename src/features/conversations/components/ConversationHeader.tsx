@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type {
   IConversation,
   IConversationContact,
@@ -127,7 +127,11 @@ export function ConversationHeader({
   // Subtitle shows ONLY the contact's own phone — never our own GALLO line,
   // which would mislabel our number as the contact's (e.g. when RLS hides the
   // customer for a seller handling a transferred conversation).
-  const channelSubtitle = display.phone ? `${channel.label} • ${display.phone}` : channel.label;
+  //
+  // The channel WORD is gone: the icon beside it already says WhatsApp, and the
+  // ~58px it cost now pay for the company chip. The label survives as the
+  // fallback for a contact with no number at all, so nothing renders empty.
+  const channelSubtitle = display.phone || channel.label;
 
   return (
     <header data-tour="conversation-header" className="shrink-0 border-b border-border bg-card">
@@ -192,15 +196,42 @@ export function ConversationHeader({
               </>
             )}
           </div>
+          {/* Line 2 already existed and already was a flex row — the company
+              chip is a SIBLING here, not a new line. Vertically the header
+              spends ~44px of its 64px, so nothing grows. */}
           <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+            {display.companyName && display.companyId ? (
+              <Link
+                to="/app/clientes/$id"
+                params={{ id: display.companyId }}
+                title={
+                  display.role
+                    ? `${display.companyName} · ${display.role}`
+                    : display.companyName
+                }
+                className="inline-flex min-w-0 items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary transition-colors hover:bg-primary/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+              >
+                <Icon icon="mdi:office-building" size={12} aria-hidden />
+                <span className="truncate">{display.companyName}</span>
+                {display.role && (
+                  <span className="hidden shrink-0 text-primary/70 @min-[46rem]:inline">
+                    · {display.role}
+                  </span>
+                )}
+              </Link>
+            ) : null}
+            {/* `shrink-0`: it is the COMPANY that gives way when space runs out,
+                never the number. A truncated "+55 46 9919…" is worse than no
+                number at all, while the company name has a tooltip and a whole
+                ficha behind it. */}
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]",
+                "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px]",
                 channel.tone,
               )}
             >
-              <Icon icon={channel.icon} size={12} />
-              <span className="truncate">{channelSubtitle}</span>
+              <Icon icon={channel.icon} size={12} aria-label={channel.label} />
+              <span className="tabular-nums">{channelSubtitle}</span>
             </span>
           </div>
         </div>
