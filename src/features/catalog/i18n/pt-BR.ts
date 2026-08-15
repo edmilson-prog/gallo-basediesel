@@ -4,7 +4,8 @@ export const CATALOG_STRINGS = {
   list: {
     countOne: (n: number) => `${n} peça no catálogo`,
     countMany: (n: number) => `${n} peças no catálogo`,
-    add: "+ Peça",
+    // O botão já traz o ícone mdi:plus — o "+" no texto duplicava o sinal.
+    add: "Peça",
     importCsv: "Importar CSV",
     importCsvHint: "Disponível na Fase 2",
     searchPlaceholder: "Buscar por nome, OEM, SKU…",
@@ -368,9 +369,10 @@ export const CATALOG_STRINGS = {
       equivalentsHint: "Equivalências são bidirecionais — a outra peça também aponta para esta",
       crossReferencesHint: "Códigos de concorrentes (ex.: Mann, Fleetguard) — texto livre",
     },
-    addApplication: "+ Adicionar aplicação",
-    addEquivalent: "+ Adicionar equivalente",
-    addCrossReference: "+ Adicionar referência",
+    // Os botões já trazem o ícone mdi:plus — o "+" no texto duplicava o sinal.
+    addApplication: "Adicionar aplicação",
+    addEquivalent: "Adicionar equivalente",
+    addCrossReference: "Adicionar referência",
     searchEquivalentPlaceholder: "Buscar por nome ou OEM…",
     cancel: "Cancelar",
     save: "Salvar",
