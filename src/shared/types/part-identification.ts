@@ -15,8 +15,12 @@ export type PartIdentificationStatus =
   | "rejected"
   | "failed";
 
-/** Coarse taxonomy of part families covered by the keyword-based extractor. */
-export type PartCategory =
+/**
+ * The ten part families that ship with the product. They seed the taxonomy and
+ * remain the guaranteed fallback: the app renders them even when the
+ * `part_categories` table is empty, absent or unreachable.
+ */
+export type BuiltinPartCategory =
   | "filtro"
   | "freio"
   | "correia"
@@ -27,6 +31,17 @@ export type PartCategory =
   | "suspensao"
   | "arrefecimento"
   | "lubrificante";
+
+/**
+ * Slug of a part family, as stored in `parts.category`.
+ *
+ * Open by design: the taxonomy is user-manageable data (`public.part_categories`)
+ * layered over the built-in families, so any slug is valid at the type level.
+ * `BuiltinPartCategory` is kept in the union purely so editors still autocomplete
+ * the ten families — it does not close the set. Postgres agrees: `parts.category`
+ * is plain `text`, with no enum and no check constraint.
+ */
+export type PartCategory = BuiltinPartCategory | (string & {});
 
 /** Attributes extracted from the customer utterance — every field is optional. */
 export interface IExtractedAttributes {

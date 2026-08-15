@@ -207,6 +207,7 @@ export type { IConversationNote, IConversationNotesProvider } from "./conversati
 // Catalog
 export type {
   IPart,
+  IPartCategory,
   IApplication,
   IPriceTable,
   IPartSupplier,
@@ -276,6 +277,7 @@ export type {
   PartIdentificationStatus,
   PartIdentificationActionKind,
   PartCategory,
+  BuiltinPartCategory,
 } from "./part-identification";
 
 // SDR Quote (PRD-022)
