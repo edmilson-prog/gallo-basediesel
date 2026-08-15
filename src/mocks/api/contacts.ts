@@ -244,6 +244,12 @@ function buildRawContact(
     nextContactNote,
     lastContactAt,
     hasWhatsapp,
+    // Nothing is generated as ignored: triage verdicts are decisions a person
+    // made, and seeding them would put contacts in the "Ignorados" tab that
+    // nobody ever ignored.
+    ignoredAt: null,
+    ignoreReason: null,
+    ignoredBy: null,
     division: "parts",
     createdAt,
     updatedAt,

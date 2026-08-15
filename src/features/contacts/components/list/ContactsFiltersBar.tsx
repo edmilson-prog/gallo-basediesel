@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type { ContactScope, ContactSource, IContactScopeCounts, ID } from "@/shared/types";
 import type { ContactRecencyBucket } from "@/providers/data";
 import { Button } from "@/components/ui/button";
@@ -235,6 +236,20 @@ export function ContactsFiltersBar({
           Limpar filtros
         </Button>
       )}
+
+      {/* Triage works the same loose contacts this bar can filter to, one at a
+          time — so the way in sits right next to the "Sem cliente" chip. */}
+      <Button variant="outline" size="sm" asChild className="ml-auto h-8 shrink-0 text-xs">
+        <Link to="/app/agenda/triagem">
+          <Icon icon="mdi:filter-check-outline" size={14} />
+          Triar sem cliente
+          {counts.soltos > 0 && (
+            <span className="tabular-nums text-primary">
+              {counts.soltos.toLocaleString("pt-BR")}
+            </span>
+          )}
+        </Link>
+      </Button>
     </div>
   );
 }

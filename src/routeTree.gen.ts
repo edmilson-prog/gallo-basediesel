@@ -87,6 +87,7 @@ import { Route as AppConfiguracoesIndexRouteImport } from './routes/app.configur
 import { Route as AppClientesIndexRouteImport } from './routes/app.clientes.index'
 import { Route as AppCatalogoIndexRouteImport } from './routes/app.catalogo.index'
 import { Route as AppAtendimentoIndexRouteImport } from './routes/app.atendimento.index'
+import { Route as AppAgendaIndexRouteImport } from './routes/app.agenda.index'
 import { Route as PwaCarteiraIdRouteImport } from './routes/pwa.carteira.$id'
 import { Route as PwaAgendaNovaRouteImport } from './routes/pwa.agenda.nova'
 import { Route as PortalSolicitacoesNovaRouteImport } from './routes/portal.solicitacoes.nova'
@@ -171,6 +172,7 @@ import { Route as AppCatalogoNovoRouteImport } from './routes/app.catalogo.novo'
 import { Route as AppCatalogoKitsRouteImport } from './routes/app.catalogo.kits'
 import { Route as AppCatalogoIdRouteImport } from './routes/app.catalogo.$id'
 import { Route as AppAtendimentoIdRouteImport } from './routes/app.atendimento.$id'
+import { Route as AppAgendaTriagemRouteImport } from './routes/app.agenda.triagem'
 import { Route as LojaContaPedidosIndexRouteImport } from './routes/loja.conta.pedidos.index'
 import { Route as LojaContaOrcamentosIndexRouteImport } from './routes/loja.conta.orcamentos.index'
 import { Route as AtendimentoConversaIdIndexRouteImport } from './routes/atendimento.conversa.$id.index'
@@ -603,6 +605,11 @@ const AppAtendimentoIndexRoute = AppAtendimentoIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppAtendimentoRoute,
+} as any)
+const AppAgendaIndexRoute = AppAgendaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAgendaRoute,
 } as any)
 const PwaCarteiraIdRoute = PwaCarteiraIdRouteImport.update({
   id: '/$id',
@@ -1051,6 +1058,11 @@ const AppAtendimentoIdRoute = AppAtendimentoIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppAtendimentoRoute,
 } as any)
+const AppAgendaTriagemRoute = AppAgendaTriagemRouteImport.update({
+  id: '/triagem',
+  path: '/triagem',
+  getParentRoute: () => AppAgendaRoute,
+} as any)
 const LojaContaPedidosIndexRoute = LojaContaPedidosIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -1302,7 +1314,7 @@ export interface FileRoutesByFullPath {
   '/portal': typeof PortalRouteWithChildren
   '/pwa': typeof PwaRouteWithChildren
   '/sem-permissao': typeof SemPermissaoRoute
-  '/app/agenda': typeof AppAgendaRoute
+  '/app/agenda': typeof AppAgendaRouteWithChildren
   '/app/atendimento': typeof AppAtendimentoRouteWithChildren
   '/app/carteira': typeof AppCarteiraRoute
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
@@ -1354,6 +1366,7 @@ export interface FileRoutesByFullPath {
   '/loja/': typeof LojaIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/pwa/': typeof PwaIndexRoute
+  '/app/agenda/triagem': typeof AppAgendaTriagemRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRoute
   '/app/catalogo/kits': typeof AppCatalogoKitsRoute
@@ -1438,6 +1451,7 @@ export interface FileRoutesByFullPath {
   '/portal/solicitacoes/nova': typeof PortalSolicitacoesNovaRoute
   '/pwa/agenda/nova': typeof PwaAgendaNovaRoute
   '/pwa/carteira/$id': typeof PwaCarteiraIdRoute
+  '/app/agenda/': typeof AppAgendaIndexRoute
   '/app/atendimento/': typeof AppAtendimentoIndexRoute
   '/app/catalogo/': typeof AppCatalogoIndexRoute
   '/app/clientes/': typeof AppClientesIndexRoute
@@ -1504,7 +1518,6 @@ export interface FileRoutesByTo {
   '/design-system': typeof DesignSystemRoute
   '/erro': typeof ErroRoute
   '/sem-permissao': typeof SemPermissaoRoute
-  '/app/agenda': typeof AppAgendaRoute
   '/app/carteira': typeof AppCarteiraRoute
   '/app/inicio': typeof AppInicioRoute
   '/app/insights': typeof AppInsightsRoute
@@ -1542,6 +1555,7 @@ export interface FileRoutesByTo {
   '/loja': typeof LojaIndexRoute
   '/portal': typeof PortalIndexRoute
   '/pwa': typeof PwaIndexRoute
+  '/app/agenda/triagem': typeof AppAgendaTriagemRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRoute
   '/app/catalogo/kits': typeof AppCatalogoKitsRoute
@@ -1618,6 +1632,7 @@ export interface FileRoutesByTo {
   '/portal/solicitacoes/nova': typeof PortalSolicitacoesNovaRoute
   '/pwa/agenda/nova': typeof PwaAgendaNovaRoute
   '/pwa/carteira/$id': typeof PwaCarteiraIdRoute
+  '/app/agenda': typeof AppAgendaIndexRoute
   '/app/atendimento': typeof AppAtendimentoIndexRoute
   '/app/catalogo': typeof AppCatalogoIndexRoute
   '/app/clientes': typeof AppClientesIndexRoute
@@ -1689,7 +1704,7 @@ export interface FileRoutesById {
   '/portal': typeof PortalRouteWithChildren
   '/pwa': typeof PwaRouteWithChildren
   '/sem-permissao': typeof SemPermissaoRoute
-  '/app/agenda': typeof AppAgendaRoute
+  '/app/agenda': typeof AppAgendaRouteWithChildren
   '/app/atendimento': typeof AppAtendimentoRouteWithChildren
   '/app/carteira': typeof AppCarteiraRoute
   '/app/catalogo': typeof AppCatalogoRouteWithChildren
@@ -1741,6 +1756,7 @@ export interface FileRoutesById {
   '/loja/': typeof LojaIndexRoute
   '/portal/': typeof PortalIndexRoute
   '/pwa/': typeof PwaIndexRoute
+  '/app/agenda/triagem': typeof AppAgendaTriagemRoute
   '/app/atendimento/$id': typeof AppAtendimentoIdRoute
   '/app/catalogo/$id': typeof AppCatalogoIdRoute
   '/app/catalogo/kits': typeof AppCatalogoKitsRoute
@@ -1825,6 +1841,7 @@ export interface FileRoutesById {
   '/portal/solicitacoes/nova': typeof PortalSolicitacoesNovaRoute
   '/pwa/agenda/nova': typeof PwaAgendaNovaRoute
   '/pwa/carteira/$id': typeof PwaCarteiraIdRoute
+  '/app/agenda/': typeof AppAgendaIndexRoute
   '/app/atendimento/': typeof AppAtendimentoIndexRoute
   '/app/catalogo/': typeof AppCatalogoIndexRoute
   '/app/clientes/': typeof AppClientesIndexRoute
@@ -1949,6 +1966,7 @@ export interface FileRouteTypes {
     | '/loja/'
     | '/portal/'
     | '/pwa/'
+    | '/app/agenda/triagem'
     | '/app/atendimento/$id'
     | '/app/catalogo/$id'
     | '/app/catalogo/kits'
@@ -2033,6 +2051,7 @@ export interface FileRouteTypes {
     | '/portal/solicitacoes/nova'
     | '/pwa/agenda/nova'
     | '/pwa/carteira/$id'
+    | '/app/agenda/'
     | '/app/atendimento/'
     | '/app/catalogo/'
     | '/app/clientes/'
@@ -2099,7 +2118,6 @@ export interface FileRouteTypes {
     | '/design-system'
     | '/erro'
     | '/sem-permissao'
-    | '/app/agenda'
     | '/app/carteira'
     | '/app/inicio'
     | '/app/insights'
@@ -2137,6 +2155,7 @@ export interface FileRouteTypes {
     | '/loja'
     | '/portal'
     | '/pwa'
+    | '/app/agenda/triagem'
     | '/app/atendimento/$id'
     | '/app/catalogo/$id'
     | '/app/catalogo/kits'
@@ -2213,6 +2232,7 @@ export interface FileRouteTypes {
     | '/portal/solicitacoes/nova'
     | '/pwa/agenda/nova'
     | '/pwa/carteira/$id'
+    | '/app/agenda'
     | '/app/atendimento'
     | '/app/catalogo'
     | '/app/clientes'
@@ -2335,6 +2355,7 @@ export interface FileRouteTypes {
     | '/loja/'
     | '/portal/'
     | '/pwa/'
+    | '/app/agenda/triagem'
     | '/app/atendimento/$id'
     | '/app/catalogo/$id'
     | '/app/catalogo/kits'
@@ -2419,6 +2440,7 @@ export interface FileRouteTypes {
     | '/portal/solicitacoes/nova'
     | '/pwa/agenda/nova'
     | '/pwa/carteira/$id'
+    | '/app/agenda/'
     | '/app/atendimento/'
     | '/app/catalogo/'
     | '/app/clientes/'
@@ -3041,6 +3063,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAtendimentoIndexRouteImport
       parentRoute: typeof AppAtendimentoRoute
     }
+    '/app/agenda/': {
+      id: '/app/agenda/'
+      path: '/'
+      fullPath: '/app/agenda/'
+      preLoaderRoute: typeof AppAgendaIndexRouteImport
+      parentRoute: typeof AppAgendaRoute
+    }
     '/pwa/carteira/$id': {
       id: '/pwa/carteira/$id'
       path: '/$id'
@@ -3629,6 +3658,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAtendimentoIdRouteImport
       parentRoute: typeof AppAtendimentoRoute
     }
+    '/app/agenda/triagem': {
+      id: '/app/agenda/triagem'
+      path: '/triagem'
+      fullPath: '/app/agenda/triagem'
+      preLoaderRoute: typeof AppAgendaTriagemRouteImport
+      parentRoute: typeof AppAgendaRoute
+    }
     '/loja/conta/pedidos/': {
       id: '/loja/conta/pedidos/'
       path: '/'
@@ -3926,6 +3962,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppAgendaRouteChildren {
+  AppAgendaTriagemRoute: typeof AppAgendaTriagemRoute
+  AppAgendaIndexRoute: typeof AppAgendaIndexRoute
+}
+
+const AppAgendaRouteChildren: AppAgendaRouteChildren = {
+  AppAgendaTriagemRoute: AppAgendaTriagemRoute,
+  AppAgendaIndexRoute: AppAgendaIndexRoute,
+}
+
+const AppAgendaRouteWithChildren = AppAgendaRoute._addFileChildren(
+  AppAgendaRouteChildren,
+)
+
 interface AppAtendimentoRouteChildren {
   AppAtendimentoIdRoute: typeof AppAtendimentoIdRoute
   AppAtendimentoIndexRoute: typeof AppAtendimentoIndexRoute
@@ -4190,7 +4240,7 @@ const AppGestaoRankingRouteWithChildren =
   AppGestaoRankingRoute._addFileChildren(AppGestaoRankingRouteChildren)
 
 interface AppRouteChildren {
-  AppAgendaRoute: typeof AppAgendaRoute
+  AppAgendaRoute: typeof AppAgendaRouteWithChildren
   AppAtendimentoRoute: typeof AppAtendimentoRouteWithChildren
   AppCarteiraRoute: typeof AppCarteiraRoute
   AppCatalogoRoute: typeof AppCatalogoRouteWithChildren
@@ -4282,7 +4332,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppAgendaRoute: AppAgendaRoute,
+  AppAgendaRoute: AppAgendaRouteWithChildren,
   AppAtendimentoRoute: AppAtendimentoRouteWithChildren,
   AppCarteiraRoute: AppCarteiraRoute,
   AppCatalogoRoute: AppCatalogoRouteWithChildren,
