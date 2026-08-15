@@ -10,19 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { INVENTORY_STRINGS as S } from "../i18n/pt-BR";
-
-const CATEGORY_OPTIONS: { value: PartCategory; label: string }[] = [
-  { value: "filtro", label: "Filtros" },
-  { value: "freio", label: "Freios" },
-  { value: "correia", label: "Correias" },
-  { value: "motor", label: "Motor" },
-  { value: "embreagem", label: "Embreagem" },
-  { value: "eletrica", label: "Elétrica" },
-  { value: "transmissao", label: "Transmissão" },
-  { value: "suspensao", label: "Suspensão" },
-  { value: "arrefecimento", label: "Arrefecimento" },
-  { value: "lubrificante", label: "Lubrificantes" },
-];
+import { useCategoryDescriptors } from "@/features/catalog/hooks/useCategoryDescriptors";
 
 const STATUS_OPTIONS: InventoryStatus[] = ["ok", "baixo", "critico", "excesso"];
 const CURVE_OPTIONS: InventoryCurve[] = ["X", "Y", "Z"];
@@ -40,6 +28,9 @@ export interface IInventoryHeaderProps {
 }
 
 export function InventoryHeader(props: IInventoryHeaderProps) {
+  // The taxonomy is data: a family created in the catalog has to be
+  // offered here too, otherwise the URL filter applies with a blank control.
+  const { active: categoryOptions } = useCategoryDescriptors();
   return (
     <header className="flex flex-col gap-4 border-b border-border pb-5">
       <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
@@ -70,7 +61,7 @@ export function InventoryHeader(props: IInventoryHeaderProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{S.filtersCategoryAll}</SelectItem>
-              {CATEGORY_OPTIONS.map((opt) => (
+              {categoryOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>

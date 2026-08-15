@@ -27,6 +27,13 @@ export const OPTIONAL_COLUMNS = [
 export type OptionalColumn = (typeof OPTIONAL_COLUMNS)[number];
 export type ColumnId = (typeof MANDATORY_COLUMNS)[number] | OptionalColumn;
 
+/**
+ * Columns that expose what the shop pays and how much it makes. Gated behind
+ * the `profitability` permission — the same one guarding the Rentabilidade
+ * screen — so a Vendedor never reads cost or margin off the catalog list.
+ */
+export const PROFITABILITY_COLUMNS: readonly OptionalColumn[] = ["margin", "turnover"];
+
 const COPY = CATALOG_STRINGS.columns;
 
 export const COLUMN_LABELS: Record<ColumnId, string> = {

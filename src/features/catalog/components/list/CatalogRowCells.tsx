@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { formatBRL } from "@/shared/utils/format";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
 import { getCategoryDescriptor, getCategoryLabel } from "../../utils/categories";
+import { useCategoryDescriptors } from "../../hooks/useCategoryDescriptors";
 import {
   isDeadStockCandidate,
   isReadyToSell,
@@ -59,7 +60,8 @@ function SubLine({
  * outline instead of a colour — the gap has to read as a gap.
  */
 export function CategoryTile({ category, size = 36 }: { category?: PartCategory; size?: number }) {
-  const descriptor = getCategoryDescriptor(category);
+  const { descriptors } = useCategoryDescriptors();
+  const descriptor = getCategoryDescriptor(category, descriptors);
   return (
     <span
       className={cn(
@@ -152,6 +154,7 @@ export function PartCodesCell({ part }: { part: IPart }) {
  * group is surfaced instead — that string is the lead for classifying it.
  */
 export function PartCategoryCell({ part }: { part: IPart }) {
+  const { descriptors } = useCategoryDescriptors();
   if (!part.category) {
     return (
       <div className="min-w-0">
@@ -169,7 +172,7 @@ export function PartCategoryCell({ part }: { part: IPart }) {
   return (
     <div className="min-w-0">
       <div className="truncate text-xs font-medium text-foreground">
-        {getCategoryLabel(part.category)}
+        {getCategoryLabel(part.category, descriptors)}
       </div>
       {part.subcategory && (
         <SubLine className="uppercase tracking-[0.06em]">{part.subcategory}</SubLine>

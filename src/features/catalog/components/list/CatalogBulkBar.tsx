@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
-import { PART_CATEGORY_DESCRIPTORS } from "../../utils/categories";
+import { useCategoryDescriptors } from "../../hooks/useCategoryDescriptors";
 import { downloadCatalogCsv } from "../../utils/csvExport";
 
 const COPY = CATALOG_STRINGS.bulk;
@@ -50,6 +50,7 @@ export function CatalogBulkBar({ selected, onClear, onApply, canUpdate }: ICatal
   const [category, setCategory] = useState<PartCategory | "">("");
   const [manufacturer, setManufacturer] = useState("");
   const [isApplying, setApplying] = useState(false);
+  const { active: categoryOptions } = useCategoryDescriptors();
 
   if (selected.length === 0) return null;
 
@@ -178,7 +179,7 @@ export function CatalogBulkBar({ selected, onClear, onApply, canUpdate }: ICatal
                   <SelectValue placeholder={CATALOG_STRINGS.filters.category} />
                 </SelectTrigger>
                 <SelectContent>
-                  {PART_CATEGORY_DESCRIPTORS.map((descriptor) => (
+                  {categoryOptions.map((descriptor) => (
                     <SelectItem key={descriptor.value} value={descriptor.value}>
                       {descriptor.label}
                     </SelectItem>

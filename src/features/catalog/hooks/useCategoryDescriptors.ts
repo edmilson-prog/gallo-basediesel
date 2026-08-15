@@ -1,9 +1,8 @@
 import { useCallback, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ID, IPartCategory } from "@/shared/types";
-import { usePartCategoriesProvider } from "@/providers/data";
+import { usePartCategoriesProvider, type ISavePartCategoryInput } from "@/providers/data";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
-import type { ISavePartCategoryInput } from "@/providers/data";
 import {
   BUILTIN_PART_CATEGORY_DESCRIPTORS,
   mergeCategoryDescriptors,
@@ -22,23 +21,20 @@ export interface IUseCategoryDescriptorsResult {
   isLoading: boolean;
   /** True when the stored layer could not be read — the built-ins are showing. */
   isDegraded: boolean;
-  save: (input: ISavePartCategoryInput) => Promise<void>;
-  remove: (id: ID) => Promise<void>;
-  isSaving: boolean;
 }
 
 /**
- * The live part taxonomy.
+ * The live part taxonomy — read-only, and cheap enough to call from a table row.
  *
  * Reading never fails loudly: if `part_categories` is missing (migration not
  * applied yet), empty or blocked by RLS, this falls back to the built-in
- * families, which is exactly today's behaviour. Only writes surface errors,
- * because a write that silently did nothing would be a lie.
+ * families, which is exactly the behaviour that shipped before the table
+ * existed. Writes live in {@link useCategoryAdmin} so that rendering a cell
+ * never registers a mutation observer.
  */
 export function useCategoryDescriptors(): IUseCategoryDescriptorsResult {
   const provider = usePartCategoriesProvider();
   const { currentStoreId } = useCurrentStore();
-  const queryClient = useQueryClient();
   const storeId = currentStoreId ?? undefined;
 
   const query = useQuery({
@@ -61,6 +57,28 @@ export function useCategoryDescriptors(): IUseCategoryDescriptorsResult {
     () => descriptors.filter((descriptor) => !descriptor.archived),
     [descriptors],
   );
+
+  return {
+    descriptors,
+    active,
+    rows,
+    isLoading: query.isLoading,
+    isDegraded: query.isError,
+  };
+}
+
+export interface IUseCategoryAdminResult {
+  save: (input: ISavePartCategoryInput) => Promise<void>;
+  remove: (id: ID) => Promise<void>;
+  isSaving: boolean;
+}
+
+/** Write side of the taxonomy — only the category manager needs it. */
+export function useCategoryAdmin(): IUseCategoryAdminResult {
+  const provider = usePartCategoriesProvider();
+  const { currentStoreId } = useCurrentStore();
+  const queryClient = useQueryClient();
+  const storeId = currentStoreId ?? undefined;
 
   const invalidate = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: [PART_CATEGORIES_QUERY_KEY] });
@@ -91,14 +109,5 @@ export function useCategoryDescriptors(): IUseCategoryDescriptorsResult {
     [removeMutation],
   );
 
-  return {
-    descriptors,
-    active,
-    rows,
-    isLoading: query.isLoading,
-    isDegraded: query.isError,
-    save,
-    remove,
-    isSaving: saveMutation.isPending || removeMutation.isPending,
-  };
+  return { save, remove, isSaving: saveMutation.isPending || removeMutation.isPending };
 }

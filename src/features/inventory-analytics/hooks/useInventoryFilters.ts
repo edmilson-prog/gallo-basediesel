@@ -2,24 +2,13 @@ import { useCallback, useMemo } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { InventoryCurve, InventoryStatus } from "@/shared/types";
 import type { PartCategory } from "@/shared/types/part-identification";
+import { isCategorySlug } from "@/features/catalog/utils/categories";
 
 export type InventoryTab = "overview" | "critical" | "xyz" | "excess";
 
 const VALID_TABS = new Set<InventoryTab>(["overview", "critical", "xyz", "excess"]);
 const VALID_CURVE = new Set<InventoryCurve>(["X", "Y", "Z"]);
 const VALID_STATUS = new Set<InventoryStatus>(["ok", "baixo", "critico", "excesso"]);
-const VALID_CATEGORY = new Set<PartCategory>([
-  "filtro",
-  "freio",
-  "correia",
-  "motor",
-  "embreagem",
-  "eletrica",
-  "transmissao",
-  "suspensao",
-  "arrefecimento",
-  "lubrificante",
-]);
 
 export interface IInventoryFiltersSearch {
   aba?: string;
@@ -32,9 +21,7 @@ export interface IInventoryFiltersSearch {
 export function validateInventorySearch(raw: Record<string, unknown>): IInventoryFiltersSearch {
   const out: IInventoryFiltersSearch = {};
   if (typeof raw.aba === "string" && VALID_TABS.has(raw.aba as InventoryTab)) out.aba = raw.aba;
-  if (typeof raw.categoria === "string" && VALID_CATEGORY.has(raw.categoria as PartCategory)) {
-    out.categoria = raw.categoria;
-  }
+  if (isCategorySlug(raw.categoria)) out.categoria = raw.categoria;
   if (typeof raw.marca === "string" && raw.marca.length > 0) out.marca = raw.marca;
   if (typeof raw.status === "string" && VALID_STATUS.has(raw.status as InventoryStatus)) {
     out.status = raw.status;

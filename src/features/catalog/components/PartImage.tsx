@@ -1,12 +1,18 @@
 import type { IPart } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
-import { getCategoryDescriptor } from "../utils/categories";
+import { getCategoryDescriptor, type IPartCategoryDescriptor } from "../utils/categories";
 
 export interface IPartImageProps {
   part: Pick<IPart, "category" | "imageUrl" | "name">;
   size?: keyof typeof SIZE_MAP;
   className?: string;
+  /**
+   * Live taxonomy, for callers inside the app. Omitted on the public storefront,
+   * which is anonymous and cannot read the store-scoped category table — there
+   * the built-in families answer and a custom family falls back to the cube.
+   */
+  descriptors?: readonly IPartCategoryDescriptor[];
 }
 
 const SIZE_MAP = {
@@ -17,8 +23,8 @@ const SIZE_MAP = {
   lg: { box: "h-32 w-32 rounded-xl", icon: 64 },
 } as const;
 
-export function PartImage({ part, size = "sm", className }: IPartImageProps) {
-  const descriptor = getCategoryDescriptor(part.category);
+export function PartImage({ part, size = "sm", className, descriptors }: IPartImageProps) {
+  const descriptor = getCategoryDescriptor(part.category, descriptors);
   const dims = SIZE_MAP[size];
 
   if (part.imageUrl) {

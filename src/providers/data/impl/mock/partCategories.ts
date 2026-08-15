@@ -52,9 +52,7 @@ export const mockPartCategoriesProvider: IPartCategoriesProvider = {
   async save(input: ISavePartCategoryInput): Promise<IPartCategory> {
     await delay();
     const storeId = input.storeId ?? SEED_STORE_ID;
-    const existing = catalog.find(
-      (row) => row.storeId === storeId && row.value === input.value,
-    );
+    const existing = catalog.find((row) => row.storeId === storeId && row.value === input.value);
 
     if (existing) {
       const updated: IPartCategory = {

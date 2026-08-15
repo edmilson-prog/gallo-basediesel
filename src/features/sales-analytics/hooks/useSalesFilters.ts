@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { ID, OrderOrigin } from "@/shared/types";
 import type { PartCategory } from "@/shared/types/part-identification";
+import { isCategorySlug } from "@/features/catalog/utils/categories";
 
 export type SalesPeriodPreset = "today" | "yesterday" | "7d" | "30d" | "90d" | "ytd" | "custom";
 
@@ -37,19 +38,6 @@ const VALID_PERIOD = new Set<SalesPeriodPreset>([
 ]);
 
 const VALID_CHANNEL = new Set<SalesChannel>(["whatsapp", "manual", "portal", "ecommerce"]);
-
-const VALID_CATEGORY = new Set<PartCategory>([
-  "filtro",
-  "freio",
-  "correia",
-  "motor",
-  "embreagem",
-  "eletrica",
-  "transmissao",
-  "suspensao",
-  "arrefecimento",
-  "lubrificante",
-]);
 
 export const DEFAULT_SALES_FILTERS: ISalesFiltersState = {
   period: "30d",
@@ -162,9 +150,7 @@ export function validateSalesSearch(raw: Record<string, unknown>): ISalesFilters
   if (typeof raw.ate === "string" && raw.ate.length > 0) out.ate = raw.ate;
   if (typeof raw.loja === "string" && raw.loja.length > 0) out.loja = raw.loja;
   if (typeof raw.vendedor === "string" && raw.vendedor.length > 0) out.vendedor = raw.vendedor;
-  if (typeof raw.categoria === "string" && VALID_CATEGORY.has(raw.categoria as PartCategory)) {
-    out.categoria = raw.categoria;
-  }
+  if (isCategorySlug(raw.categoria)) out.categoria = raw.categoria;
   if (typeof raw.marca === "string" && raw.marca.length > 0) out.marca = raw.marca;
   if (typeof raw.canal === "string" && VALID_CHANNEL.has(raw.canal as SalesChannel)) {
     out.canal = raw.canal;

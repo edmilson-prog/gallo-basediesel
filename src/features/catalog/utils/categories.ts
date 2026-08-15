@@ -97,16 +97,76 @@ interface IBuiltinSeed {
 }
 
 const BUILTIN_SEEDS: readonly IBuiltinSeed[] = [
-  { value: "filtro", label: "Filtros", icon: "mdi:air-filter", color: "emerald", subcategories: ["óleo", "ar", "combustível", "cabine", "separador"] },
-  { value: "freio", label: "Freios", icon: "mdi:car-brake-alert", color: "red", subcategories: ["pastilha", "disco", "lona", "tambor", "câmara", "regulador"] },
-  { value: "correia", label: "Correias", icon: "mdi:reorder-horizontal", color: "orange", subcategories: ["dentada", "alternador", "motor"] },
-  { value: "motor", label: "Motor", icon: "mdi:engine", color: "amber", subcategories: ["pistão", "biela", "junta", "turbo", "bomba"] },
-  { value: "embreagem", label: "Embreagem", icon: "mdi:gear", color: "purple", subcategories: ["disco", "platô", "rolamento"] },
-  { value: "eletrica", label: "Elétrica", icon: "mdi:flash", color: "yellow", subcategories: ["alternador", "bateria", "partida", "sensor", "chicote"] },
-  { value: "transmissao", label: "Transmissão", icon: "mdi:cog-transfer", color: "blue", subcategories: ["cardan", "sincronizador", "rolamento"] },
-  { value: "suspensao", label: "Suspensão", icon: "mdi:car-shock-absorber", color: "indigo", subcategories: ["amortecedor", "mola", "bucha", "direção"] },
-  { value: "arrefecimento", label: "Arrefecimento", icon: "mdi:radiator", color: "cyan", subcategories: ["radiador", "intercooler", "ventoinha", "termostato"] },
-  { value: "lubrificante", label: "Lubrificantes", icon: "mdi:oil", color: "lime", subcategories: ["motor", "câmbio", "hidráulico", "graxa", "arla"] },
+  {
+    value: "filtro",
+    label: "Filtros",
+    icon: "mdi:air-filter",
+    color: "emerald",
+    subcategories: ["óleo", "ar", "combustível", "cabine", "separador"],
+  },
+  {
+    value: "freio",
+    label: "Freios",
+    icon: "mdi:car-brake-alert",
+    color: "red",
+    subcategories: ["pastilha", "disco", "lona", "tambor", "câmara", "regulador"],
+  },
+  {
+    value: "correia",
+    label: "Correias",
+    icon: "mdi:reorder-horizontal",
+    color: "orange",
+    subcategories: ["dentada", "alternador", "motor"],
+  },
+  {
+    value: "motor",
+    label: "Motor",
+    icon: "mdi:engine",
+    color: "amber",
+    subcategories: ["pistão", "biela", "junta", "turbo", "bomba"],
+  },
+  {
+    value: "embreagem",
+    label: "Embreagem",
+    icon: "mdi:gear",
+    color: "purple",
+    subcategories: ["disco", "platô", "rolamento"],
+  },
+  {
+    value: "eletrica",
+    label: "Elétrica",
+    icon: "mdi:flash",
+    color: "yellow",
+    subcategories: ["alternador", "bateria", "partida", "sensor", "chicote"],
+  },
+  {
+    value: "transmissao",
+    label: "Transmissão",
+    icon: "mdi:cog-transfer",
+    color: "blue",
+    subcategories: ["cardan", "sincronizador", "rolamento"],
+  },
+  {
+    value: "suspensao",
+    label: "Suspensão",
+    icon: "mdi:car-shock-absorber",
+    color: "indigo",
+    subcategories: ["amortecedor", "mola", "bucha", "direção"],
+  },
+  {
+    value: "arrefecimento",
+    label: "Arrefecimento",
+    icon: "mdi:radiator",
+    color: "cyan",
+    subcategories: ["radiador", "intercooler", "ventoinha", "termostato"],
+  },
+  {
+    value: "lubrificante",
+    label: "Lubrificantes",
+    icon: "mdi:oil",
+    color: "lime",
+    subcategories: ["motor", "câmbio", "hidráulico", "graxa", "arla"],
+  },
 ] as const;
 
 /** The families that ship with the product — the fallback when the table is empty. */
@@ -171,14 +231,24 @@ export function toCategorySlug(label: string): string {
   return (
     label
       .normalize("NFD")
-      // NFD split every accent into its own combining mark. Those marks have to
-      // be deleted before separators are collapsed, otherwise each one becomes a
-      // hyphen and "suspensão" slugs to "suspensa-o" instead of "suspensao".
-      .replace(/[^\x00-\x7F]/g, "")
+      // NFD split every accent into its own combining mark (U+0300–U+036F).
+      // Those marks have to go before separators are collapsed, otherwise each
+      // one becomes a hyphen and "suspensão" slugs to "suspensa-o".
+      .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
   );
+}
+
+/**
+ * A category slug is anything the database would accept — the taxonomy is data
+ * now, so URL validators must not test against the built-in ten. The pattern is
+ * the `part_categories_value_format` CHECK constraint
+ * (`20260814180000_part_categories_catalog.sql`); keep the two in sync.
+ */
+export function isCategorySlug(value: unknown): value is PartCategory {
+  return typeof value === "string" && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(value);
 }
 
 function descriptorMap(

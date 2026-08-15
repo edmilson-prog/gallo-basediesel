@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ID, IPart } from "@/shared/types";
+import type { ID, IPart, PartCategory } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
@@ -12,6 +12,7 @@ import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { usePartsProvider } from "@/providers/data/hooks/usePartsProvider";
 import { CatalogHeader } from "../components/list/CatalogHeader";
+import { CatalogCategoriesDrawer } from "../components/list/CatalogCategoriesDrawer";
 import { CatalogCoverageBar } from "../components/list/CatalogCoverageBar";
 import { CatalogFiltersBar } from "../components/list/CatalogFiltersBar";
 import { CatalogTable } from "../components/list/CatalogTable";
@@ -25,6 +26,7 @@ import { countCoverage } from "../utils/completeness";
 import { buildRestockSummary } from "../utils/restock";
 import {
   OPTIONAL_COLUMNS,
+  PROFITABILITY_COLUMNS,
   readVisibleOptional,
   writeVisibleOptional,
   type OptionalColumn,
@@ -39,6 +41,12 @@ export function CatalogListPage() {
   const role = useCurrentRole();
   const canCreate = usePermission("part", "create");
   const canUpdate = usePermission("part", "edit");
+  /**
+   * Cost, margin and turnover are commercial intelligence, not catalog data —
+   * the same gate that guards the Rentabilidade screen guards them here, so a
+   * Vendedor never sees what the shop pays for a part.
+   */
+  const canSeeMargin = usePermission("profitability", "view");
   const isOwner = role === "Owner";
   const { accessibleStores, currentStoreId } = useCurrentStore();
   const partsProvider = usePartsProvider();
@@ -48,8 +56,24 @@ export function CatalogListPage() {
   const { filters, sort, view, page, pageSize } = url;
 
   // Column visibility (persisted in localStorage).
-  const [visibleColumns, setVisibleColumns] = useState<Set<OptionalColumn>>(
+  const [storedColumns, setStoredColumns] = useState<Set<OptionalColumn>>(
     () => new Set(readVisibleOptional()),
+  );
+
+  /** Columns this role may even be offered. */
+  const availableColumns = useMemo(
+    () =>
+      canSeeMargin
+        ? OPTIONAL_COLUMNS
+        : OPTIONAL_COLUMNS.filter((id) => !PROFITABILITY_COLUMNS.includes(id)),
+    [canSeeMargin],
+  );
+
+  // A stored preference can never widen access: margin/turnover are dropped for
+  // roles without the profitability permission, whatever localStorage says.
+  const visibleColumns = useMemo(
+    () => new Set([...storedColumns].filter((id) => availableColumns.includes(id))),
+    [storedColumns, availableColumns],
   );
 
   // Turnover costs a full orders window, so it only loads with its column on.
@@ -107,7 +131,7 @@ export function CatalogListPage() {
   }, [allParts.data]);
 
   const toggleColumn = useCallback((id: OptionalColumn) => {
-    setVisibleColumns((prev) => {
+    setStoredColumns((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -116,8 +140,8 @@ export function CatalogListPage() {
   }, []);
 
   const showAllColumns = useCallback(() => {
-    setVisibleColumns(new Set(OPTIONAL_COLUMNS));
-  }, []);
+    setStoredColumns(new Set(availableColumns));
+  }, [availableColumns]);
 
   useEffect(() => {
     // Persist in canonical column order.
@@ -207,6 +231,26 @@ export function CatalogListPage() {
     });
   }, []);
 
+  /* ── Category manager ─────────────────────────────────────────────────── */
+
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+
+  /** "Triar" — jump to the grouped view, filtered to the uncategorised queue. */
+  const handleTriage = useCallback(() => {
+    url.setViewAndCoverage("grouped", "noCategory");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url.setViewAndCoverage]);
+
+  /** Reassigns a whole family — the honest form of "merge" while slugs are the join key. */
+  const handleMoveParts = useCallback(
+    (to: PartCategory, moving: IPart[]) =>
+      applyBulk(
+        moving.map((part) => part.id),
+        { category: to },
+      ),
+    [applyBulk],
+  );
+
   const handleRowClick = (id: ID) => {
     void navigate({ to: "/app/catalogo/$id", params: { id } });
   };
@@ -240,6 +284,7 @@ export function CatalogListPage() {
           onSearchChange={(q) => url.setSearch(q)}
           canCreate={canCreate}
           onCreate={handleCreate}
+          onOpenCategories={() => setCategoriesOpen(true)}
         />
 
         <CatalogCoverageBar
@@ -281,6 +326,7 @@ export function CatalogListPage() {
               selectedIds={selectedIds}
               onToggleRow={toggleRow}
               onSelectMany={selectMany}
+              canSeeMargin={canSeeMargin}
               turnoverIndex={turnover.index}
               isTurnoverLoading={turnover.isLoading}
               onRestock={handleRestock}
@@ -296,6 +342,7 @@ export function CatalogListPage() {
               visibleColumns={visibleColumns}
               onToggleColumn={toggleColumn}
               onShowAllColumns={showAllColumns}
+              availableColumns={availableColumns}
               scrollRef={setScrollEl}
               selectedIds={selectedIds}
               onToggleRow={toggleRow}
@@ -321,6 +368,15 @@ export function CatalogListPage() {
         onClear={clearSelection}
         onApply={applyBulk}
         canUpdate={canUpdate}
+      />
+
+      <CatalogCategoriesDrawer
+        open={categoriesOpen}
+        onOpenChange={setCategoriesOpen}
+        parts={allParts.data?.data ?? []}
+        canManage={isOwner}
+        onTriage={handleTriage}
+        onMoveParts={handleMoveParts}
       />
     </div>
   );
