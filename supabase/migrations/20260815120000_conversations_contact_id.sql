@@ -45,7 +45,10 @@ update public.conversations c
 update public.conversations c
    set contact_id = pick.contact_id
   from (
-    select customer_id, min(id) as contact_id
+    -- `(array_agg(id))[1]`, not `min(id)`: there is no `min(uuid)` in Postgres.
+    -- The HAVING already guarantees a single row per customer, so picking the
+    -- first element is exact rather than arbitrary.
+    select customer_id, (array_agg(id))[1] as contact_id
       from public.contacts
      where customer_id is not null
      group by customer_id
