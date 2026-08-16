@@ -7,6 +7,7 @@ export { readZipEntry, listZipEntries } from "./xlsxZip";
 export { colLettersToIndex, parseSharedStrings, parseSheetRows, loadXlsxSheet } from "./xlsxParser";
 export { buildDintecPriceTables } from "./dintecPriceTables";
 export { parseAplicacaoText } from "./aplicacaoParser";
+export { pickSugestaoName, type SugestaoNameCandidate } from "./pickSugestaoName";
 export { titleCaseName } from "./titleCase";
 export { extractCrossReferences } from "./crossReferenceExtractor";
 export {
