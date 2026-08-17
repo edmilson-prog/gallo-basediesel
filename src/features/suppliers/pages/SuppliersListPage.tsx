@@ -10,6 +10,7 @@ import { SuppliersFiltersBar } from "../components/list/SuppliersFiltersBar";
 import { SuppliersTable } from "../components/list/SuppliersTable";
 import { SupplierRail } from "../components/list/SupplierRail";
 import { SupplierFormDialog } from "../components/detail/SupplierFormDialog";
+import { SupplierSheet } from "../components/detail/SupplierSheet";
 import {
   OPTIONAL_COLUMNS,
   readVisibleOptional,
@@ -35,6 +36,9 @@ export function SuppliersListPage() {
   // --- Diálogo de cadastro/edição ---
   const [formOpen, setFormOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<ISupplier | null>(null);
+
+  // --- Gaveta "Ficha completa" ---
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   // --- Colunas visíveis (persistidas) ---
   const [visibleColumns, setVisibleColumns] = useState<Set<OptionalColumn>>(
@@ -62,7 +66,11 @@ export function SuppliersListPage() {
 
   // KPIs e chips de categoria descrevem a BASE (todos os ~126, sem o filtro de
   // busca/documento), nunca a página filtrada — por isso usam `list.all`.
-  const statsEnabled = visibleColumns.has("parts") || visibleColumns.has("purchases");
+  // `sheetOpen` também liga a busca: a ficha completa mostra compras/entradas
+  // mesmo com as colunas opcionais escondidas, e sem isso `stats` ficaria
+  // `null` para sempre (consulta nunca disparada), nunca resolvendo o
+  // "carregando" da gaveta para um valor real.
+  const statsEnabled = visibleColumns.has("parts") || visibleColumns.has("purchases") || sheetOpen;
   const statsIds = useMemo(() => list.all.map((s) => s.id), [list.all]);
   const { index: statsIndex } = useSuppliersStatsIndex(statsIds, statsEnabled);
 
@@ -195,9 +203,7 @@ export function SuppliersListPage() {
               supplier={selectedSupplier}
               stats={selectedStats}
               canEdit={canEdit}
-              // A ficha completa (sheet) chega na Task 9 — o botão fica
-              // reservado, mesmo espírito do `onCreate` antes da Task 8.
-              onOpenSheet={() => {}}
+              onOpenSheet={() => setSheetOpen(true)}
               onEdit={() => {
                 if (!selectedSupplier) return;
                 setEditingSupplier(selectedSupplier);
@@ -207,6 +213,24 @@ export function SuppliersListPage() {
           </div>
         </div>
       </div>
+
+      <SupplierSheet
+        supplier={selectedSupplier}
+        stats={selectedStats}
+        open={sheetOpen}
+        canEdit={canEdit}
+        onClose={() => setSheetOpen(false)}
+        onEdit={() => {
+          if (!selectedSupplier) return;
+          // Fecha a gaveta e abre o diálogo no mesmo fornecedor — evita as
+          // duas sobreposições (Sheet + Dialog) empilhadas na tela ao mesmo
+          // tempo; "Editar cadastro" é uma troca de contexto, não um layer
+          // extra por cima do outro.
+          setSheetOpen(false);
+          setEditingSupplier(selectedSupplier);
+          setFormOpen(true);
+        }}
+      />
 
       <SupplierFormDialog
         open={formOpen}

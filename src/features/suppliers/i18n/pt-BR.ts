@@ -70,6 +70,28 @@ export const SUPPLIERS_STRINGS = {
   },
   complete: "Cadastro completo",
   newBadge: "novo",
+  chart: {
+    /** `SupplierPurchasesChart`'s `aria-label` — screen-reader users get this instead of the SVG. */
+    purchasesAriaLabel: (total: string) => `Compras dos últimos 12 meses, total de ${total}`,
+  },
+  sheet: {
+    /** Accessible `SheetTitle` — visually `sr-only`, the visible header repeats the name. */
+    title: (name: string) => `Ficha completa de ${name}`,
+    description: "Dados cadastrais, métricas de compra e ações do fornecedor.",
+    noHistoryBadge: "Novo · sem histórico",
+    factsLabels: {
+      registryStatus: "Situação na Receita",
+    },
+    purchasesTitle: "Compras mês a mês",
+    /** Shown instead of a fabricated zero while `stats` hasn't resolved yet. */
+    statsLoading: "Carregando dados de compras…",
+    payablesTitle: "Títulos em aberto",
+    footer: {
+      newPurchaseOrder: "Novo pedido de compra",
+      schedulePayments: "Agendar pagamentos",
+      payablesDisabledReason: "Depende do contas a pagar, que ainda não existe.",
+    },
+  },
   mutations: {
     created: (name: string) => `Fornecedor ${name} cadastrado.`,
     updated: "Cadastro atualizado.",
