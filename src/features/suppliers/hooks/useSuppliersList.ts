@@ -8,6 +8,14 @@ export interface ISuppliersListFilters {
   category: SupplierCategory | "all";
 }
 
+/** Accent-insensitive fold, mirroring `fold()` in `src/mocks/api/suppliers.ts`. */
+function fold(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 /**
  * The whole active set in one fetch: ~126 rows, and every KPI plus the category
  * chips describe the BASE, not the visible page. Filtering happens client-side.
@@ -27,14 +35,8 @@ export function useSuppliersList(filters: ISuppliersListFilters) {
   const visible = all.filter((s) => {
     if (filters.category !== "all" && s.category !== filters.category) return false;
     if (!filters.search.trim()) return true;
-    const needle = filters.search
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
-    const haystack = `${s.name} ${s.tradeName ?? ""} ${s.document ?? ""}`
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
+    const needle = fold(filters.search);
+    const haystack = fold(`${s.name} ${s.tradeName ?? ""} ${s.document ?? ""}`);
     return haystack.includes(needle);
   });
 

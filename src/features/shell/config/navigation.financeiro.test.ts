@@ -46,8 +46,10 @@ describe("FINANCEIRO nav group", () => {
     expect(item?.to).toBe(ROUTES.FINANCEIRO_FORNECEDORES);
   });
 
-  it("hides Fornecedores from a user without the permission", () => {
+  it("hides Fornecedores from a role that holds no supplier grant", () => {
     const item = financeiro()!.items.find((i) => i.label === "Fornecedores")!;
-    expect(isNavItemVisible(item, null)).toBe(false);
+    // Vendedor carries no `supplier` entry in the matrix (matrix.ts) — unlike
+    // `null`, this exercises hasPermission for real instead of short-circuiting.
+    expect(isNavItemVisible(item, { role: "Vendedor" })).toBe(false);
   });
 });
