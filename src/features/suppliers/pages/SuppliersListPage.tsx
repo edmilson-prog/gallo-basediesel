@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ID, SupplierCategory } from "@/shared/types";
+import type { ID, ISupplier, SupplierCategory } from "@/shared/types";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { useSuppliersList, type ISuppliersListFilters } from "../hooks/useSuppliersList";
@@ -9,6 +9,7 @@ import { SuppliersKpiStrip } from "../components/list/SuppliersKpiStrip";
 import { SuppliersFiltersBar } from "../components/list/SuppliersFiltersBar";
 import { SuppliersTable } from "../components/list/SuppliersTable";
 import { SupplierRail } from "../components/list/SupplierRail";
+import { SupplierFormDialog } from "../components/detail/SupplierFormDialog";
 import {
   OPTIONAL_COLUMNS,
   readVisibleOptional,
@@ -30,6 +31,10 @@ export function SuppliersListPage() {
   const [sort, setSort] = useState<ISuppliersSort>({ by: "name", dir: "asc" });
   const [missingDocumentOnly, setMissingDocumentOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<ID | null>(null);
+
+  // --- Diálogo de cadastro/edição ---
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<ISupplier | null>(null);
 
   // --- Colunas visíveis (persistidas) ---
   const [visibleColumns, setVisibleColumns] = useState<Set<OptionalColumn>>(
@@ -149,9 +154,10 @@ export function SuppliersListPage() {
                 sort={sort}
                 onSortChange={setSort}
                 canCreate={canCreate}
-                // O diálogo de cadastro chega na Task 8 — o botão fica
-                // reservado (mesmo espírito da coluna do rail, Task 7).
-                onCreate={() => {}}
+                onCreate={() => {
+                  setEditingSupplier(null);
+                  setFormOpen(true);
+                }}
               />
             </div>
           </div>
@@ -189,15 +195,28 @@ export function SuppliersListPage() {
               supplier={selectedSupplier}
               stats={selectedStats}
               canEdit={canEdit}
-              // Diálogo (Task 8) e sheet (Task 9) ainda não existem — os
-              // botões do rail ficam ligados a no-ops, mesmo espírito do
-              // `onCreate` acima.
+              // A ficha completa (sheet) chega na Task 9 — o botão fica
+              // reservado, mesmo espírito do `onCreate` antes da Task 8.
               onOpenSheet={() => {}}
-              onEdit={() => {}}
+              onEdit={() => {
+                if (!selectedSupplier) return;
+                setEditingSupplier(selectedSupplier);
+                setFormOpen(true);
+              }}
             />
           </div>
         </div>
       </div>
+
+      <SupplierFormDialog
+        open={formOpen}
+        supplier={editingSupplier}
+        onClose={() => setFormOpen(false)}
+        onSaved={(saved) => {
+          setFormOpen(false);
+          setSelectedId(saved.id);
+        }}
+      />
     </div>
   );
 }
