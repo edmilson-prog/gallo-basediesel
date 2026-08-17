@@ -51,9 +51,9 @@ describe("computeKitCoverage", () => {
   });
 
   it("ignores kits pointing at models outside the filtered list", () => {
-    expect(computeKitCoverage([{ id: "m1" }], [kit("m1", "oficial"), kit("ghost", "oficial")])).toEqual(
-      { official: 1, draft: 0, none: 0, total: 1 },
-    );
+    expect(
+      computeKitCoverage([{ id: "m1" }], [kit("m1", "oficial"), kit("ghost", "oficial")]),
+    ).toEqual({ official: 1, draft: 0, none: 0, total: 1 });
   });
 });
 

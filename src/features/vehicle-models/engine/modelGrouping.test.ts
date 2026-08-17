@@ -43,18 +43,16 @@ describe("groupModelsByBrand", () => {
     const groups = groupModelsByBrand([r450, fh460a, fh540, fh460b], BRAND_ORDER);
 
     expect(groups.map((g) => g.brand)).toEqual(["Volvo", "Scania"]);
-    expect(groups[0].count).toBe(3);
-    expect(groups[1].count).toBe(1);
+    expect(groups.map((g) => g.count)).toEqual([3, 1]);
   });
 
   it("groups siblings into one block even when the provider interleaves them", () => {
     // fh540 sits between the two FH 460 records — adjacency grouping would split them.
     const groups = groupModelsByBrand([fh460a, fh540, fh460b], BRAND_ORDER);
-    const volvo = groups[0];
+    const volvo = groups.find((g) => g.brand === "Volvo");
 
-    expect(volvo.blocks.map((b) => b.model)).toEqual(["FH 460", "FH 540"]);
-    expect(volvo.blocks[0].engines).toEqual([fh460a, fh460b]);
-    expect(volvo.blocks[1].engines).toEqual([fh540]);
+    expect(volvo?.blocks.map((b) => b.model)).toEqual(["FH 460", "FH 540"]);
+    expect(volvo?.blocks.map((b) => b.engines)).toEqual([[fh460a, fh460b], [fh540]]);
   });
 
   it("appends unknown brands after the known ones, in first-seen order", () => {

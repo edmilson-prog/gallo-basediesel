@@ -10,7 +10,12 @@ function model(id: string, name: string, engine: string, brand = "Volvo"): ICand
   return { id, brand, model: name, engine, status: "ativo" };
 }
 
-function kit(id: string, modelId: string, partIds: string[], optional: string[] = []): ICandidateKit {
+function kit(
+  id: string,
+  modelId: string,
+  partIds: string[],
+  optional: string[] = [],
+): ICandidateKit {
   return {
     id,
     modelId,
@@ -133,8 +138,7 @@ describe("findAlsoForCandidates", () => {
 
     // r450 only reaches p1, so it is not offered at all.
     expect(found.map((c) => c.model.id)).toEqual([fh460b.id, fh540.id]);
-    expect(found[0].isSibling).toBe(true);
-    expect(found[1].isSibling).toBe(false);
+    expect(found.map((c) => c.isSibling)).toEqual([true, false]);
   });
 
   it("ignores optional parts — the offer is about the base composition", () => {

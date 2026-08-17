@@ -9,6 +9,8 @@ export { useKitApplicationCounts } from "./hooks/useKitApplicationCounts";
 export { validateKitEditorSearch, type IKitEditorSearch } from "./utils/kitEditorSearch";
 export { KitStatusBadge } from "./components/KitStatusBadge";
 export { KitCategoryBadge } from "./components/KitCategoryBadge";
+export { KitCoverageBar, type CoverageFilter } from "./components/KitCoverageBar";
+export { ModelKitCell } from "./components/ModelKitCell";
 export { KitCatalogSearch } from "./components/KitCatalogSearch";
 export { KitItemEditorRow } from "./components/KitItemEditorRow";
 export { KitDriftBanner } from "./components/KitDriftBanner";
