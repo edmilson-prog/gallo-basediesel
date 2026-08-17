@@ -8,3 +8,4 @@ export * from "./engine";
 export { FiscalNotesListPage } from "./pages/FiscalNotesListPage";
 export { FiscalNotesImportPage } from "./pages/FiscalNotesImportPage";
 export { FiscalNoteReviewPage } from "./pages/FiscalNoteReviewPage";
+export { FiscalAnalysisPage } from "./pages/FiscalAnalysisPage";

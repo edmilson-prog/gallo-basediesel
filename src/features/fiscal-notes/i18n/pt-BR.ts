@@ -48,6 +48,39 @@ export const FISCAL_NOTES_STRINGS = {
     sefaz: "Baixado da SEFAZ",
     manual: "Digitada",
   },
+  analysis: {
+    title: "Análise IA",
+    subtitle:
+      "O que a IA viu nas últimas notas: preço fora do histórico, NCM divergente, economia de embalagem, fracionamento sugerido pelo giro. Ela sugere e explica — nada se aplica sem aceite.",
+    emptyTitle: "Nada a analisar ainda",
+    emptyDescription:
+      "A análise roda sobre as notas em conferência. Importe um XML e os cards aparecem aqui.",
+    goImport: "Importar XML",
+    howTitle: "Como a análise funciona",
+    readsTitle: "O que ela lê",
+    reads: [
+      "O XML completo da nota — itens, NCM, CFOP, duplicatas",
+      "Histórico de compra de cada peça, derivado das notas lançadas",
+      "Catálogo: unidade de estoque, NCM cadastrado e saldo",
+      "Regras de conversão já aprendidas por fornecedor",
+    ],
+    neverTitle: "O que ela nunca faz",
+    never: [
+      "Lançar uma nota sem conferência humana",
+      "Alterar custo ou NCM sem aceite",
+      "Criar vínculo definitivo sem a primeira confirmação",
+    ],
+    rulesTitle: "Regras aprendidas",
+    rulesHint: "aplicam sozinhas na importação",
+    rulesEmpty: "Nenhuma regra ainda — elas nascem no primeiro lançamento.",
+    ruleApplied: (n: number) => (n === 1 ? "aplicada em 1 nota" : `aplicada em ${n} notas`),
+    severity: {
+      danger: "Atenção",
+      warning: "Fiscal",
+      success: "Oportunidade",
+      info: "Cadastro",
+    },
+  },
   review: {
     title: "Entrada de nota",
     subtitle:

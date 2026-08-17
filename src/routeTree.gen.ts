@@ -108,6 +108,7 @@ import { Route as AtendimentoConversaIdRouteImport } from './routes/atendimento.
 import { Route as AppVeiculosIdRouteImport } from './routes/app.veiculos.$id'
 import { Route as AppSuprimentosNotasRouteImport } from './routes/app.suprimentos.notas'
 import { Route as AppSuprimentosImportarRouteImport } from './routes/app.suprimentos.importar'
+import { Route as AppSuprimentosAnaliseRouteImport } from './routes/app.suprimentos.analise'
 import { Route as AppPedidosIdRouteImport } from './routes/app.pedidos.$id'
 import { Route as AppOrcamentosNovoRouteImport } from './routes/app.orcamentos.novo'
 import { Route as AppOrcamentosIdRouteImport } from './routes/app.orcamentos.$id'
@@ -712,6 +713,11 @@ const AppSuprimentosNotasRoute = AppSuprimentosNotasRouteImport.update({
 const AppSuprimentosImportarRoute = AppSuprimentosImportarRouteImport.update({
   id: '/importar',
   path: '/importar',
+  getParentRoute: () => AppSuprimentosRoute,
+} as any)
+const AppSuprimentosAnaliseRoute = AppSuprimentosAnaliseRouteImport.update({
+  id: '/analise',
+  path: '/analise',
   getParentRoute: () => AppSuprimentosRoute,
 } as any)
 const AppPedidosIdRoute = AppPedidosIdRouteImport.update({
@@ -1445,6 +1451,7 @@ export interface FileRoutesByFullPath {
   '/app/orcamentos/$id': typeof AppOrcamentosIdRoute
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
   '/app/pedidos/$id': typeof AppPedidosIdRoute
+  '/app/suprimentos/analise': typeof AppSuprimentosAnaliseRoute
   '/app/suprimentos/importar': typeof AppSuprimentosImportarRoute
   '/app/suprimentos/notas': typeof AppSuprimentosNotasRoute
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
@@ -1632,6 +1639,7 @@ export interface FileRoutesByTo {
   '/app/orcamentos/$id': typeof AppOrcamentosIdRoute
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
   '/app/pedidos/$id': typeof AppPedidosIdRoute
+  '/app/suprimentos/analise': typeof AppSuprimentosAnaliseRoute
   '/app/suprimentos/importar': typeof AppSuprimentosImportarRoute
   '/app/suprimentos/notas': typeof AppSuprimentosNotasRoute
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
@@ -1840,6 +1848,7 @@ export interface FileRoutesById {
   '/app/orcamentos/$id': typeof AppOrcamentosIdRoute
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
   '/app/pedidos/$id': typeof AppPedidosIdRoute
+  '/app/suprimentos/analise': typeof AppSuprimentosAnaliseRoute
   '/app/suprimentos/importar': typeof AppSuprimentosImportarRoute
   '/app/suprimentos/notas': typeof AppSuprimentosNotasRoute
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
@@ -2052,6 +2061,7 @@ export interface FileRouteTypes {
     | '/app/orcamentos/$id'
     | '/app/orcamentos/novo'
     | '/app/pedidos/$id'
+    | '/app/suprimentos/analise'
     | '/app/suprimentos/importar'
     | '/app/suprimentos/notas'
     | '/app/veiculos/$id'
@@ -2239,6 +2249,7 @@ export interface FileRouteTypes {
     | '/app/orcamentos/$id'
     | '/app/orcamentos/novo'
     | '/app/pedidos/$id'
+    | '/app/suprimentos/analise'
     | '/app/suprimentos/importar'
     | '/app/suprimentos/notas'
     | '/app/veiculos/$id'
@@ -2446,6 +2457,7 @@ export interface FileRouteTypes {
     | '/app/orcamentos/$id'
     | '/app/orcamentos/novo'
     | '/app/pedidos/$id'
+    | '/app/suprimentos/analise'
     | '/app/suprimentos/importar'
     | '/app/suprimentos/notas'
     | '/app/veiculos/$id'
@@ -3234,6 +3246,13 @@ declare module '@tanstack/react-router' {
       path: '/importar'
       fullPath: '/app/suprimentos/importar'
       preLoaderRoute: typeof AppSuprimentosImportarRouteImport
+      parentRoute: typeof AppSuprimentosRoute
+    }
+    '/app/suprimentos/analise': {
+      id: '/app/suprimentos/analise'
+      path: '/analise'
+      fullPath: '/app/suprimentos/analise'
+      preLoaderRoute: typeof AppSuprimentosAnaliseRouteImport
       parentRoute: typeof AppSuprimentosRoute
     }
     '/app/pedidos/$id': {
@@ -4124,12 +4143,14 @@ const AppPedidosRouteWithChildren = AppPedidosRoute._addFileChildren(
 )
 
 interface AppSuprimentosRouteChildren {
+  AppSuprimentosAnaliseRoute: typeof AppSuprimentosAnaliseRoute
   AppSuprimentosImportarRoute: typeof AppSuprimentosImportarRoute
   AppSuprimentosNotasRoute: typeof AppSuprimentosNotasRoute
   AppSuprimentosEntradaIdRoute: typeof AppSuprimentosEntradaIdRoute
 }
 
 const AppSuprimentosRouteChildren: AppSuprimentosRouteChildren = {
+  AppSuprimentosAnaliseRoute: AppSuprimentosAnaliseRoute,
   AppSuprimentosImportarRoute: AppSuprimentosImportarRoute,
   AppSuprimentosNotasRoute: AppSuprimentosNotasRoute,
   AppSuprimentosEntradaIdRoute: AppSuprimentosEntradaIdRoute,
