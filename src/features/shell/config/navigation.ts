@@ -152,6 +152,23 @@ export const APP_NAV_GROUPS: INavGroup[] = [
     ],
   },
   {
+    label: "Suprimentos",
+    items: [
+      {
+        label: "Notas de entrada",
+        icon: "mdi:file-document-arrow-right-outline",
+        to: ROUTES.APP_SUPRIMENTOS_NOTAS,
+        permission: { resource: "supplies" },
+      },
+      {
+        label: "Importar XML",
+        icon: "mdi:file-upload-outline",
+        to: ROUTES.APP_SUPRIMENTOS_IMPORTAR,
+        permission: { resource: "supplies" },
+      },
+    ],
+  },
+  {
     label: "SDR",
     items: [
       {

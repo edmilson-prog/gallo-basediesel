@@ -26,6 +26,8 @@ export const ROUTES = {
   APP_KITS: "/app/kits",
   APP_ORCAMENTOS: "/app/orcamentos",
   APP_PEDIDOS: "/app/pedidos",
+  APP_SUPRIMENTOS_NOTAS: "/app/suprimentos/notas",
+  APP_SUPRIMENTOS_IMPORTAR: "/app/suprimentos/importar",
   APP_SDR: "/app/sdr",
   APP_INSIGHTS: "/app/insights",
   APP_STOREFRONT_ADMIN: "/app/storefront-admin",

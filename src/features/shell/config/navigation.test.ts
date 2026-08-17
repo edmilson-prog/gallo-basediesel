@@ -136,3 +136,46 @@ describe("isNavItemVisible — hybrid nav gating", () => {
     }
   });
 });
+
+describe("grupo SUPRIMENTOS (PRD-216)", () => {
+  afterEach(() => invalidateRbac());
+
+  function suprimentos() {
+    const group = APP_NAV_GROUPS.find((g) => g.label === "Suprimentos");
+    if (!group) throw new Error("grupo Suprimentos não encontrado");
+    return group;
+  }
+
+  it("traz as duas telas da fase 2, nesta ordem", () => {
+    expect(suprimentos().items.map((i) => i.label)).toEqual(["Notas de entrada", "Importar XML"]);
+  });
+
+  it("aparece para quem tem supplies.view", () => {
+    hydrateRbac(seedRoles());
+    for (const item of suprimentos().items) {
+      expect(isNavItemVisible(item, { role: "Owner", roleKey: "Owner" })).toBe(true);
+      expect(isNavItemVisible(item, { role: "Gestor", roleKey: "Gestor" })).toBe(true);
+      expect(isNavItemVisible(item, { role: "Financeiro", roleKey: "Financeiro" })).toBe(true);
+    }
+  });
+
+  it("some para quem vende — custo de compra não é do time comercial", () => {
+    hydrateRbac(seedRoles());
+    for (const item of suprimentos().items) {
+      expect(isNavItemVisible(item, { role: "Vendedor", roleKey: "Vendedor" })).toBe(false);
+      expect(isNavItemVisible(item, { role: "VendedorExterno", roleKey: "VendedorExterno" })).toBe(
+        false,
+      );
+      expect(isNavItemVisible(item, { role: "SDR", roleKey: "SDR" })).toBe(false);
+    }
+  });
+
+  it("é gateado pela matriz, nunca por lista de papéis", () => {
+    // `roles` e `permission` são AND no requireAuth, e uma lista de papéis
+    // anularia o Editor de Papéis para papéis customizados.
+    for (const item of suprimentos().items) {
+      expect(item.permission?.resource).toBe("supplies");
+      expect(item.roles).toBeUndefined();
+    }
+  });
+});

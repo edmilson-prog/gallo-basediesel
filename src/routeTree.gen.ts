@@ -56,6 +56,7 @@ import { Route as AtendimentoEntrarRouteImport } from './routes/atendimento.entr
 import { Route as AtendimentoConversasRouteImport } from './routes/atendimento.conversas'
 import { Route as AtendimentoAnaliseRouteImport } from './routes/atendimento.analise'
 import { Route as AppVeiculosRouteImport } from './routes/app.veiculos'
+import { Route as AppSuprimentosRouteImport } from './routes/app.suprimentos'
 import { Route as AppStorefrontAdminRouteImport } from './routes/app.storefront-admin'
 import { Route as AppSdrRouteImport } from './routes/app.sdr'
 import { Route as AppPedidosRouteImport } from './routes/app.pedidos'
@@ -105,6 +106,8 @@ import { Route as LojaContaEnderecosRouteImport } from './routes/loja.conta.ende
 import { Route as LojaCategoriaSlugRouteImport } from './routes/loja.categoria.$slug'
 import { Route as AtendimentoConversaIdRouteImport } from './routes/atendimento.conversa.$id'
 import { Route as AppVeiculosIdRouteImport } from './routes/app.veiculos.$id'
+import { Route as AppSuprimentosNotasRouteImport } from './routes/app.suprimentos.notas'
+import { Route as AppSuprimentosImportarRouteImport } from './routes/app.suprimentos.importar'
 import { Route as AppPedidosIdRouteImport } from './routes/app.pedidos.$id'
 import { Route as AppOrcamentosNovoRouteImport } from './routes/app.orcamentos.novo'
 import { Route as AppOrcamentosIdRouteImport } from './routes/app.orcamentos.$id'
@@ -449,6 +452,11 @@ const AppVeiculosRoute = AppVeiculosRouteImport.update({
   path: '/veiculos',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSuprimentosRoute = AppSuprimentosRouteImport.update({
+  id: '/suprimentos',
+  path: '/suprimentos',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppStorefrontAdminRoute = AppStorefrontAdminRouteImport.update({
   id: '/storefront-admin',
   path: '/storefront-admin',
@@ -694,6 +702,16 @@ const AppVeiculosIdRoute = AppVeiculosIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AppVeiculosRoute,
+} as any)
+const AppSuprimentosNotasRoute = AppSuprimentosNotasRouteImport.update({
+  id: '/notas',
+  path: '/notas',
+  getParentRoute: () => AppSuprimentosRoute,
+} as any)
+const AppSuprimentosImportarRoute = AppSuprimentosImportarRouteImport.update({
+  id: '/importar',
+  path: '/importar',
+  getParentRoute: () => AppSuprimentosRoute,
 } as any)
 const AppPedidosIdRoute = AppPedidosIdRouteImport.update({
   id: '/$id',
@@ -1317,6 +1335,7 @@ export interface FileRoutesByFullPath {
   '/app/pedidos': typeof AppPedidosRouteWithChildren
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
+  '/app/suprimentos': typeof AppSuprimentosRouteWithChildren
   '/app/veiculos': typeof AppVeiculosRouteWithChildren
   '/atendimento/analise': typeof AtendimentoAnaliseRoute
   '/atendimento/conversas': typeof AtendimentoConversasRoute
@@ -1420,6 +1439,8 @@ export interface FileRoutesByFullPath {
   '/app/orcamentos/$id': typeof AppOrcamentosIdRoute
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
   '/app/pedidos/$id': typeof AppPedidosIdRoute
+  '/app/suprimentos/importar': typeof AppSuprimentosImportarRoute
+  '/app/suprimentos/notas': typeof AppSuprimentosNotasRoute
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/atendimento/conversa/$id': typeof AtendimentoConversaIdRouteWithChildren
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
@@ -1512,6 +1533,7 @@ export interface FileRoutesByTo {
   '/app/nps': typeof AppNpsRoute
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
+  '/app/suprimentos': typeof AppSuprimentosRouteWithChildren
   '/atendimento/analise': typeof AtendimentoAnaliseRoute
   '/atendimento/conversas': typeof AtendimentoConversasRoute
   '/atendimento/entrar': typeof AtendimentoEntrarRoute
@@ -1603,6 +1625,8 @@ export interface FileRoutesByTo {
   '/app/orcamentos/$id': typeof AppOrcamentosIdRoute
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
   '/app/pedidos/$id': typeof AppPedidosIdRoute
+  '/app/suprimentos/importar': typeof AppSuprimentosImportarRoute
+  '/app/suprimentos/notas': typeof AppSuprimentosNotasRoute
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
   '/loja/conta/enderecos': typeof LojaContaEnderecosRoute
@@ -1704,6 +1728,7 @@ export interface FileRoutesById {
   '/app/pedidos': typeof AppPedidosRouteWithChildren
   '/app/sdr': typeof AppSdrRoute
   '/app/storefront-admin': typeof AppStorefrontAdminRoute
+  '/app/suprimentos': typeof AppSuprimentosRouteWithChildren
   '/app/veiculos': typeof AppVeiculosRouteWithChildren
   '/atendimento/analise': typeof AtendimentoAnaliseRoute
   '/atendimento/conversas': typeof AtendimentoConversasRoute
@@ -1807,6 +1832,8 @@ export interface FileRoutesById {
   '/app/orcamentos/$id': typeof AppOrcamentosIdRoute
   '/app/orcamentos/novo': typeof AppOrcamentosNovoRoute
   '/app/pedidos/$id': typeof AppPedidosIdRoute
+  '/app/suprimentos/importar': typeof AppSuprimentosImportarRoute
+  '/app/suprimentos/notas': typeof AppSuprimentosNotasRoute
   '/app/veiculos/$id': typeof AppVeiculosIdRoute
   '/atendimento/conversa/$id': typeof AtendimentoConversaIdRouteWithChildren
   '/loja/categoria/$slug': typeof LojaCategoriaSlugRoute
@@ -1912,6 +1939,7 @@ export interface FileRouteTypes {
     | '/app/pedidos'
     | '/app/sdr'
     | '/app/storefront-admin'
+    | '/app/suprimentos'
     | '/app/veiculos'
     | '/atendimento/analise'
     | '/atendimento/conversas'
@@ -2015,6 +2043,8 @@ export interface FileRouteTypes {
     | '/app/orcamentos/$id'
     | '/app/orcamentos/novo'
     | '/app/pedidos/$id'
+    | '/app/suprimentos/importar'
+    | '/app/suprimentos/notas'
     | '/app/veiculos/$id'
     | '/atendimento/conversa/$id'
     | '/loja/categoria/$slug'
@@ -2107,6 +2137,7 @@ export interface FileRouteTypes {
     | '/app/nps'
     | '/app/sdr'
     | '/app/storefront-admin'
+    | '/app/suprimentos'
     | '/atendimento/analise'
     | '/atendimento/conversas'
     | '/atendimento/entrar'
@@ -2198,6 +2229,8 @@ export interface FileRouteTypes {
     | '/app/orcamentos/$id'
     | '/app/orcamentos/novo'
     | '/app/pedidos/$id'
+    | '/app/suprimentos/importar'
+    | '/app/suprimentos/notas'
     | '/app/veiculos/$id'
     | '/loja/categoria/$slug'
     | '/loja/conta/enderecos'
@@ -2298,6 +2331,7 @@ export interface FileRouteTypes {
     | '/app/pedidos'
     | '/app/sdr'
     | '/app/storefront-admin'
+    | '/app/suprimentos'
     | '/app/veiculos'
     | '/atendimento/analise'
     | '/atendimento/conversas'
@@ -2401,6 +2435,8 @@ export interface FileRouteTypes {
     | '/app/orcamentos/$id'
     | '/app/orcamentos/novo'
     | '/app/pedidos/$id'
+    | '/app/suprimentos/importar'
+    | '/app/suprimentos/notas'
     | '/app/veiculos/$id'
     | '/atendimento/conversa/$id'
     | '/loja/categoria/$slug'
@@ -2824,6 +2860,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppVeiculosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/suprimentos': {
+      id: '/app/suprimentos'
+      path: '/suprimentos'
+      fullPath: '/app/suprimentos'
+      preLoaderRoute: typeof AppSuprimentosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/storefront-admin': {
       id: '/app/storefront-admin'
       path: '/storefront-admin'
@@ -3166,6 +3209,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/veiculos/$id'
       preLoaderRoute: typeof AppVeiculosIdRouteImport
       parentRoute: typeof AppVeiculosRoute
+    }
+    '/app/suprimentos/notas': {
+      id: '/app/suprimentos/notas'
+      path: '/notas'
+      fullPath: '/app/suprimentos/notas'
+      preLoaderRoute: typeof AppSuprimentosNotasRouteImport
+      parentRoute: typeof AppSuprimentosRoute
+    }
+    '/app/suprimentos/importar': {
+      id: '/app/suprimentos/importar'
+      path: '/importar'
+      fullPath: '/app/suprimentos/importar'
+      preLoaderRoute: typeof AppSuprimentosImportarRouteImport
+      parentRoute: typeof AppSuprimentosRoute
     }
     '/app/pedidos/$id': {
       id: '/app/pedidos/$id'
@@ -4047,6 +4104,20 @@ const AppPedidosRouteWithChildren = AppPedidosRoute._addFileChildren(
   AppPedidosRouteChildren,
 )
 
+interface AppSuprimentosRouteChildren {
+  AppSuprimentosImportarRoute: typeof AppSuprimentosImportarRoute
+  AppSuprimentosNotasRoute: typeof AppSuprimentosNotasRoute
+}
+
+const AppSuprimentosRouteChildren: AppSuprimentosRouteChildren = {
+  AppSuprimentosImportarRoute: AppSuprimentosImportarRoute,
+  AppSuprimentosNotasRoute: AppSuprimentosNotasRoute,
+}
+
+const AppSuprimentosRouteWithChildren = AppSuprimentosRoute._addFileChildren(
+  AppSuprimentosRouteChildren,
+)
+
 interface AppVeiculosRouteChildren {
   AppVeiculosIdRoute: typeof AppVeiculosIdRoute
   AppVeiculosIndexRoute: typeof AppVeiculosIndexRoute
@@ -4205,6 +4276,7 @@ interface AppRouteChildren {
   AppPedidosRoute: typeof AppPedidosRouteWithChildren
   AppSdrRoute: typeof AppSdrRoute
   AppStorefrontAdminRoute: typeof AppStorefrontAdminRoute
+  AppSuprimentosRoute: typeof AppSuprimentosRouteWithChildren
   AppVeiculosRoute: typeof AppVeiculosRouteWithChildren
   AppConfiguracoesAmbienteRoute: typeof AppConfiguracoesAmbienteRoute
   AppConfiguracoesAparenciaRoute: typeof AppConfiguracoesAparenciaRoute
@@ -4297,6 +4369,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPedidosRoute: AppPedidosRouteWithChildren,
   AppSdrRoute: AppSdrRoute,
   AppStorefrontAdminRoute: AppStorefrontAdminRoute,
+  AppSuprimentosRoute: AppSuprimentosRouteWithChildren,
   AppVeiculosRoute: AppVeiculosRouteWithChildren,
   AppConfiguracoesAmbienteRoute: AppConfiguracoesAmbienteRoute,
   AppConfiguracoesAparenciaRoute: AppConfiguracoesAparenciaRoute,
