@@ -36,6 +36,7 @@ import type { ICopilotProvider } from "./copilot";
 import type { IIndicatorsProvider } from "./indicators";
 import type { IVehicleModelsProvider } from "./vehicleModels";
 import type { IModelKitsProvider } from "./modelKits";
+import type { ISuppliersProvider } from "./suppliers";
 import type { IMediaStorageProvider } from "./mediaStorage";
 import type { IAssetLibraryProvider } from "./assetLibrary";
 import type { IQuickReplyProvider } from "./quickReply";
@@ -161,6 +162,12 @@ export type {
   ICreateModelKitInput,
   IUpdateModelKitPatch,
 } from "./modelKits";
+export type {
+  ISuppliersProvider,
+  IListSuppliersParams,
+  ICreateSupplierInput,
+  IUpdateSupplierPatch,
+} from "./suppliers";
 export type { IMediaStorageProvider, IMediaUploadInput, IListMediaParams } from "./mediaStorage";
 export type { IAssetLibraryProvider, IAssetLibraryListParams } from "./assetLibrary";
 export type { IQuickReplyProvider } from "./quickReply";
@@ -246,6 +253,7 @@ export interface IDataProviders {
   indicators: IIndicatorsProvider;
   vehicleModels: IVehicleModelsProvider;
   modelKits: IModelKitsProvider;
+  suppliers: ISuppliersProvider;
   media: IMediaStorageProvider;
   assetLibrary: IAssetLibraryProvider;
   quickReply: IQuickReplyProvider;

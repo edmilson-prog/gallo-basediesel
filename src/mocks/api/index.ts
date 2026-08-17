@@ -54,6 +54,8 @@ export {
   type IUpdateModelKitPatch,
 } from "./modelKits";
 
+export { suppliersApi } from "./suppliers";
+
 export {
   vehicleModelsApi,
   type IListVehicleModelsParams,
