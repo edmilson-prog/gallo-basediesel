@@ -5,6 +5,7 @@ import {
   recordAuditLog,
   useFiscalNotesProvider,
   usePartsProvider,
+  useSuppliersProvider,
   type IUpdateFiscalNoteItemPatch,
 } from "@/providers/data";
 import { useCurrentStore } from "@/features/multistore";
@@ -23,6 +24,7 @@ import { autoConfirmable, computePostEffects, validateForPosting } from "../engi
 export function useNoteReview(noteId: ID | undefined) {
   const notesProvider = useFiscalNotesProvider();
   const partsProvider = usePartsProvider();
+  const suppliersProvider = useSuppliersProvider();
   const { currentStoreId } = useCurrentStore();
   const queryClient = useQueryClient();
   const [isMutating, setIsMutating] = useState(false);
@@ -41,6 +43,15 @@ export function useNoteReview(noteId: ID | undefined) {
   });
 
   const note = noteQuery.data;
+
+  // Buscado à parte porque a nota carrega só o `supplierId`. Sem isto a gaveta
+  // mostraria um UUID onde o nome do fornecedor deve aparecer.
+  const supplierQuery = useQuery({
+    queryKey: ["fiscal-notes", "supplier", note?.supplierId],
+    queryFn: () => suppliersProvider.get(note!.supplierId),
+    enabled: Boolean(note?.supplierId),
+  });
+
   const parts = useMemo(() => partsQuery.data ?? [], [partsQuery.data]);
   const partsById = useMemo(() => new Map(parts.map((part) => [part.id, part])), [parts]);
 
@@ -71,8 +82,13 @@ export function useNoteReview(noteId: ID | undefined) {
     }
   }
 
+  const supplier = supplierQuery.data;
+
   return {
     note,
+    supplier,
+    /** Nome de exibição do fornecedor, com o CNPJ como reserva. */
+    supplierName: supplier?.tradeName ?? supplier?.corporateName ?? note?.supplierId ?? "",
     parts,
     partsById,
     effects,

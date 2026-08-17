@@ -92,7 +92,13 @@ export function FiscalNotesListPage() {
           </Button>
         </div>
       ) : (
-        <FiscalNotesTable notes={notes} scrollRef={setScrollEl} />
+        <FiscalNotesTable
+          notes={notes}
+          scrollRef={setScrollEl}
+          onOpen={(note) =>
+            void navigate({ to: "/app/suprimentos/entrada/$id", params: { id: note.id } })
+          }
+        />
       )}
     </div>
   );

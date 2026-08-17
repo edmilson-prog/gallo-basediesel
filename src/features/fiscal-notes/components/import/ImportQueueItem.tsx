@@ -1,5 +1,6 @@
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ILinkCounts } from "../../engine/importNote";
 import { FISCAL_NOTES_STRINGS } from "../../i18n/pt-BR";
@@ -8,6 +9,7 @@ export type ImportItemState = "processing" | "done" | "failed";
 
 export interface IImportQueueEntry {
   id: string;
+  noteId?: string;
   filename: string;
   state: ImportItemState;
   error?: string;
@@ -19,6 +21,7 @@ export interface IImportQueueEntry {
 
 export interface IImportQueueItemProps {
   entry: IImportQueueEntry;
+  onReview: (noteId: string) => void;
 }
 
 const ICON: Record<ImportItemState, string> = {
@@ -27,7 +30,7 @@ const ICON: Record<ImportItemState, string> = {
   failed: "mdi:alert-circle-outline",
 };
 
-export function ImportQueueItem({ entry }: IImportQueueItemProps) {
+export function ImportQueueItem({ entry, onReview }: IImportQueueItemProps) {
   const s = FISCAL_NOTES_STRINGS.import;
   const counts = entry.counts;
 
@@ -62,8 +65,10 @@ export function ImportQueueItem({ entry }: IImportQueueItemProps) {
           )}
         </div>
 
-        {entry.state === "done" && (
-          <span className="shrink-0 text-[11px] text-muted-foreground">{s.reviewPendingPhase}</span>
+        {entry.state === "done" && entry.noteId && (
+          <Button size="sm" className="shrink-0" onClick={() => onReview(entry.noteId!)}>
+            {s.reviewCta}
+          </Button>
         )}
       </div>
 

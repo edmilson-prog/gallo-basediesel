@@ -186,6 +186,7 @@ import { Route as AppConfiguracoesStorefrontIndexRouteImport } from './routes/ap
 import { Route as LojaContaPedidosIdRouteImport } from './routes/loja.conta.pedidos.$id'
 import { Route as LojaContaOrcamentosIdRouteImport } from './routes/loja.conta.orcamentos.$id'
 import { Route as AtendimentoConversaIdMidiasRouteImport } from './routes/atendimento.conversa.$id.midias'
+import { Route as AppSuprimentosEntradaIdRouteImport } from './routes/app.suprimentos.entrada.$id'
 import { Route as AppKitsModelIdEditarRouteImport } from './routes/app.kits.$modelId.editar'
 import { Route as AppGestaoRankingSellerIdRouteImport } from './routes/app.gestao.ranking.$sellerId'
 import { Route as AppGestaoPositivacaoSellerIdRouteImport } from './routes/app.gestao.positivacao.$sellerId'
@@ -1135,6 +1136,11 @@ const AtendimentoConversaIdMidiasRoute =
     path: '/midias',
     getParentRoute: () => AtendimentoConversaIdRoute,
   } as any)
+const AppSuprimentosEntradaIdRoute = AppSuprimentosEntradaIdRouteImport.update({
+  id: '/entrada/$id',
+  path: '/entrada/$id',
+  getParentRoute: () => AppSuprimentosRoute,
+} as any)
 const AppKitsModelIdEditarRoute = AppKitsModelIdEditarRouteImport.update({
   id: '/editar',
   path: '/editar',
@@ -1503,6 +1509,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
   '/app/kits/$modelId/editar': typeof AppKitsModelIdEditarRoute
+  '/app/suprimentos/entrada/$id': typeof AppSuprimentosEntradaIdRoute
   '/atendimento/conversa/$id/midias': typeof AtendimentoConversaIdMidiasRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
@@ -1686,6 +1693,7 @@ export interface FileRoutesByTo {
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
   '/app/kits/$modelId/editar': typeof AppKitsModelIdEditarRoute
+  '/app/suprimentos/entrada/$id': typeof AppSuprimentosEntradaIdRoute
   '/atendimento/conversa/$id/midias': typeof AtendimentoConversaIdMidiasRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
@@ -1896,6 +1904,7 @@ export interface FileRoutesById {
   '/app/gestao/positivacao/$sellerId': typeof AppGestaoPositivacaoSellerIdRoute
   '/app/gestao/ranking/$sellerId': typeof AppGestaoRankingSellerIdRoute
   '/app/kits/$modelId/editar': typeof AppKitsModelIdEditarRoute
+  '/app/suprimentos/entrada/$id': typeof AppSuprimentosEntradaIdRoute
   '/atendimento/conversa/$id/midias': typeof AtendimentoConversaIdMidiasRoute
   '/loja/conta/orcamentos/$id': typeof LojaContaOrcamentosIdRoute
   '/loja/conta/pedidos/$id': typeof LojaContaPedidosIdRoute
@@ -2107,6 +2116,7 @@ export interface FileRouteTypes {
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
     | '/app/kits/$modelId/editar'
+    | '/app/suprimentos/entrada/$id'
     | '/atendimento/conversa/$id/midias'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
@@ -2290,6 +2300,7 @@ export interface FileRouteTypes {
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
     | '/app/kits/$modelId/editar'
+    | '/app/suprimentos/entrada/$id'
     | '/atendimento/conversa/$id/midias'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
@@ -2499,6 +2510,7 @@ export interface FileRouteTypes {
     | '/app/gestao/positivacao/$sellerId'
     | '/app/gestao/ranking/$sellerId'
     | '/app/kits/$modelId/editar'
+    | '/app/suprimentos/entrada/$id'
     | '/atendimento/conversa/$id/midias'
     | '/loja/conta/orcamentos/$id'
     | '/loja/conta/pedidos/$id'
@@ -3770,6 +3782,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AtendimentoConversaIdMidiasRouteImport
       parentRoute: typeof AtendimentoConversaIdRoute
     }
+    '/app/suprimentos/entrada/$id': {
+      id: '/app/suprimentos/entrada/$id'
+      path: '/entrada/$id'
+      fullPath: '/app/suprimentos/entrada/$id'
+      preLoaderRoute: typeof AppSuprimentosEntradaIdRouteImport
+      parentRoute: typeof AppSuprimentosRoute
+    }
     '/app/kits/$modelId/editar': {
       id: '/app/kits/$modelId/editar'
       path: '/editar'
@@ -4107,11 +4126,13 @@ const AppPedidosRouteWithChildren = AppPedidosRoute._addFileChildren(
 interface AppSuprimentosRouteChildren {
   AppSuprimentosImportarRoute: typeof AppSuprimentosImportarRoute
   AppSuprimentosNotasRoute: typeof AppSuprimentosNotasRoute
+  AppSuprimentosEntradaIdRoute: typeof AppSuprimentosEntradaIdRoute
 }
 
 const AppSuprimentosRouteChildren: AppSuprimentosRouteChildren = {
   AppSuprimentosImportarRoute: AppSuprimentosImportarRoute,
   AppSuprimentosNotasRoute: AppSuprimentosNotasRoute,
+  AppSuprimentosEntradaIdRoute: AppSuprimentosEntradaIdRoute,
 }
 
 const AppSuprimentosRouteWithChildren = AppSuprimentosRoute._addFileChildren(

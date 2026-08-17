@@ -48,6 +48,94 @@ export const FISCAL_NOTES_STRINGS = {
     sefaz: "Baixado da SEFAZ",
     manual: "Digitada",
   },
+  review: {
+    title: "Entrada de nota",
+    subtitle:
+      "A conferência item a item: vincular ao catálogo, converter a unidade da nota para a unidade de estoque e fracionar quando a compra é em volume e a venda é em fração.",
+    progress: (done: number, total: number) => `${done} de ${total} itens conferidos`,
+    itemsTitle: "Itens da nota",
+    itemsHint: "como vêm no XML · clique para resolver",
+    confirmLinked: "Confirmar vinculados",
+    confirmLinkedDone: (n: number) =>
+      n > 0
+        ? `${n} ${n === 1 ? "item vinculado confirmado" : "itens vinculados confirmados"}`
+        : "Nada para confirmar em lote — resolva os pendentes um a um",
+    resolve: "Resolver",
+    review: "Rever",
+    postCta: "Lançar entrada",
+    postBlocked: (n: number) => `Lançar entrada — ${n} ${n === 1 ? "pendência" : "pendências"}`,
+    postDone: "Entrada lançada — estoque e custo médio atualizados",
+    reverseCta: "Estornar entrada",
+    reverseDone: "Entrada estornada — a nota voltou para conferência",
+    postedTitle: "Entrada lançada",
+    immutable:
+      "Nota lançada é imutável. Corrigir é estornar — o estorno devolve o saldo e a nota volta para conferência.",
+    reverseKeepsCost:
+      "O estorno devolve o saldo, mas não reverte o custo médio: média ponderada não tem inversa exata.",
+    notFound: "Nota não encontrada",
+    defineConversion: "definir conversão",
+    withAllocation: "c/ rateio",
+    blockers: {
+      not_in_review: "A nota não está em conferência",
+      unconfirmed: "Item ainda não conferido",
+      missing_factor: "Fator de conversão indefinido",
+      missing_fraction_target: "Fracionamento sem SKU de destino",
+      missing_link: "Item sem produto vinculado",
+    },
+    supplierCard: { linked: "vinculado pelo CNPJ", created: "criado na importação" },
+    totals: {
+      title: "Totais da nota",
+      products: "Produtos",
+      freight: "Frete",
+      ipi: "IPI",
+      discount: "Desconto",
+      total: "Total",
+      hint: "Frete e IPI rateados por valor no custo de cada item.",
+    },
+    duplicates: {
+      title: "Duplicatas",
+      preview: "Prévia — os títulos só existem quando o contas a pagar entrar.",
+      posted: "Gravadas na nota. O módulo de contas a pagar as consome quando existir.",
+    },
+    drawer: {
+      linkSection: "Vínculo no catálogo",
+      linkToCatalog: "Vincular ao catálogo",
+      createNew: "Criar produto novo",
+      chooseProduct: "Escolher produto…",
+      productLabel: "Produto",
+      newNameLabel: "Nome do produto",
+      newNamePlaceholder: "Nome limpo para o catálogo",
+      unitLabel: "Unidade",
+      newPartHint: (ncm: string) =>
+        `Nasce no catálogo com NCM ${ncm} e custo desta nota. Categoria e preço de venda ficam para depois.`,
+      mapHint: (code: string) =>
+        `O código ${code} fica mapeado para este produto nas próximas notas do fornecedor.`,
+      stockHint: (stock: number, unit: string, cost: string) =>
+        `Estoque atual ${stock} ${unit} · custo médio ${cost}`,
+      conversionSection: "Conversão e fracionamento",
+      direct: "Direto 1:1",
+      convert: "Converter unidade",
+      fraction: "Fracionar",
+      directHint: (qty: string, unit: string) =>
+        `A unidade da nota já é a unidade de estoque — entra ${qty} ${unit}.`,
+      factorLabel: (unit: string) => `Unidades por ${unit}`,
+      yieldLabel: (unit: string) => `Rendimento por ${unit}`,
+      stockUnitLabel: "Unidade de estoque",
+      fractionUnitLabel: "Unidade da fração",
+      fractionTargetLabel: "Fracionar para",
+      fractionTargetPlaceholder: "SKU fracionado de destino…",
+      fractionHint: (unit: string, supplier: string) =>
+        `A nota entra ${unit.toLowerCase()} fechado; o estoque recebe a fração que a loja vende. A regra fica salva para ${supplier}.`,
+      previewEmpty: "Defina o fator para ver o efeito no estoque",
+      previewStock: (from: string, to: string) => `${from} → ${to} no estoque`,
+      previewCost: (cost: string, unit: string) => `Custo por ${unit}: ${cost} (com rateio)`,
+      previewDelta: (pct: string) => `${pct} sobre o custo médio atual`,
+      aiEvidence: (confidence: number) => `Sugestão da IA · ${confidence}% de confiança.`,
+      confirm: "Confirmar item",
+      confirmNew: "Criar produto e confirmar",
+      cancel: "Cancelar",
+    },
+  },
   import: {
     dropTitle: "Solte o XML da NF-e aqui",
     dropHintPrefix: "ou ",
@@ -63,7 +151,6 @@ export const FISCAL_NOTES_STRINGS = {
     newParts: (n: number) => `${n} novos`,
     pending: (n: number) => `${n} sem vínculo`,
     reviewCta: "Conferir entrada",
-    reviewPendingPhase: "A conferência entra na próxima fase",
     successToast: (num: string, created: boolean) =>
       `NF ${num} importada — fornecedor ${created ? "criado automaticamente" : "vinculado pelo CNPJ"}`,
     duplicateError: (num: string) => `NF ${num} já foi importada — a chave de acesso já existe.`,
