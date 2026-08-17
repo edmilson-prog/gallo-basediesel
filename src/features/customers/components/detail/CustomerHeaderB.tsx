@@ -38,6 +38,8 @@ export interface ICustomerHeaderBProps {
   onCreateQuote: () => void;
   layout: CustomerDetailLayout;
   onToggleLayout: () => void;
+  /** Drives the "+N" on the contacts cell. */
+  contactCount?: number;
 }
 
 /**
@@ -63,11 +65,12 @@ export function CustomerHeaderB({
   onCreateQuote,
   layout,
   onToggleLayout,
+  contactCount,
 }: ICustomerHeaderBProps) {
   const display = getCustomerDisplay(customer);
   const navigate = useNavigate();
   const [transferSignal, setTransferSignal] = useState(0);
-  const cells = buildCustomerFactCells(customer, sellerName, storeName);
+  const cells = buildCustomerFactCells(customer, sellerName, storeName, contactCount);
 
   const handleCreateQuote = () => {
     const params = new URLSearchParams({ customerId: customer.id });
