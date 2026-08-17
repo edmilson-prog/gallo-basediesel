@@ -97,6 +97,11 @@ export interface IFiscalNote {
   xmlPath?: string;
 
   postedAt?: ISO8601;
+  /**
+   * Id do **vendedor** que lançou (`sellers.id`), não o `auth_user_id`.
+   * Passar o id de auth aqui viola a FK — foi o que já causou 409 na
+   * transferência de carteira.
+   */
   postedBy?: ID;
 
   division: Division;

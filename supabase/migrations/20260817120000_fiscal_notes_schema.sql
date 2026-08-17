@@ -8,10 +8,12 @@
 -- existe e é populada, mas nenhum consumidor lê dela ainda: o módulo
 -- financeiro que vira título é outro PRD.
 --
--- Tipos: stores.id, parts.id e profiles.id são UUID neste banco. A migration
--- 20260608150303_create_parts_table_v2.sql diz `text`, mas está obsoleta —
--- 20260608182429_convert_reference_pks_to_uuid.sql converteu. Verificado
--- contra o schema de produção em 17/08/2026 antes de escrever este arquivo.
+-- Tipos, verificados contra o schema de produção em 17/08/2026:
+--   * stores.id, parts.id e sellers.id são UUID. A migration
+--     20260608150303_create_parts_table_v2.sql diz `text`, mas está obsoleta —
+--     20260608182429_convert_reference_pks_to_uuid.sql converteu.
+--   * `profiles` NÃO tem coluna `id` (PK é auth_user_id), então autoria aponta
+--     para sellers, como no resto do schema.
 
 create table public.suppliers (
   id                  uuid primary key default gen_random_uuid(),
@@ -60,7 +62,11 @@ create table public.fiscal_notes (
   total           numeric not null default 0,
   xml_path        text,
   posted_at       timestamptz,
-  posted_by       uuid references public.profiles(id),
+  -- sellers(id), não profiles: `profiles` tem PK em auth_user_id e NÃO tem
+  -- coluna `id`. A convenção de autoria de negócio neste schema aponta para
+  -- sellers — cash_flow_entries.created_by, goals.created_by, pix_keys.created_by
+  -- e audit_logs.actor_id fazem todos assim.
+  posted_by       uuid references public.sellers(id),
   division        text not null default 'parts',
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),

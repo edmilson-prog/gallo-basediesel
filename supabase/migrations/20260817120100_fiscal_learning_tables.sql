@@ -10,7 +10,9 @@ create table public.supplier_part_codes (
   supplier_code text not null,
   part_id       uuid not null references public.parts(id) on delete cascade,
   created_at    timestamptz not null default now(),
-  created_by    uuid references public.profiles(id)
+  -- sellers(id) pelo mesmo motivo de fiscal_notes.posted_by: profiles não tem
+  -- coluna `id`, e autoria de negócio aponta para sellers neste schema.
+  created_by    uuid references public.sellers(id)
 );
 
 comment on table public.supplier_part_codes is
