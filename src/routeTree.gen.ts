@@ -148,6 +148,7 @@ import { Route as AppConfiguracoesPerfilRouteImport } from './routes/app.configu
 import { Route as AppConfiguracoesPapeisRouteImport } from './routes/app.configuracoes.papeis'
 import { Route as AppConfiguracoesNpsRouteImport } from './routes/app.configuracoes.nps'
 import { Route as AppConfiguracoesNotificacoesRouteImport } from './routes/app.configuracoes.notificacoes'
+import { Route as AppConfiguracoesNotasFiscaisRouteImport } from './routes/app.configuracoes.notas-fiscais'
 import { Route as AppConfiguracoesMidiasRouteImport } from './routes/app.configuracoes.midias'
 import { Route as AppConfiguracoesLojasRouteImport } from './routes/app.configuracoes.lojas'
 import { Route as AppConfiguracoesInsightsRouteImport } from './routes/app.configuracoes.insights'
@@ -924,6 +925,12 @@ const AppConfiguracoesNotificacoesRoute =
     path: '/configuracoes/notificacoes',
     getParentRoute: () => AppRoute,
   } as any)
+const AppConfiguracoesNotasFiscaisRoute =
+  AppConfiguracoesNotasFiscaisRouteImport.update({
+    id: '/configuracoes/notas-fiscais',
+    path: '/configuracoes/notas-fiscais',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesMidiasRoute = AppConfiguracoesMidiasRouteImport.update({
   id: '/configuracoes/midias',
   path: '/configuracoes/midias',
@@ -1412,6 +1419,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
+  '/app/configuracoes/notas-fiscais': typeof AppConfiguracoesNotasFiscaisRoute
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/nps': typeof AppConfiguracoesNpsRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
@@ -1605,6 +1613,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
+  '/app/configuracoes/notas-fiscais': typeof AppConfiguracoesNotasFiscaisRoute
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/nps': typeof AppConfiguracoesNpsRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
@@ -1809,6 +1818,7 @@ export interface FileRoutesById {
   '/app/configuracoes/insights': typeof AppConfiguracoesInsightsRoute
   '/app/configuracoes/lojas': typeof AppConfiguracoesLojasRoute
   '/app/configuracoes/midias': typeof AppConfiguracoesMidiasRoute
+  '/app/configuracoes/notas-fiscais': typeof AppConfiguracoesNotasFiscaisRoute
   '/app/configuracoes/notificacoes': typeof AppConfiguracoesNotificacoesRoute
   '/app/configuracoes/nps': typeof AppConfiguracoesNpsRoute
   '/app/configuracoes/papeis': typeof AppConfiguracoesPapeisRoute
@@ -2022,6 +2032,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/midias'
+    | '/app/configuracoes/notas-fiscais'
     | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/nps'
     | '/app/configuracoes/papeis'
@@ -2215,6 +2226,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/midias'
+    | '/app/configuracoes/notas-fiscais'
     | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/nps'
     | '/app/configuracoes/papeis'
@@ -2418,6 +2430,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/insights'
     | '/app/configuracoes/lojas'
     | '/app/configuracoes/midias'
+    | '/app/configuracoes/notas-fiscais'
     | '/app/configuracoes/notificacoes'
     | '/app/configuracoes/nps'
     | '/app/configuracoes/papeis'
@@ -3528,6 +3541,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesNotificacoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes/notas-fiscais': {
+      id: '/app/configuracoes/notas-fiscais'
+      path: '/configuracoes/notas-fiscais'
+      fullPath: '/app/configuracoes/notas-fiscais'
+      preLoaderRoute: typeof AppConfiguracoesNotasFiscaisRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/midias': {
       id: '/app/configuracoes/midias'
       path: '/configuracoes/midias'
@@ -4342,6 +4362,7 @@ interface AppRouteChildren {
   AppConfiguracoesInsightsRoute: typeof AppConfiguracoesInsightsRoute
   AppConfiguracoesLojasRoute: typeof AppConfiguracoesLojasRoute
   AppConfiguracoesMidiasRoute: typeof AppConfiguracoesMidiasRoute
+  AppConfiguracoesNotasFiscaisRoute: typeof AppConfiguracoesNotasFiscaisRoute
   AppConfiguracoesNotificacoesRoute: typeof AppConfiguracoesNotificacoesRoute
   AppConfiguracoesNpsRoute: typeof AppConfiguracoesNpsRoute
   AppConfiguracoesPapeisRoute: typeof AppConfiguracoesPapeisRoute
@@ -4437,6 +4458,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesInsightsRoute: AppConfiguracoesInsightsRoute,
   AppConfiguracoesLojasRoute: AppConfiguracoesLojasRoute,
   AppConfiguracoesMidiasRoute: AppConfiguracoesMidiasRoute,
+  AppConfiguracoesNotasFiscaisRoute: AppConfiguracoesNotasFiscaisRoute,
   AppConfiguracoesNotificacoesRoute: AppConfiguracoesNotificacoesRoute,
   AppConfiguracoesNpsRoute: AppConfiguracoesNpsRoute,
   AppConfiguracoesPapeisRoute: AppConfiguracoesPapeisRoute,
