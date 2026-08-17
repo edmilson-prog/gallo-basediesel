@@ -163,7 +163,7 @@ begin
     and not exists (
       select 1 from public.contacts c
        where c.customer_id = new.converted_to_customer_id
-         and c.phone_digits = regexp_replace(new.phone, '\D', '', 'g')
+         and c.phone_digits = regexp_replace(new.phone, '[^0-9]', '', 'g')
     );
 
   -- g) Adopt the lead's number as the customer's WhatsApp anchor when the
@@ -256,7 +256,7 @@ where l.converted_to_customer_id is not null
   and not exists (
     select 1 from public.contacts c
      where c.customer_id = l.converted_to_customer_id
-       and c.phone_digits = regexp_replace(l.phone, '\D', '', 'g')
+       and c.phone_digits = regexp_replace(l.phone, '[^0-9]', '', 'g')
   );
 
 -- g') Fill the blank anchor of customers that absorbed a lead. Deterministic
