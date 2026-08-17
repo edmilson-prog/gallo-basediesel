@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ID, SupplierCategory } from "@/shared/types";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
@@ -8,6 +8,7 @@ import { supplierCompleteness } from "../engine/completeness";
 import { SuppliersKpiStrip } from "../components/list/SuppliersKpiStrip";
 import { SuppliersFiltersBar } from "../components/list/SuppliersFiltersBar";
 import { SuppliersTable } from "../components/list/SuppliersTable";
+import { SupplierRail } from "../components/list/SupplierRail";
 import {
   OPTIONAL_COLUMNS,
   readVisibleOptional,
@@ -21,6 +22,7 @@ const COPY = SUPPLIERS_STRINGS;
 
 export function SuppliersListPage() {
   const canCreate = usePermission("supplier", "create");
+  const canEdit = usePermission("supplier", "edit");
 
   // --- Filtros e ordenação ---
   const [search, setSearch] = useState("");
@@ -85,6 +87,24 @@ export function SuppliersListPage() {
     });
     return sorted;
   }, [list.visible, missingDocumentOnly, sort, statsIndex]);
+
+  // A ficha lateral nunca fica vazia à toa: seleciona a primeira linha assim
+  // que a lista (já filtrada/ordenada) chega e nada foi escolhido ainda.
+  useEffect(() => {
+    if (selectedId !== null) return;
+    const [first] = tableRows;
+    if (first) setSelectedId(first.id);
+  }, [selectedId, tableRows]);
+
+  // Deriva da MESMA lista que a tabela renderiza (`tableRows`, já filtrada e
+  // ordenada) — não de `list.visible` — para que a linha destacada na tabela
+  // e o fornecedor mostrado no rail nunca divirjam. O fallback para a
+  // primeira linha cobre o instante antes do efeito acima rodar.
+  const selectedSupplier = useMemo(
+    () => tableRows.find((s) => s.id === selectedId) ?? tableRows[0] ?? null,
+    [tableRows, selectedId],
+  );
+  const selectedStats = selectedSupplier ? (statsIndex?.get(selectedSupplier.id) ?? null) : null;
 
   // A tabela expõe seu próprio container rolável (scrollRef) — a linha de
   // progresso o recebe explicitamente, igual ao CatalogListPage.
@@ -157,8 +177,21 @@ export function SuppliersListPage() {
             />
           </div>
 
-          {/* Coluna reservada para a ficha lateral (SupplierRail, Task 7). */}
-          <div className="min-h-0" />
+          {/* Coluna reservada para a ficha lateral — rola por conta própria,
+              independente da tabela; sem `DashboardLayout` não existe scroll
+              de página para um `sticky` grudar nela. */}
+          <div className="min-h-0 min-w-0 overflow-y-auto">
+            <SupplierRail
+              supplier={selectedSupplier}
+              stats={selectedStats}
+              canEdit={canEdit}
+              // Diálogo (Task 8) e sheet (Task 9) ainda não existem — os
+              // botões do rail ficam ligados a no-ops, mesmo espírito do
+              // `onCreate` acima.
+              onOpenSheet={() => {}}
+              onEdit={() => {}}
+            />
+          </div>
         </div>
       </div>
     </div>

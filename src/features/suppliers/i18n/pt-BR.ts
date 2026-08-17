@@ -54,6 +54,11 @@ export const SUPPLIERS_STRINGS = {
     fullSheet: "Ficha completa",
     archive: "Desativar fornecedor",
   },
+  rail: {
+    emptySelection: "Selecione um fornecedor para ver a ficha.",
+    suppliedItems: "O que compramos",
+    lastEntries: "Últimas entradas",
+  },
   empty: {
     list: "Nenhum fornecedor encontrado.",
     listHint: "Ajuste os filtros ou cadastre o primeiro fornecedor.",
