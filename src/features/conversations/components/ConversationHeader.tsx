@@ -1,5 +1,9 @@
+import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import type {
+  ID,
+  IContact,
   IConversation,
   IConversationContact,
   ICustomer,
@@ -14,7 +18,8 @@ import { AvatarLightbox } from "@/components/AvatarLightbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useCustomersProvider } from "@/providers/data";
+import { useContactsProvider, useCustomersProvider } from "@/providers/data";
+import { LinkCustomerDialog } from "@/features/contacts";
 import { useAuth } from "@/features/auth/useAuth";
 import {
   CHANNEL_META,
@@ -124,6 +129,51 @@ export function ConversationHeader({
   const scheduled = useConversationScheduled(conversation.id);
   const pendingScheduled = scheduled.items.filter((i) => i.status === "pending").length;
 
+  // "Vincular a empresa" — the counterpart of the company chip. It occupies the
+  // exact spot where the affiliation would sit, so the gap itself is the
+  // invitation, rather than a button parked elsewhere on the screen.
+  //
+  // Gated on `conversation.contactId`: linking writes to an Agenda contact, and
+  // ~9% of threads could not be resolved to one without guessing. Rather than
+  // offer an action that would fail, the chip stays hidden there — the Agenda
+  // remains the way in for those.
+  const contactsProvider = useContactsProvider();
+  const [linkOpen, setLinkOpen] = useState(false);
+  const linkableContactId = conversation.contactId ?? null;
+  const canLinkCompany = Boolean(linkableContactId) && !display.companyId;
+
+  const linkTargetQuery = useQuery({
+    queryKey: ["conversation-link-contact", linkableContactId] as const,
+    queryFn: () => (linkableContactId ? contactsProvider.get(linkableContactId) : null),
+    enabled: linkOpen && Boolean(linkableContactId),
+    staleTime: 30_000,
+  });
+
+  const handleLinkCompany = async (contactRow: IContact, customerId: ID) => {
+    try {
+      await contactsProvider.linkToCustomer(contactRow.id, customerId);
+      setLinkOpen(false);
+      onCustomerUpdated?.();
+      onConversationUpdated?.();
+      toast.success(CONVERSATION_STRINGS.linkCompany.success(contactRow.name), {
+        action: {
+          label: CONVERSATION_STRINGS.linkCompany.undo,
+          onClick: () =>
+            void contactsProvider
+              .linkToCustomer(contactRow.id, null)
+              .then(() => {
+                onCustomerUpdated?.();
+                onConversationUpdated?.();
+                toast.success(CONVERSATION_STRINGS.linkCompany.undone);
+              })
+              .catch(() => toast.error(CONVERSATION_STRINGS.linkCompany.undoFailed)),
+        },
+      });
+    } catch {
+      toast.error(CONVERSATION_STRINGS.linkCompany.failed);
+    }
+  };
+
   // Subtitle shows ONLY the contact's own phone — never our own GALLO line,
   // which would mislabel our number as the contact's (e.g. when RLS hides the
   // customer for a seller handling a transferred conversation).
@@ -219,6 +269,17 @@ export function ConversationHeader({
                   </span>
                 )}
               </Link>
+            ) : canLinkCompany ? (
+              // Same dashed vocabulary the Agenda uses for a loose contact, so
+              // anyone who has seen that screen recognises the state instantly.
+              <button
+                type="button"
+                onClick={() => setLinkOpen(true)}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-dashed border-severity-info bg-severity-info/10 px-2 py-0.5 text-[11px] font-medium text-severity-info transition-colors hover:bg-severity-info/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+              >
+                <Icon icon="mdi:link-variant-plus" size={12} aria-hidden />
+                {CONVERSATION_STRINGS.linkCompany.chip}
+              </button>
             ) : null}
             {/* `shrink-0`: it is the COMPANY that gives way when space runs out,
                 never the number. A truncated "+55 46 9919…" is worse than no
@@ -405,6 +466,18 @@ export function ConversationHeader({
         area="band"
         onChanged={onConversationUpdated}
       />
+      {/* Reuses the Agenda's dialog rather than growing a second one: it already
+          runs its search under the caller's own RLS, so a seller can only ever
+          link to companies they legitimately reach. Mounted only while open, so
+          the contact fetch never runs for the vast majority of conversations
+          that already know their company. */}
+      {linkOpen && linkTargetQuery.data && (
+        <LinkCustomerDialog
+          contact={linkTargetQuery.data}
+          onClose={() => setLinkOpen(false)}
+          onConfirm={(contactRow, customerId) => void handleLinkCompany(contactRow, customerId)}
+        />
+      )}
     </header>
   );
 }

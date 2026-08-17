@@ -69,6 +69,7 @@ interface ConversationRow {
   store_id: string;
   customer_id: string | null;
   lead_id: string | null;
+  contact_id: string | null;
   assigned_seller_id: string | null;
   channel: IConversation["channel"];
   whatsapp_account_id: string | null;
@@ -109,7 +110,7 @@ interface ConversationContactRow {
 
 const TABLE = "conversations";
 const COLUMNS =
-  "id, store_id, customer_id, lead_id, assigned_seller_id, channel, whatsapp_account_id, status, is_sdr_active, tags, linked_order_id, last_message_at, unread_count, created_at, queued_at, ad_referral";
+  "id, store_id, customer_id, lead_id, contact_id, assigned_seller_id, channel, whatsapp_account_id, status, is_sdr_active, tags, linked_order_id, last_message_at, unread_count, created_at, queued_at, ad_referral";
 
 function rowToConversation(row: ConversationRow): IConversation {
   return {
@@ -117,6 +118,7 @@ function rowToConversation(row: ConversationRow): IConversation {
     storeId: row.store_id,
     customerId: row.customer_id ?? undefined,
     leadId: row.lead_id ?? undefined,
+    contactId: row.contact_id ?? undefined,
     assignedSellerId: row.assigned_seller_id ?? undefined,
     channel: row.channel,
     whatsappAccountId: row.whatsapp_account_id ?? undefined,
@@ -572,6 +574,10 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       store_id: input.storeId,
       customer_id: input.customerId,
       lead_id: null,
+      // The INSERT does not write it. A contact may be attached moments later by
+      // the `contacts` trigger, but this locally-built row reflects what was
+      // actually written — claiming otherwise would be a lie the caller caches.
+      contact_id: null,
       assigned_seller_id: input.assignedSellerId,
       channel: "whatsapp",
       whatsapp_account_id: input.whatsappAccountId,
@@ -695,6 +701,8 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       store_id: input.storeId,
       customer_id: input.customerId ?? null,
       lead_id: input.leadId ?? null,
+      // Not written by the INSERT — see the note on `createOutbound`.
+      contact_id: null,
       assigned_seller_id: effective.selectedSellerId,
       channel: input.channel,
       whatsapp_account_id: input.whatsappAccountId ?? null,

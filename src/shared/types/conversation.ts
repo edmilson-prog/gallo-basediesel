@@ -41,6 +41,13 @@ export interface IConversation {
   customerId?: ID;
   /** Lead participant — mutually exclusive with `customerId`. */
   leadId?: ID;
+  /**
+   * The PERSON on the other side — an Agenda contact. Orthogonal to
+   * `customerId`/`leadId`, which say WHICH COMPANY (or which lead record) the
+   * thread belongs to: a company speaks through several people, and this is the
+   * one typing. Absent when it could not be resolved without guessing.
+   */
+  contactId?: ID;
   /** Seller currently assigned to this conversation. */
   assignedSellerId?: ID;
   channel: ConversationChannel;
