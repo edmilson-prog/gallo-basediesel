@@ -108,10 +108,13 @@ export function PwaAudioBody({ message, outgoing }: { message: IMessage; outgoin
             outgoing ? "border-border" : "border-background/20",
           )}
         >
-          <p className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.14em] opacity-60">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] opacity-60">
             {S.thread.transcription}
           </p>
-          <p className="text-[13px] leading-snug opacity-90">{message.transcription}</p>
+          {/* Italic, like the desktop bubble: the slant is what marks the text
+              as machine output rather than as a literal quote from the client.
+              It has to mean the same thing on both surfaces. */}
+          <p className="text-[13px] italic leading-relaxed opacity-90">{message.transcription}</p>
         </div>
       )}
     </div>
