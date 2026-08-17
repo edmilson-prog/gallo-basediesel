@@ -35,6 +35,14 @@ export const SUPPLIERS_STRINGS = {
     completeness: "Cadastro",
     contact: "Contato",
   },
+  columnsMenu: {
+    title: "Colunas visíveis",
+    showAll: "Exibir todas",
+  },
+  table: {
+    /** Appended to the identity cell's subline when a lead time is known. */
+    leadTimeSuffix: (days: number) => ` · entrega em ${days} d`,
+  },
   search: {
     placeholder: "Buscar por nome ou CNPJ…",
     label: "Buscar fornecedor",
