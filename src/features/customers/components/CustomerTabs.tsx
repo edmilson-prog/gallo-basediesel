@@ -288,6 +288,9 @@ export function CustomerTabs({
                   : PANELS.conversations
             }
             right={subTabsBar}
+            /* The conversation table brings its own gutter, like the kit's
+               `pad={4}` — Mídias and Histórico still want the panel padding. */
+            flush={activeSub === "conversas"}
           >
             {activeSub === "conversas" && <ConversationsTab customer={customer} headless />}
             {activeSub === "midias" && <CustomerMediaTab customerId={customer.id} />}

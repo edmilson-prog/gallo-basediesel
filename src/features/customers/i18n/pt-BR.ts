@@ -214,6 +214,14 @@ export const CUSTOMER_STRINGS = {
     startedAt: "Iniciada em",
     seller: "Atendido por",
     unknown: "—",
+    /** Column headers of the kit's table layout (detail page panel). */
+    columns: {
+      channel: "Canal",
+      start: "Início",
+      seller: "Atendido por",
+      status: "Status",
+    },
+    rowAriaLabel: (channel: string, date: string) => `Abrir conversa do ${channel} de ${date}`,
   },
   vehicles: {
     title: "Frota do cliente",
