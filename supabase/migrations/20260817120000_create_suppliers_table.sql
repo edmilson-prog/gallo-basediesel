@@ -53,7 +53,9 @@ create table if not exists public.suppliers (
   updated_at               timestamptz not null default now()
 );
 
-create index if not exists suppliers_store_id_idx on public.suppliers (store_id);
+-- No standalone store_id-only index: it would be a leading-column subset of
+-- both composites below, so Postgres already serves a store_id-only lookup
+-- from either one — a third index would only cost write throughput.
 create index if not exists suppliers_status_idx on public.suppliers (store_id, status);
 create index if not exists suppliers_category_idx on public.suppliers (store_id, category);
 
@@ -129,16 +131,29 @@ on conflict (role_id, resource) do nothing;
 -- (de/da/do/das/dos/e/em/para) lowercased back down to match
 -- `titleCaseWord()` in the TS engine — these are display names in a
 -- Brazilian product, and "Pako Distribuidora De Auto Pecas" reads as wrong
--- Portuguese. The leading-space form of each `replace` (`' De ' -> ' de '`)
--- means a connector word can only be lowercased when something precedes it,
--- so a name that legitimately STARTS with one of these words is left
--- capitalized — mirroring the engine's `index > 0` guard exactly.
--- `replace` (not `regexp_replace`) on purpose: Postgres regexes cannot
--- case-fold a captured backreference, so there is no single-pass regex that
--- both matches and lowercases the connector in one step.
+-- Portuguese. Each connector is fixed with its own `regexp_replace`, not a
+-- plain `replace(' De ', ' de ')`: a padded-string match needs a space on
+-- BOTH sides, so a connector that is the LAST word of a name (there is real
+-- data like this — a raw supplier ending "... AUTOMOTIVOS E") would never be
+-- matched and would stay capitalized. `(?<= )` is a fixed-width lookbehind
+-- that asserts the preceding space without consuming it (so two adjacent
+-- connectors both get fixed), and `\y` is Postgres's word-boundary escape,
+-- which treats end-of-string as a boundary too — closing exactly the
+-- trailing-word case above. Requiring the preceding space (rather than just
+-- `\y` on both sides) preserves the engine's `index > 0` guard, so a name
+-- that legitimately STARTS with a connector is left alone. Verified against
+-- production data in task-2-report.md before this was committed.
 with cleaned as (
   select
     replace(btrim(p.supplier), '&amp;', '&') as raw,
+    -- `key` is the dedupe/placeholder-matching value, not the display name.
+    -- It intentionally does NOT decode `&nbsp;` or strip `.`/`,` the way
+    -- normalizeSupplierName() in the TS engine does — measured against
+    -- production `parts.supplier`, zero rows contain `&nbsp;` and including
+    -- the punctuation-to-space step doesn't change the distinct-key count
+    -- (still 125 either way), so both gaps are currently inert. Left as-is
+    -- rather than chasing a zero-impact difference; would need attention if
+    -- a future import ever introduces either.
     regexp_replace(
       translate(
         lower(replace(btrim(p.supplier), '&amp;', '&')),
@@ -161,11 +176,24 @@ canonical as (
     case
       when key in ('ufi', 'ufi filters') then 'UFI Filters'
       when raw = upper(raw) then
-        replace(replace(replace(replace(replace(replace(replace(replace(
-          initcap(raw),
-          ' De ', ' de '), ' Da ', ' da '), ' Do ', ' do '),
-          ' Das ', ' das '), ' Dos ', ' dos '), ' E ', ' e '),
-          ' Em ', ' em '), ' Para ', ' para ')
+        regexp_replace(
+          regexp_replace(
+            regexp_replace(
+              regexp_replace(
+                regexp_replace(
+                  regexp_replace(
+                    regexp_replace(
+                      regexp_replace(
+                        initcap(raw),
+                        '(?<= )De\y', 'de', 'g'),
+                      '(?<= )Da\y', 'da', 'g'),
+                    '(?<= )Do\y', 'do', 'g'),
+                  '(?<= )Das\y', 'das', 'g'),
+                '(?<= )Dos\y', 'dos', 'g'),
+              '(?<= )E\y', 'e', 'g'),
+            '(?<= )Em\y', 'em', 'g'),
+          '(?<= )Para\y', 'para', 'g'
+        )
       else raw
     end as name,
     case
