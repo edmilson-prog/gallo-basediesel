@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { requireAuth } from "@/features/auth/guards";
+import { FiscalNotesListPage } from "@/features/fiscal-notes/pages/FiscalNotesListPage";
 
 export const Route = createFileRoute("/app/suprimentos/notas")({
   // `roles` fica undefined de propósito: no requireAuth, `roles` e `permission`
@@ -7,5 +8,5 @@ export const Route = createFileRoute("/app/suprimentos/notas")({
   // customizados que recebam supplies.view.
   beforeLoad: ({ location }) =>
     requireAuth(location.pathname, undefined, { resource: "supplies", action: "view" }),
-  component: () => <div />,
+  component: FiscalNotesListPage,
 });
