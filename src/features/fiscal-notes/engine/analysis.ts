@@ -79,9 +79,9 @@ function brl(value: number): string {
 }
 
 function priceCard(item: IAnalysisItem, history: IPurchaseHistoryEntry[]): IAnalysisCard | null {
-  if (item.unitCost === null || history.length === 0) return null;
+  if (item.unitCost === null) return null;
   const last = history[history.length - 1];
-  if (last.unitCost <= 0) return null;
+  if (!last || last.unitCost <= 0) return null;
 
   const delta = (item.unitCost - last.unitCost) / last.unitCost;
   if (Math.abs(delta) <= PRICE_TOLERANCE) return null;
@@ -119,8 +119,8 @@ function fiscalCard(items: IAnalysisItem[]): IAnalysisCard | null {
   const diverging = items.filter(
     (item) => item.ncm && item.catalogNcm && item.ncm !== item.catalogNcm,
   );
-  if (diverging.length === 0) return null;
   const first = diverging[0];
+  if (!first) return null;
   return {
     kind: "fiscal",
     severity: "warning",

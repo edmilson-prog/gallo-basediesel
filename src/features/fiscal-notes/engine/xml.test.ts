@@ -24,7 +24,7 @@ const SAMPLE = `<?xml version="1.0" encoding="UTF-8"?>
 describe("parseXml", () => {
   it("builds a tree and strips the namespace prefix from tags", () => {
     const root = parseXml(SAMPLE);
-    expect(root.children[0].tag).toBe("nfeProc");
+    expect(root.children[0]?.tag).toBe("nfeProc");
   });
 
   it("reads attributes", () => {

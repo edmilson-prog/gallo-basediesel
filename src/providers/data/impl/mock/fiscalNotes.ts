@@ -76,25 +76,31 @@ export const mockFiscalNotesProvider: IFiscalNotesProvider = {
 
   async updateItem(itemId: ID, patch: IUpdateFiscalNoteItemPatch): Promise<IFiscalNoteItem> {
     for (const note of notes) {
-      const index = note.items.findIndex((item) => item.id === itemId);
-      if (index === -1) continue;
+      const current = note.items.find((item) => item.id === itemId);
+      if (!current) continue;
       if (note.status !== "conferencia") {
         throw new Error(`[mock] fiscalNotes.updateItem(${itemId}): nota ${note.status} é imutável`);
       }
-      note.items[index] = { ...note.items[index], ...patch };
+      const updated: IFiscalNoteItem = { ...current, ...patch };
+      note.items = note.items.map((item) => (item.id === itemId ? updated : item));
       note.updatedAt = new Date().toISOString();
-      return note.items[index];
+      return updated;
     }
     throw new Error(`[mock] fiscalNotes.updateItem(${itemId}): item não encontrado`);
   },
 
   async cancel(id: ID): Promise<IFiscalNote> {
-    const index = notes.findIndex((n) => n.id === id);
-    if (index === -1) throw new Error(`[mock] fiscalNotes.cancel(${id}): nota não encontrada`);
-    if (notes[index].status === "lancada") {
+    const current = notes.find((n) => n.id === id);
+    if (!current) throw new Error(`[mock] fiscalNotes.cancel(${id}): nota não encontrada`);
+    if (current.status === "lancada") {
       throw new Error(`[mock] fiscalNotes.cancel(${id}): nota lançada se estorna, não se cancela`);
     }
-    notes[index] = { ...notes[index], status: "cancelada", updatedAt: new Date().toISOString() };
-    return notes[index];
+    const updated: IFiscalNote = {
+      ...current,
+      status: "cancelada",
+      updatedAt: new Date().toISOString(),
+    };
+    notes = notes.map((n) => (n.id === id ? updated : n));
+    return updated;
   },
 };

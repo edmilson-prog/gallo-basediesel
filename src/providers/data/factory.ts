@@ -91,6 +91,8 @@ import { supabaseCopilotProvider } from "./impl/supabase/copilot";
 import { supabaseIndicatorsProvider } from "./impl/supabase/indicators";
 import { supabaseVehicleModelsProvider } from "./impl/supabase/vehicleModels";
 import { supabaseModelKitsProvider } from "./impl/supabase/modelKits";
+import { supabaseSuppliersProvider } from "./impl/supabase/suppliers";
+import { supabaseFiscalNotesProvider } from "./impl/supabase/fiscalNotes";
 import { supabaseMediaProvider } from "./impl/supabase/media";
 import { supabaseAssetLibraryProvider } from "./impl/supabase/assetLibrary";
 import { supabaseQuickReplyProvider } from "./impl/supabase/quickReply";
@@ -244,6 +246,8 @@ const supabaseProviders: IDataProviders = {
   indicators: supabaseIndicatorsProvider,
   vehicleModels: supabaseVehicleModelsProvider,
   modelKits: supabaseModelKitsProvider,
+  suppliers: supabaseSuppliersProvider,
+  fiscalNotes: supabaseFiscalNotesProvider,
   media: supabaseMediaProvider,
   assetLibrary: supabaseAssetLibraryProvider,
   quickReply: supabaseQuickReplyProvider,

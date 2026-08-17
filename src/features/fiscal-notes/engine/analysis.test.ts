@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { analyzeNote, type IAnalysisInput } from "./analysis";
+import { analyzeNote, type IAnalysisInput, type IAnalysisItem } from "./analysis";
+
+// Item declarado à parte e tipado: espalhar `BASE.items[0]` não passa em
+// `noUncheckedIndexedAccess`, porque o acesso indexado é `T | undefined`.
+const ITEM: IAnalysisItem = {
+  itemId: "i1",
+  partId: "p-bico",
+  partName: "Bico injetor Bosch CR 0445120212",
+  description: "BICO INJETOR CR 0445120212",
+  ncm: "84099190",
+  catalogNcm: "84099190",
+  unitCost: 389,
+  stockUnit: "UN",
+  monthlySales: 4,
+  currentStock: 6,
+};
 
 const BASE: IAnalysisInput = {
   noteId: "n1",
@@ -7,20 +22,7 @@ const BASE: IAnalysisInput = {
   supplierName: "Dieseltec",
   supplierIsNew: false,
   knownAccessKeys: [],
-  items: [
-    {
-      itemId: "i1",
-      partId: "p-bico",
-      partName: "Bico injetor Bosch CR 0445120212",
-      description: "BICO INJETOR CR 0445120212",
-      ncm: "84099190",
-      catalogNcm: "84099190",
-      unitCost: 389,
-      stockUnit: "UN",
-      monthlySales: 4,
-      currentStock: 6,
-    },
-  ],
+  items: [ITEM],
   purchaseHistory: {
     "p-bico": [
       { supplierName: "Bosch", unitCost: 332, purchasedAt: "2026-02-10", label: "fev" },
@@ -42,7 +44,7 @@ describe("analyzeNote", () => {
   it("does not flag a price within the tolerance band", () => {
     const input: IAnalysisInput = {
       ...BASE,
-      items: [{ ...BASE.items[0], unitCost: 350 }],
+      items: [{ ...ITEM, unitCost: 350 }],
     };
     expect(analyzeNote(input).some((c) => c.kind === "price")).toBe(false);
   });
@@ -50,7 +52,7 @@ describe("analyzeNote", () => {
   it("flags an NCM that differs from the catalog", () => {
     const input: IAnalysisInput = {
       ...BASE,
-      items: [{ ...BASE.items[0], ncm: "84212300", catalogNcm: "84212990" }],
+      items: [{ ...ITEM, ncm: "84212300", catalogNcm: "84212990" }],
     };
     const card = analyzeNote(input).find((c) => c.kind === "fiscal");
     expect(card).toBeDefined();
@@ -84,7 +86,7 @@ describe("analyzeNote", () => {
       ...BASE,
       items: [
         {
-          ...BASE.items[0],
+          ...ITEM,
           partId: "p-graxa",
           partName: "Graxa EP2 balde 20 kg",
           stockUnit: "BD",
@@ -102,7 +104,7 @@ describe("analyzeNote", () => {
   it("returns only the duplicate-check card for a clean note with no history", () => {
     const clean: IAnalysisInput = {
       ...BASE,
-      items: [{ ...BASE.items[0], unitCost: 346 }],
+      items: [{ ...ITEM, unitCost: 346 }],
       purchaseHistory: {},
     };
     expect(analyzeNote(clean).map((c) => c.kind)).toEqual(["duplicate"]);

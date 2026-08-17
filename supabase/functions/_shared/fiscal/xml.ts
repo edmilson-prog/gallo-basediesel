@@ -28,7 +28,7 @@ const ENTITIES: Record<string, string> = {
 
 function decodeEntities(value: string): string {
   return value
-    .replace(/&(amp|lt|gt|quot|apos);/g, (m) => ENTITIES[m])
+    .replace(/&(amp|lt|gt|quot|apos);/g, (m) => ENTITIES[m] ?? m)
     .replace(/&#(\d+);/g, (_, code: string) => String.fromCharCode(Number(code)));
 }
 
@@ -45,8 +45,8 @@ function parseAttrs(source: string): Record<string, string> {
   let match: RegExpExecArray | null;
   while ((match = re.exec(source)) !== null) {
     const name = match[1] ?? match[3];
-    const value = match[2] ?? match[4];
-    attrs[name] = decodeEntities(value);
+    const value = match[2] ?? match[4] ?? "";
+    if (name) attrs[name] = decodeEntities(value);
   }
   return attrs;
 }
@@ -56,13 +56,18 @@ export function parseXml(source: string): IXmlNode {
   const stack: IXmlNode[] = [root];
   let i = 0;
 
+  // A pilha nunca esvazia — o pop é guardado por `stack.length > 1` — mas
+  // `noUncheckedIndexedAccess` não sabe disso. O fallback para `root` é
+  // inalcançável e evita um cast.
+  const top = (): IXmlNode => stack[stack.length - 1] ?? root;
+
   while (i < source.length) {
     const lt = source.indexOf("<", i);
     if (lt === -1) break;
 
     if (lt > i) {
       const raw = source.slice(i, lt).trim();
-      if (raw) stack[stack.length - 1].text += decodeEntities(raw);
+      if (raw) top().text += decodeEntities(raw);
     }
 
     if (source.startsWith("<!--", lt)) {
@@ -73,7 +78,7 @@ export function parseXml(source: string): IXmlNode {
     if (source.startsWith("<![CDATA[", lt)) {
       const end = source.indexOf("]]>", lt);
       const stop = end === -1 ? source.length : end;
-      stack[stack.length - 1].text += source.slice(lt + 9, stop);
+      top().text += source.slice(lt + 9, stop);
       i = end === -1 ? source.length : end + 3;
       continue;
     }
@@ -104,7 +109,7 @@ export function parseXml(source: string): IXmlNode {
       children: [],
       text: "",
     };
-    stack[stack.length - 1].children.push(node);
+    top().children.push(node);
     if (!selfClosing) stack.push(node);
     i = gt + 1;
   }

@@ -42,7 +42,7 @@ describe("parseNfe", () => {
   });
 
   it("treats 'SEM GTIN' as no EAN at all", () => {
-    expect(parseNfe(XML).items[1].ean).toBeUndefined();
+    expect(parseNfe(XML).items[1]?.ean).toBeUndefined();
   });
 
   it("reads charges and totals", () => {

@@ -63,9 +63,9 @@ describe("mockFiscalNotesProvider", () => {
   it("creates a note with ids assigned to items and duplicates", async () => {
     const note = await seedNote();
     expect(note.id).toBeTruthy();
-    expect(note.items[0].id).toBeTruthy();
-    expect(note.items[0].noteId).toBe(note.id);
-    expect(note.duplicates[0].id).toBeTruthy();
+    expect(note.items[0]?.id).toBeTruthy();
+    expect(note.items[0]?.noteId).toBe(note.id);
+    expect(note.duplicates[0]?.id).toBeTruthy();
   });
 
   it("finds a note by access key", async () => {
@@ -92,7 +92,7 @@ describe("mockFiscalNotesProvider", () => {
 
   it("patches an item and leaves the others alone", async () => {
     const note = await seedNote();
-    const updated = await mockFiscalNotesProvider.updateItem(note.items[0].id, {
+    const updated = await mockFiscalNotesProvider.updateItem(note.items[0]!.id, {
       linkMode: "auto",
       partId: "p-r60t",
       conversionMode: "conv",

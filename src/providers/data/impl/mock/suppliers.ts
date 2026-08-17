@@ -68,10 +68,11 @@ export const mockSuppliersProvider: ISuppliersProvider = {
   },
 
   async update(id: ID, patch: Partial<ISupplier>): Promise<ISupplier> {
-    const index = store.findIndex((s) => s.id === id);
-    if (index === -1) throw new Error(`[mock] suppliers.update(${id}): fornecedor não encontrado`);
+    const current = store.find((s) => s.id === id);
+    if (!current) throw new Error(`[mock] suppliers.update(${id}): fornecedor não encontrado`);
     const { id: _ignoredId, createdAt: _ignoredCreatedAt, ...safe } = patch;
-    store[index] = { ...store[index], ...safe, updatedAt: new Date().toISOString() };
-    return store[index];
+    const updated: ISupplier = { ...current, ...safe, updatedAt: new Date().toISOString() };
+    store = store.map((s) => (s.id === id ? updated : s));
+    return updated;
   },
 };
