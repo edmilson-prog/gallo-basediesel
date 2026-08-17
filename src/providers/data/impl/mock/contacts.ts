@@ -1,4 +1,4 @@
-import type { ID, IContact, IContactScopeCounts } from "@/shared/types";
+import type { ID, IContact, IContactScopeCounts, ITriageContext } from "@/shared/types";
 import { paginate } from "@/mocks/api/utils";
 // Referenced as `contactsApi.list(...)` etc. at call time, never destructured
 // at module top level — `@/mocks/api/conversations.ts` (and messages/stores)
@@ -7,13 +7,19 @@ import { paginate } from "@/mocks/api/utils";
 // `undefined` in that window and throws on first import; every sibling mock
 // provider (customersApi, leadsApi, …) already avoids this by calling the api
 // object's methods lazily, which is safe once the cycle finishes resolving.
-import { contactsApi } from "@/mocks";
+import { contactsApi, conversationsApi, customersApi, messagesApi } from "@/mocks";
 import {
   applyContactFilters,
   UNASSIGNED_OWNER,
   type IContactFilterState,
 } from "@/features/contacts/engine/contactFilters";
 import { countScopes } from "@/features/contacts/engine/contactScopes";
+import {
+  buildTriageSuggestions,
+  type ITriageCandidate,
+} from "@/features/contacts/engine/triageSuggestions";
+import { buildDuplicatePairs } from "@/features/contacts/engine/duplicatePairs";
+import { buildMergePatch, mergeIgnoreReason } from "@/features/contacts/engine/contactMerge";
 import { readCurrentUserSync } from "@/features/auth/guards";
 import type { IContactsProvider, IListContactsParams } from "../../contracts/contacts";
 import { FETCH_ALL_PAGE_SIZE } from "../../contracts/_shared";
@@ -252,5 +258,158 @@ export const mockContactsProvider: IContactsProvider = {
     // `orderStatusCounts` (src/features/orders/utils/orderListStats.ts).
     const filtered = await filteredContacts({ ...params, scope: "todos" });
     return countScopes(filtered) satisfies IContactScopeCounts;
+  },
+
+  ignore: async (id, reason) => {
+    const before = await contactsApi.get(id).catch(() => null);
+    const updated = await contactsApi.update(id, {
+      ignoredAt: new Date().toISOString(),
+      ignoreReason: reason,
+      ignoredBy: readCurrentUserSync()?.id ?? "system",
+    });
+    logMockMutation({
+      action: "ignore",
+      resource: "contact",
+      resourceId: updated.id,
+      before,
+      after: updated,
+      storeId: updated.storeId,
+    });
+    return updated;
+  },
+
+  unignore: async (id) => {
+    const before = await contactsApi.get(id).catch(() => null);
+    const updated = await contactsApi.update(id, {
+      ignoredAt: null,
+      ignoreReason: null,
+      ignoredBy: null,
+    });
+    logMockMutation({
+      action: "unignore",
+      resource: "contact",
+      resourceId: updated.id,
+      before,
+      after: updated,
+      storeId: updated.storeId,
+    });
+    return updated;
+  },
+
+  triageContext: async (contact) => {
+    const empty: ITriageContext = { conversationId: null, firstInboundText: null, messageCount: 0 };
+    if (!contact.leadId) return empty;
+
+    const conversations = await conversationsApi.list({
+      leadId: contact.leadId,
+      page: 1,
+      pageSize: 1,
+    });
+    const conversation = conversations.data[0];
+    if (!conversation) return empty;
+
+    const messages = await messagesApi.list({
+      conversationId: conversation.id,
+      page: 1,
+      pageSize: FETCH_ALL_PAGE_SIZE,
+      orderDir: "asc",
+    });
+    const firstInbound = messages.data.find(
+      (message) => message.direction === "in" && (message.text?.trim() ?? "") !== "",
+    );
+
+    return {
+      conversationId: conversation.id,
+      firstInboundText: firstInbound?.text?.trim() ?? null,
+      messageCount: messages.total,
+    };
+  },
+
+  triageSuggestions: async (contact) => {
+    // The mock base is small enough to scan whole; the Supabase provider
+    // instead runs targeted lookups. Both then rank through the SAME engine,
+    // which is what keeps the two from drifting apart.
+    const customers = await customersApi.list({ page: 1, pageSize: FETCH_ALL_PAGE_SIZE });
+    const linked = await contactsApi.list({
+      scope: "vinculados",
+      page: 1,
+      pageSize: FETCH_ALL_PAGE_SIZE,
+    });
+
+    const index = new Map<ID, ITriageCandidate>();
+    for (const customer of customers.data) {
+      const name =
+        customer.type === "B2B" ? customer.nomeFantasia || customer.razaoSocial : customer.fullName;
+      index.set(customer.id, {
+        customerId: customer.id,
+        customerName: name || "Cliente sem nome",
+        phones: [customer.phone],
+        emails: [customer.email ?? null],
+        city: customer.address?.city ?? null,
+        uf: customer.address?.state ?? null,
+      });
+    }
+    for (const other of linked.data) {
+      if (other.id === contact.id || !other.customerId) continue;
+      const candidate = index.get(other.customerId);
+      if (!candidate) continue;
+      if (other.phone && !candidate.phones.includes(other.phone))
+        candidate.phones.push(other.phone);
+      if (other.email && !candidate.emails.includes(other.email))
+        candidate.emails.push(other.email);
+    }
+
+    return buildTriageSuggestions(contact, [...index.values()]);
+  },
+
+  duplicatePairs: async (params = {}) => {
+    const all = await contactsApi.list({
+      storeId: params.storeId,
+      page: 1,
+      pageSize: FETCH_ALL_PAGE_SIZE,
+    });
+    // `contactsApi.list` has no ignored filter of its own, so triaged-away
+    // contacts are dropped here — a merged-away record must not come back as
+    // one half of a fresh duplicate pair.
+    const visible = all.data.filter((contact) => !contact.ignoredAt);
+    const pairs = buildDuplicatePairs(visible);
+    const byId = new Map(visible.map((contact) => [contact.id, contact]));
+
+    return pairs.flatMap((pair) => {
+      const primary = byId.get(pair.primaryId);
+      const duplicate = byId.get(pair.duplicateId);
+      if (!primary || !duplicate) return [];
+      return [{ id: pair.id, reason: pair.reason, primary, duplicate }];
+    });
+  },
+
+  merge: async (primaryId, duplicateId) => {
+    if (primaryId === duplicateId) {
+      throw new Error("contacts.merge: um contato não pode ser mesclado nele mesmo");
+    }
+    const [primary, duplicate] = await Promise.all([
+      contactsApi.get(primaryId),
+      contactsApi.get(duplicateId),
+    ]);
+
+    const patch = buildMergePatch(primary, duplicate);
+    const merged =
+      Object.keys(patch).length > 0 ? await contactsApi.update(primaryId, patch) : primary;
+
+    await contactsApi.update(duplicateId, {
+      ignoredAt: new Date().toISOString(),
+      ignoreReason: mergeIgnoreReason(primary.name),
+      ignoredBy: readCurrentUserSync()?.id ?? "system",
+    });
+
+    logMockMutation({
+      action: "merge",
+      resource: "contact",
+      resourceId: primaryId,
+      before: primary,
+      after: merged,
+      storeId: merged.storeId,
+    });
+    return merged;
   },
 };

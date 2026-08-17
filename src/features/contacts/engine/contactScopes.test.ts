@@ -27,6 +27,9 @@ function contact(patch: Partial<IContact> = {}): IContact {
     nextContactNote: null,
     lastContactAt: null,
     hasWhatsapp: true,
+    ignoredAt: null,
+    ignoreReason: null,
+    ignoredBy: null,
     division: "parts",
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
@@ -54,6 +57,27 @@ describe("matchesScope", () => {
     expect(matchesScope(contact({ optOut: true, customerId: "cu-1" }), "optout")).toBe(true);
     expect(matchesScope(contact({ optOut: false }), "optout")).toBe(false);
   });
+
+  it("ignorados returns only triaged-away contacts", () => {
+    const ignored = contact({ ignoredAt: "2026-08-14T10:00:00.000Z", ignoreReason: "Fornecedor" });
+    expect(matchesScope(ignored, "ignorados")).toBe(true);
+    expect(matchesScope(contact(), "ignorados")).toBe(false);
+  });
+
+  it("keeps an ignored contact out of every other scope", () => {
+    // The regression this guards: `todos` used to fall through a `default`
+    // that returned true, so a triaged-away contact would come straight back
+    // into the Agenda.
+    const ignored = contact({
+      ignoredAt: "2026-08-14T10:00:00.000Z",
+      customerId: "cu-1",
+      optOut: true,
+    });
+    expect(matchesScope(ignored, "todos")).toBe(false);
+    expect(matchesScope(ignored, "vinculados")).toBe(false);
+    expect(matchesScope(ignored, "optout")).toBe(false);
+    expect(matchesScope(contact({ ignoredAt: "2026-08-14T10:00:00.000Z" }), "soltos")).toBe(false);
+  });
 });
 
 describe("countScopes", () => {
@@ -72,6 +96,16 @@ describe("countScopes", () => {
       // opt-out is transversal: one linked + one loose
       optout: 2,
     });
+  });
+
+  it("leaves ignored contacts out of every count", () => {
+    const rows = [
+      contact({ id: "a", customerId: "cu-1" }),
+      contact({ id: "b", customerId: null, ignoredAt: "2026-08-14T10:00:00.000Z" }),
+      contact({ id: "c", customerId: "cu-2", optOut: true, ignoredAt: "2026-08-14T10:00:00.000Z" }),
+    ];
+
+    expect(countScopes(rows)).toEqual({ todos: 1, vinculados: 1, soltos: 0, optout: 0 });
   });
 
   it("returns zeros for an empty list", () => {

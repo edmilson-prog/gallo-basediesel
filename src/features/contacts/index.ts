@@ -1,4 +1,5 @@
 export { ContactsPage } from "./pages/ContactsPage";
+export { TriagePage } from "./pages/TriagePage";
 
 // Surfaced for the customer ficha's "Contatos" tab, which shows the same people
 // from the company's side. Re-exported through the barrel so the ficha never

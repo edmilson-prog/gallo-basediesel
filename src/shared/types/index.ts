@@ -137,7 +137,16 @@ export type {
 } from "./customer";
 
 // Contacts (Agenda catalog)
-export type { IContact, IContactScopeCounts, ContactSource, ContactScope } from "./contacts";
+export type {
+  IContact,
+  IContactDuplicatePair,
+  IContactScopeCounts,
+  ContactSource,
+  ContactScope,
+  ITriageContext,
+  ITriageSuggestion,
+  TriageSignal,
+} from "./contacts";
 
 // Funnel identity (multi-funnel leads foundation)
 export type {

@@ -4,17 +4,34 @@ import type {
   Division,
   ID,
   IContact,
+  IContactDuplicatePair,
   IContactScopeCounts,
+  ITriageContext,
+  ITriageSuggestion,
 } from "@/shared/types";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { readCurrentUserSync } from "@/features/auth/guards";
+import {
+  buildTriageSuggestions,
+  type ITriageCandidate,
+} from "@/features/contacts/engine/triageSuggestions";
+import {
+  buildDuplicatePairs,
+  type IDuplicateInput,
+} from "@/features/contacts/engine/duplicatePairs";
+import { buildMergePatch, mergeIgnoreReason } from "@/features/contacts/engine/contactMerge";
+import {
+  companyEmailDomainOf,
+  nameTokens,
+  normalizeEmail,
+} from "@/features/contacts/engine/triageMatch";
 import type {
   ContactRecencyBucket,
   ContactsOrderBy,
   IContactsProvider,
   IListContactsParams,
 } from "../../contracts/contacts";
-import type { IPaginatedResult } from "../../contracts/_shared";
+import { FETCH_ALL_PAGE_SIZE, type IPaginatedResult } from "../../contracts/_shared";
 import { fetchLargePage } from "./_pagination";
 
 /**
@@ -64,6 +81,9 @@ interface IRow {
   next_contact_note: string | null;
   last_contact_at: string | null;
   has_whatsapp: boolean;
+  ignored_at: string | null;
+  ignore_reason: string | null;
+  ignored_by: string | null;
   division: Division;
   created_at: string;
   updated_at: string;
@@ -79,7 +99,8 @@ const TABLE = "contacts";
 const COLUMNS =
   "id, store_id, name, role, phone, phone_digits, email, city, uf, customer_id, lead_id, " +
   "owner_seller_id, tags, source, opt_out, opt_out_at, opt_out_by, next_contact_at, " +
-  "next_contact_note, last_contact_at, has_whatsapp, division, created_at, updated_at, " +
+  "next_contact_note, last_contact_at, has_whatsapp, ignored_at, ignore_reason, ignored_by, " +
+  "division, created_at, updated_at, " +
   "customer:customers(id, nome_fantasia, razao_social, full_name), " +
   "owner:sellers!owner_seller_id(id, full_name)";
 
@@ -120,6 +141,9 @@ function rowToContact(row: IRow): IContact {
     nextContactNote: row.next_contact_note,
     lastContactAt: row.last_contact_at,
     hasWhatsapp: row.has_whatsapp,
+    ignoredAt: row.ignored_at,
+    ignoreReason: row.ignore_reason,
+    ignoredBy: row.ignored_by,
     division: row.division,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -314,11 +338,14 @@ function buildFilteredQuery(
 ) {
   let query = getSupabaseClient().from(TABLE).select(select, options);
 
-  // Triaged-away contacts never show in the Agenda. The columns exist from
-  // the first migration but phase 1 has no writer for them, so this filter is
-  // inert today — it is here so the future triage screen cannot leak ignored
-  // contacts through a listing path nobody updated.
-  query = query.is("ignored_at", null);
+  // Triaged-away contacts never show in the Agenda — `ignorados` is the one
+  // scope that asks for them, and it is not a filters-bar chip: the triage
+  // screen's "Ignorados" tab is its only caller. Every other scope (including
+  // the `undefined` one `counts()` uses for "todos") excludes them.
+  query =
+    params.scope === "ignorados"
+      ? query.not("ignored_at", "is", null)
+      : query.is("ignored_at", null);
 
   if (params.storeId) query = query.eq("store_id", params.storeId);
   if (params.customerId) query = query.eq("customer_id", params.customerId);
@@ -445,10 +472,14 @@ async function countScope(
   scope: ContactScope | undefined,
   searchCustomerIds: string[],
 ): Promise<number> {
+  // `scope` is passed separately below, so it is stripped from the params the
+  // base query sees. Leaving it in would let a caller sitting on the
+  // `ignorados` scope flip the base filter and count triaged-away contacts
+  // into every chip.
   let query = buildFilteredQuery(
     "id",
     { count: "exact", head: true },
-    params,
+    { ...params, scope: undefined },
     now,
     searchCustomerIds,
   );
@@ -471,6 +502,92 @@ async function countScope(
  *  violate the FK instead of leaving an honest "unknown actor" blank. */
 function currentSellerId(): ID | null {
   return readCurrentUserSync()?.sellerId ?? null;
+}
+
+// ── Triage helpers ────────────────────────────────────────────────────────
+
+/**
+ * How many rows each candidate lookup may return.
+ *
+ * Triage shows ONE contact at a time and offers at most three suggestions, so
+ * these queries exist to find a handful of plausible customers, not to
+ * enumerate them. A common surname would otherwise pull hundreds of rows to
+ * rank three.
+ */
+const TRIAGE_CANDIDATE_LIMIT = 20;
+
+/** A name token shorter than this matches too much to be worth a query. */
+const MIN_SEARCHABLE_TOKEN = 4;
+
+interface ICustomerCandidateRow {
+  id: string;
+  nome_fantasia: string | null;
+  razao_social: string | null;
+  full_name: string | null;
+  phone: string | null;
+  email: string | null;
+  address: { city?: string; state?: string } | null;
+}
+
+const CUSTOMER_CANDIDATE_COLUMNS =
+  "id, nome_fantasia, razao_social, full_name, phone, email, address";
+
+/** Linked contacts carry reach data their customer's own record may lack. */
+interface ILinkedContactRow {
+  id: string;
+  phone: string | null;
+  email: string | null;
+  customer_id: string;
+  customer: ICustomerNameRow | null;
+}
+
+const LINKED_CONTACT_COLUMNS =
+  "id, phone, email, customer_id, customer:customers(id, nome_fantasia, razao_social, full_name)";
+
+/**
+ * Last 8 digits — the part of a Brazilian number that survives the 9th-digit
+ * variation, and therefore the only safe substring to match a stored number
+ * against. Returns `null` when there is no usable phone.
+ */
+function lastEightDigits(contact: IContact): string | null {
+  const digits = (contact.phoneDigits ?? contact.phone ?? "").replace(/\D/g, "");
+  return digits.length >= 8 ? digits.slice(-8) : null;
+}
+
+/**
+ * Accumulates everything known about one candidate customer across the
+ * several lookups below, so the scoring engine sees a single record per
+ * customer instead of one per query that happened to find it.
+ */
+function upsertCandidate(
+  index: Map<string, ITriageCandidate>,
+  customerId: string,
+  customerName: string | null,
+  extra: { phone?: string | null; email?: string | null; city?: string | null; uf?: string | null },
+): void {
+  const existing = index.get(customerId);
+  const candidate: ITriageCandidate = existing ?? {
+    customerId,
+    customerName: customerName ?? "Cliente sem nome",
+    phones: [],
+    emails: [],
+    city: null,
+    uf: null,
+  };
+  if (!existing) index.set(customerId, candidate);
+  // A later lookup may carry the name when the first one did not.
+  if (customerName && candidate.customerName === "Cliente sem nome") {
+    candidate.customerName = customerName;
+  }
+  if (extra.phone && !candidate.phones.includes(extra.phone)) candidate.phones.push(extra.phone);
+  if (extra.email && !candidate.emails.includes(extra.email)) candidate.emails.push(extra.email);
+  if (!candidate.city && extra.city) candidate.city = extra.city;
+  if (!candidate.uf && extra.uf) candidate.uf = extra.uf;
+}
+
+/** Escapes the `.or()` delimiters, same rule as `buildContactSearchOr`. */
+function safeOrTerm(value: string): string {
+  return value.replace(/[,()]/g, " ");
 }
 
 export const supabaseContactsProvider: IContactsProvider = {
@@ -710,5 +827,327 @@ export const supabaseContactsProvider: IContactsProvider = {
       countScope(params, now, "optout", searchCustomerIds),
     ]);
     return { todos, vinculados, soltos, optout };
+  },
+
+  async ignore(id: ID, reason: string): Promise<IContact> {
+    const { data, error } = await getSupabaseClient()
+      .from(TABLE)
+      .update({
+        ignored_at: new Date().toISOString(),
+        ignore_reason: reason,
+        ignored_by: currentSellerId(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select(COLUMNS)
+      .single();
+    if (error) throw new Error(`contacts.ignore(${id}): ${error.message}`);
+    return rowToContact(data as unknown as IRow);
+  },
+
+  async unignore(id: ID): Promise<IContact> {
+    const { data, error } = await getSupabaseClient()
+      .from(TABLE)
+      .update({
+        ignored_at: null,
+        ignore_reason: null,
+        ignored_by: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select(COLUMNS)
+      .single();
+    if (error) throw new Error(`contacts.unignore(${id}): ${error.message}`);
+    return rowToContact(data as unknown as IRow);
+  },
+
+  async triageContext(contact: IContact): Promise<ITriageContext> {
+    const empty: ITriageContext = {
+      conversationId: null,
+      firstInboundText: null,
+      messageCount: 0,
+    };
+    if (!contact.leadId) return empty;
+
+    const client = getSupabaseClient();
+
+    // `conversations.lead_id` is TEXT while `contacts.lead_id` is UUID. The
+    // comparison is made on the TEXT side by sending the id as a string —
+    // casting the indexed column instead (`lead_id::uuid = …`) is what turned
+    // a search into a sequential scan and a statement timeout once already.
+    const { data: conversations, error: conversationError } = await client
+      .from("conversations")
+      .select("id")
+      .eq("lead_id", contact.leadId)
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .limit(1);
+    if (conversationError) {
+      throw new Error(`contacts.triageContext(${contact.id}): ${conversationError.message}`);
+    }
+    const conversationId = (conversations ?? [])[0]?.id as string | undefined;
+    if (!conversationId) return empty;
+
+    const [countResult, firstResult] = await Promise.all([
+      client
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", conversationId),
+      client
+        .from("messages")
+        .select("text")
+        .eq("conversation_id", conversationId)
+        // `in` / `out`, not `inbound` / `outbound` — the column's real domain.
+        .eq("direction", "in")
+        .not("text", "is", null)
+        .order("sent_at", { ascending: true })
+        .limit(5),
+    ]);
+    if (countResult.error) {
+      throw new Error(`contacts.triageContext(${contact.id}): ${countResult.error.message}`);
+    }
+    if (firstResult.error) {
+      throw new Error(`contacts.triageContext(${contact.id}): ${firstResult.error.message}`);
+    }
+
+    // Reads a few and picks the first non-blank: an empty `text` is common on
+    // media-only messages, and `.not(is null)` alone lets those through.
+    const firstInboundText =
+      ((firstResult.data ?? []) as { text: string | null }[])
+        .map((row) => row.text?.trim() ?? "")
+        .find((text) => text !== "") ?? null;
+
+    return {
+      conversationId,
+      firstInboundText,
+      messageCount: countResult.count ?? 0,
+    };
+  },
+
+  async triageSuggestions(contact: IContact): Promise<ITriageSuggestion[]> {
+    const client = getSupabaseClient();
+    const index = new Map<string, ITriageCandidate>();
+
+    const last8 = lastEightDigits(contact);
+    const email = normalizeEmail(contact.email);
+    const domain = companyEmailDomainOf(email);
+    // Longest distinctive word: the more specific the token, the fewer
+    // useless rows the name lookup drags in.
+    const token = nameTokens(contact.name)
+      .filter((value) => value.length >= MIN_SEARCHABLE_TOKEN)
+      .sort((a, b) => b.length - a.length)[0];
+
+    const lookups: PromiseLike<unknown>[] = [];
+
+    /** Customers whose OWN record carries the number. */
+    if (last8) {
+      lookups.push(
+        client
+          .from("customers")
+          .select(CUSTOMER_CANDIDATE_COLUMNS)
+          .ilike("phone_digits", `%${last8}%`)
+          .limit(TRIAGE_CANDIDATE_LIMIT)
+          .then(({ data, error }) => {
+            if (error) throw new Error(`contacts.triageSuggestions (phone): ${error.message}`);
+            for (const row of (data ?? []) as unknown as ICustomerCandidateRow[]) {
+              upsertCandidate(index, row.id, resolveCustomerName(row), {
+                phone: row.phone,
+                email: row.email,
+                city: row.address?.city ?? null,
+                uf: row.address?.state ?? null,
+              });
+            }
+          }),
+      );
+
+      /** Already-linked contacts on the same line — the 9th-digit twin case. */
+      lookups.push(
+        client
+          .from(TABLE)
+          .select(LINKED_CONTACT_COLUMNS)
+          .not("customer_id", "is", null)
+          .is("ignored_at", null)
+          .neq("id", contact.id)
+          .ilike("phone_digits", `%${last8}%`)
+          .limit(TRIAGE_CANDIDATE_LIMIT)
+          .then(({ data, error }) => {
+            if (error) {
+              throw new Error(`contacts.triageSuggestions (linked phone): ${error.message}`);
+            }
+            for (const row of (data ?? []) as unknown as ILinkedContactRow[]) {
+              upsertCandidate(index, row.customer_id, resolveCustomerName(row.customer), {
+                phone: row.phone,
+                email: row.email,
+              });
+            }
+          }),
+      );
+    }
+
+    if (email) {
+      lookups.push(
+        client
+          .from("customers")
+          .select(CUSTOMER_CANDIDATE_COLUMNS)
+          .ilike("email", domain ? `%${safeOrTerm(domain)}` : safeOrTerm(email))
+          .limit(TRIAGE_CANDIDATE_LIMIT)
+          .then(({ data, error }) => {
+            if (error) throw new Error(`contacts.triageSuggestions (email): ${error.message}`);
+            for (const row of (data ?? []) as unknown as ICustomerCandidateRow[]) {
+              upsertCandidate(index, row.id, resolveCustomerName(row), {
+                phone: row.phone,
+                email: row.email,
+                city: row.address?.city ?? null,
+                uf: row.address?.state ?? null,
+              });
+            }
+          }),
+      );
+
+      lookups.push(
+        client
+          .from(TABLE)
+          .select(LINKED_CONTACT_COLUMNS)
+          .not("customer_id", "is", null)
+          .is("ignored_at", null)
+          .neq("id", contact.id)
+          .ilike("email", domain ? `%${safeOrTerm(domain)}` : safeOrTerm(email))
+          .limit(TRIAGE_CANDIDATE_LIMIT)
+          .then(({ data, error }) => {
+            if (error) {
+              throw new Error(`contacts.triageSuggestions (linked email): ${error.message}`);
+            }
+            for (const row of (data ?? []) as unknown as ILinkedContactRow[]) {
+              upsertCandidate(index, row.customer_id, resolveCustomerName(row.customer), {
+                phone: row.phone,
+                email: row.email,
+              });
+            }
+          }),
+      );
+    }
+
+    if (token) {
+      const safe = safeOrTerm(token);
+      lookups.push(
+        client
+          .from("customers")
+          .select(CUSTOMER_CANDIDATE_COLUMNS)
+          .or(
+            `nome_fantasia.ilike.*${safe}*,razao_social.ilike.*${safe}*,full_name.ilike.*${safe}*`,
+          )
+          .limit(TRIAGE_CANDIDATE_LIMIT)
+          .then(({ data, error }) => {
+            if (error) throw new Error(`contacts.triageSuggestions (name): ${error.message}`);
+            for (const row of (data ?? []) as unknown as ICustomerCandidateRow[]) {
+              upsertCandidate(index, row.id, resolveCustomerName(row), {
+                phone: row.phone,
+                email: row.email,
+                city: row.address?.city ?? null,
+                uf: row.address?.state ?? null,
+              });
+            }
+          }),
+      );
+    }
+
+    if (lookups.length === 0) return [];
+    await Promise.all(lookups);
+
+    // Scoring lives in the engine so mock and Supabase rank identically.
+    return buildTriageSuggestions(contact, [...index.values()]);
+  },
+
+  async duplicatePairs(params: { storeId?: ID } = {}): Promise<IContactDuplicatePair[]> {
+    const client = getSupabaseClient();
+
+    // Sweeps the visible base with the narrow column set the detector needs —
+    // no customer/owner embeds — so the whole table costs a few cheap chunks
+    // instead of a wide join. Only the contacts that end up in a pair (~95 on
+    // the production base) are hydrated afterwards.
+    const { data } = await fetchLargePage<IDuplicateInput>(
+      async (rangeFrom, rangeTo) => {
+        let query = client
+          .from(TABLE)
+          .select("id, name, phone, email, role, city, customer_id, last_contact_at, created_at", {
+            count: "exact",
+          })
+          .is("ignored_at", null);
+        if (params.storeId) query = query.eq("store_id", params.storeId);
+        const { data, error, count } = await query
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`contacts.duplicatePairs: ${error.message}`);
+        const rows = (data ?? []) as unknown as {
+          id: string;
+          name: string;
+          phone: string | null;
+          email: string | null;
+          role: string | null;
+          city: string | null;
+          customer_id: string | null;
+          last_contact_at: string | null;
+          created_at: string;
+        }[];
+        return {
+          data: rows.map((row) => ({
+            id: row.id,
+            name: row.name,
+            phone: row.phone,
+            email: row.email,
+            role: row.role,
+            city: row.city,
+            customerId: row.customer_id,
+            lastContactAt: row.last_contact_at,
+            createdAt: row.created_at,
+          })),
+          count: count ?? 0,
+        };
+      },
+      0,
+      FETCH_ALL_PAGE_SIZE,
+    );
+
+    const pairs = buildDuplicatePairs(data);
+    if (pairs.length === 0) return [];
+
+    const ids = [...new Set(pairs.flatMap((pair) => [pair.primaryId, pair.duplicateId]))];
+    const { data: rows, error } = await client.from(TABLE).select(COLUMNS).in("id", ids);
+    if (error) throw new Error(`contacts.duplicatePairs (hydrate): ${error.message}`);
+
+    const byId = new Map<string, IContact>();
+    for (const row of (rows ?? []) as unknown as IRow[]) {
+      byId.set(row.id, rowToContact(row));
+    }
+
+    return pairs.flatMap((pair) => {
+      const primary = byId.get(pair.primaryId);
+      const duplicate = byId.get(pair.duplicateId);
+      // A row the caller can see in the sweep but not in the hydrate (RLS on
+      // a wider column set) is dropped rather than half-rendered.
+      if (!primary || !duplicate) return [];
+      return [{ id: pair.id, reason: pair.reason, primary, duplicate }];
+    });
+  },
+
+  async merge(primaryId: ID, duplicateId: ID): Promise<IContact> {
+    if (primaryId === duplicateId) {
+      throw new Error("contacts.merge: um contato não pode ser mesclado nele mesmo");
+    }
+    const [primary, duplicate] = await Promise.all([
+      supabaseContactsProvider.get(primaryId),
+      supabaseContactsProvider.get(duplicateId),
+    ]);
+
+    const patch = buildMergePatch(primary, duplicate);
+    const merged =
+      Object.keys(patch).length > 0
+        ? await supabaseContactsProvider.update(primaryId, patch)
+        : primary;
+
+    // Ignored, never deleted: the absorbed record stays auditable, and the
+    // reason names the survivor so the decision reads back plainly.
+    await supabaseContactsProvider.ignore(duplicateId, mergeIgnoreReason(primary.name));
+
+    return merged;
   },
 };

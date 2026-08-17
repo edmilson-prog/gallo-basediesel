@@ -1,14 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ContactsPage } from "@/features/contacts/pages/ContactsPage";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-export interface IAgendaSearch {
-  /** Pre-fills the contact search — used by "Agendar retorno" on the customer detail page. */
-  q?: string;
-}
-
+/**
+ * Layout for the Agenda: the contact list at `/app/agenda` and triage at
+ * `/app/agenda/triagem`. It renders nothing of its own — each child owns its
+ * whole screen, including its header.
+ */
 export const Route = createFileRoute("/app/agenda")({
-  validateSearch: (search: Record<string, unknown>): IAgendaSearch => ({
-    q: typeof search.q === "string" && search.q.trim() !== "" ? search.q : undefined,
-  }),
-  component: ContactsPage,
+  component: () => <Outlet />,
 });

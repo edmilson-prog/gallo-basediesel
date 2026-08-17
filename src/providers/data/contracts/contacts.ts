@@ -1,9 +1,12 @@
 import type {
   IContact,
+  IContactDuplicatePair,
   IContactScopeCounts,
   ContactScope,
   ContactSource,
   ID,
+  ITriageContext,
+  ITriageSuggestion,
 } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
@@ -101,4 +104,59 @@ export interface IContactsProvider {
 
   /** Scope chip counts for the current filter set (server-computed). */
   counts(params?: IListContactsParams): Promise<IContactScopeCounts>;
+
+  // ── Triage ──────────────────────────────────────────────────────────────
+  // The queue itself is just `list({ scope: "soltos" })` — no separate reader.
+  // What triage adds are the verdicts and the two reads that make a verdict
+  // possible.
+
+  /**
+   * Takes the contact out of the Agenda with a reason on the record.
+   *
+   * Never a delete: the row stays, reachable by id and by the "Ignorados"
+   * tab, so a wrong call can be reviewed and undone. `reason` is required
+   * precisely because an unexplained disappearance is not reviewable.
+   */
+  ignore(id: ID, reason: string): Promise<IContact>;
+
+  /** Puts an ignored contact back in the Agenda, clearing the verdict. */
+  unignore(id: ID): Promise<IContact>;
+
+  /**
+   * The conversation that produced this contact, if any.
+   *
+   * Read one contact at a time, on demand — triage shows one card at a time,
+   * and prefetching the whole queue's messages would cost far more than it
+   * saves.
+   */
+  triageContext(contact: IContact): Promise<ITriageContext>;
+
+  /**
+   * Customers this loose contact plausibly belongs to, best first.
+   *
+   * Implementations gather candidates however their backend allows, then
+   * score them through the shared `buildTriageSuggestions` engine — the
+   * ranking must not diverge between mock and Supabase.
+   */
+  triageSuggestions(contact: IContact): Promise<ITriageSuggestion[]>;
+
+  /**
+   * Contacts that look like the same person, across the whole visible base.
+   *
+   * Bounded in practice (~95 pairs on the production base) because the rules
+   * are narrow: same phone line, or same e-mail address.
+   */
+  duplicatePairs(params?: { storeId?: ID }): Promise<IContactDuplicatePair[]>;
+
+  /**
+   * Folds `duplicateId` into `primaryId` and ignores the duplicate.
+   *
+   * Only fields the primary is MISSING are copied over — a merge must never
+   * overwrite data on the record being kept. Tags are unioned. The duplicate
+   * is ignored rather than deleted, with a reason naming the survivor, so the
+   * merge stays auditable and reversible.
+   *
+   * Resolves to the updated primary.
+   */
+  merge(primaryId: ID, duplicateId: ID): Promise<IContact>;
 }
