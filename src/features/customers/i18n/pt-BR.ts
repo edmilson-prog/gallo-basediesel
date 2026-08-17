@@ -354,6 +354,8 @@ export const CUSTOMER_STRINGS = {
       copy: (label: string) => `Copiar ${label.toLowerCase()}`,
       copied: "Copiado",
       phone: "Telefone",
+      /** Same cell, when the company is reached through more than one person. */
+      contacts: "Contatos",
       cnpj: "CNPJ",
       cpf: "CPF",
       razaoSocial: "Razão social",
@@ -445,6 +447,7 @@ export const CUSTOMER_STRINGS = {
       quotes: "Orçamentos",
       fleet: "Frota do cliente",
       conversations: "Conversas",
+      contacts: "Contatos da empresa",
       media: "Mídias",
       history: "Histórico",
       notes: "Notas internas",
@@ -455,6 +458,61 @@ export const CUSTOMER_STRINGS = {
       noPendingsTitle: "Nenhuma pendência",
       noPendingsText: "Nada aguardando ação neste cliente no momento.",
       noPendingsCta: "Agendar follow-up",
+      noContactsTitle: "Nenhum número vinculado a esta empresa",
+      noContactsText:
+        "Vincule o número de quem fala pela empresa — dono, compras, balcão. Cada pessoa mantém o próprio nome; a empresa reúne todos os números.",
+      noContactsCta: "Vincular número",
+    },
+    /** The "Contatos" tab — the people who speak for this company. */
+    contacts: {
+      count: (n: number) => `${n} ${n === 1 ? "número" : "números"}`,
+      conversations: (n: number) => `${n} ${n === 1 ? "conversa" : "conversas"}`,
+      primary: "Principal",
+      optOut: "Opt-out",
+      hasWhatsapp: "Tem WhatsApp",
+      noWhatsapp: "Somente telefone",
+      noRole: "Sem função definida",
+      neverContacted: "nunca",
+      nameIt: "Dar um nome",
+      linkNumber: "Vincular número",
+      rowActions: (name: string) => `Ações de ${name}`,
+      openConversation: "Abrir conversa",
+      call: "Ligar",
+      setPrimary: "Definir como principal",
+      viewInAgenda: "Ver na agenda",
+      unlink: "Desvincular da empresa",
+      orphanAnchorTitle: "O número principal não está na agenda",
+      orphanAnchorText:
+        "A empresa é atendida por um número que ninguém cadastrou como contato. Vincule-o para saber quem atende por ele.",
+    },
+    /**
+     * "Vincular número" dialog. The verb stays "vincular" from the trigger to
+     * the confirm button to the toast — an action that renames itself midway
+     * reads as two different actions.
+     */
+    linkNumber: {
+      title: "Vincular número",
+      description: (company: string) => `Mais um número que fala por ${company}.`,
+      searchPlaceholder: "Buscar pessoa por nome ou telefone…",
+      searchHint: "Digite ao menos 2 caracteres para buscar.",
+      searching: "Buscando…",
+      noResults: "Ninguém encontrado. O contato precisa existir na agenda para ser vinculado.",
+      noNumber: "sem número",
+      movingFrom: (company: string) =>
+        company
+          ? `Este contato hoje pertence a ${company}. Vincular aqui move o número para esta empresa.`
+          : "Este contato hoje pertence a outra empresa. Vincular aqui move o número para esta.",
+      previewTitle: "Como vai ficar",
+      promiseAdds: (n: number) =>
+        `O número entra na lista da empresa — ${n === 1 ? "o atual fica" : `os ${n} atuais ficam`}.`,
+      promiseBecomesPrimary: "Este passa a ser o número principal da empresa.",
+      promiseKeepsIdentity: "O nome e o telefone da pessoa continuam como estão.",
+      promiseUndoable: "Dá para desfazer depois de confirmar.",
+      roleLabel: "Função na empresa (opcional)",
+      rolePlaceholder: "Compras, Proprietário, Mecânico…",
+      cancel: "Cancelar",
+      confirm: "Vincular",
+      saving: "Vinculando…",
     },
     /** Consolidated tab strip (10 → 6) — detail page only. */
     tabs: {
@@ -462,6 +520,7 @@ export const CUSTOMER_STRINGS = {
       comercial: "Comercial",
       frota: "Frota",
       conversas: "Conversas",
+      contatos: "Contatos",
       cadastro: "Cadastro",
       notas: "Notas",
       subOrders: "Pedidos",

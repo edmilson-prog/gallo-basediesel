@@ -1,4 +1,4 @@
-import { conversationsApi, customersApi, leadsApi } from "@/mocks";
+import { contactsApi, conversationsApi, customersApi, leadsApi } from "@/mocks";
 import type {
   IConversationsProvider,
   ICreateConversationInput,
@@ -82,14 +82,29 @@ export const mockConversationsProvider: IConversationsProvider = {
         if (conv.customerId) {
           const customer = await customersApi.get(conv.customerId).catch(() => null);
           if (customer) {
+            const companyName =
+              customer.type === "B2B" ? customer.nomeFantasia : customer.fullName;
+            // Mirror the RPC's identity rule: the PERSON names the conversation,
+            // the company is context. The mock has no `contact_id`, so it stands
+            // in with the customer's sole contact — the same unambiguous case
+            // the migration's backfill accepts. With two or more it declines to
+            // guess, exactly as the backfill does.
+            const linked = await contactsApi
+              .list({ page: 1, pageSize: 100 })
+              .then((r) => r.data.filter((c) => c.customerId === customer.id))
+              .catch(() => []);
+            const person = linked.length === 1 ? linked[0] : null;
             return {
               conversationId: id,
               refId: customer.id,
               isLead: false,
-              name: customer.type === "B2B" ? customer.nomeFantasia : customer.fullName,
-              phone: customer.phone,
+              name: person?.name?.trim() || companyName,
+              phone: person?.phone || customer.phone,
               avatarUrl: customer.avatarUrl,
               temperature: null,
+              companyId: customer.id,
+              companyName,
+              role: person?.role ?? null,
             };
           }
         }

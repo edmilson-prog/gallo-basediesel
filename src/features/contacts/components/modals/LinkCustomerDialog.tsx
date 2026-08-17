@@ -69,6 +69,7 @@ export function LinkCustomerDialog({ contact, onClose, onConfirm }: ILinkCustome
   });
 
   const results = data?.data ?? [];
+  const selectedCustomer = results.find((c) => c.id === selected) ?? null;
 
   if (!contact) return null;
 
@@ -147,6 +148,59 @@ export function LinkCustomerDialog({ contact, onClose, onConfirm }: ILinkCustome
             )}
           </div>
         </div>
+
+        {/* Shown only AFTER a company is picked — before that there is nothing
+            true to render, and a placeholder would be decoration.
+
+            This block exists because the previous behaviour burned the owner: a
+            link appeared to rename the contact and drop its number. So instead
+            of PROMISING that nothing is destroyed, it SHOWS the outcome — the
+            person, still named, nested under the company. */}
+        {selectedCustomer && (
+          <div className="space-y-2.5 rounded-lg border border-border bg-muted/30 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              Como vai ficar
+            </p>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold uppercase text-foreground">
+                {contact.name}
+              </p>
+              <p className="truncate text-xs tabular-nums text-muted-foreground">
+                {[contact.role, contact.phone].filter(Boolean).join(" · ")}
+              </p>
+              <p className="mt-1 flex min-w-0 items-center gap-1 text-xs font-medium text-primary">
+                <Icon
+                  icon="mdi:subdirectory-arrow-right"
+                  size={13}
+                  aria-hidden
+                  className="shrink-0 text-muted-foreground"
+                />
+                <Icon icon="mdi:office-building" size={13} aria-hidden className="shrink-0" />
+                <span className="truncate">{displayName(selectedCustomer)}</span>
+              </p>
+            </div>
+            <ul className="space-y-1 border-t border-border pt-2">
+              {[
+                "O número entra na lista da empresa — os que já existem ficam.",
+                "O nome e o telefone da pessoa continuam como estão.",
+                "Dá para desfazer depois de confirmar.",
+              ].map((text) => (
+                <li
+                  key={text}
+                  className="flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground"
+                >
+                  <Icon
+                    icon="mdi:check"
+                    size={13}
+                    aria-hidden
+                    className="mt-px shrink-0 text-severity-success"
+                  />
+                  <span>{text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>

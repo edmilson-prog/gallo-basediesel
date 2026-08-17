@@ -6,6 +6,7 @@ import { useQuotesProvider } from "@/providers/data/hooks/useQuotesProvider";
 import { useVehiclesProvider } from "@/providers/data/hooks/useVehiclesProvider";
 import { useRecommendationsProvider } from "@/providers/data/hooks/useRecommendationsProvider";
 import { useConversationsProvider } from "@/providers/data/hooks/useConversationsProvider";
+import { useContactsProvider } from "@/providers/data";
 import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
 import { useStoresProvider } from "@/providers/data/hooks/useStoresProvider";
 import { buildCustomerAlerts, type ICustomerAlert } from "../engine/customerAlerts";
@@ -23,6 +24,8 @@ export interface ICustomerTabCounts {
   quotes: number;
   vehicles: number;
   conversations: number;
+  /** People who speak for this company — the Agenda contacts linked to it. */
+  contacts: number;
   notes: number;
   recommendations: number;
   /** Sum shown on the consolidated "Comercial" tab. */
@@ -60,6 +63,7 @@ export function useCustomerHeader(customer: ICustomer): ICustomerHeaderData {
   const vehiclesProvider = useVehiclesProvider();
   const recommendationsProvider = useRecommendationsProvider();
   const conversationsProvider = useConversationsProvider();
+  const contactsProvider = useContactsProvider();
   const sellersProvider = useSellersProvider();
   const storesProvider = useStoresProvider();
 
@@ -107,6 +111,17 @@ export function useCustomerHeader(customer: ICustomer): ICustomerHeaderData {
           orderBy: "lastMessageAt",
           orderDir: "desc",
         })
+        .then((r) => r.data),
+  });
+
+  // Shares the key with `useCustomerContacts`, so opening the tab reuses this
+  // fetch instead of issuing a second one.
+  const contactsQuery = useQuery({
+    queryKey: ["customer-contacts", customer.id] as const,
+    staleTime: 60_000,
+    queryFn: () =>
+      contactsProvider
+        .list({ customerId: customer.id, storeId: customer.storeId, pageSize: 100 })
         .then((r) => r.data),
   });
 
@@ -170,6 +185,7 @@ export function useCustomerHeader(customer: ICustomer): ICustomerHeaderData {
       quotes: quotes.length,
       vehicles: vehicles.length,
       conversations: conversations.length,
+      contacts: contactsQuery.data?.length ?? 0,
       notes: customer.notes.length,
       recommendations: recommendations.length,
       comercial: orders.length + quotes.length,

@@ -4,6 +4,36 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.179.0] — Extension · 2026-08-17
+
+**Uma empresa fala com a gente por vários números — o dono, o comprador, o balcão, o celular de quem está na oficina. Até aqui o sistema só sabia lidar com um: ao ligar uma conversa a um cliente, o nome da pessoa era trocado pelo da empresa e o número dela desaparecia da tela. Agora a conversa lembra com quem você está falando. A pessoa vem primeiro, a empresa aparece ao lado como etiqueta, e a ficha do cliente ganhou uma aba que reúne todos os números daquela empresa — com função de cada um, quem tem WhatsApp e há quanto tempo falou. Dá para vincular um número novo sem sair da conversa. O catálogo também mudou bastante nesta versão: a lista de peças, a ficha do produto, o cadastro de peça nova e a ficha do modelo foram reconstruídos pelos desenhos aprovados.**
+
+### Added
+
+- **Aba "Contatos" na ficha do cliente** — todos os números por onde aquela empresa fala, um por linha: nome da pessoa, função ("Compras", "Balcão"), o número, se tem WhatsApp e quando foi o último contato. Um contador ao lado do nome da aba mostra quantos são, sem precisar abrir. Quem está em opt-out aparece marcado e com uma faixa vermelha na lateral.
+- **Número principal da empresa** — o número que o sistema usa para falar com o cliente aparece marcado com uma estrela. Dá para promover outro a principal pelo menu de cada linha; o anterior continua na lista.
+- **Vincular número** — busca a pessoa pela agenda e a liga à empresa. Antes de confirmar, um quadro "Como vai ficar" mostra exatamente o resultado: a pessoa, com o nome dela preservado, embaixo da empresa — e avisa que nada é apagado e que dá para desfazer. Também dá para registrar a função dela na hora.
+- **Vincular a empresa direto da conversa** — quando um número não tem empresa, uma etiqueta pontilhada aparece no cabeçalho da conversa, no lugar onde o nome da empresa estaria. Um clique busca a empresa e faz o vínculo sem sair do atendimento.
+- **O cabeçalho da ficha do cliente mostra quantos números a empresa tem** — o campo de telefone passou a exibir o número principal com um "+N" ao lado quando existem outros, e leva direto para a aba Contatos.
+- **A conversa mostra a empresa ao lado da pessoa** — no cabeçalho, uma etiqueta clicável leva à ficha do cliente. Na lista de conversas, o nome da empresa aparece em cinza logo após o nome da pessoa.
+
+### Changed
+
+- **Quem aparece como título da conversa mudou** — antes era a empresa; agora é a pessoa que está escrevendo, com a empresa como contexto ao lado. Quando o contato nunca foi batizado e só temos o número, a ordem se inverte: a empresa vira o título e o número fica em segundo, porque um número solto identifica pouco.
+- **A palavra "WhatsApp" saiu do cabeçalho da conversa** — o ícone já dizia isso, e o espaço passou a ser usado pelo número do contato, que antes podia ser cortado no meio.
+- **Lista de peças reconstruída** — o catálogo virou uma fila de trabalho: mostra o que falta preencher em cada peça, agrupa por situação e permite ações em lote. O indicador de giro é opcional e só carrega quando pedido.
+- **Ficha de produto e ficha do modelo** refeitas pelos desenhos aprovados.
+- **Cadastro de peça nova** refeito: começa pelo código, avisa na hora da digitação se aquele código já existe e usa a mesma régua da lista para dizer se a peça está pronta para venda.
+
+### Fixed
+
+- **Vincular uma conversa a um cliente apagava a pessoa** — o nome era trocado pelo da empresa e o telefone sumia da tela. O número de quem estava falando não ia para lugar nenhum. Agora ele é preservado como contato da empresa, e quando a empresa não tinha telefone cadastrado passa a ter. As conversas afetadas foram recuperadas.
+- **Telefone com código do país aparecia errado na ficha do cliente** — números gravados no formato internacional eram exibidos com o "55" ocupando o lugar do DDD e o último dígito era perdido. O mesmo cliente chegava a mostrar dois números diferentes, dependendo de onde você olhasse na tela. Atingia cerca de 1.980 clientes.
+- **Cliente sem telefone mostrava um ícone de telefone solto** — sem número e sem explicação, com um atalho de ligação que não fazia nada. Agora diz "Sem telefone cadastrado", como já acontecia com o e-mail.
+- **Mensagens longas escapavam do balão no aplicativo de conversas** e empurravam a tela para o lado.
+- **Compatibilidade entre peça e modelo não encontrava nada** — as aplicações eram gravadas em um formato e comparadas em outro.
+- **Botões de adicionar mostravam dois sinais de "+"**.
+
 ## [0.178.0] — Lifeline · 2026-08-13
 
 **O NPS deixou de ser uma tela para ler e virou uma tela para trabalhar. A nota continua no mesmo lugar, mas agora divide espaço com cinco abas: todas as respostas com filtro por motivo, uma fila de clientes insatisfeitos com prazo de retorno, as regras de envio, os parâmetros de leitura e um mapa de onde a nota aparece no resto do sistema. Nota de 0 a 6 abre uma tratativa com prazo de 24 horas para o primeiro contato — e no dia em que a pesquisa for ligada o histórico inteiro entra na fila, não apenas as respostas novas. A ficha do cliente também mudou de cara nesta versão, e ganhou um segundo formato de cabeçalho que dá para experimentar e comparar.**
