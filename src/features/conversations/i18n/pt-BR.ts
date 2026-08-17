@@ -268,6 +268,13 @@ export const CONVERSATION_STRINGS = {
     tagsEmpty: "Nenhuma tag aplicada",
     collaborators: "Colaboradores",
     collaboratorsEmpty: "Nenhum colaborador nesta conversa.",
+    // Short forms for the lateral panel: its rows are label-left/value-right in
+    // 360px, where "Atendente responsável" pushes the value off the row. The
+    // card header already says these belong to the conversation.
+    statusShort: "Status",
+    assigneeShort: "Atendente",
+    tagsShort: "Etiquetas",
+    unassignedShort: "Sem atribuição",
   },
   toggleFiche: "Ficha",
   toggleMedia: "Mídias",

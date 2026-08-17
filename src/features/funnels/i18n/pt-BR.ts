@@ -120,6 +120,12 @@ export const COPY = {
       cannotArchiveDefault: "O funil de triagem não pode ser arquivado.",
     },
   },
+  /** Valor da PARTICIPAÇÃO (lead_funnel_entries), nunca o agregado do lead. */
+  value: {
+    add: "informar",
+    none: "—",
+    label: (funil: string) => `Valor estimado em ${funil}`,
+  },
   fiche: {
     title: "Funis",
     add: "Adicionar a um funil",

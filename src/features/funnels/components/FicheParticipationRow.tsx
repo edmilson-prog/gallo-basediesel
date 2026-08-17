@@ -27,6 +27,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { getAccentClasses } from "../engine/accentClasses";
+import { FunnelValueField } from "./FunnelValueField";
 import type { IFicheParticipation } from "../engine/ficheParticipations";
 import { COPY } from "../i18n/pt-BR";
 
@@ -39,6 +40,8 @@ export interface IFicheParticipationRowProps {
   isOnly: boolean;
   onMove: (stageId: ID) => void;
   onRemove: () => void;
+  /** Writes this participation's estimated value. */
+  onSetValue: (value: number | undefined) => void;
 }
 
 /**
@@ -55,9 +58,11 @@ export function FicheParticipationRow({
   isOnly,
   onMove,
   onRemove,
+  onSetValue,
 }: IFicheParticipationRowProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { funnel, stage } = participation;
+  const accent = getAccentClasses(funnel.accent);
 
   // The badge reads the PARTICIPATION's stage kind, not `lead.convertedToCustomerId`
   // — the same correction phase 4 made on the board card, for the same reason:
@@ -66,11 +71,9 @@ export function FicheParticipationRow({
   const lost = stage?.kind === "perda";
 
   return (
-    <li className="flex items-center gap-1.5">
-      <span
-        aria-hidden
-        className={cn("size-2 shrink-0 rounded-sm", getAccentClasses(funnel.accent).dot)}
-      />
+    <li className="space-y-1">
+      <div className="flex items-center gap-1.5">
+      <span aria-hidden className={cn("size-2 shrink-0 rounded-sm", accent.dot)} />
       <span
         className="max-w-[110px] shrink-0 truncate text-xs text-foreground"
         title={funnel.name}
@@ -180,6 +183,67 @@ export function FicheParticipationRow({
           </AlertDialog>
         </>
       )}
+      </div>
+
+      <StageTrack stages={stages} currentStageId={stage?.id} accentBar={accent.bar} />
+
+      {/* The kit's "Valor estimado" row. Per PARTICIPATION, not per lead: a lead
+          in two funnels is two distinct revenues, and reading the deprecated
+          `lead.estimatedValue` here would double-count the forecast. */}
+      <div className="flex items-center justify-between gap-2 pl-3.5">
+        <span className="text-[11px] text-muted-foreground">{COPY.value.label(funnel.name)}</span>
+        <FunnelValueField
+          value={participation.entry.estimatedValue}
+          label={COPY.value.label(funnel.name)}
+          canEdit={canEdit}
+          disabled={isPending}
+          size="xs"
+          onSave={onSetValue}
+        />
+      </div>
     </li>
+  );
+}
+
+/**
+ * The funnel's stages as a track, filled up to where the lead is.
+ *
+ * The select alone answers "which stage" and says nothing about how far along
+ * that is — "Qualificado" reads the same whether it is the second of three or
+ * the second of eight. Ported from the kit
+ * (ui_kits/atendimento/painel/painel-lead-v2-conversao.html), which puts the
+ * position under the control that changes it.
+ *
+ * Hidden below two stages: a one- or two-segment bar is decoration, not
+ * information.
+ */
+function StageTrack({
+  stages,
+  currentStageId,
+  accentBar,
+}: {
+  stages: ILeadFunnelStage[];
+  currentStageId?: ID;
+  accentBar: string;
+}) {
+  if (stages.length < 3) return null;
+  const currentIndex = stages.findIndex((s) => s.id === currentStageId);
+  return (
+    <div
+      aria-hidden
+      className="grid gap-[3px]"
+      style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))` }}
+    >
+      {stages.map((s, index) => (
+        <span
+          key={s.id}
+          title={s.name}
+          className={cn(
+            "h-1 rounded-sm",
+            currentIndex >= 0 && index <= currentIndex ? accentBar : "bg-border",
+          )}
+        />
+      ))}
+    </div>
   );
 }
