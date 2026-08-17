@@ -9,6 +9,10 @@
 // stack trace.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createSecretResolver } from "../_shared/secrets.ts";
+import { verifyWorkerSecret } from "../_shared/workerAuth.ts";
+
+const WORKER_SECRET_NAME = "FISCAL_INBOX_WORKER_SECRET";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +33,15 @@ Deno.serve(async (req) => {
   if (!serviceKey) return json({ error: "misconfigured" }, 500);
 
   const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", serviceKey);
+
+  // Esta função roda com service_role — ela ignora RLS. Sem este portão,
+  // qualquer usuário autenticado poderia dispará-la. Mesmo padrão do
+  // nps-scheduler: segredo no Vault, comparado em tempo constante.
+  const expected = await createSecretResolver(supabase)(WORKER_SECRET_NAME);
+  const provided = req.headers.get("x-worker-secret") ?? "";
+  if (!verifyWorkerSecret(provided, expected)) {
+    return json({ error: "unauthorized" }, 401);
+  }
 
   const { data: settings } = await supabase
     .from("fiscal_note_settings")
