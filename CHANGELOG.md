@@ -4,6 +4,15 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.180.1] — Jig · 2026-08-17
+
+**Dois consertos. No aplicativo de conversas do celular, entrar numa conversa deixava a tela lá no alto do histórico — era preciso rolar várias vezes até alcançar a última mensagem; agora toda conversa abre direto na mensagem mais recente. E uma atualização do sistema podia deixar o site quebrado por até quatro horas para quem estava com ele aberto na hora da troca, sem que o botão "Atualizar agora" resolvesse.**
+
+### Fixed
+
+- **A conversa abre na última mensagem (aplicativo do celular)** — ao entrar numa conversa, a tela ficava no começo do histórico carregado, e era preciso rolar tudo até o fim. Agora a conversa abre na mensagem mais recente; "Ver mensagens anteriores" não move mais a leitura de lugar; e uma mensagem nova só puxa a tela para baixo se você já estava acompanhando o fim da conversa — antes ela puxava mesmo quem estava lendo o histórico.
+- **Site quebrado depois de uma atualização** — quando uma nova versão entrava no ar, o navegador de quem estava com o site aberto podia guardar por quatro horas uma resposta errada no lugar de um arquivo do sistema, e a tela abria quebrada — nem o botão "Atualizar agora" curava, só esperar. Agora o arquivo que saiu do ar responde como ausente, o aviso de nova versão funciona e a tela se recompõe sozinha em segundos.
+
 ## [0.180.0] — Jig · 2026-08-17
 
 **Kits por modelo era uma lista de vinte e um caminhões iguais, cada um com uma etiqueta cinza escrita "Kits 0", e o botão mais destacado da tela era justamente o que quase nunca se usa: cadastrar modelo. O catálogo de modelos muda uma vez por ano; o kit é o que se monta toda semana. Agora a tela abre pela conta que interessa — quantos modelos já têm kit pronto, quantos estão em rascunho e quantos não têm nada — e cada linha mostra o kit de verdade: quantas peças, quanto custa, quantos orçamentos ele já atendeu. Montar um kit também mudou: em vez de uma busca solta onde era preciso lembrar o que um kit de filtros precisa ter, a tela agora é um gabarito com uma linha por tipo de filtro — óleo, combustível, separador de água, ar, cabine — dizendo o que falta e oferecendo as peças que servem naquele motor. Nesta versão também entraram a triagem da agenda e a aba de conversas da ficha do cliente.**
