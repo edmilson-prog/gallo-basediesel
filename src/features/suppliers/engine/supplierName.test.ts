@@ -3,7 +3,9 @@ import { canonicalSupplierName, normalizeSupplierName, supplierNameMatches } fro
 
 describe("normalizeSupplierName", () => {
   it("lowercases, strips accents and collapses whitespace", () => {
-    expect(normalizeSupplierName("  POTTER  &amp;  HOPPE  INJECAO  ")).toBe("potter & hoppe injecao");
+    expect(normalizeSupplierName("  POTTER  &amp;  HOPPE  INJECAO  ")).toBe(
+      "potter & hoppe injecao",
+    );
   });
 
   it("decodes the &amp; entity left by the DINTEC import", () => {
