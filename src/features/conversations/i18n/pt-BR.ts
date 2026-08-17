@@ -367,8 +367,12 @@ export const CONVERSATION_STRINGS = {
   downloadVideo: "Baixar vídeo",
   downloadDocument: "Baixar documento",
   transcribingAudio: "Transcrevendo…",
+  transcriptionLabel: "Transcrição",
   transcriptionUnavailable: "Transcrição indisponível",
   retryTranscription: "Tentar transcrever de novo",
+  transcriptionShowMore: "Ver mais",
+  transcriptionShowLess: "Ver menos",
+  audioPosition: "Posição do áudio",
   imageCaption: (caption: string) => caption || "Foto",
   location: {
     label: "Localização",
