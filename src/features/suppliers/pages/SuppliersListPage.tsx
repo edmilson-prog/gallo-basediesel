@@ -6,7 +6,7 @@ import { useSuppliersList, type ISuppliersListFilters } from "../hooks/useSuppli
 import { useSuppliersStatsIndex } from "../hooks/useSuppliersStatsIndex";
 import { supplierCompleteness } from "../engine/completeness";
 import { SuppliersKpiStrip } from "../components/list/SuppliersKpiStrip";
-import { SuppliersFiltersBar, type ISuppliersSort } from "../components/list/SuppliersFiltersBar";
+import { SuppliersFiltersBar } from "../components/list/SuppliersFiltersBar";
 import { SuppliersTable } from "../components/list/SuppliersTable";
 import {
   OPTIONAL_COLUMNS,
@@ -14,6 +14,7 @@ import {
   writeVisibleOptional,
   type OptionalColumn,
 } from "../utils/columns";
+import type { ISuppliersSort } from "../utils/sort";
 import { SUPPLIERS_STRINGS } from "../i18n/pt-BR";
 
 const COPY = SUPPLIERS_STRINGS;
@@ -90,11 +91,12 @@ export function SuppliersListPage() {
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
 
   return (
-    // Viewport-relative height (not `h-full`): the route wraps this page in
-    // `DashboardLayout`, an auto-height padding wrapper, so a percentage
-    // height would never resolve — the internal `overflow-hidden`/`overflow-auto`
-    // split below needs a REAL bounded height to actually scroll internally
-    // (same trick CatalogListPage/VehiclesListPage use, which render unwrapped).
+    // Viewport-relative height (not `h-full`): a percentage height needs a
+    // definite-height ancestor to resolve, and this route renders the page
+    // unwrapped (no `DashboardLayout`) specifically so that ancestor chain
+    // never exists — the internal `overflow-hidden`/`overflow-auto` split
+    // below needs a REAL bounded height to actually scroll internally (same
+    // trick CatalogListPage/VehiclesListPage use).
     <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem-var(--shell-banner-offset,0px))]">
       {/* Bloco fixo — a linha de progresso acompanha sua borda inferior. */}
       <div className="relative">
@@ -149,6 +151,8 @@ export function SuppliersListPage() {
               visibleColumns={visibleColumns}
               onToggleColumn={toggleColumn}
               onShowAllColumns={showAllColumns}
+              sort={sort}
+              onSortChange={setSort}
               scrollRef={setScrollEl}
             />
           </div>

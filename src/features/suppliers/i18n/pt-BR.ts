@@ -36,6 +36,7 @@ export const SUPPLIERS_STRINGS = {
     contact: "Contato",
   },
   columnsMenu: {
+    trigger: "Configurar colunas",
     title: "Colunas visíveis",
     showAll: "Exibir todas",
   },

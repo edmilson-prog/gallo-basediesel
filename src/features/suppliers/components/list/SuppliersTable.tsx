@@ -1,7 +1,9 @@
 import type { ID, ISupplier, ISupplierStats } from "@/shared/types";
+import { Icon } from "@/components/Icon";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useResizableColumns } from "@/shared/hooks/useResizableColumns";
+import { formatBRL } from "@/shared/utils/format";
 import { cn } from "@/lib/utils";
 import { SUPPLIER_MISSING_LABELS, supplierCompleteness } from "../../engine/completeness";
 import {
@@ -13,7 +15,8 @@ import {
   type SupplierColumnId,
 } from "../../utils/columns";
 import { SUPPLIERS_STRINGS } from "../../i18n/pt-BR";
-import { SuppliersColumnsContextContent } from "./SuppliersColumnsMenu";
+import { nextSort, type ISuppliersSort, type SupplierSortBy } from "../../utils/sort";
+import { SuppliersColumnsContextContent, SuppliersColumnsDropdown } from "./SuppliersColumnsMenu";
 
 const COPY = SUPPLIERS_STRINGS;
 
@@ -47,9 +50,20 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-function brl(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+/**
+ * Maps a column to the sort field it drives — only the four the segmented
+ * control in `SuppliersFiltersBar` already offers. `terms`/`contact` have no
+ * canonical order and stay plain labels.
+ */
+const SORT_KEY: Partial<Record<SupplierColumnId, SupplierSortBy>> = {
+  supplier: "name",
+  parts: "parts",
+  purchases: "purchases",
+  completeness: "completeness",
+};
+
+/** Fixed-width trailing cell for the columns-visibility trigger — not resizable. */
+const ACTIONS_COLUMN_WIDTH = 40;
 
 interface ISuppliersTableProps {
   suppliers: ISupplier[];
@@ -60,6 +74,8 @@ interface ISuppliersTableProps {
   visibleColumns: Set<OptionalColumn>;
   onToggleColumn: (id: OptionalColumn) => void;
   onShowAllColumns: () => void;
+  sort: ISuppliersSort;
+  onSortChange: (sort: ISuppliersSort) => void;
   /** Exposes the inner scroll container to the header progress line. */
   scrollRef?: (el: HTMLDivElement | null) => void;
 }
@@ -73,6 +89,8 @@ export function SuppliersTable({
   visibleColumns,
   onToggleColumn,
   onShowAllColumns,
+  sort,
+  onSortChange,
   scrollRef,
 }: ISuppliersTableProps) {
   const { widths, startResize } = useResizableColumns(RESIZABLE_COLUMNS, WIDTHS_STORAGE_KEY);
@@ -82,7 +100,7 @@ export function SuppliersTable({
     ...OPTIONAL_COLUMNS.filter((id) => visibleColumns.has(id)),
   ];
 
-  const gridTemplate = columns.map((id) => `${widths[id]}px`).join(" ");
+  const gridTemplate = `${columns.map((id) => `${widths[id]}px`).join(" ")} ${ACTIONS_COLUMN_WIDTH}px`;
 
   return (
     // `h-full` bounds the scroll container to its grid cell (CatalogTable
@@ -95,25 +113,56 @@ export function SuppliersTable({
             className="sticky top-0 z-10 grid border-b border-border bg-muted/40"
             style={{ gridTemplateColumns: gridTemplate }}
           >
-            {columns.map((id, index) => (
-              <span
-                key={id}
-                className={cn(
-                  "relative px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground",
-                  // Vertical delimiters live in the header only.
-                  index > 0 && "border-l border-border",
-                  (id === "parts" || id === "purchases") && "text-right",
-                )}
-              >
-                {COLUMN_LABELS[id]}
+            {columns.map((id, index) => {
+              const sortKey = SORT_KEY[id];
+              const active = sortKey != null && sort.by === sortKey;
+              const icon = active
+                ? sort.dir === "asc"
+                  ? "mdi:arrow-up"
+                  : "mdi:arrow-down"
+                : "mdi:unfold-more-horizontal";
+              return (
                 <span
-                  role="separator"
-                  aria-orientation="vertical"
-                  onPointerDown={(e) => startResize(id, e)}
-                  className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/40"
-                />
-              </span>
-            ))}
+                  key={id}
+                  className={cn(
+                    "relative px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground",
+                    // Vertical delimiters live in the header only.
+                    index > 0 && "border-l border-border",
+                    (id === "parts" || id === "purchases") && "text-right",
+                  )}
+                >
+                  {sortKey ? (
+                    <button
+                      type="button"
+                      onClick={() => onSortChange(nextSort(sort, sortKey))}
+                      className={cn(
+                        "inline-flex max-w-full items-center gap-1 truncate hover:text-foreground",
+                        active && "text-foreground",
+                      )}
+                    >
+                      <span className="truncate">{COLUMN_LABELS[id]}</span>
+                      <Icon icon={icon} size={11} className={cn(!active && "opacity-40")} />
+                    </button>
+                  ) : (
+                    COLUMN_LABELS[id]
+                  )}
+                  <span
+                    role="separator"
+                    aria-orientation="vertical"
+                    onPointerDown={(e) => startResize(id, e)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/40"
+                  />
+                </span>
+              );
+            })}
+            <span className="flex items-center justify-end border-l border-border px-1 py-1.5">
+              <SuppliersColumnsDropdown
+                visible={visibleColumns}
+                onToggle={onToggleColumn}
+                onShowAll={onShowAllColumns}
+              />
+            </span>
           </div>
         </ContextMenuTrigger>
         <SuppliersColumnsContextContent
@@ -196,7 +245,7 @@ export function SuppliersTable({
                           key={id}
                           className="px-4 py-2.5 text-right text-[13px] font-bold text-foreground"
                         >
-                          {stats ? brl(stats.purchasesLast12Months) : "—"}
+                          {formatBRL(stats?.purchasesLast12Months)}
                         </span>
                       );
                     case "completeness":
@@ -231,6 +280,8 @@ export function SuppliersTable({
                       );
                   }
                 })}
+                {/* Trailing cell mirrors the header's actions column so the grid tracks line up. */}
+                <span />
               </div>
             );
           })}

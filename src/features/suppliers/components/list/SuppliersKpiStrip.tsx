@@ -1,6 +1,7 @@
 import type { ID, ISupplier, ISupplierStats } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
+import { formatBRL } from "@/shared/utils/format";
 import { SUPPLIERS_STRINGS } from "../../i18n/pt-BR";
 
 const COPY = SUPPLIERS_STRINGS.kpis;
@@ -10,10 +11,6 @@ interface ISuppliersKpiStripProps {
   statsIndex: Map<ID, ISupplierStats> | null;
   /** Clicking "Com CNPJ" filters the list down to the ones still missing it. */
   onFilterMissingDocument: () => void;
-}
-
-function brl(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 export function SuppliersKpiStrip({
@@ -60,7 +57,7 @@ export function SuppliersKpiStrip({
     },
     {
       label: COPY.purchases,
-      value: purchases === null ? "—" : brl(purchases),
+      value: formatBRL(purchases),
       icon: "mdi:package-variant",
     },
     {

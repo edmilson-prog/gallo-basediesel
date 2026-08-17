@@ -3,16 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { SUPPLIERS_STRINGS } from "../../i18n/pt-BR";
+import { nextSort, type ISuppliersSort, type SupplierSortBy } from "../../utils/sort";
 import { SuppliersSearch } from "./SuppliersSearch";
 
 const COPY = SUPPLIERS_STRINGS;
-
-export type SupplierSortBy = "name" | "parts" | "purchases" | "completeness";
-
-export interface ISuppliersSort {
-  by: SupplierSortBy;
-  dir: "asc" | "desc";
-}
 
 const CATEGORIES: Array<SupplierCategory | "all"> = [
   "all",
@@ -79,12 +73,7 @@ export function SuppliersFiltersBar({
             <button
               key={by}
               type="button"
-              onClick={() =>
-                onSortChange({
-                  by,
-                  dir: sort.by === by && sort.dir === "desc" ? "asc" : "desc",
-                })
-              }
+              onClick={() => onSortChange(nextSort(sort, by))}
               className={cn(
                 "rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors",
                 sort.by === by
