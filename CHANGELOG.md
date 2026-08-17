@@ -4,6 +4,28 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.179.1] — Extension · 2026-08-17
+
+**Dois acertos no Atendimento. Os áudios deixaram de sair cada um de um tamanho: quem mandava na largura do balão era o texto da transcrição, então um áudio sem transcrição ficava estreito e um com transcrição longa esticava até quase o dobro — a coluna de áudios lia como uma pilha desalinhada. Agora todos têm a mesma largura, e o balão não muda mais de tamanho enquanto o áudio carrega nem quando a transcrição chega. A transcrição em si, que era escrita em letra miúda de rodapé, passou ao tamanho do texto da conversa, em itálico. E o painel lateral do lead foi reconstruído em volta de uma pergunta só: o que falta para essa pessoa virar cliente.**
+
+### Added
+
+- **O que falta para o lead virar cliente, em lista** — o painel lateral da conversa passou a abrir com a conta exata do que impede a conversão e o botão para fazê-la, em vez de só enfileirar o que o lead tem. As dez seções do painel ficam num trilho lateral, e as quatro fixas espelham as abas da ficha do cliente.
+- **Documento e endereço do lead podem ser preenchidos na própria conversa** — antes o painel apenas nomeava o que estava faltando; agora a pendência é resolvida ali mesmo, sem sair do atendimento.
+- **Dois atalhos no painel do lead** — "Só orçamento" abre o editor de orçamento já com o lead como destinatário; "É pessoal" marca o lead e recolhe o quadro.
+- **A onda do áudio agora responde ao teclado** — com ela selecionada, as setas avançam e voltam cinco segundos e as teclas Home e End vão ao começo e ao fim. Antes só respondia ao clique do mouse.
+
+### Changed
+
+- **Todos os balões de áudio têm a mesma largura** — a largura deixou de depender do tamanho da transcrição. Vale para os quatro estados do áudio: tocando, carregando, indisponível e na demonstração.
+- **A transcrição do áudio ficou legível** — saiu da letra miúda e passou ao tamanho do texto da conversa, em itálico, com a palavra "Transcrição" acima em letras pequenas. O itálico e o rótulo avisam que aquele texto foi escrito pela máquina e pode conter erro — não é citação literal do cliente. Transcrições longas mostram as quatro primeiras linhas com um "Ver mais".
+- **A onda do áudio preenche o balão** — as barrinhas ficavam amontoadas à esquerda, deixando um vão vazio até o tempo, e afinavam sozinhas nos balões estreitos. Agora se espalham por toda a faixa, com a mesma espessura em qualquer áudio, e uma bolinha marca em que ponto a reprodução está.
+- **Tempo, velocidade e download do áudio ficaram agrupados** — os três disputavam atenção com a onda; agora formam um bloco só, à direita.
+
+### Fixed
+
+- **O balão do áudio mudava de tamanho sozinho** — ficava estreito enquanto o áudio carregava e saltava para a largura final quando ele chegava; depois crescia de novo quando a transcrição aparecia. Agora o espaço já está reservado desde o começo, inclusive enquanto a transcrição está sendo feita.
+
 ## [0.179.0] — Extension · 2026-08-17
 
 **Uma empresa fala com a gente por vários números — o dono, o comprador, o balcão, o celular de quem está na oficina. Até aqui o sistema só sabia lidar com um: ao ligar uma conversa a um cliente, o nome da pessoa era trocado pelo da empresa e o número dela desaparecia da tela. Agora a conversa lembra com quem você está falando. A pessoa vem primeiro, a empresa aparece ao lado como etiqueta, e a ficha do cliente ganhou uma aba que reúne todos os números daquela empresa — com função de cada um, quem tem WhatsApp e há quanto tempo falou. Dá para vincular um número novo sem sair da conversa. O catálogo também mudou bastante nesta versão: a lista de peças, a ficha do produto, o cadastro de peça nova e a ficha do modelo foram reconstruídos pelos desenhos aprovados.**
