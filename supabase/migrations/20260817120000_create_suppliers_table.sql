@@ -88,8 +88,11 @@ create policy suppliers_delete on public.suppliers for delete to authenticated
 ------------------------------------------------------------------ 3. RBAC seed
 -- Grants agreed with the owner: Owner, Gestor and Financeiro. Vendedor stays
 -- out — same cost/margin boundary already applied in the catalog.
+-- sort_order 27 appends Fornecedores after the Financeiro group's existing
+-- scale (Despesas 22, DRE Gerencial 23, Estoque 24, Fluxo de Caixa 25,
+-- Rentabilidade 26) instead of reordering the group's front.
 insert into public.rbac_resources (key, label, "group", sort_order)
-values ('supplier', 'Fornecedores', 'Financeiro', 1)
+values ('supplier', 'Fornecedores', 'Financeiro', 27)
 on conflict (key) do nothing;
 
 insert into public.role_permissions (role_id, resource, actions, scope)
@@ -121,6 +124,18 @@ on conflict (role_id, resource) do nothing;
 -- uuid) instead of gen_random_uuid(), so re-running this backfill is
 -- idempotent via `on conflict (id) do nothing` rather than creating
 -- duplicate suppliers on a second apply.
+--
+-- All-caps names are title-cased with `initcap`, then have connector words
+-- (de/da/do/das/dos/e/em/para) lowercased back down to match
+-- `titleCaseWord()` in the TS engine — these are display names in a
+-- Brazilian product, and "Pako Distribuidora De Auto Pecas" reads as wrong
+-- Portuguese. The leading-space form of each `replace` (`' De ' -> ' de '`)
+-- means a connector word can only be lowercased when something precedes it,
+-- so a name that legitimately STARTS with one of these words is left
+-- capitalized — mirroring the engine's `index > 0` guard exactly.
+-- `replace` (not `regexp_replace`) on purpose: Postgres regexes cannot
+-- case-fold a captured backreference, so there is no single-pass regex that
+-- both matches and lowercases the connector in one step.
 with cleaned as (
   select
     replace(btrim(p.supplier), '&amp;', '&') as raw,
@@ -145,7 +160,12 @@ canonical as (
     store_id,
     case
       when key in ('ufi', 'ufi filters') then 'UFI Filters'
-      when raw = upper(raw) then initcap(raw)
+      when raw = upper(raw) then
+        replace(replace(replace(replace(replace(replace(replace(replace(
+          initcap(raw),
+          ' De ', ' de '), ' Da ', ' da '), ' Do ', ' do '),
+          ' Das ', ' das '), ' Dos ', ' dos '), ' E ', ' e '),
+          ' Em ', ' em '), ' Para ', ' para ')
       else raw
     end as name,
     case
