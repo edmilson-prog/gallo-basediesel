@@ -64,7 +64,7 @@ export interface ISupplierStats {
   /** Parts whose `supplier` text matches this record's normalized name. */
   linkedParts: number;
   purchasesLast12Months: Money;
-  /** Most recent entries first, capped by the caller. */
+  /** Most recent entries first, capped by the provider at 8. */
   lastEntries: ISupplierEntry[];
   /** 12 positions, oldest → newest, for the drawer chart. */
   monthlyPurchases: Money[];

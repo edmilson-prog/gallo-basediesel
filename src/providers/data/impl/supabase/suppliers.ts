@@ -123,6 +123,21 @@ function joinKey(raw: string): string {
   return SUPPLIER_NAME_ALIASES[key] ? normalizeSupplierName(SUPPLIER_NAME_ALIASES[key]) : key;
 }
 
+/** Builds the PostgREST `.or()` expression for a free-text supplier search, or
+ *  `null` when the term is blank. Mirrors `buildContactSearchOr` in
+ *  `contacts.ts`: `,`/`()` are `.or()` delimiters and are neutralized to
+ *  spaces, and `*` — not `%` — is the ilike wildcard inside this compound
+ *  filter string form. Exported for unit testing. */
+export function buildSupplierSearchOr(search: string): string | null {
+  const term = search.trim();
+  if (!term) return null;
+  const safe = term.replace(/[,()]/g, " ");
+  const filters = [`name.ilike.*${safe}*`, `trade_name.ilike.*${safe}*`];
+  const digits = term.replace(/\D/g, "");
+  if (digits) filters.push(`document.ilike.*${digits}*`);
+  return filters.join(",");
+}
+
 export const supabaseSuppliersProvider: ISuppliersProvider = {
   async list(params: IListSuppliersParams = {}): Promise<IPaginatedResult<ISupplier>> {
     const page = params.page ?? 1;
@@ -137,12 +152,8 @@ export const supabaseSuppliersProvider: ISuppliersProvider = {
 
     if (params.category) query = query.eq("category", params.category);
     if (params.status) query = query.eq("status", params.status);
-    if (params.search) {
-      const digits = params.search.replace(/\D/g, "");
-      const clauses = [`name.ilike.%${params.search}%`, `trade_name.ilike.%${params.search}%`];
-      if (digits.length >= 3) clauses.push(`document.ilike.%${digits}%`);
-      query = query.or(clauses.join(","));
-    }
+    const searchOr = params.search ? buildSupplierSearchOr(params.search) : null;
+    if (searchOr) query = query.or(searchOr);
 
     const { data, error, count } = await query;
     if (error) throw new Error(`[supabase] suppliers.list failed: ${error.message}`);
