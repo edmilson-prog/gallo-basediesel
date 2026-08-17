@@ -148,8 +148,10 @@ describe("routing", () => {
     }
   });
 
-  it("keeps those rules above the catch-all, which would swallow them", () => {
-    const catchAll = sources.indexOf("/(.*)");
+  it("keeps those rules above the SPA catch-all, which would swallow them", () => {
+    // The catch-all is identified by destination: since issue #430 its source
+    // carries a negative-lookahead exclusion list instead of a bare "/(.*)".
+    const catchAll = vercel.rewrites.findIndex((rule) => rule.destination === "/index.html");
     expect(catchAll).toBe(sources.length - 1);
     expect(sources.indexOf("/atendimento")).toBeLessThan(catchAll);
     expect(sources.indexOf("/atendimento/(.*)")).toBeLessThan(catchAll);
