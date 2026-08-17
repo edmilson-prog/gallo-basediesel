@@ -6,7 +6,7 @@
  */
 
 /** Legal-form suffixes that split one supplier into two records. */
-const COMPANY_SUFFIXES = ["ltda", "me", "epp", "eireli", "s a", "sa", "s\\/a"];
+const COMPANY_SUFFIXES = ["ltda", "me", "epp", "eireli", "s a", "sa", "s\/a"];
 
 /**
  * Names the catalog spells two ways. Deliberately tiny: only pairs the data
@@ -23,7 +23,7 @@ const PLACEHOLDERS = new Set(["nao informado", "sem fornecedor", "n a", "-"]);
 /** Lowercased, unaccented, entity-decoded, suffix-free join key. */
 export function normalizeSupplierName(raw: string): string {
   const decoded = (raw ?? "").replace(/&amp;/gi, "&").replace(/&nbsp;/gi, " ");
-  const unaccented = decoded.normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const unaccented = decoded.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const cleaned = unaccented
     .toLowerCase()
     .replace(/[.,]/g, " ")
