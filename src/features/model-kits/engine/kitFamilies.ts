@@ -7,7 +7,14 @@ import type { ModelKitCategory } from "@/shared/types";
  * (`PECAS`, `FILTROS`), supplier names (`UFI`, `MANN`) and English labels
  * (`Oil filter`). The resolver below normalizes all of that into one taxonomy.
  */
-export type KitFamily = "oleo" | "combustivel" | "separador" | "ar" | "cabine" | "hidraulico";
+export type KitFamily =
+  | "oleo"
+  | "combustivel"
+  | "separador"
+  | "ar"
+  | "cabine"
+  | "transmissao"
+  | "hidraulico";
 
 export interface IKitFamilyMeta {
   label: string;
@@ -20,6 +27,7 @@ export const KIT_FAMILIES: Record<KitFamily, IKitFamilyMeta> = {
   separador: { label: "Separador de água", icon: "mdi:water-outline" },
   ar: { label: "Ar", icon: "mdi:weather-windy" },
   cabine: { label: "Ar da cabine", icon: "mdi:fan" },
+  transmissao: { label: "Transmissão", icon: "mdi:cog-outline" },
   hidraulico: { label: "Hidráulico", icon: "mdi:hydraulic-oil-level" },
 };
 
@@ -39,7 +47,7 @@ export const CATEGORY_FAMILIES: Record<
     required: ["oleo", "combustivel"],
   },
   revisao: {
-    slots: ["oleo", "combustivel", "ar", "cabine", "hidraulico"],
+    slots: ["oleo", "combustivel", "ar", "cabine", "transmissao"],
     required: ["oleo", "combustivel"],
   },
   freios: { slots: [], required: [] },
@@ -47,14 +55,20 @@ export const CATEGORY_FAMILIES: Record<
   custom: { slots: [], required: [] },
 };
 
-/** Terms per family, most specific family first: "cabin air filter" is `cabine`,
- *  not `ar`, and "separador de água/combustível" is `separador`, not `combustivel`. */
+/**
+ * Terms per family, most specific family first: "cabin air filter" is `cabine`,
+ * not `ar`, and "separador de água/combustível" is `separador`, not
+ * `combustivel`. The qualified oils come before plain `oleo` for the same
+ * reason — "filtro de óleo da transmissão" is a `transmissao` line, and reading
+ * it as `oleo` would let a gearbox filter satisfy the engine-oil slot.
+ */
 const FAMILY_TERMS: ReadonlyArray<{ family: KitFamily; terms: readonly string[] }> = [
   { family: "separador", terms: ["separador", "separator", "racor"] },
   { family: "cabine", terms: ["cabine", "cabin"] },
+  { family: "transmissao", terms: ["transmissao", "transmission", "cambio", "gearbox"] },
+  { family: "hidraulico", terms: ["hidraulico", "hydraulic"] },
   { family: "oleo", terms: ["oleo", "oil"] },
   { family: "combustivel", terms: ["combustivel", "fuel", "diesel"] },
-  { family: "hidraulico", terms: ["hidraulico", "hydraulic"] },
   { family: "ar", terms: ["ar", "air"] },
 ];
 
