@@ -17,6 +17,8 @@ export interface IPartChipProps {
   /** Iconify name rendered before the label. */
   icon?: string;
   size?: "sm" | "md";
+  /** Native tooltip — for chips whose label is a shorthand. */
+  title?: string;
   className?: string;
 }
 
@@ -42,6 +44,7 @@ export function PartChip({
   variant = "soft",
   icon,
   size = "md",
+  title,
   className,
 }: IPartChipProps) {
   const toneClass =
@@ -53,6 +56,7 @@ export function PartChip({
 
   return (
     <span
+      title={title}
       className={cn(
         "inline-flex items-center gap-1.5 whitespace-nowrap rounded-md font-bold uppercase tracking-[0.05em] ring-1 ring-inset",
         size === "sm" ? "px-[9px] py-[3px] text-[10.5px]" : "px-2.5 py-1 text-[11.5px]",

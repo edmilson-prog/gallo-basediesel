@@ -35,6 +35,7 @@ import {
 import { statusVisual } from "../utils/messageDisplay";
 import { INBOX_STRINGS, CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import type { IConversationContact } from "@/shared/types";
+import { resolveConversationTitle } from "../engine/conversationTitle";
 import { resolveConversationTags, splitVisibleTags } from "../engine/tagCatalog";
 import { canShowSummaryCard } from "../engine/summaryCardVisibility";
 import { useConversationTags } from "../hooks/useConversationTags";
@@ -145,6 +146,10 @@ function ConversationListItemInner({
   const display = useMemo(
     () => displayFromContact(conversation, contact),
     [conversation, contact],
+  );
+  const { primary: primaryLabel, secondary: secondaryLabel } = useMemo(
+    () => resolveConversationTitle(display),
+    [display],
   );
   const liveOriginAccount = useLiveInstanceStatus(originAccount);
   const instanceLock = useMemo(() => deriveInstanceLock(liveOriginAccount), [liveOriginAccount]);
@@ -277,13 +282,34 @@ function ConversationListItemInner({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
+          {/* Person and company share ONE truncate. Because the company comes
+              second, it is always the first thing the ellipsis eats — the
+              degradation protects the more important half by itself, with no
+              breakpoint and nothing to measure. Adding a chip to the badge strip
+              below was the obvious alternative and is wrong: that strip already
+              overflows silently, so a new chip would push tags and queue state
+              out of view without a trace. */}
           <span
             className={cn(
-              "truncate text-sm uppercase",
+              "min-w-0 truncate text-sm uppercase",
               isUnread ? "font-semibold text-foreground" : "font-medium text-foreground",
             )}
+            title={secondaryLabel ? `${primaryLabel} · ${secondaryLabel}` : primaryLabel}
           >
-            {highlight(display.name, highlightTerm)}
+            {highlight(primaryLabel, highlightTerm)}
+            {secondaryLabel && (
+              <>
+                <span className="px-1 font-normal text-muted-foreground/50" aria-hidden>
+                  ·
+                </span>
+                {/* `normal-case` against the row's uppercase: the contrast is in
+                    SHAPE as well as weight, so it reads even where colour does
+                    not carry. */}
+                <span className="font-normal normal-case text-muted-foreground">
+                  {highlight(secondaryLabel, highlightTerm)}
+                </span>
+              </>
+            )}
           </span>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
             <span className="flex items-center gap-1 text-xs text-muted-foreground">

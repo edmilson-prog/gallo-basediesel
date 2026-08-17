@@ -22,7 +22,7 @@ import { useLeadsProvider } from "@/providers/data/hooks/useLeadsProvider";
 import { useAuth } from "@/features/auth/useAuth";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { useDebounce } from "@/shared/hooks/useDebounce";
-import { formatCnpj, isValidCnpj, onlyDigits } from "@/features/customers/utils/cnpjCpf";
+import { formatCnpj, formatCpf, isValidCnpj, onlyDigits } from "@/features/customers/utils/cnpjCpf";
 import { isSituacaoAtiva } from "@/features/customers/utils/minhaReceitaMapper";
 import { useMinhaReceita } from "@/features/customers/hooks/useMinhaReceita";
 import { usePipelineSettings } from "../hooks/usePipelineSettings";
@@ -78,6 +78,16 @@ export interface IConvertLeadModalProps {
    *  button) jump straight into "link to existing customer" without going
    *  through the in-modal toggle. Defaults to "new". */
   initialMode?: ConvertMode;
+  /**
+   * Document already captured on the lead (digits only), pre-filling the CPF or
+   * CNPJ field. The panel's conversion checklist only enables its button once
+   * this validates, so the modal opening empty would ask for the one answer the
+   * seller just gave — and, worse, would let a DIFFERENT number be typed here
+   * than the one the checklist counted.
+   */
+  initialDocument?: string;
+  /** Which tab to open on. Derived by the caller from the document's length. */
+  initialType?: CustomerType;
 }
 
 export function ConvertLeadModal({
@@ -85,6 +95,8 @@ export function ConvertLeadModal({
   onClose,
   onConverted,
   initialMode = "new",
+  initialDocument,
+  initialType,
 }: IConvertLeadModalProps) {
   const customersProvider = useCustomersProvider();
   const leadsProvider = useLeadsProvider();
@@ -126,13 +138,15 @@ export function ConvertLeadModal({
   useEffect(() => {
     if (!lead) return;
     setMode(initialMode);
-    setType("B2C");
+    const docDigits = onlyDigits(initialDocument ?? "");
+    const resolvedType = initialType ?? (docDigits.length === 14 ? "B2B" : "B2C");
+    setType(resolvedType);
     setB2bStep(1);
     setFullName(lead.name);
-    setCpf("");
+    setCpf(docDigits.length === 11 ? formatCpf(docDigits) : "");
     setRazaoSocial("");
     setNomeFantasia(lead.name);
-    setCnpj("");
+    setCnpj(docDigits.length === 14 ? formatCnpj(docDigits) : "");
     setContactName(lead.name);
     setEmail(lead.email ?? "");
     setErrors({});
@@ -142,7 +156,7 @@ export function ConvertLeadModal({
     setDuplicates([]);
     setCheckingDuplicate(false);
     resetCnpj();
-  }, [lead, initialMode, resetCnpj]);
+  }, [lead, initialMode, initialDocument, initialType, resetCnpj]);
 
   // CNPJ lookup against Minha Receita once a valid 14-digit number is typed.
   // Autofill only into empty fields so the seller's own input is never lost.
@@ -360,6 +374,11 @@ export function ConvertLeadModal({
       // submitted — guards against a stale lookup from a CNPJ the seller edited afterward.
       const matchingAddress =
         cnpjData && cnpjData.cnpj === onlyDigits(cnpj) ? cnpjData.address : undefined;
+      // Receita first (it is authoritative for a CNPJ), then whatever the panel
+      // captured on the lead during the conversation. Without the fallback the
+      // address a seller typed into the conversion checklist would be dropped
+      // on the one action it exists for.
+      const resolvedAddress = matchingAddress ?? lead.address;
 
       const customer =
         type === "B2B"
@@ -370,13 +389,14 @@ export function ConvertLeadModal({
               razaoSocial: razaoSocial.trim(),
               nomeFantasia: nomeFantasia.trim(),
               contactName: contactName.trim(),
-              ...(matchingAddress ? { address: matchingAddress } : {}),
+              ...(resolvedAddress ? { address: resolvedAddress } : {}),
             } as Omit<ICustomer, "id" | "createdAt" | "notes">)
           : await customersProvider.create({
               ...baseCustomer,
               type: "B2C",
               cpf: onlyDigits(cpf),
               fullName: fullName.trim(),
+              ...(resolvedAddress ? { address: resolvedAddress } : {}),
             } as Omit<ICustomer, "id" | "createdAt" | "notes">);
 
       const closingStage = stages.find((s) => s.id === CLOSING_STAGE_ID) ?? lead.stage;
