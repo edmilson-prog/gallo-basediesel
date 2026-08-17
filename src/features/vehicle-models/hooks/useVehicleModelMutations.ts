@@ -14,6 +14,12 @@ import { readCurrentUserSync } from "@/features/auth/guards";
 export interface IUseVehicleModelMutations {
   saving: boolean;
   create: (input: ICreateVehicleModelInput) => Promise<IVehicleModel>;
+  /**
+   * Registers one canonical record per engine in a single user action, with one
+   * toast for the batch. Sequential on purpose — the records share brand+model
+   * and the provider rejects duplicates, so racing them buries the reason.
+   */
+  createMany: (inputs: ICreateVehicleModelInput[]) => Promise<IVehicleModel[]>;
   update: (id: ID, patch: IUpdateVehicleModelPatch) => Promise<IVehicleModel>;
   remove: (id: ID) => Promise<void>;
 }
@@ -66,6 +72,20 @@ export function useVehicleModelMutations(): IUseVehicleModelMutations {
         audit("create", created.id, created);
         return created;
       }, "Modelo criado com sucesso."),
+
+    createMany: (inputs) =>
+      wrap(
+        async () => {
+          const created: IVehicleModel[] = [];
+          for (const input of inputs) {
+            const model = await provider.create(input);
+            audit("create", model.id, model);
+            created.push(model);
+          }
+          return created;
+        },
+        inputs.length > 1 ? `${inputs.length} modelos cadastrados.` : "Modelo criado com sucesso.",
+      ),
     update: (id, patch) =>
       wrap(async () => {
         const updated = await provider.update(id, patch);

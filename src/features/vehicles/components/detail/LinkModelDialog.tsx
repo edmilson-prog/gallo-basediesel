@@ -183,7 +183,11 @@ interface ICreateTabProps {
 function CreateTab({ vehicleId, link, linking, onLinked, onOpenChange }: ICreateTabProps) {
   const { create, saving } = useVehicleModelMutations();
 
-  const handleCreate = async (input: ICreateVehicleModelInput) => {
+  // The form always yields an array; without `multiEngine` it carries exactly one,
+  // which is what this dialog needs — the vehicle attaches to a single model.
+  const handleCreate = async (inputs: ICreateVehicleModelInput[]) => {
+    const [input] = inputs;
+    if (!input) return;
     const created = await create(input);
     await link(vehicleId, created.id);
     onLinked();

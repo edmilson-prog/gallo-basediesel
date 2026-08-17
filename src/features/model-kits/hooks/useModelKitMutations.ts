@@ -12,9 +12,22 @@ import {
 } from "@/providers/data";
 import { readCurrentUserSync } from "@/features/auth/guards";
 
+export interface ISaveKitParams {
+  /** Set when editing — the kit being rewritten rather than created. */
+  existingKitId?: ID;
+  primary: ICreateModelKitInput;
+  /** Copies for the models picked in "este kit também vale para". */
+  copies: ICreateModelKitInput[];
+}
+
 export interface IUseModelKitMutations {
   saving: boolean;
   create: (input: ICreateModelKitInput) => Promise<IVehicleModelKit>;
+  /**
+   * The editor's save: the kit itself plus a copy on every model the curator
+   * marked. One toast for the batch — six models saved is one action, not six.
+   */
+  saveKit: (params: ISaveKitParams) => Promise<IVehicleModelKit>;
   /** Copies a kit onto another canonical model — always as a draft to be reviewed. */
   copyToModel: (
     kit: IVehicleModelKit,
@@ -80,6 +93,41 @@ export function useModelKitMutations(): IUseModelKitMutations {
         audit("create", created.id, undefined, created);
         return created;
       }, "Kit criado."),
+
+    saveKit: ({ existingKitId, primary, copies }) => {
+      const total = 1 + copies.length;
+      const message =
+        `${existingKitId ? "Kit atualizado" : "Kit criado"}` +
+        `${primary.status === "oficial" ? " como oficial" : " como rascunho"}` +
+        `${total > 1 ? ` em ${total} modelos` : ""}.`;
+
+      return wrap(async () => {
+        let saved: IVehicleModelKit;
+        if (existingKitId) {
+          const before = await provider.get(existingKitId);
+          saved = await provider.update(existingKitId, {
+            name: primary.name,
+            category: primary.category,
+            status: primary.status,
+            items: primary.items,
+          });
+          audit("update", existingKitId, before, saved);
+        } else {
+          saved = await provider.create(primary);
+          audit("create", saved.id, undefined, saved);
+        }
+
+        // Sequential: the copies share a name and the provider rejects
+        // duplicates, so racing them buries which model actually failed.
+        for (const copy of copies) {
+          const created = await provider.create(copy);
+          audit("copy", created.id, saved, created);
+        }
+
+        invalidate(saved.id);
+        return saved;
+      }, message);
+    },
 
     copyToModel: (kit, source, target) =>
       wrap(async () => {

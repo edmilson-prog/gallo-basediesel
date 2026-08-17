@@ -22,6 +22,25 @@ export {
 export { renameKitForModel, type IKitRenameTarget } from "./kitCopy";
 export { KIT_CATEGORY_CONFIG } from "./kitCategories";
 export {
+  computeKitCoverage,
+  getModelCoverageStatus,
+  groupKitsByModel,
+  pickRepresentativeKit,
+  sortKitsByCuration,
+  type ICoverageKit,
+  type IKitCoverage,
+  type ModelCoverageStatus,
+} from "./kitCoverage";
+export {
+  findAlsoForCandidates,
+  findStartFromCandidates,
+  type IAlsoForCandidate,
+  type ICandidateKit,
+  type ICandidateKitItem,
+  type ICandidateModel,
+  type IStartFromCandidate,
+} from "./kitCandidates";
+export {
   applicationMatchesModel,
   brandMatches,
   modelDesignationMatches,

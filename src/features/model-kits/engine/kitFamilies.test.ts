@@ -36,6 +36,9 @@ describe("resolvePartFamily", () => {
     expect(resolvePartFamily(part("separador", "Filtro separador de água/combustível"))).toBe(
       "separador",
     );
+    // A gearbox filter must not satisfy the engine-oil slot
+    expect(resolvePartFamily(part(undefined, "Filtro de óleo da transmissão"))).toBe("transmissao");
+    expect(resolvePartFamily(part(undefined, "Filtro de óleo hidráulico"))).toBe("hidraulico");
   });
 
   it("falls back to the part name when the subcategory carries no family", () => {
