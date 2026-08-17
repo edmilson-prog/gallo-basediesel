@@ -1,4 +1,4 @@
-import type { FiscalNoteStatus, ID, IFiscalNote, IFiscalNoteItem } from "@/shared/types";
+import type { FiscalNoteStatus, ID, IFiscalNote, IFiscalNoteItem, IPart } from "@/shared/types";
 import type { IPaginatedResult, IPaginationParams } from "./_shared";
 
 export interface IListFiscalNotesParams extends IPaginationParams {
@@ -31,12 +31,22 @@ export type IUpdateFiscalNoteItemPatch = Partial<
 >;
 
 /**
+ * Catálogo necessário para calcular o efeito do lançamento, resolvido pelo
+ * chamador. O mock aplica o efeito sobre estas peças; o Supabase ignora,
+ * porque o Postgres já tem o catálogo.
+ */
+export interface IPostContext {
+  parts: IPart[];
+}
+
+/**
  * Contract de acesso a notas fiscais de entrada (PRD-216).
  *
  * Não há `delete`: nota lançada é imutável e nota em conferência se cancela,
  * não se apaga — o XML já foi arquivado e a trilha tem de sobreviver.
  *
- * `post` e `reverse` não existem nesta fase: são a RPC transacional da Fase 3.
+ * `post` e `reverse` são transacionais: no Supabase, uma RPC `security
+ * definer`; no mock, a mesma validação do engine antes de mudar qualquer coisa.
  *
  * @see ../impl/mock/fiscalNotes.ts
  * @see ../../../../docs/prds/PRD-216-notas-fiscais-entrada.md
@@ -49,4 +59,12 @@ export interface IFiscalNotesProvider {
   create(input: ICreateFiscalNoteInput): Promise<IFiscalNote>;
   updateItem(itemId: ID, patch: IUpdateFiscalNoteItemPatch): Promise<IFiscalNoteItem>;
   cancel(id: ID): Promise<IFiscalNote>;
+  /**
+   * Lança a nota (RF-100): valida, aplica saldo e custo médio, grava o que a
+   * conferência aprendeu e marca a nota imutável. Recusa com erro explícito
+   * quando há item pendente.
+   */
+  post(id: ID, ctx: IPostContext): Promise<IFiscalNote>;
+  /** Estorna (RF-101): desfaz o efeito e devolve a nota para conferência. */
+  reverse(id: ID, ctx: IPostContext): Promise<IFiscalNote>;
 }

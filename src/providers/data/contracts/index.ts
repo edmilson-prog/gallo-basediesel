@@ -170,6 +170,7 @@ export type {
   IListFiscalNotesParams,
   ICreateFiscalNoteInput,
   IUpdateFiscalNoteItemPatch,
+  IPostContext,
 } from "./fiscalNotes";
 export type { IMediaStorageProvider, IMediaUploadInput, IListMediaParams } from "./mediaStorage";
 export type { IAssetLibraryProvider, IAssetLibraryListParams } from "./assetLibrary";
