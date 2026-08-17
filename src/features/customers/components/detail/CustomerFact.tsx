@@ -15,6 +15,11 @@ export interface ICustomerFactProps {
   empty?: string;
   /** Turns the value into a link (`tel:`, `mailto:`, …). Ignored when empty. */
   href?: string;
+  /**
+   * Small chip after the value ("+4") for a fact that stands for more than it
+   * shows. Ignored when empty — there is no "+4" without a first one.
+   */
+  suffix?: string;
   /** Adds a copy button that appears on hover/focus. Ignored when empty. */
   copyable?: boolean;
   /** Tabular rendering for numbers, documents and phones. */
@@ -35,6 +40,7 @@ export function CustomerFact({
   value,
   empty = COPY.notInformed,
   href,
+  suffix,
   copyable,
   mono,
   className,
@@ -91,22 +97,29 @@ export function CustomerFact({
           </button>
         )}
       </div>
-      {href && hasValue ? (
-        <a
-          href={href}
-          className={cn(
-            valueClasses,
-            "rounded hover:text-primary focus:outline-none focus:ring-2 focus:ring-ring",
-          )}
-          title={value}
-        >
-          {value}
-        </a>
-      ) : (
-        <span className={valueClasses} title={hasValue ? value : empty}>
-          {hasValue ? value : empty}
-        </span>
-      )}
+      <div className="flex min-w-0 items-baseline gap-1.5">
+        {href && hasValue ? (
+          <a
+            href={href}
+            className={cn(
+              valueClasses,
+              "rounded hover:text-primary focus:outline-none focus:ring-2 focus:ring-ring",
+            )}
+            title={value}
+          >
+            {value}
+          </a>
+        ) : (
+          <span className={valueClasses} title={hasValue ? value : empty}>
+            {hasValue ? value : empty}
+          </span>
+        )}
+        {hasValue && suffix && (
+          <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-1.5 text-[10px] font-bold tabular-nums text-primary">
+            {suffix}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

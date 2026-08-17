@@ -1,338 +1,288 @@
-import { useEffect, useMemo, useState } from "react";
-import type { ID, IPart, PartCategory } from "@/shared/types";
-import { Icon } from "@/components/Icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ID, IPart } from "@/shared/types";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
-import { PART_CATEGORY_DESCRIPTORS, getSubcategoriesFor } from "../../utils/categories";
+import { isSaleReady, missingRequirements, type PartCodeState } from "../../engine/newPart";
+import { PartPanel } from "../detail/PartPanel";
 import { ApplicationsEditor } from "./ApplicationsEditor";
-import { applicationsToDrafts, type IApplicationDraft } from "../../utils/applicationDrafts";
 import { EquivalentsEditor } from "./EquivalentsEditor";
+import { PartCrossReferenceEditor } from "./PartCrossReferenceEditor";
+import { NewPartField } from "./new-part/NewPartField";
+import { PartCategoryGrid } from "./new-part/PartCategoryGrid";
+import { PartCodeBand } from "./new-part/PartCodeBand";
+import { PartCommercialSection } from "./new-part/PartCommercialSection";
+import { PartFormFooter } from "./new-part/PartFormFooter";
+import { PartOriginToggle } from "./new-part/PartOriginToggle";
+import { PartStockSection } from "./new-part/PartStockSection";
+import {
+  KNOWN_BRANDS,
+  blankPartFormValues,
+  partFormValuesFrom,
+  toCompleteness,
+  type IPartFormValues,
+} from "./new-part/partFormValues";
 
-export interface IPartFormValues {
-  name: string;
-  description: string;
-  oemPrimary: string;
-  oemAlternatives: string;
-  brand: string;
-  supplier: string;
-  isOriginal: boolean;
-  category: PartCategory | undefined;
-  subcategory: string | undefined;
-  unitPrice: number;
-  unitCost: number;
-  stockAvailable: number;
-  stockMinimum: number;
-  applications: IApplicationDraft[];
-  equivalentPartIds: ID[];
-}
+const COPY = CATALOG_STRINGS.newPart;
 
-export interface IPartFormErrors {
-  name?: string;
-  oemPrimary?: string;
-  brand?: string;
-  category?: string;
-  unitPrice?: string;
-}
+export type { IPartFormValues };
 
 export interface IPartFormProps {
   initial?: IPart;
-  /** When true, owner-only price field is disabled. */
-  priceLocked?: boolean;
+  /**
+   * Fields carried over from the part just saved ("Salvar e cadastrar outra").
+   * Ignored when `initial` is set — duplicating a part already brings its own.
+   */
+  seed?: Partial<IPartFormValues>;
+  /** Live verdict of the catalog lookup on `values.code`. */
+  codeState: PartCodeState;
+  /** The part already carrying the typed code, when there is one. */
+  duplicate: IPart | null;
+  /** Told on every keystroke so the page can run the lookup. */
+  onValuesChange: (values: IPartFormValues) => void;
   saving: boolean;
-  submitLabel: string;
-  errors: IPartFormErrors;
-  onSubmit: (values: IPartFormValues) => void;
+  onSubmit: (values: IPartFormValues, options: { andAnother: boolean }) => void;
   onCancel: () => void;
+  onOpenPart: (id: ID) => void;
 }
 
-function fromPart(part: IPart | undefined): IPartFormValues {
-  return {
-    name: part?.name ?? "",
-    description: part?.description ?? "",
-    oemPrimary: part?.oemCodes[0] ?? "",
-    oemAlternatives: part?.oemCodes.slice(1).join(", ") ?? "",
-    brand: part?.brand ?? "",
-    supplier: part?.supplier ?? "",
-    isOriginal: part?.isOriginal ?? false,
-    category: part?.category,
-    subcategory: part?.subcategory,
-    unitPrice: part?.unitPrice ?? 0,
-    unitCost: part?.unitCost ?? 0,
-    stockAvailable: part?.stockAvailable ?? 0,
-    stockMinimum: part?.stockMinimum ?? 5,
-    applications: part ? applicationsToDrafts(part.applications) : [],
-    equivalentPartIds: part?.equivalentPartIds ?? [],
-  };
-}
-
+/**
+ * "Nova peça" — the code leads, the catalog answers while it is typed, and the
+ * two work columns carry the rest.
+ *
+ * The old form was a single stack of six fieldsets in a narrow column, every
+ * one of them weighted the same. The layout here says what the counter already
+ * knows: the code is the fact you hold in your hand, identity and stock are
+ * what you read off the box, category and price are what the business needs,
+ * and fitment is the work that makes the part findable later.
+ */
 export function PartForm({
   initial,
-  priceLocked = false,
+  seed,
+  codeState,
+  duplicate,
+  onValuesChange,
   saving,
-  submitLabel,
-  errors,
   onSubmit,
   onCancel,
+  onOpenPart,
 }: IPartFormProps) {
-  const [values, setValues] = useState<IPartFormValues>(() => fromPart(initial));
+  const [values, setValues] = useState<IPartFormValues>(() =>
+    initial ? partFormValuesFrom(initial) : blankPartFormValues(seed),
+  );
 
+  // Arriving from "Duplicar peça": the source part loads after the first render.
   useEffect(() => {
-    setValues(fromPart(initial));
+    if (!initial) return;
+    setValues(partFormValuesFrom(initial));
   }, [initial]);
 
-  const subOptions = useMemo(() => getSubcategoriesFor(values.category), [values.category]);
+  // The page needs the current code to run the catalog lookup. Reporting from
+  // an effect — never from inside the state updater, which React may replay.
+  const report = useRef(onValuesChange);
+  report.current = onValuesChange;
+  useEffect(() => {
+    report.current(values);
+  }, [values]);
 
   const set = <K extends keyof IPartFormValues>(key: K, value: IPartFormValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
   };
 
+  const completeness = useMemo(() => toCompleteness(values), [values]);
+  const missing = missingRequirements(completeness, codeState);
+  const saleReady = isSaleReady(completeness);
+  const priceMissing = missing.includes("price");
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(values);
+    if (missing.length > 0 || saving) return;
+    onSubmit(values, { andAnother: false });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Identificação */}
-      <FormSection title={CATALOG_STRINGS.form.sections.identification} icon="mdi:identifier">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <Field label={CATALOG_STRINGS.form.fields.name} required error={errors.name}>
-            <Input
-              value={values.name}
-              onChange={(e) => set("name", e.target.value)}
-              placeholder="Filtro de óleo Volvo FH"
-            />
-          </Field>
-          <Field label={CATALOG_STRINGS.form.fields.oemPrimary} required error={errors.oemPrimary}>
-            <Input
-              value={values.oemPrimary}
-              onChange={(e) => set("oemPrimary", e.target.value)}
-              className="font-mono"
-              placeholder="VOL-123456"
-            />
-          </Field>
-          <Field label={CATALOG_STRINGS.form.fields.oemAlternatives} hint="Separados por vírgula">
-            <Input
-              value={values.oemAlternatives}
-              onChange={(e) => set("oemAlternatives", e.target.value)}
-              className="font-mono"
-            />
-          </Field>
-          <Field label={CATALOG_STRINGS.form.fields.manufacturer} required error={errors.brand}>
-            <Input value={values.brand} onChange={(e) => set("brand", e.target.value)} />
-          </Field>
-          <Field label={CATALOG_STRINGS.form.fields.supplier}>
-            <Input value={values.supplier} onChange={(e) => set("supplier", e.target.value)} />
-          </Field>
-          <Field label={CATALOG_STRINGS.form.fields.isOriginal}>
-            <div className="flex h-9 items-center gap-2 rounded-md border border-border bg-card px-3">
-              <Switch
-                checked={values.isOriginal}
-                onCheckedChange={(v) => set("isOriginal", v)}
-                id="is-original"
+    <form onSubmit={handleSubmit} noValidate>
+      <datalist id="new-part-brands">
+        {KNOWN_BRANDS.map((brand) => (
+          <option key={brand} value={brand} />
+        ))}
+      </datalist>
+
+      <div className="space-y-3.5">
+        <PartCodeBand
+          code={values.code}
+          onCodeChange={(next) => set("code", next)}
+          state={codeState}
+          duplicate={duplicate}
+          onOpenPart={onOpenPart}
+        />
+
+        <div className="grid gap-3.5 lg:grid-cols-2 lg:items-start">
+          <div className="space-y-3.5">
+            <PartPanel title={COPY.identity.title} icon="mdi:tag-outline">
+              <div className="space-y-3.5">
+                <NewPartField
+                  id="new-part-name"
+                  label={COPY.identity.nameLabel}
+                  note={COPY.identity.nameNote}
+                  required
+                  value={values.name}
+                  onChange={(next) => set("name", next)}
+                  placeholder={COPY.identity.namePlaceholder}
+                />
+                <div className="grid gap-3.5 sm:grid-cols-2">
+                  <NewPartField
+                    id="new-part-brand"
+                    label={COPY.identity.brandLabel}
+                    required
+                    value={values.brand}
+                    onChange={(next) => set("brand", next)}
+                    list="new-part-brands"
+                    placeholder={COPY.identity.brandPlaceholder}
+                  />
+                  <NewPartField
+                    id="new-part-supplier"
+                    label={COPY.identity.supplierLabel}
+                    note={COPY.identity.supplierNote}
+                    value={values.supplier}
+                    onChange={(next) => set("supplier", next)}
+                  />
+                </div>
+                <NewPartField
+                  id="new-part-alt-codes"
+                  label={COPY.identity.altCodesLabel}
+                  note={COPY.identity.altCodesNote}
+                  value={values.oemAlternatives}
+                  onChange={(next) => set("oemAlternatives", next)}
+                  mono
+                  placeholder={COPY.identity.altCodesPlaceholder}
+                />
+                <PartOriginToggle
+                  isOriginal={values.isOriginal}
+                  onChange={(next) => set("isOriginal", next)}
+                />
+                <div>
+                  <div className="mb-1.5 flex items-baseline gap-[7px]">
+                    <label
+                      htmlFor="new-part-description"
+                      className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground"
+                    >
+                      {COPY.identity.descriptionLabel}
+                    </label>
+                    <span className="text-[10.5px] text-muted-foreground/70">
+                      {COPY.identity.descriptionNote}
+                    </span>
+                  </div>
+                  <Textarea
+                    id="new-part-description"
+                    value={values.description}
+                    onChange={(e) => set("description", e.target.value)}
+                    rows={2}
+                    className="resize-none bg-muted/40"
+                  />
+                </div>
+              </div>
+            </PartPanel>
+
+            <PartPanel title={COPY.stock.title} icon="mdi:warehouse">
+              <PartStockSection
+                stockAvailable={values.stockAvailable}
+                stockMinimum={values.stockMinimum}
+                onStockChange={(next) => set("stockAvailable", next)}
+                onMinimumChange={(next) => set("stockMinimum", next)}
               />
-              <Label htmlFor="is-original" className="cursor-pointer text-xs">
-                {values.isOriginal ? "Peça original" : "Peça equivalente"}
-              </Label>
-            </div>
-          </Field>
-          <div className="md:col-span-2">
-            <Field label={CATALOG_STRINGS.form.fields.description}>
-              <Textarea
-                value={values.description}
-                onChange={(e) => set("description", e.target.value)}
-                rows={2}
+            </PartPanel>
+          </div>
+
+          <div className="space-y-3.5">
+            <PartPanel
+              title={COPY.category.title}
+              icon="mdi:shape-outline"
+              right={
+                <span className="text-[11px] text-muted-foreground/70">{COPY.category.note}</span>
+              }
+            >
+              <PartCategoryGrid
+                category={values.category}
+                subcategory={values.subcategory}
+                onCategoryChange={(next) => set("category", next)}
+                onSubcategoryChange={(next) => set("subcategory", next)}
+                invalid={missing.includes("category")}
               />
-            </Field>
+            </PartPanel>
+
+            <PartPanel
+              title={COPY.commercial.title}
+              icon="mdi:cash-multiple"
+              right={
+                <span className="hidden text-[11px] text-muted-foreground/70 sm:inline">
+                  {COPY.commercial.note}
+                </span>
+              }
+            >
+              <PartCommercialSection
+                unitCost={values.unitCost}
+                markupPercent={values.markupPercent}
+                directPrice={values.directPrice}
+                onCostChange={(next) => set("unitCost", next)}
+                onMarkupChange={(next) => set("markupPercent", next)}
+                onDirectPriceChange={(next) => set("directPrice", next)}
+                priceInvalid={priceMissing}
+              />
+            </PartPanel>
           </div>
         </div>
-      </FormSection>
 
-      {/* Categoria */}
-      <FormSection title={CATALOG_STRINGS.form.sections.categorization} icon="mdi:shape-outline">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <Field label={CATALOG_STRINGS.form.fields.category} required error={errors.category}>
-            <Select
-              value={values.category ?? ""}
-              onValueChange={(v) => set("category", v === "" ? undefined : (v as PartCategory))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione…" />
-              </SelectTrigger>
-              <SelectContent>
-                {PART_CATEGORY_DESCRIPTORS.map((d) => (
-                  <SelectItem key={d.value} value={d.value}>
-                    {d.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label={CATALOG_STRINGS.form.fields.subcategory}>
-            <Select
-              value={values.subcategory ?? ""}
-              onValueChange={(v) => set("subcategory", v === "" ? undefined : v)}
-              disabled={subOptions.length === 0}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={subOptions.length === 0 ? "—" : "Selecione…"} />
-              </SelectTrigger>
-              <SelectContent>
-                {subOptions.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        </div>
-      </FormSection>
-
-      {/* Aplicações */}
-      <FormSection title={CATALOG_STRINGS.form.sections.applications} icon="mdi:truck-outline">
-        <ApplicationsEditor
-          applications={values.applications}
-          onChange={(next) => set("applications", next)}
-        />
-      </FormSection>
-
-      {/* Equivalências */}
-      <FormSection title={CATALOG_STRINGS.form.sections.equivalents} icon="mdi:swap-horizontal">
-        <EquivalentsEditor
-          selectedIds={values.equivalentPartIds}
-          excludeId={initial?.id}
-          onChange={(ids) => set("equivalentPartIds", ids)}
-        />
-      </FormSection>
-
-      {/* Comercial */}
-      <FormSection title={CATALOG_STRINGS.form.sections.commercial} icon="mdi:cash">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <Field
-            label={CATALOG_STRINGS.form.fields.price}
-            required
-            error={errors.unitPrice}
-            hint={priceLocked ? CATALOG_STRINGS.form.priceLocked : undefined}
-          >
-            <Input
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              value={values.unitPrice || ""}
-              onChange={(e) => set("unitPrice", Number(e.target.value) || 0)}
-              disabled={priceLocked}
+        <PartPanel
+          title={COPY.fitment.title}
+          icon="mdi:truck-outline"
+          right={
+            <span className="hidden text-[11px] text-muted-foreground/70 md:inline">
+              {COPY.fitment.note}
+            </span>
+          }
+        >
+          <div className="space-y-4">
+            <ApplicationsEditor
+              applications={values.applications}
+              onChange={(next) => set("applications", next)}
             />
-          </Field>
-          <Field label={CATALOG_STRINGS.form.fields.cost}>
-            <Input
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              value={values.unitCost || ""}
-              onChange={(e) => set("unitCost", Number(e.target.value) || 0)}
-            />
-          </Field>
-        </div>
-      </FormSection>
-
-      {/* Estoque */}
-      <FormSection title={CATALOG_STRINGS.form.sections.stock} icon="mdi:warehouse">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <Field label={CATALOG_STRINGS.form.fields.stockQuantity}>
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={values.stockAvailable}
-              onChange={(e) => set("stockAvailable", Math.max(0, Number(e.target.value) || 0))}
-            />
-          </Field>
-          <Field label={CATALOG_STRINGS.form.fields.stockMinimum}>
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={values.stockMinimum}
-              onChange={(e) => set("stockMinimum", Math.max(0, Number(e.target.value) || 0))}
-            />
-          </Field>
-        </div>
-      </FormSection>
-
-      <div className="flex items-center justify-end gap-2 border-t border-border pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          {CATALOG_STRINGS.form.cancel}
-        </Button>
-        <Button type="submit" disabled={saving}>
-          {saving ? (
-            <>
-              <Icon icon="svg-spinners:ring-resize" size={14} />
-              {CATALOG_STRINGS.form.saving}
-            </>
-          ) : (
-            submitLabel
-          )}
-        </Button>
+            <div className="grid gap-4 border-t border-border pt-4 lg:grid-cols-2">
+              <div>
+                <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
+                  {COPY.fitment.equivalentsLabel}
+                </div>
+                <EquivalentsEditor
+                  selectedIds={values.equivalentPartIds}
+                  excludeId={initial?.id}
+                  onChange={(next) => set("equivalentPartIds", next)}
+                />
+              </div>
+              <div>
+                <div className="mb-2 flex items-baseline gap-[7px]">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground">
+                    {COPY.fitment.crossReferencesLabel}
+                  </span>
+                  <span className="text-[10.5px] text-muted-foreground/70">
+                    {COPY.fitment.crossReferencesNote}
+                  </span>
+                </div>
+                <PartCrossReferenceEditor
+                  value={values.crossReferences}
+                  onChange={(next) => set("crossReferences", next)}
+                />
+              </div>
+            </div>
+          </div>
+        </PartPanel>
       </div>
+
+      <PartFormFooter
+        missing={missing}
+        saleReady={saleReady}
+        saving={saving}
+        onCancel={onCancel}
+        onSaveAndNew={() => onSubmit(values, { andAnother: true })}
+      />
     </form>
-  );
-}
-
-function FormSection({
-  title,
-  icon,
-  children,
-}: {
-  title: string;
-  icon: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <fieldset className="rounded-lg border border-border bg-card/40 p-4">
-      <legend className="flex items-center gap-2 px-2 text-sm font-semibold tracking-tight text-foreground">
-        <Icon icon={icon} size={16} className="text-muted-foreground" />
-        {title}
-      </legend>
-      <div className="mt-2">{children}</div>
-    </fieldset>
-  );
-}
-
-function Field({
-  label,
-  required,
-  error,
-  hint,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  error?: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1">
-      <Label className="text-xs">
-        {label}
-        {required && <span className="ml-0.5 text-destructive">*</span>}
-      </Label>
-      {children}
-      {error ? (
-        <p className="text-[10px] text-destructive">{error}</p>
-      ) : hint ? (
-        <p className="text-[10px] text-muted-foreground">{hint}</p>
-      ) : null}
-    </div>
   );
 }

@@ -568,6 +568,19 @@ export const CONVERSATION_STRINGS = {
     "Uma falha de entrega indicou que este número não está no WhatsApp. Envio exige confirmação de gestor.",
   markWhatsappValid: "Marcar como WhatsApp válido",
   markedWhatsappValid: "Número marcado como válido",
+  /**
+   * Linking the person of this conversation to a company. The verb "vincular"
+   * is the same on the chip, in the dialog's confirm button and in the toast —
+   * an action that renames itself along the way reads as two actions.
+   */
+  linkCompany: {
+    chip: "Vincular a empresa",
+    success: (name: string) => `${name} vinculado à empresa`,
+    undo: "Desfazer",
+    undone: "Vínculo desfeito",
+    undoFailed: "Não foi possível desfazer o vínculo.",
+    failed: "Não foi possível vincular. Você pode não ter permissão sobre este contato.",
+  },
   noteDialog: {
     title: "Adicionar nota à ficha",
     description: "A nota fica visível para vendedores e gestores com acesso a este cliente.",
