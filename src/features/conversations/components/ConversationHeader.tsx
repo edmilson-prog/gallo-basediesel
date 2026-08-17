@@ -64,12 +64,6 @@ export interface IConversationHeaderProps {
   consultorOpen?: boolean;
   /** Toggles the part-lookup consultor panel. */
   onToggleConsultor?: () => void;
-  /** Whether the attendance history panel is open. */
-  historyOpen?: boolean;
-  /** Attendance history is per-CUSTOMER: disabled (with tooltip) on lead-anchored conversations. */
-  historyDisabled?: boolean;
-  /** Toggles the attendance history panel. */
-  onToggleHistory?: () => void;
   /** Action menu rendered as a popover trigger (kebab). */
   menuSlot?: React.ReactNode;
   /** SDR escalation record bound to this conversation (PRD-023), when any. */
@@ -96,9 +90,6 @@ export function ConversationHeader({
   onToggleMedia,
   consultorOpen,
   onToggleConsultor,
-  historyOpen,
-  historyDisabled,
-  onToggleHistory,
   menuSlot,
   escalation,
   onCustomerUpdated,
@@ -386,46 +377,9 @@ export function ConversationHeader({
               <TooltipContent>{PART_LOOKUP_STRINGS.panelTitle}</TooltipContent>
             </Tooltip>
           )}
-          {onToggleHistory && !historyDisabled && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={historyOpen ? "secondary" : "ghost"}
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={onToggleHistory}
-                  aria-pressed={historyOpen}
-                >
-                  <Icon icon="mdi:history" size={14} />
-                  <span className="hidden @min-[52rem]:inline">
-                    {CONVERSATION_STRINGS.toggleHistory}
-                  </span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{CONVERSATION_STRINGS.toggleHistory}</TooltipContent>
-            </Tooltip>
-          )}
-          {onToggleHistory && historyDisabled && (
-            // aria-disabled (not `disabled`) keeps the button focusable so the
-            // tooltip is reachable by keyboard/screen readers; no onClick = no-op.
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="cursor-not-allowed gap-1.5 opacity-50"
-                  aria-disabled="true"
-                  aria-label={CONVERSATION_STRINGS.historyUnavailableTooltip}
-                >
-                  <Icon icon="mdi:history" size={14} />
-                  <span className="hidden @min-[52rem]:inline">
-                    {CONVERSATION_STRINGS.toggleHistory}
-                  </span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{CONVERSATION_STRINGS.historyUnavailableTooltip}</TooltipContent>
-            </Tooltip>
-          )}
+          {/* No "Histórico" button here on purpose: the attendance timeline is
+              already one tab away inside the ficha (ProfileTabs → "Histórico"),
+              so a second entry point in the header was pure duplication. */}
           {pendingScheduled > 0 && (
             <span
               className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
