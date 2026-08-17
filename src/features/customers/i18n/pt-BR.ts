@@ -41,8 +41,9 @@ export const CUSTOMER_STRINGS = {
     createQuote: "Criar orçamento",
     menuLabel: "Mais ações",
     callPhone: "Ligar",
-    sendEmail: "Enviar email",
-    noEmail: "Sem email cadastrado",
+    sendEmail: "Enviar e-mail",
+    noEmail: "Sem e-mail cadastrado",
+    noPhone: "Sem telefone cadastrado",
   },
   tabs: {
     atendimento: "Atendimento",
