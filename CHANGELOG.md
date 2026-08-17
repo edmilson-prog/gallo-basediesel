@@ -4,6 +4,38 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.180.0] — Jig · 2026-08-17
+
+**Kits por modelo era uma lista de vinte e um caminhões iguais, cada um com uma etiqueta cinza escrita "Kits 0", e o botão mais destacado da tela era justamente o que quase nunca se usa: cadastrar modelo. O catálogo de modelos muda uma vez por ano; o kit é o que se monta toda semana. Agora a tela abre pela conta que interessa — quantos modelos já têm kit pronto, quantos estão em rascunho e quantos não têm nada — e cada linha mostra o kit de verdade: quantas peças, quanto custa, quantos orçamentos ele já atendeu. Montar um kit também mudou: em vez de uma busca solta onde era preciso lembrar o que um kit de filtros precisa ter, a tela agora é um gabarito com uma linha por tipo de filtro — óleo, combustível, separador de água, ar, cabine — dizendo o que falta e oferecendo as peças que servem naquele motor. Nesta versão também entraram a triagem da agenda e a aba de conversas da ficha do cliente.**
+
+### Added
+
+- **Cobertura de kits no topo da lista** — três números que também servem de filtro: modelos com kit oficial, rascunhos pendentes e modelos sem kit nenhum. Cada número traz uma barrinha com um traço por modelo, então dá para ver o tamanho do buraco sem contar linha por linha. "Sem kit nenhum" é a fila de trabalho da tela.
+- **Montar o kit direto da linha** — modelo sem kit mostra quantas peças do catálogo já servem naquele motor e traz o botão ali mesmo, sem precisar abrir a ficha.
+- **Motores do mesmo caminhão ficam juntos** — o FH 460 aparecia duas vezes na lista, o FM 370 duas, o R 450 duas: são registros diferentes no sistema, mas para quem monta kit é o mesmo caminhão. Agora dividem um bloco. E quando um motor já tem kit e o irmão não, a linha oferece **copiar o kit do outro** em um clique — o caso que se repete três vezes neste catálogo.
+- **Montagem do kit por tipo de filtro** — uma linha para cada tipo que a categoria espera, com os obrigatórios marcados. A linha vazia lista as peças que servem naquele motor como etiquetas de um clique, já com código, preço e estoque; a linha preenchida mostra a peça com quantidade, observação e o subtotal.
+- **Salvar rascunho ou salvar como oficial** — rascunho sempre passa, é como o balcão registra o que ainda quer conferir. Oficial exige os filtros obrigatórios, e a barra diz **quais** estão faltando em vez de só deixar o botão apagado.
+- **"Este kit também vale para"** — ao salvar, a tela lista os modelos sem kit em que **todas** as peças principais servem, e cria uma cópia em cada um que você marcar. É a resposta ao fato de um kit de filtros servir dois motores sem nenhuma diferença.
+- **"Começar de um kit parecido"** — quando a montagem está vazia, sugere kits já prontos de motores semelhantes, dizendo quantas peças daquele kit realmente servem no motor que você está montando.
+- **Cadastrar os motores de um modelo de uma vez** — um FH 460 com três motores virava três cadastros repetindo o mesmo nome à mão. Agora os motores entram em uma lista e os três registros são criados juntos. Quando é um motor só, aparece o botão "Salvar e montar kit", que é o passo seguinte de sempre.
+- **Triagem da agenda** — a fila dos contatos que ainda não pertencem a nenhum cliente, decididos um a um. Três filas na mesma tela: contatos soltos, prováveis duplicados e os que você já mandou ignorar. A fila dos soltos tem atalhos de teclado, porque é a única passagem repetitiva.
+- **Sugestão de cliente com o motivo escrito** — ao triar um contato, o sistema aponta os clientes prováveis e diz **por que** achou aquilo: mesmo telefone, mesmo domínio de e-mail da empresa, nome parecido. A porcentagem sozinha nunca convenceu ninguém a clicar.
+- **Ignorar um contato com motivo registrado** — sai da fila sem ser apagado, e pode voltar depois.
+- **Juntar contatos duplicados** — a triagem detecta o mesmo contato repetido pelo telefone ou pelo endereço e permite unir os dois. O registro absorvido nunca é apagado: fica ignorado, com o motivo apontando qual sobreviveu.
+
+### Changed
+
+- **A linha da lista de modelos passou a carregar o kit** — no lugar da etiqueta "Kits 0", cada linha mostra se o kit é oficial ou rascunho, quantas peças tem, quanto custa, quantos orçamentos já atendeu, quando foi conferido pela última vez e um aviso quando alguma peça está sem estoque.
+- **"Novo modelo" desceu para ação secundária** e a busca da lista ganhou o atalho de teclado "/" e a tecla Esc para limpar.
+- **A montagem do kit mostra preço e estoque de cada peça** — antes eram só o nome e a quantidade, sem nenhuma pista de quanto o kit custaria ou se a peça estava na prateleira.
+- **"Base" e "Opcional" viraram dois botões lado a lado** — antes era uma chavinha rotulada "Base / Opcional", que nunca dizia qual dos dois lados estava ligado. A diferença decide se a peça já vem marcada quando o kit entra no orçamento.
+- **A busca de peças da montagem alcança todo o catálogo** e marca com um aviso a peça que não tem aplicação cadastrada para aquele motor, em vez de escondê-la — quem está no balcão às vezes sabe de um encaixe que o cadastro ainda não pegou.
+- **Aba "Conversas" da ficha do cliente virou tabela** — as conversas eram cartões empilhados, e a mesma informação precisava ser relida em cada um. Agora são quatro colunas alinhadas: canal, início, quem atendeu e situação, com as mesmas cores de situação usadas na tela de Atendimento. No painel estreito do Atendimento os cartões continuam, porque quatro colunas não cabem ali.
+
+### Fixed
+
+- **A aba "Conversas" mostrava a data errada** — a coluna dizia "Início", mas exibia a data da última movimentação da conversa, e ordenava por ela. Agora mostra e ordena pela data em que a conversa começou.
+
 ## [0.179.1] — Extension · 2026-08-17
 
 **Dois acertos no Atendimento. Os áudios deixaram de sair cada um de um tamanho: quem mandava na largura do balão era o texto da transcrição, então um áudio sem transcrição ficava estreito e um com transcrição longa esticava até quase o dobro — a coluna de áudios lia como uma pilha desalinhada. Agora todos têm a mesma largura, e o balão não muda mais de tamanho enquanto o áudio carrega nem quando a transcrição chega. A transcrição em si, que era escrita em letra miúda de rodapé, passou ao tamanho do texto da conversa, em itálico. E o painel lateral do lead foi reconstruído em volta de uma pergunta só: o que falta para essa pessoa virar cliente.**
