@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe>
+    <infNFe Id="NFe35260804887213000190550010000301291000301298" versao="4.00">
+      <ide>
+        <cUF>35</cUF><nNF>30129</nNF><serie>1</serie><mod>55</mod>
+        <dhEmi>2026-08-14T09:12:00-03:00</dhEmi>
+      </ide>
+      <emit>
+        <CNPJ>04887213000190</CNPJ>
+        <xNome>DIESELTEC DISTRIBUIDORA DE AUTO PECAS LTDA</xNome>
+        <xFant>Dieseltec</xFant>
+        <IE>096233148 8</IE>
+        <enderEmit>
+          <xLgr>Av. Brasil Oeste</xLgr><nro>2840</nro>
+          <xBairro>Centro</xBairro><xMun>Passo Fundo</xMun><UF>RS</UF>
+        </enderEmit>
+      </emit>
+      <det nItem="1">
+        <prod>
+          <cProd>RC-R60T</cProd>
+          <cEAN>7891234567895</cEAN>
+          <xProd>FILTRO SEPARADOR RACOR R60T CX C/12</xProd>
+          <NCM>84212300</NCM><CFOP>6102</CFOP>
+          <uCom>CX</uCom><qCom>2.0000</qCom><vUnCom>698.4000000000</vUnCom><vProd>1396.80</vProd>
+        </prod>
+      </det>
+      <det nItem="2">
+        <prod>
+          <cProd>BI-0445120212</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>BICO INJETOR CR 0445120212</xProd>
+          <NCM>84099190</NCM><CFOP>6102</CFOP>
+          <uCom>UN</uCom><qCom>4.0000</qCom><vUnCom>389.0000000000</vUnCom><vProd>1556.00</vProd>
+        </prod>
+      </det>
+      <total>
+        <ICMSTot>
+          <vProd>2952.80</vProd><vFrete>182.20</vFrete><vIPI>214.90</vIPI>
+          <vDesc>0.00</vDesc><vNF>3349.90</vNF>
+        </ICMSTot>
+      </total>
+      <cobr>
+        <dup><nDup>001</nDup><dVenc>2026-09-16</dVenc><vDup>1116.64</vDup></dup>
+        <dup><nDup>002</nDup><dVenc>2026-10-16</dVenc><vDup>1116.63</vDup></dup>
+        <dup><nDup>003</nDup><dVenc>2026-11-16</dVenc><vDup>1116.63</vDup></dup>
+      </cobr>
+    </infNFe>
+  </NFe>
+</nfeProc>
