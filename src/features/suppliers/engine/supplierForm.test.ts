@@ -3,6 +3,7 @@ import {
   canSaveSupplier,
   isSupplierDocLookupPending,
   resolveSupplierDocState,
+  supplierDocumentPatchValue,
 } from "./supplierForm";
 
 /** Two distinct, checksum-valid CNPJs — used to model "document A, then document B". */
@@ -238,5 +239,24 @@ describe("document field pipeline (isSupplierDocLookupPending -> resolveSupplier
     });
     expect(docState).toBe("error");
     expect(canSaveSupplier({ name: "Fornecedor", docState })).toBe(true);
+  });
+});
+
+describe("supplierDocumentPatchValue", () => {
+  it("clears the document when the field is emptied", () => {
+    expect(supplierDocumentPatchValue("")).toBe("");
+  });
+
+  it("leaves a previously saved document untouched while it is only partially retyped", () => {
+    // The exact regression: a saved CNPJ with a few digits backspaced out is
+    // neither "no document" nor a confirmed new one — it must not overwrite
+    // whatever is already stored.
+    expect(supplierDocumentPatchValue("330001")).toBeUndefined();
+    expect(supplierDocumentPatchValue(DOC_A.slice(0, 1))).toBeUndefined();
+    expect(supplierDocumentPatchValue(DOC_A.slice(0, 13))).toBeUndefined();
+  });
+
+  it("submits the digits once the document is complete", () => {
+    expect(supplierDocumentPatchValue(DOC_A)).toBe(DOC_A);
   });
 });

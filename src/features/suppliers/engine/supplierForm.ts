@@ -89,3 +89,26 @@ export function isSupplierDocLookupPending(input: ISupplierDocLookupState): bool
   if (input.duplicateChecking) return true;
   return false;
 }
+
+/**
+ * What the form should submit for the `document` column, given the field's
+ * live digits. Three cases, not two:
+ *
+ * - Empty (0 digits) — the user deliberately cleared the field. Submits
+ *   `""`, which `patchToRow`/`create` map to `null`: clear the column.
+ * - Partial (1–13 digits) — a document mid-retype, neither "no document" nor
+ *   a confirmed one. Submits `undefined`, which `IUpdateSupplierPatch`
+ *   treats as "don't touch this column" — whatever was already saved
+ *   survives. Collapsing this case into the empty-field one was a real bug:
+ *   backspacing a few digits of a saved CNPJ and saving before retyping all
+ *   14 used to null out a previously valid, stored document.
+ * - Complete (14 digits) — the digits themselves. By the time this is
+ *   called, `canSaveSupplier` has already refused a checksum-invalid
+ *   14-digit value (`docState: "invalid"`), so 14 digits here is always a
+ *   valid CNPJ.
+ */
+export function supplierDocumentPatchValue(digits: string): string | undefined {
+  if (digits.length === 14) return digits;
+  if (digits.length === 0) return "";
+  return undefined;
+}

@@ -22,7 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { ICnpjCompany } from "@/features/customers/hooks/useMinhaReceita";
 import { formatPhone, onlyDigits } from "@/features/customers/utils/cnpjCpf";
-import { canSaveSupplier } from "../../engine/supplierForm";
+import { canSaveSupplier, supplierDocumentPatchValue } from "../../engine/supplierForm";
 import { useSupplierDocumentField } from "../../hooks/useSupplierDocumentField";
 import { useSupplierMutations } from "../../hooks/useSupplierMutations";
 import { SUPPLIERS_STRINGS } from "../../i18n/pt-BR";
@@ -159,13 +159,15 @@ export function SupplierFormDialog({ open, supplier, onClose, onSaved }: ISuppli
       // Optional text fields are sent as "" (never `undefined`) when blank,
       // so that clearing a previously-saved value in edit mode actually
       // clears it. `IUpdateSupplierPatch`/`patchToRow` treat `undefined` as
-      // "leave untouched" and "" as "clear" — the same convention `document`
-      // already used before this fix (`row.document = patch.document ||
-      // null`), now extended to every optional text column it wrote.
+      // "leave untouched" and "" as "clear".
       tradeName: tradeName.trim(),
-      // A half-typed document ("typing" doesn't block saving) is dropped
-      // rather than stored — only a complete, checksum-valid CNPJ is kept.
-      document: docField.digits.length === 14 ? docField.digits : "",
+      // `document` has a THIRD case the other optional text fields don't: a
+      // PARTIALLY retyped value (1-13 digits, `docState: "typing"`, which
+      // does not block saving) must leave whatever is already stored
+      // untouched — collapsing it into the "" (clear) case would silently
+      // null out a valid saved CNPJ the moment someone starts fixing a typo
+      // and saves before finishing. See `supplierDocumentPatchValue`.
+      document: supplierDocumentPatchValue(docField.digits),
       category,
       paymentTerms,
       leadTimeDays,
