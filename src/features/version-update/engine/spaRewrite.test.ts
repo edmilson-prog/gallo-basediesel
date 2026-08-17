@@ -101,13 +101,28 @@ describe("vercel.json SPA rewrite (issue #430)", () => {
     }
   });
 
-  it("does not ship long-lived Cache-Control for /assets yet (deferred until 404 behaviour is verified in prod)", () => {
-    // Adding `immutable`/max-age to an /assets/(.*) headers rule is only safe if
-    // Vercel provably does NOT attach it to 404 responses on the same path —
-    // otherwise a 404 caught during a deploy's alias-swap window would be
-    // browser-cached for a year, recreating the 17/08 incident in a worse form.
+  it("serves hashed /assets as immutable", () => {
+    // Safe ONLY because Vercel attaches this rule to 200s and NOT to 404s on
+    // the same path — verified on a preview deployment before shipping (see the
+    // evidence table in the PR that introduced this rule). If that ever changes,
+    // a 404 caught in a deploy's alias-swap window would be browser-cached for a
+    // year, recreating the 17/08 lockout in a far worse form.
+    const rule = config.headers.find((h) => h.source === "/assets/(.*)");
+    expect(rule, "faltou a regra de cache para /assets/(.*)").toBeDefined();
+    const cc = rule!.headers.find((h) => h.key === "Cache-Control")?.value ?? "";
+    expect(cc).toContain("immutable");
+    expect(cc).toContain("max-age=31536000");
+    expect(cc).not.toContain("no-store");
+  });
+
+  it("never marks a non-hashed path as immutable", () => {
+    // index.html, sw.js, version.json and the webmanifests keep their names
+    // across deploys — an immutable rule on any of them would pin a stale shell.
+    const MUTABLE = ["/version.json", "/sw.js", "/(.*).webmanifest"];
     for (const rule of config.headers) {
-      expect(rule.source.startsWith("/assets")).toBe(false);
+      if (!MUTABLE.includes(rule.source)) continue;
+      const cc = rule.headers.find((h) => h.key === "Cache-Control")?.value ?? "";
+      expect(cc, `${rule.source} não pode ser immutable`).not.toContain("immutable");
     }
   });
 });
