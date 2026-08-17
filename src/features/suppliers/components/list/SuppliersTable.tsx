@@ -212,7 +212,9 @@ export function SuppliersTable({
                           key={id}
                           className="truncate px-4 py-2.5 text-xs text-muted-foreground"
                         >
-                          {supplier.paymentTerms ?? "—"}
+                          {/* `||`, not `??`: a cleared field can be stored as
+                              `""`, which must fall back like absent does. */}
+                          {supplier.paymentTerms || "—"}
                         </span>
                       );
                     case "parts":
@@ -260,7 +262,7 @@ export function SuppliersTable({
                           key={id}
                           className="truncate px-4 py-2.5 text-xs text-muted-foreground"
                         >
-                          {supplier.contactName ?? supplier.contactPhone ?? "—"}
+                          {supplier.contactName || supplier.contactPhone || "—"}
                         </span>
                       );
                   }

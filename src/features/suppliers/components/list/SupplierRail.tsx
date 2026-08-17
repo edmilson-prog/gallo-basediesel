@@ -98,7 +98,9 @@ export function SupplierRail({
           />
           <Metric
             label={COPY.columns.contact}
-            value={supplier.contactName ?? "—"}
+            // `||`, not `??`: a cleared field can be stored as `""`, and an
+            // empty string must fall back to the placeholder same as absent.
+            value={supplier.contactName || "—"}
             sub={supplier.contactPhone}
           />
         </div>

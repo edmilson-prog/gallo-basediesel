@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ISupplier, SupplierCategory, SupplierPaymentMethod } from "@/shared/types";
 import type { ICreateSupplierInput, IUpdateSupplierPatch } from "@/providers/data";
-import { useSuppliersProvider } from "@/providers/data";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import {
   Dialog,
@@ -20,29 +19,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
-import { useDebounce } from "@/shared/hooks/useDebounce";
-import { useMinhaReceita, type ICnpjCompany } from "@/features/customers/hooks/useMinhaReceita";
-import {
-  formatCnpj,
-  formatPhone,
-  isValidCnpj,
-  onlyDigits,
-} from "@/features/customers/utils/cnpjCpf";
-import {
-  canSaveSupplier,
-  resolveSupplierDocState,
-  type SupplierDocState,
-} from "../../engine/supplierForm";
+import type { ICnpjCompany } from "@/features/customers/hooks/useMinhaReceita";
+import { formatPhone, onlyDigits } from "@/features/customers/utils/cnpjCpf";
+import { canSaveSupplier } from "../../engine/supplierForm";
+import { useSupplierDocumentField } from "../../hooks/useSupplierDocumentField";
 import { useSupplierMutations } from "../../hooks/useSupplierMutations";
 import { SUPPLIERS_STRINGS } from "../../i18n/pt-BR";
 import { CATEGORY_LABEL, PAYMENT_METHOD_LABEL } from "../../utils/supplierDisplay";
 
 const COPY = SUPPLIERS_STRINGS;
-
-/** Keystroke settle time before the Receita and duplicate lookups fire. */
-const LOOKUP_DEBOUNCE_MS = 380;
 
 const CATEGORY_OPTIONS: SupplierCategory[] = ["parts", "services", "freight", "financial"];
 const PAYMENT_METHOD_OPTIONS: SupplierPaymentMethod[] = [
@@ -68,20 +54,17 @@ export interface ISupplierFormDialogProps {
  * decides the mode. The document field leads because a valid CNPJ fills the
  * rest of the form from the Receita, same reasoning as `NewCustomerModal`.
  *
- * In edit mode the field opens holding the saved document WITHOUT re-querying
- * the Receita or the duplicate guard — both would be pure waste (the value is
- * already confirmed) and the guard would need to special-case matching itself.
- * The moment the user changes so much as one digit it stops being "the saved
- * value" and falls through to the exact same flow as a brand-new CNPJ,
- * including a fresh duplicate check against every OTHER supplier.
+ * All of the CNPJ field's own machinery (debounce, Receita lookup, duplicate
+ * guard, derived state/copy/icon) lives in `useSupplierDocumentField` — see
+ * that hook's doc comment for the edit-mode "don't re-query the saved value"
+ * behavior and the race it closes. This component owns everything else:
+ * the rest of the fields, and turning them into a create/update payload.
  */
 export function SupplierFormDialog({ open, supplier, onClose, onSaved }: ISupplierFormDialogProps) {
   const { currentStoreId } = useCurrentStore();
-  const provider = useSuppliersProvider();
   const { create, update } = useSupplierMutations();
   const isEditing = supplier !== null;
 
-  const [documentValue, setDocumentValue] = useState("");
   const [name, setName] = useState("");
   const [tradeName, setTradeName] = useState("");
   const [category, setCategory] = useState<SupplierCategory>("parts");
@@ -100,49 +83,40 @@ export function SupplierFormDialog({ open, supplier, onClose, onSaved }: ISuppli
   const [registryStatus, setRegistryStatus] = useState("");
   const [registryActivity, setRegistryActivity] = useState("");
 
-  const [duplicateFound, setDuplicateFound] = useState(false);
-  const [duplicateChecking, setDuplicateChecking] = useState(false);
-
-  const documentRef = useRef<HTMLInputElement>(null);
-  /** The document the record was opened with — the edit-mode "don't re-query" baseline. */
-  const savedDocumentDigitsRef = useRef("");
-  // Autofill must only touch fields still empty AT THE TIME the lookup resolves,
-  // and it runs from inside the lookup effect — reading through a ref keeps the
-  // effect off the field values, which would otherwise re-fire it per keystroke.
+  // Autofill must only touch fields still empty AT THE TIME the lookup
+  // resolves, and it runs from inside the hook's lookup effect — reading
+  // through a ref keeps that effect off these field values, which would
+  // otherwise re-fire it per keystroke.
   const currentValuesRef = useRef({ name, tradeName, contactPhone, city, state });
   currentValuesRef.current = { name, tradeName, contactPhone, city, state };
-  const liveDigitsRef = useRef("");
 
-  const { lookup: lookupCnpj, reset: resetCnpj, status: cnpjStatus } = useMinhaReceita();
-  const debouncedDocument = useDebounce(documentValue, LOOKUP_DEBOUNCE_MS);
+  /** Fills only the fields the user has left empty, and always snapshots the registry facts. */
+  const applyCompany = useCallback((company: ICnpjCompany) => {
+    const cur = currentValuesRef.current;
+    if (!cur.name.trim() && company.razaoSocial) setName(company.razaoSocial);
+    if (!cur.tradeName.trim() && company.nomeFantasia) setTradeName(company.nomeFantasia);
+    if (!cur.contactPhone.trim() && company.phone) setContactPhone(formatPhone(company.phone));
+    if (!cur.city.trim() && company.address?.city) setCity(company.address.city);
+    if (!cur.state.trim() && company.address?.state) setState(company.address.state);
+    setRegistryStatus(company.situacaoCadastral ?? "");
+    setRegistryActivity(company.cnae ?? "");
+  }, []);
 
-  const digits = onlyDigits(documentValue);
-  liveDigitsRef.current = digits;
-  const debouncedDigits = onlyDigits(debouncedDocument);
-  const unchangedSavedDocument =
-    savedDocumentDigitsRef.current !== "" && digits === savedDocumentDigitsRef.current;
+  const docField = useSupplierDocumentField({
+    open,
+    savedDigits: supplier?.document ?? "",
+    onResolved: applyCompany,
+  });
 
-  const pending = digits.length === 14 && (digits !== debouncedDigits || duplicateChecking);
-
-  const docState: SupplierDocState = unchangedSavedDocument
-    ? "done"
-    : resolveSupplierDocState({ digits, pending, cnpjStatus, duplicateFound });
-
-  const docMessage = unchangedSavedDocument
-    ? COPY.form.savedDocumentHint
-    : COPY.form.docMessages[docState];
-
-  const canSave = canSaveSupplier({ name, docState });
+  const canSave = canSaveSupplier({ name, docState: docField.docState });
   const isSubmitting = create.isPending || update.isPending;
 
-  // Reset every time the dialog opens — for a supplier (edit) or for `null`
-  // (cadastro). Deliberately mirrors `ExpenseFormDialog`'s `[open, entity]`
-  // pattern already used elsewhere in the app.
+  // Reset the rest of the form every time the dialog opens — for a supplier
+  // (edit) or for `null` (cadastro). The document field resets itself inside
+  // `useSupplierDocumentField`. Deliberately mirrors `ExpenseFormDialog`'s
+  // `[open, entity]` pattern already used elsewhere in the app.
   useEffect(() => {
     if (!open) return;
-    const doc = supplier?.document ?? "";
-    savedDocumentDigitsRef.current = doc;
-    setDocumentValue(doc ? formatCnpj(doc) : "");
     setName(supplier?.name ?? "");
     setTradeName(supplier?.tradeName ?? "");
     setCategory(supplier?.category ?? "parts");
@@ -156,103 +130,7 @@ export function SupplierFormDialog({ open, supplier, onClose, onSaved }: ISuppli
     setState(supplier?.state ?? "");
     setRegistryStatus(supplier?.registryStatus ?? "");
     setRegistryActivity(supplier?.registryActivity ?? "");
-    setDuplicateFound(false);
-    setDuplicateChecking(false);
-    resetCnpj();
-  }, [open, supplier, resetCnpj]);
-
-  // The document field is where the cursor starts — deferred a tick so the
-  // dialog's own initial focus (Radix moves it to the content) lands first.
-  useEffect(() => {
-    if (!open) return;
-    const timer = setTimeout(() => documentRef.current?.focus(), 0);
-    return () => clearTimeout(timer);
-  }, [open]);
-
-  /** Fills only the fields the user has left empty, and always snapshots the registry facts. */
-  const applyCompany = (company: ICnpjCompany) => {
-    const cur = currentValuesRef.current;
-    if (!cur.name.trim() && company.razaoSocial) setName(company.razaoSocial);
-    if (!cur.tradeName.trim() && company.nomeFantasia) setTradeName(company.nomeFantasia);
-    if (!cur.contactPhone.trim() && company.phone) setContactPhone(formatPhone(company.phone));
-    if (!cur.city.trim() && company.address?.city) setCity(company.address.city);
-    if (!cur.state.trim() && company.address?.state) setState(company.address.state);
-    setRegistryStatus(company.situacaoCadastral ?? "");
-    setRegistryActivity(company.cnae ?? "");
-  };
-
-  // Receita lookup — skipped entirely while the field still holds the saved,
-  // already-confirmed document (see the component doc comment above).
-  useEffect(() => {
-    if (unchangedSavedDocument) {
-      resetCnpj();
-      return;
-    }
-    const target = onlyDigits(debouncedDocument);
-    if (target.length !== 14 || !isValidCnpj(target)) {
-      resetCnpj();
-      return;
-    }
-    let active = true;
-    void lookupCnpj(target).then((company) => {
-      // Reopening the dialog doesn't remount it, so a lookup fired for a
-      // previous document could otherwise autofill the freshly reset form.
-      if (active && company && liveDigitsRef.current === target) applyCompany(company);
-    });
-    return () => {
-      active = false;
-    };
-  }, [debouncedDocument, unchangedSavedDocument, lookupCnpj, resetCnpj]);
-
-  // Duplicate guard — same "don't re-query the saved value" skip as above.
-  useEffect(() => {
-    if (unchangedSavedDocument) {
-      setDuplicateFound(false);
-      setDuplicateChecking(false);
-      return;
-    }
-    const target = onlyDigits(debouncedDocument);
-    if (target.length !== 14 || !isValidCnpj(target)) {
-      setDuplicateFound(false);
-      setDuplicateChecking(false);
-      return;
-    }
-    let active = true;
-    setDuplicateChecking(true);
-    void provider
-      .list({ search: target, pageSize: 1 })
-      .then((result) => {
-        if (active) setDuplicateFound(result.data.length > 0);
-      })
-      .catch(() => {
-        // Fail open: a guard outage must not block a legitimate cadastro.
-        if (active) setDuplicateFound(false);
-      })
-      .finally(() => {
-        if (active) setDuplicateChecking(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [debouncedDocument, unchangedSavedDocument, provider]);
-
-  const adornment = (
-    {
-      loading: (
-        <span
-          aria-hidden="true"
-          className="size-[15px] animate-spin rounded-full border-2 border-primary/25 border-t-primary motion-reduce:animate-none"
-        />
-      ),
-      done: <Icon icon="mdi:check-decagram" size={16} className="text-severity-success" />,
-      invalid: <Icon icon="mdi:alert-circle" size={16} className="text-severity-critical" />,
-      duplicate: <Icon icon="mdi:alert-circle" size={16} className="text-severity-critical" />,
-      notfound: <Icon icon="mdi:alert-circle" size={16} className="text-primary" />,
-      error: <Icon icon="mdi:alert-circle" size={16} className="text-muted-foreground" />,
-      idle: null,
-      typing: null,
-    } satisfies Record<SupplierDocState, React.ReactNode>
-  )[docState];
+  }, [open, supplier]);
 
   const footerHint = canSave
     ? isEditing
@@ -278,21 +156,30 @@ export function SupplierFormDialog({ open, supplier, onClose, onSaved }: ISuppli
 
     const shared = {
       name: name.trim(),
-      tradeName: tradeName.trim() || undefined,
+      // Optional text fields are sent as "" (never `undefined`) when blank,
+      // so that clearing a previously-saved value in edit mode actually
+      // clears it. `IUpdateSupplierPatch`/`patchToRow` treat `undefined` as
+      // "leave untouched" and "" as "clear" — the same convention `document`
+      // already used before this fix (`row.document = patch.document ||
+      // null`), now extended to every optional text column it wrote.
+      tradeName: tradeName.trim(),
       // A half-typed document ("typing" doesn't block saving) is dropped
       // rather than stored — only a complete, checksum-valid CNPJ is kept.
-      document: digits.length === 14 ? digits : undefined,
+      document: docField.digits.length === 14 ? docField.digits : "",
       category,
-      paymentTerms: paymentTerms || undefined,
+      paymentTerms,
       leadTimeDays,
-      contactName: contactName.trim() || undefined,
-      contactPhone: onlyDigits(contactPhone) || undefined,
+      contactName: contactName.trim(),
+      contactPhone: onlyDigits(contactPhone),
+      // Unlike the free-text fields above, this is a typed enum column — the
+      // contract has no "" member to carry a clear-intent through, so it
+      // keeps the older "absent means leave untouched" behavior.
       preferredPaymentMethod: preferredPaymentMethod || undefined,
       suppliedItems,
-      registryStatus: registryStatus || undefined,
-      registryActivity: registryActivity || undefined,
-      city: city || undefined,
-      state: state || undefined,
+      registryStatus,
+      registryActivity,
+      city,
+      state,
     };
 
     try {
@@ -328,23 +215,23 @@ export function SupplierFormDialog({ open, supplier, onClose, onSaved }: ISuppli
               <Label htmlFor="supplier-document">{COPY.form.documentLabel}</Label>
               <div className="relative">
                 <Input
-                  ref={documentRef}
+                  ref={docField.inputRef}
                   id="supplier-document"
                   autoFocus
                   inputMode="numeric"
                   className={cn(
                     "pr-9 font-mono",
-                    (docState === "invalid" || docState === "duplicate") &&
+                    (docField.docState === "invalid" || docField.docState === "duplicate") &&
                       "border-severity-critical focus-visible:ring-severity-critical",
                   )}
-                  value={documentValue}
-                  onChange={(e) => setDocumentValue(formatCnpj(e.target.value))}
+                  value={docField.value}
+                  onChange={(e) => docField.onChange(e.target.value)}
                   placeholder={COPY.form.documentPlaceholder}
                   aria-describedby="supplier-document-status"
                 />
-                {adornment && (
+                {docField.adornment && (
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                    {adornment}
+                    {docField.adornment}
                   </span>
                 )}
               </div>
@@ -352,7 +239,7 @@ export function SupplierFormDialog({ open, supplier, onClose, onSaved }: ISuppli
                 id="supplier-document-status"
                 className="min-h-[1em] text-xs text-muted-foreground"
               >
-                {docMessage}
+                {docField.message}
               </p>
             </div>
 

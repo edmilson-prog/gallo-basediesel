@@ -95,25 +95,38 @@ function rowToSupplier(row: SupplierRow): ISupplier {
   };
 }
 
+/**
+ * `!== undefined` means "the caller sent this field, apply it" — `undefined`
+ * itself always means "leave the column untouched," never "clear it." For
+ * every OPTIONAL TEXT column, an applied value additionally goes through
+ * `|| null`: `SupplierFormDialog` sends `""` (never `undefined`) for a field
+ * the user has cleared, exactly so that case reaches here and becomes a real
+ * `null` — the same convention `document` already used before this
+ * function grew the rest of the optional columns. `leadTimeDays` is
+ * deliberately excluded: it's numeric, and `0` is a legitimate lead time
+ * that `|| null` would wrongly discard. `preferredPaymentMethod` is also
+ * excluded: it's a typed enum with no `""` member, so the contract can't
+ * carry a clear-intent through it — `undefined` still just means "leave it."
+ */
 function patchToRow(patch: IUpdateSupplierPatch): Record<string, unknown> {
   const row: Record<string, unknown> = {};
   if (patch.name !== undefined) row.name = patch.name;
-  if (patch.tradeName !== undefined) row.trade_name = patch.tradeName;
+  if (patch.tradeName !== undefined) row.trade_name = patch.tradeName || null;
   if (patch.document !== undefined) row.document = patch.document || null;
   if (patch.category !== undefined) row.category = patch.category;
-  if (patch.paymentTerms !== undefined) row.payment_terms = patch.paymentTerms;
+  if (patch.paymentTerms !== undefined) row.payment_terms = patch.paymentTerms || null;
   if (patch.leadTimeDays !== undefined) row.lead_time_days = patch.leadTimeDays;
-  if (patch.contactName !== undefined) row.contact_name = patch.contactName;
-  if (patch.contactPhone !== undefined) row.contact_phone = patch.contactPhone;
+  if (patch.contactName !== undefined) row.contact_name = patch.contactName || null;
+  if (patch.contactPhone !== undefined) row.contact_phone = patch.contactPhone || null;
   if (patch.preferredPaymentMethod !== undefined)
     row.preferred_payment_method = patch.preferredPaymentMethod;
   if (patch.suppliedItems !== undefined) row.supplied_items = patch.suppliedItems;
   if (patch.status !== undefined) row.status = patch.status;
-  if (patch.registryStatus !== undefined) row.registry_status = patch.registryStatus;
-  if (patch.registryActivity !== undefined) row.registry_activity = patch.registryActivity;
-  if (patch.city !== undefined) row.city = patch.city;
-  if (patch.state !== undefined) row.state = patch.state;
-  if (patch.notes !== undefined) row.notes = patch.notes;
+  if (patch.registryStatus !== undefined) row.registry_status = patch.registryStatus || null;
+  if (patch.registryActivity !== undefined) row.registry_activity = patch.registryActivity || null;
+  if (patch.city !== undefined) row.city = patch.city || null;
+  if (patch.state !== undefined) row.state = patch.state || null;
+  if (patch.notes !== undefined) row.notes = patch.notes || null;
   return row;
 }
 
@@ -185,22 +198,25 @@ export const supabaseSuppliersProvider: ISuppliersProvider = {
         id,
         store_id: input.storeId,
         name: input.name,
-        trade_name: input.tradeName ?? null,
+        // Optional text columns use `|| null` (not `??`) so a blank string
+        // from the form is stored as `null`, not literal "" — same
+        // convention `patchToRow` (below) uses for updates.
+        trade_name: input.tradeName || null,
         document: input.document || null,
         category: input.category,
-        payment_terms: input.paymentTerms ?? null,
+        payment_terms: input.paymentTerms || null,
         lead_time_days: input.leadTimeDays ?? null,
-        contact_name: input.contactName ?? null,
-        contact_phone: input.contactPhone ?? null,
+        contact_name: input.contactName || null,
+        contact_phone: input.contactPhone || null,
         preferred_payment_method: input.preferredPaymentMethod ?? null,
         supplied_items: input.suppliedItems ?? [],
         status: "active",
-        registry_status: input.registryStatus ?? null,
-        registry_activity: input.registryActivity ?? null,
-        city: input.city ?? null,
-        state: input.state ?? null,
+        registry_status: input.registryStatus || null,
+        registry_activity: input.registryActivity || null,
+        city: input.city || null,
+        state: input.state || null,
         source: "manual",
-        notes: input.notes ?? null,
+        notes: input.notes || null,
         created_at: now,
         updated_at: now,
       })

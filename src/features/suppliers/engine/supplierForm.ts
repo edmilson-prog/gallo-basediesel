@@ -48,3 +48,44 @@ export function canSaveSupplier(input: { name: string; docState: SupplierDocStat
   if (input.name.trim().length < 3) return false;
   return !["loading", "duplicate", "invalid"].includes(input.docState);
 }
+
+export interface ISupplierDocLookupState {
+  /** Live, unmasked digits currently in the field. */
+  digits: string;
+  /** Digits the debounce has settled on. */
+  debouncedDigits: string;
+  /**
+   * Digits the Receita lookup + duplicate-check effects have actually run
+   * for (dispatched a request, or reset because the document went invalid) —
+   * i.e. what the currently-held `cnpjStatus`/`duplicateChecking` describe.
+   * `null` before any effect has run for the live debounce cycle.
+   */
+  dispatchedForDigits: string | null;
+  cnpjStatus: CnpjLookupStatus;
+  duplicateChecking: boolean;
+}
+
+/**
+ * Whether the CNPJ field is still resolving, in the sense that `cnpjStatus`
+ * and `duplicateFound` cannot yet be trusted to describe the document
+ * currently showing in the field.
+ *
+ * This exists because of a one-render gap that `digits !== debouncedDigits`
+ * alone does not cover: the render where the debounce has JUST settled on a
+ * new, different document, but the effects that dispatch the Receita lookup
+ * and the duplicate check have not run yet. In that render `cnpjStatus` and
+ * `duplicateFound` still describe the PREVIOUS document — trusting them would
+ * let an unverified (possibly duplicate) document read as `"done"` for one
+ * frame. Comparing `debouncedDigits` against `dispatchedForDigits` (a value
+ * the caller updates only once its effects have actually run for that
+ * target) catches this immediately, without waiting for `cnpjStatus` to
+ * eventually flip to `"loading"` one render later.
+ */
+export function isSupplierDocLookupPending(input: ISupplierDocLookupState): boolean {
+  if (input.digits.length !== 14) return false;
+  if (input.digits !== input.debouncedDigits) return true;
+  if (input.dispatchedForDigits !== input.debouncedDigits) return true;
+  if (input.cnpjStatus === "loading") return true;
+  if (input.duplicateChecking) return true;
+  return false;
+}
