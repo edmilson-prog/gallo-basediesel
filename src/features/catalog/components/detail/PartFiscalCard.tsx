@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
 import { FISCAL_ORIGINS } from "../../utils/fiscalOrigins";
 import type { IPartDraft } from "../../utils/draft";
+import { PartSpecRow } from "./PartSpecRow";
 
 const COPY = CATALOG_STRINGS.detail.fiscal;
 
@@ -21,6 +22,8 @@ export interface IPartFiscalCardProps {
   editing?: boolean;
   draft?: IPartDraft;
   onDraftChange?: (patch: Partial<IPartDraft>) => void;
+  /** Drop the card chrome — the counter layout already wraps the tab body. */
+  headless?: boolean;
 }
 
 export function PartFiscalCard({
@@ -28,10 +31,11 @@ export function PartFiscalCard({
   editing = false,
   draft,
   onDraftChange,
+  headless = false,
 }: IPartFiscalCardProps) {
   if (editing && draft && onDraftChange) {
     return (
-      <div className="rounded-lg border border-border bg-card p-4">
+      <Shell headless={headless}>
         <CardHeader />
         <div className="grid grid-cols-2 gap-3 text-sm">
           <EditField label={COPY.ncm}>
@@ -89,7 +93,7 @@ export function PartFiscalCard({
             </div>
           </EditField>
         </div>
-      </div>
+      </Shell>
     );
   }
 
@@ -97,28 +101,31 @@ export function PartFiscalCard({
   const hasData = f && (f.ncm || f.icmsPercent != null || f.taxSubstitution != null || f.origin);
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <Shell headless={headless}>
       <CardHeader />
       {hasData ? (
-        <dl className="grid grid-cols-2 gap-2 text-sm">
-          <Field label={COPY.ncm} value={f?.ncm} mono />
-          <Field
+        <div className="grid grid-cols-1 gap-x-10 sm:grid-cols-2">
+          <PartSpecRow label={COPY.ncm} value={f?.ncm ?? "—"} mono={Boolean(f?.ncm)} />
+          <PartSpecRow
             label={COPY.icms}
-            value={f?.icmsPercent != null ? `${f.icmsPercent}%` : undefined}
+            value={f?.icmsPercent != null ? `${f.icmsPercent}%` : "—"}
           />
-          <Field
+          <PartSpecRow
             label={COPY.st}
-            value={
-              f?.taxSubstitution != null ? (f.taxSubstitution ? COPY.yes : COPY.no) : undefined
-            }
+            value={f?.taxSubstitution != null ? (f.taxSubstitution ? COPY.yes : COPY.no) : "—"}
           />
-          <Field label={COPY.origin} value={f?.origin} />
-        </dl>
+          <PartSpecRow label={COPY.origin} value={f?.origin ?? "—"} />
+        </div>
       ) : (
         <p className="text-sm text-muted-foreground">{COPY.empty}</p>
       )}
-    </div>
+    </Shell>
   );
+}
+
+function Shell({ headless, children }: { headless: boolean; children: React.ReactNode }) {
+  if (headless) return <div>{children}</div>;
+  return <div className="rounded-lg border border-border bg-card p-4">{children}</div>;
 }
 
 function CardHeader() {
@@ -126,15 +133,6 @@ function CardHeader() {
     <div className="mb-3 flex items-center gap-2">
       <Icon icon="mdi:file-percent-outline" size={18} className="text-muted-foreground" />
       <h2 className="text-sm font-semibold tracking-tight text-foreground">{COPY.title}</h2>
-    </div>
-  );
-}
-
-function Field({ label, value, mono }: { label: string; value?: string; mono?: boolean }) {
-  return (
-    <div className="rounded-md bg-muted/40 px-2.5 py-1.5">
-      <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</dt>
-      <dd className={mono ? "font-mono text-foreground" : "text-foreground"}>{value ?? "—"}</dd>
     </div>
   );
 }

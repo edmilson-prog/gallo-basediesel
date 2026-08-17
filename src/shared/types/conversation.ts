@@ -41,6 +41,13 @@ export interface IConversation {
   customerId?: ID;
   /** Lead participant — mutually exclusive with `customerId`. */
   leadId?: ID;
+  /**
+   * The PERSON on the other side — an Agenda contact. Orthogonal to
+   * `customerId`/`leadId`, which say WHICH COMPANY (or which lead record) the
+   * thread belongs to: a company speaks through several people, and this is the
+   * one typing. Absent when it could not be resolved without guessing.
+   */
+  contactId?: ID;
   /** Seller currently assigned to this conversation. */
   assignedSellerId?: ID;
   channel: ConversationChannel;
@@ -175,12 +182,22 @@ export interface IConversationContact {
   /** Customer or lead id — seeds the avatar's stable hue. */
   refId: ID;
   isLead: boolean;
-  /** Resolved display name (B2B nomeFantasia / B2C fullName / lead name). */
+  /**
+   * The PERSON on the other side: the linked Agenda contact's name, falling
+   * back to the lead's and finally to the company's. A company speaks through
+   * several people, so its name is context (see `companyName`) and must never
+   * stand in for whoever is actually typing.
+   */
   name: string;
   phone: string;
   avatarUrl?: string;
   /** Lead temperature when the contact is a lead; null/absent for customers. */
   temperature?: LeadTemperature | null;
+  /** Company this person speaks for — absent while the contact is loose. */
+  companyId?: ID | null;
+  companyName?: string | null;
+  /** Job title on that company ("Compras", "Balcão"). */
+  role?: string | null;
 }
 
 /** Direction of a message relative to the company. */

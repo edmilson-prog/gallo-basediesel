@@ -50,6 +50,7 @@ interface ModelKitItemRow {
 
 const TABLE = "model_kits";
 const ITEMS_TABLE = "model_kit_items";
+const QUOTES_TABLE = "quotes";
 const COLUMNS =
   "id, model_id, store_id, name, category, status, created_by, created_at, updated_at, updated_by";
 const ITEM_COLUMNS = "id, kit_id, part_id, default_quantity, is_optional, note";
@@ -129,6 +130,27 @@ export const supabaseModelKitsProvider: IModelKitsProvider = {
 
     const rows = data as unknown as ModelKitRow[];
     return Promise.all(rows.map(async (row) => rowToModelKit(row, await listItems(row.id))));
+  },
+
+  async applicationCounts(kitIds: ID[]): Promise<Record<ID, number>> {
+    if (kitIds.length === 0) return {};
+
+    // `quotes.applied_kit_ids` is a text[]; `overlaps` keeps the scan on the
+    // server and returns only the quotes that used one of these kits.
+    const { data, error } = await getSupabaseClient()
+      .from(QUOTES_TABLE)
+      .select("applied_kit_ids")
+      .overlaps("applied_kit_ids", kitIds);
+    if (error) throw new Error(`[supabase] modelKits.applicationCounts failed: ${error.message}`);
+
+    const wanted = new Set(kitIds);
+    const counts: Record<ID, number> = {};
+    for (const row of (data ?? []) as Array<{ applied_kit_ids: string[] | null }>) {
+      for (const kitId of row.applied_kit_ids ?? []) {
+        if (wanted.has(kitId)) counts[kitId] = (counts[kitId] ?? 0) + 1;
+      }
+    }
+    return counts;
   },
 
   async get(id: ID): Promise<IVehicleModelKit> {

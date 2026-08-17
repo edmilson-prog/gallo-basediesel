@@ -1,6 +1,6 @@
 // src/features/model-kits/pages/ModelKitFormPage.tsx
-import { useCallback, useMemo } from "react";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { IKitItem, IPart, IVehicleModelKit, ModelKitCategory } from "@/shared/types";
@@ -129,6 +129,24 @@ export function ModelKitFormPage() {
     },
     [items, setValue],
   );
+
+  // --- Part carried in from the model ficha ("Incluir no kit") ---
+  const { addPartId } = useSearch({ strict: false }) as { addPartId?: string };
+  const seededPartRef = useRef(false);
+
+  useEffect(() => {
+    if (!addPartId || seededPartRef.current) return;
+    // Wait for the catalog, and in edit mode for the kit to rehydrate the form —
+    // otherwise the rehydrate would overwrite the seeded item.
+    if (partsById.size === 0) return;
+    if (mode === "edit" && !existingKit) return;
+
+    seededPartRef.current = true;
+    const part = partsById.get(addPartId);
+    if (!part) return;
+    if (items.some((i) => i.partId === part.id)) return;
+    addItem(part);
+  }, [addPartId, partsById, mode, existingKit, items, addItem]);
 
   const removeItem = useCallback(
     (index: number) => {

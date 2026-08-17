@@ -39,7 +39,7 @@ export function InstallPage() {
   };
 
   return (
-    <div className="flex h-full flex-col overflow-auto px-5 pb-[max(1.375rem,env(safe-area-inset-bottom))] pt-[max(1.75rem,env(safe-area-inset-top))]">
+    <div className="flex h-full flex-col overflow-y-auto overflow-x-hidden px-5 pb-[max(1.375rem,env(safe-area-inset-bottom))] pt-[max(1.75rem,env(safe-area-inset-top))]">
       <img
         src="/logos/logo-horizontal-white.png"
         alt="GALLO BASE DIESEL"

@@ -37,6 +37,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > 🚫 **Nunca crie branches nem faça commits diretamente no diretório principal.** O diretório principal (`D:\claude\gallo-basediesel`, fora de `worktrees/`) deve **sempre** permanecer na `main`, sincronizado com `origin/main` — nunca com uma branch de feature/fix/docs checkada nele. Toda tarefa que exija modificar código, documentação, migrations ou qualquer arquivo do projeto **deve** começar criando uma **worktree isolada** (`git worktree add .claude/worktrees/<nome> -b <branch>`, ou a ferramenta `EnterWorktree` quando disponível) e trabalhar a partir dela. Essa regra é **imperativa em toda sessão nova**, independente de memória ou contexto prévio.
 
+> 🛑 **JAMAIS exclua uma worktree sem autorização expressa do dono.** Vale para qualquer forma de remoção: `git worktree remove`, `git worktree prune`, `rm -rf .claude/worktrees/<nome>`, `ExitWorktree` com remoção e a limpeza oferecida ao encerrar a sessão — em todas, o default é **manter** (`keep`). O motivo: a worktree pode conter trabalho não commitado ou não pushado, e **outras sessões podem estar trabalhando nela em paralelo** — remover destrói trabalho alheio de forma irreversível. **Mergear o PR não autoriza remover a worktree**; branch mergeada **não** é sinal de worktree descartável. Só remova quando o dono disser, nesta conversa, **qual** worktree remover — nunca por inferência, nunca "para limpar", nunca junto de outra tarefa.
+
 ## Comandos
 
 Gerenciador de pacotes: **bun** (`bun.lock` presente). Scripts em `package.json` — `bun run dev | build | lint | format | test`.
@@ -98,7 +100,7 @@ Padrões arquiteturais que devem ser preservados ao implementar features:
 
 ## Versionamento e changelog
 
-- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Lifeline` — v0.178.0). Cada bump ganha uma tag `vX.Y.Z` (lista completa: `git tag -l`).
+- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Extension` — v0.179.1). Cada bump ganha uma tag `vX.Y.Z` (lista completa: `git tag -l`).
 - A versão vive **só** no `package.json` e é injetada em build como `__APP_VERSION__` (via `define` no `vite.config.ts`).
 - **`CHANGELOG.md` é também o changelog da UI** — os pre-scripts o copiam para `public/`, e a página "Sobre/Novidades" lê essa cópia. Não existe segundo arquivo de changelog.
 - Bump após PRD completo (obrigatório) ou quando solicitado para um acumulado de fixes diretos.

@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { ID, ILeadFunnel, ILeadFunnelStage } from "@/shared/types";
 import { Icon } from "@/components/Icon";
-import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +20,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/shared/utils/format";
+import { FunnelValueField } from "@/features/funnels/components/FunnelValueField";
 import { getAccentClasses } from "@/features/funnels/engine/accentClasses";
 import type { IFicheParticipation } from "@/features/funnels/engine/ficheParticipations";
 import { AddToFunnelMenu } from "@/features/funnels/components/AddToFunnelMenu";
@@ -183,7 +183,7 @@ function FunnelRow({
             {COPY.daysInStage(daysInStage)}
           </span>
 
-          <ValueField
+          <FunnelValueField
             value={entry.estimatedValue}
             label={COPY.valueLabel(funnel.name)}
             canEdit={canEdit}
@@ -322,92 +322,5 @@ function StageTrack({ stages, currentStageId, accent, disabled, onMove }: IStage
         );
       })}
     </div>
-  );
-}
-
-interface IValueFieldProps {
-  value: number | undefined;
-  label: string;
-  canEdit: boolean;
-  disabled: boolean;
-  onSave: (value: number | undefined) => void;
-}
-
-/** The participation's own value, edited in place. Empty is an invitation. */
-function ValueField({ value, label, canEdit, disabled, onSave }: IValueFieldProps) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value !== undefined ? String(value) : "");
-  const ref = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (editing) ref.current?.focus();
-  }, [editing]);
-
-  if (!canEdit) {
-    return (
-      <span
-        className={cn(
-          "text-sm tabular-nums",
-          value !== undefined ? "font-semibold text-foreground" : "text-muted-foreground/60",
-        )}
-      >
-        {value !== undefined ? formatBRL(value) : LEADS_STRINGS.card.noValueShort}
-      </span>
-    );
-  }
-
-  if (editing) {
-    const commit = () => {
-      setEditing(false);
-      const trimmed = draft.trim();
-      const parsed = trimmed ? Number(trimmed.replace(/\./g, "").replace(",", ".")) : undefined;
-      // An unparsable string is not a request to wipe the value — only an
-      // emptied field is.
-      if (trimmed && !Number.isFinite(parsed)) return;
-      if (parsed !== value) onSave(parsed);
-    };
-    return (
-      <Input
-        ref={ref}
-        value={draft}
-        inputMode="decimal"
-        aria-label={label}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") commit();
-          if (e.key === "Escape") {
-            setDraft(value !== undefined ? String(value) : "");
-            setEditing(false);
-          }
-        }}
-        className="h-7 w-28 text-right text-sm tabular-nums"
-      />
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      aria-label={label}
-      onClick={() => {
-        setDraft(value !== undefined ? String(value) : "");
-        setEditing(true);
-      }}
-      className={cn(
-        "rounded px-1.5 py-0.5 text-sm tabular-nums transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        value !== undefined ? "font-semibold text-foreground" : "text-muted-foreground",
-      )}
-    >
-      {value !== undefined ? (
-        formatBRL(value)
-      ) : (
-        <span className="inline-flex items-center gap-1 text-xs">
-          <Icon icon="mdi:plus" size={11} aria-hidden />
-          {COPY.addValue}
-        </span>
-      )}
-    </button>
   );
 }

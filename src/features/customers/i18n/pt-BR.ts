@@ -41,8 +41,9 @@ export const CUSTOMER_STRINGS = {
     createQuote: "Criar orçamento",
     menuLabel: "Mais ações",
     callPhone: "Ligar",
-    sendEmail: "Enviar email",
-    noEmail: "Sem email cadastrado",
+    sendEmail: "Enviar e-mail",
+    noEmail: "Sem e-mail cadastrado",
+    noPhone: "Sem telefone cadastrado",
   },
   tabs: {
     atendimento: "Atendimento",
@@ -353,6 +354,8 @@ export const CUSTOMER_STRINGS = {
       copy: (label: string) => `Copiar ${label.toLowerCase()}`,
       copied: "Copiado",
       phone: "Telefone",
+      /** Same cell, when the company is reached through more than one person. */
+      contacts: "Contatos",
       cnpj: "CNPJ",
       cpf: "CPF",
       razaoSocial: "Razão social",
@@ -444,6 +447,7 @@ export const CUSTOMER_STRINGS = {
       quotes: "Orçamentos",
       fleet: "Frota do cliente",
       conversations: "Conversas",
+      contacts: "Contatos da empresa",
       media: "Mídias",
       history: "Histórico",
       notes: "Notas internas",
@@ -454,6 +458,61 @@ export const CUSTOMER_STRINGS = {
       noPendingsTitle: "Nenhuma pendência",
       noPendingsText: "Nada aguardando ação neste cliente no momento.",
       noPendingsCta: "Agendar follow-up",
+      noContactsTitle: "Nenhum número vinculado a esta empresa",
+      noContactsText:
+        "Vincule o número de quem fala pela empresa — dono, compras, balcão. Cada pessoa mantém o próprio nome; a empresa reúne todos os números.",
+      noContactsCta: "Vincular número",
+    },
+    /** The "Contatos" tab — the people who speak for this company. */
+    contacts: {
+      count: (n: number) => `${n} ${n === 1 ? "número" : "números"}`,
+      conversations: (n: number) => `${n} ${n === 1 ? "conversa" : "conversas"}`,
+      primary: "Principal",
+      optOut: "Opt-out",
+      hasWhatsapp: "Tem WhatsApp",
+      noWhatsapp: "Somente telefone",
+      noRole: "Sem função definida",
+      neverContacted: "nunca",
+      nameIt: "Dar um nome",
+      linkNumber: "Vincular número",
+      rowActions: (name: string) => `Ações de ${name}`,
+      openConversation: "Abrir conversa",
+      call: "Ligar",
+      setPrimary: "Definir como principal",
+      viewInAgenda: "Ver na agenda",
+      unlink: "Desvincular da empresa",
+      orphanAnchorTitle: "O número principal não está na agenda",
+      orphanAnchorText:
+        "A empresa é atendida por um número que ninguém cadastrou como contato. Vincule-o para saber quem atende por ele.",
+    },
+    /**
+     * "Vincular número" dialog. The verb stays "vincular" from the trigger to
+     * the confirm button to the toast — an action that renames itself midway
+     * reads as two different actions.
+     */
+    linkNumber: {
+      title: "Vincular número",
+      description: (company: string) => `Mais um número que fala por ${company}.`,
+      searchPlaceholder: "Buscar pessoa por nome ou telefone…",
+      searchHint: "Digite ao menos 2 caracteres para buscar.",
+      searching: "Buscando…",
+      noResults: "Ninguém encontrado. O contato precisa existir na agenda para ser vinculado.",
+      noNumber: "sem número",
+      movingFrom: (company: string) =>
+        company
+          ? `Este contato hoje pertence a ${company}. Vincular aqui move o número para esta empresa.`
+          : "Este contato hoje pertence a outra empresa. Vincular aqui move o número para esta.",
+      previewTitle: "Como vai ficar",
+      promiseAdds: (n: number) =>
+        `O número entra na lista da empresa — ${n === 1 ? "o atual fica" : `os ${n} atuais ficam`}.`,
+      promiseBecomesPrimary: "Este passa a ser o número principal da empresa.",
+      promiseKeepsIdentity: "O nome e o telefone da pessoa continuam como estão.",
+      promiseUndoable: "Dá para desfazer depois de confirmar.",
+      roleLabel: "Função na empresa (opcional)",
+      rolePlaceholder: "Compras, Proprietário, Mecânico…",
+      cancel: "Cancelar",
+      confirm: "Vincular",
+      saving: "Vinculando…",
     },
     /** Consolidated tab strip (10 → 6) — detail page only. */
     tabs: {
@@ -461,6 +520,7 @@ export const CUSTOMER_STRINGS = {
       comercial: "Comercial",
       frota: "Frota",
       conversas: "Conversas",
+      contatos: "Contatos",
       cadastro: "Cadastro",
       notas: "Notas",
       subOrders: "Pedidos",
@@ -475,5 +535,73 @@ export const CUSTOMER_STRINGS = {
   fiche: {
     closeAriaLabel: "Fechar ficha",
     openOnMobileLabel: "Abrir ficha em tela cheia",
+  },
+  /** Modal de cadastro rápido, aberto pela lista de clientes. */
+  newCustomer: {
+    title: "Novo cliente",
+    subtitle: "Cadastro rápido — endereço e dados fiscais entram sozinhos pela consulta do CNPJ.",
+    closeAriaLabel: "Fechar",
+    typeLegend: "Tipo de cliente",
+    typePj: { title: "Pessoa jurídica", subtitle: "CNPJ — preenchimento automático" },
+    typePf: { title: "Pessoa física", subtitle: "CPF — cadastro manual" },
+    cnpj: { label: "CNPJ", note: "consulta automática · Receita Federal" },
+    cpf: {
+      label: "CPF",
+      hint: "CPF não tem consulta pública — preencha os dados abaixo.",
+    },
+    manualFillCta: "Preencher manualmente →",
+    /** Linha de status sob o campo de documento — um texto por estado. */
+    status: {
+      idle: "Digite o CNPJ — razão social, endereço e dados fiscais vêm da Receita Federal.",
+      typing: "Consulta automática ao completar os 14 dígitos.",
+      invalidCnpj: "CNPJ inválido — confira os dígitos.",
+      invalidCpf: "CPF inválido — confira os dígitos.",
+      loading: "Consultando Receita Federal…",
+      notfound: "CNPJ não encontrado na Receita. Confira ou preencha manualmente.",
+      error: "Consulta indisponível agora — preencha manualmente, sem bloqueio.",
+      manual: "Preenchimento manual — a consulta à Receita fica de fora deste cadastro.",
+    },
+    receita: {
+      cnae: "CNAE",
+      openedAt: "Abertura",
+      address: "Endereço",
+      unknownSituation: "—",
+      applied:
+        "Dados públicos da Receita Federal aplicados ao cadastro. Endereço completo vai para a ficha.",
+      confirmBeforeCreating: "Confirme antes de criar",
+    },
+    duplicate: {
+      title: (name: string) => `Este documento já está na base: ${name}`,
+      ownedBy: (seller: string) => `Carteira de ${seller} — nada será duplicado.`,
+      unassigned: "Sem vendedor responsável — nada será duplicado.",
+      openCta: "Abrir ficha",
+      blocked: "Criação bloqueada — cliente já existe.",
+    },
+    fields: {
+      nameB2B: "Nome fantasia",
+      nameB2BNote: "como aparece no CRM",
+      nameB2C: "Nome completo",
+      nameB2BPlaceholder: "Frota XYZ",
+      nameB2CPlaceholder: "Nome do cliente",
+      contact: "Contato principal",
+      contactPlaceholder: "Nome do responsável",
+      phone: "Telefone",
+      phonePlaceholder: "(55) 99800-0000",
+      email: "E-mail",
+      emailNote: "opcional",
+      emailPlaceholder: "cliente@empresa.com",
+      seller: "Vendedor responsável",
+      sellerPlaceholder: "Selecionar…",
+    },
+    errors: {
+      required: "Obrigatório.",
+      invalidPhone: "Telefone inválido.",
+      selectSeller: "Selecione um vendedor.",
+      documentPending: "Aguarde a consulta terminar.",
+    },
+    footerHint: "Endereço e dados extras completam a ficha depois.",
+    cancel: "Cancelar",
+    submit: "Criar cliente",
+    submitting: "Criando…",
   },
 } as const;

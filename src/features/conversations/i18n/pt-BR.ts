@@ -268,6 +268,13 @@ export const CONVERSATION_STRINGS = {
     tagsEmpty: "Nenhuma tag aplicada",
     collaborators: "Colaboradores",
     collaboratorsEmpty: "Nenhum colaborador nesta conversa.",
+    // Short forms for the lateral panel: its rows are label-left/value-right in
+    // 360px, where "Atendente responsável" pushes the value off the row. The
+    // card header already says these belong to the conversation.
+    statusShort: "Status",
+    assigneeShort: "Atendente",
+    tagsShort: "Etiquetas",
+    unassignedShort: "Sem atribuição",
   },
   toggleFiche: "Ficha",
   toggleMedia: "Mídias",
@@ -367,8 +374,12 @@ export const CONVERSATION_STRINGS = {
   downloadVideo: "Baixar vídeo",
   downloadDocument: "Baixar documento",
   transcribingAudio: "Transcrevendo…",
+  transcriptionLabel: "Transcrição",
   transcriptionUnavailable: "Transcrição indisponível",
   retryTranscription: "Tentar transcrever de novo",
+  transcriptionShowMore: "Ver mais",
+  transcriptionShowLess: "Ver menos",
+  audioPosition: "Posição do áudio",
   imageCaption: (caption: string) => caption || "Foto",
   location: {
     label: "Localização",
@@ -561,6 +572,19 @@ export const CONVERSATION_STRINGS = {
     "Uma falha de entrega indicou que este número não está no WhatsApp. Envio exige confirmação de gestor.",
   markWhatsappValid: "Marcar como WhatsApp válido",
   markedWhatsappValid: "Número marcado como válido",
+  /**
+   * Linking the person of this conversation to a company. The verb "vincular"
+   * is the same on the chip, in the dialog's confirm button and in the toast —
+   * an action that renames itself along the way reads as two actions.
+   */
+  linkCompany: {
+    chip: "Vincular a empresa",
+    success: (name: string) => `${name} vinculado à empresa`,
+    undo: "Desfazer",
+    undone: "Vínculo desfeito",
+    undoFailed: "Não foi possível desfazer o vínculo.",
+    failed: "Não foi possível vincular. Você pode não ter permissão sobre este contato.",
+  },
   noteDialog: {
     title: "Adicionar nota à ficha",
     description: "A nota fica visível para vendedores e gestores com acesso a este cliente.",

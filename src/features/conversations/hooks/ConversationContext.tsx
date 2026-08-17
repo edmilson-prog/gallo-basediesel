@@ -22,6 +22,18 @@ export function ConversationProvider({
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+/**
+ * Same context, but null instead of a throw when there is no provider.
+ *
+ * For consumers that ENRICH themselves with the open conversation rather than
+ * depend on it — the lead panel's history section wants the loaded messages if
+ * they happen to be there, and must still render the lead's notes and audit
+ * trail if the panel is ever mounted outside the conversation screen.
+ */
+export function useOptionalConversationContext(): IConversationContextValue | null {
+  return useContext(Ctx);
+}
+
 export function useConversationContext(): IConversationContextValue {
   const value = useContext(Ctx);
   if (!value) {

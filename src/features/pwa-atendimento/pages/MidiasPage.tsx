@@ -155,7 +155,7 @@ export function MidiasPage() {
           </div>
         </div>
 
-        <div className="flex gap-1.5 overflow-auto py-2.5 pl-2">
+        <div className="flex gap-1.5 overflow-x-auto py-2.5 pl-2">
           {TABS.map((entry) => (
             <button
               key={entry.id}
@@ -174,7 +174,7 @@ export function MidiasPage() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto overscroll-contain p-3.5">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-3.5">
         {media.isLoading ? (
           <p
             aria-busy="true"

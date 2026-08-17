@@ -41,7 +41,7 @@ export function PwaMessageList({
   return (
     <div
       ref={scrollerRef}
-      className="min-h-0 flex-1 overflow-auto overscroll-contain px-3 pb-4 pt-3"
+      className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pb-4 pt-3"
     >
       <p className="mb-3 flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
         <span className="h-px flex-1 bg-border" aria-hidden />

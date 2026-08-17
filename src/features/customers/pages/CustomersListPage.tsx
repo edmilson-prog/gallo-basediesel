@@ -606,6 +606,7 @@ export function CustomersListPage() {
         storeId={currentStore?.id ?? currentStoreId ?? "00000000-0000-0000-0000-000000000001"}
         onClose={() => setNewCustomerOpen(false)}
         onSubmit={handleCreateCustomer}
+        onOpenCustomer={(id) => url.setSelectedId(id)}
       />
 
       {canEditCustomer && (

@@ -20,6 +20,7 @@ import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { useQuotesProvider } from "@/providers/data/hooks/useQuotesProvider";
 import { useVehiclesProvider } from "@/providers/data/hooks/useVehiclesProvider";
 import { useOrdersProvider } from "@/providers/data/hooks/useOrdersProvider";
+import { useLeadsProvider } from "@/providers/data/hooks/useLeadsProvider";
 import { useSettingsProvider } from "@/providers/data/hooks/useSettingsProvider";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { calculateShipping } from "@/features/shipping/api/calculate";
@@ -40,6 +41,7 @@ import { pickSuggestedKit, rankKitsByFleet } from "../../utils/kitRanking";
 import { QuoteActionBar } from "./layout/QuoteActionBar";
 import { QuoteDraftBanner } from "./layout/QuoteDraftBanner";
 import { CustomerChip } from "./customer/CustomerChip";
+import { LeadRecipientChip } from "./customer/LeadRecipientChip";
 import { QuoteItemsPanel } from "./items/QuoteItemsPanel";
 import { QuoteSummaryPanel } from "./summary/QuoteSummaryPanel";
 import { QuoteConditions } from "./summary/QuoteConditions";
@@ -58,7 +60,10 @@ function isoDate(d: Date): string {
 
 export function QuoteEditor() {
   const navigate = useNavigate();
-  const { applyKitId } = useSearch({ from: "/app/orcamentos/novo" }) as { applyKitId?: string };
+  const { applyKitId, leadId } = useSearch({ from: "/app/orcamentos/novo" }) as {
+    applyKitId?: string;
+    leadId?: string;
+  };
   const queryClient = useQueryClient();
   const { currentUser } = useAuth();
   const { currentStoreId } = useCurrentStore();
@@ -87,6 +92,29 @@ export function QuoteEditor() {
   const settings = settingsQuery.data;
   const thresholdPct = settings?.discountApprovalThresholdPct ?? 0.05;
   const validityDaysDefault = settings?.quoteDefaultValidityDays ?? 7;
+
+  /**
+   * Quoting a LEAD (the Atendimento panel's "Só orçamento" shortcut). The lead
+   * is the recipient INSTEAD of a customer — `IQuote` states the two are
+   * mutually exclusive — so the customer picker is replaced by a fixed chip and
+   * everything keyed on `customer` (fleet, kit ranking, repurchase, address)
+   * simply stays empty. A lead has no fleet and no purchase history; inventing
+   * one here would be worse than showing none.
+   *
+   * The read goes through the ordinary leads RLS, not the conversation gate the
+   * panel used — this screen has no conversation. `retry: false` so a lead this
+   * seller cannot read resolves to the error state immediately instead of
+   * retrying with backoff.
+   */
+  const leadsProvider = useLeadsProvider();
+  const leadQuery = useQuery({
+    queryKey: ["quote-recipient-lead", leadId] as const,
+    queryFn: () => leadsProvider.get(leadId as ID),
+    enabled: !!leadId,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const leadRecipient = leadQuery.data ?? null;
 
   // --- State ---
   const [customer, setCustomer] = useState<ICustomer | null>(null);
@@ -372,9 +400,10 @@ export function QuoteEditor() {
   }, [items]);
 
   // --- Validation ---
-  const canSubmit = customer !== null && items.length > 0 && !justificationMissing;
+  const hasRecipient = customer !== null || leadRecipient !== null;
+  const canSubmit = hasRecipient && items.length > 0 && !justificationMissing;
   /** What is still missing, written out for the send bar. */
-  const blocker = !customer
+  const blocker = !hasRecipient
     ? items.length === 0
       ? "Selecione o cliente e adicione ao menos um item."
       : "Selecione o cliente para salvar."
@@ -427,7 +456,7 @@ export function QuoteEditor() {
 
   // --- Save ---
   const handleSave = async (sendNow: boolean) => {
-    if (!canSubmit || !customer || submitting) return;
+    if (!canSubmit || submitting) return;
     setSubmitting(true);
     try {
       const all = await provider.list({ pageSize: 1000 });
@@ -436,7 +465,8 @@ export function QuoteEditor() {
       const created = await provider.create({
         storeId,
         number,
-        customerId: customer.id,
+        // Mutually exclusive by contract (IQuote): one of the two, never both.
+        ...(customer ? { customerId: customer.id } : { leadId: leadRecipient?.id }),
         sellerId: currentUser?.sellerId ?? "system",
         items,
         subtotal: totals.subtotal,
@@ -447,7 +477,7 @@ export function QuoteEditor() {
         paymentCondition: composePaymentCondition(paymentMethod, paymentTerms),
         paymentMethod,
         paymentTerms,
-        deliveryAddress: customer.address,
+        deliveryAddress: customer?.address ?? leadRecipient?.address,
         ...(shippingSnapshot ? { shippingQuote: shippingSnapshot } : {}),
         validUntil: new Date(`${validUntil}T23:59:59`).toISOString(),
         status,
@@ -571,15 +601,24 @@ export function QuoteEditor() {
             />
           )}
 
-          <CustomerChip
-            customer={customer}
-            onChange={setCustomer}
-            sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
-            vehicles={vehicles}
-          />
+          {leadId ? (
+            <LeadRecipientChip
+              lead={leadRecipient}
+              isLoading={leadQuery.isLoading}
+              failed={leadQuery.isError}
+              onClearLead={() => void navigate({ to: "/app/orcamentos/novo", search: {} })}
+            />
+          ) : (
+            <CustomerChip
+              customer={customer}
+              onChange={setCustomer}
+              sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
+              vehicles={vehicles}
+            />
+          )}
 
           <QuoteItemsPanel
-            adderResetKey={customer?.id ?? "none"}
+            adderResetKey={customer?.id ?? leadRecipient?.id ?? "none"}
             items={items}
             subtotal={totals.subtotal}
             mode={prefs.addMode}

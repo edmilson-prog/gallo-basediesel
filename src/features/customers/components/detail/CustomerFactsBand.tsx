@@ -7,6 +7,8 @@ export interface ICustomerFactsBandProps {
   customer: ICustomer;
   sellerName: string | null;
   storeName: string | null;
+  /** Drives the "+N" on the contacts cell. */
+  contactCount?: number;
 }
 
 /**
@@ -16,8 +18,13 @@ export interface ICustomerFactsBandProps {
  * The address gets the flexible column because it is the longest field by far;
  * the rest keep their natural width so the row stays scannable.
  */
-export function CustomerFactsBand({ customer, sellerName, storeName }: ICustomerFactsBandProps) {
-  const cells = buildCustomerFactCells(customer, sellerName, storeName);
+export function CustomerFactsBand({
+  customer,
+  sellerName,
+  storeName,
+  contactCount,
+}: ICustomerFactsBandProps) {
+  const cells = buildCustomerFactCells(customer, sellerName, storeName, contactCount);
 
   return (
     <div className="flex flex-wrap items-start gap-y-3 px-4 py-2.5 sm:px-6">

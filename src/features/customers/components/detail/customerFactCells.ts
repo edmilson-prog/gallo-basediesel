@@ -1,6 +1,12 @@
 import type { ICustomer, ICustomerAddress } from "@/shared/types";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
-import { formatCnpj, formatCpf, formatPhone } from "../../utils/cnpjCpf";
+import { formatCnpj, formatCpf } from "../../utils/cnpjCpf";
+// NOT `../../utils/cnpjCpf`: that `formatPhone` is a TYPING MASK — it slices to
+// 11 digits so a national number formats progressively as the user types. The
+// base stores E.164 with the 55 prefix (1.980 rows), and the mask turned
+// `+551120981133` into `(55) 11209-8113` — DDI read as DDD, last digit dropped.
+// The shared formatter is the display one and understands the prefix.
+import { formatPhone } from "@/shared/utils/format";
 import type { ICustomerFactProps } from "./CustomerFact";
 
 const COPY = CUSTOMER_STRINGS.detail.facts;
@@ -30,6 +36,8 @@ export function buildCustomerFactCells(
   customer: ICustomer,
   sellerName: string | null,
   storeName: string | null,
+  /** How many people the Agenda knows for this company. */
+  contactCount = 0,
 ): ICustomerFactCell[] {
   const rawDocument = customer.type === "B2B" ? customer.cnpj : customer.cpf;
   const document = rawDocument?.trim()
@@ -39,13 +47,19 @@ export function buildCustomerFactCells(
     : null;
   const legalName = customer.type === "B2B" ? customer.razaoSocial : customer.fullName;
   const phoneDigits = customer.phone?.replace(/\D/g, "") ?? "";
+  // A company is reached through several people. The header keeps showing the
+  // main number — the anchor every surface addresses — and adds "+N" so the
+  // existence of the others is visible in the first fold WITHOUT spending a new
+  // cell. The label follows: one number is a "Telefone", several are "Contatos".
+  const others = Math.max(0, contactCount - 1);
 
   return [
     {
       key: "phone",
-      icon: "mdi:phone-outline",
-      label: COPY.phone,
+      icon: others > 0 ? "mdi:card-account-phone-outline" : "mdi:phone-outline",
+      label: others > 0 ? COPY.contacts : COPY.phone,
       value: customer.phone ? formatPhone(customer.phone) : null,
+      suffix: others > 0 ? `+${others}` : undefined,
       href: phoneDigits ? `tel:${phoneDigits}` : undefined,
       copyable: true,
       mono: true,

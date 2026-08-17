@@ -379,6 +379,9 @@ export function ConversationPage() {
                 onOpenChange={fiche.setOpen}
                 onConverted={detail.refresh}
                 onConversationChanged={detail.refresh}
+                // The panel's rail delegates "Mídias" to the screen's own
+                // gallery rather than building a second one inside 360px.
+                onOpenMedia={toggleMediaExclusive}
               />
             ) : null}
             <ConversationMediaPanel

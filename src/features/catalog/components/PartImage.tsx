@@ -5,13 +5,15 @@ import { getCategoryDescriptor } from "../utils/categories";
 
 export interface IPartImageProps {
   part: Pick<IPart, "category" | "imageUrl" | "name">;
-  size?: "sm" | "md" | "lg";
+  size?: keyof typeof SIZE_MAP;
   className?: string;
 }
 
 const SIZE_MAP = {
   sm: { box: "h-10 w-10 rounded-md", icon: 22 },
   md: { box: "h-14 w-14 rounded-lg", icon: 28 },
+  /** Identity card thumbnail from the catalog design kit (96px). */
+  detail: { box: "h-24 w-24 rounded-xl", icon: 44 },
   lg: { box: "h-32 w-32 rounded-xl", icon: 64 },
 } as const;
 

@@ -68,6 +68,10 @@ async function filteredContacts(params: IListContactsParams): Promise<IContact[]
   });
   const filterState = buildFilterState(params);
   let filtered = applyContactFilters(superset.data, filterState);
+  // One company's people. Applied here rather than inside the engine because it
+  // is an identity filter, not one of the Agenda's user-facing filter chips —
+  // the customer-side surfaces pin it and never offer it as a choice.
+  if (params.customerId) filtered = filtered.filter((c) => c.customerId === params.customerId);
   // city/uf are independent columns — each applied on its own, so either may
   // be set alone (city-only matches any UF, uf-only matches any city).
   if (params.city) filtered = filtered.filter((c) => c.city === params.city);

@@ -3,6 +3,8 @@ import { SEED_PIPELINE_STAGES, SEED_STORE_ID, SEED_TAGS, SEED_LOSS_REASONS } fro
 import {
   daysAgo,
   pickWeighted,
+  randomCNPJ,
+  randomCPF,
   randomDate,
   randomISO,
   randomPhone,
@@ -51,6 +53,10 @@ export function generateLead(ctx: ISeededContext, input: IGenerateLeadInput): IL
     name: ctx.faker.person.fullName(),
     phone: randomPhone(ctx),
     email: ctx.bool(0.6) ? ctx.faker.internet.email() : undefined,
+    // Only a minority of leads has a document — that IS the state the panel's
+    // conversion checklist reports on, and seeding every lead with one would
+    // make the mock show a permanently complete ring nobody can read.
+    document: ctx.bool(0.3) ? (ctx.bool(0.4) ? randomCNPJ(ctx) : randomCPF(ctx)) : undefined,
     stage,
     temperature: pickWeighted(ctx, [
       { value: "frio" as const, weight: 3 },
