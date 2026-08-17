@@ -31,6 +31,8 @@ import { mockCopilotProvider } from "./impl/mock/copilot";
 import { mockIndicatorsProvider } from "./impl/mock/indicators";
 import { mockVehicleModelsProvider } from "./impl/mock/vehicleModels";
 import { mockModelKitsProvider } from "./impl/mock/modelKits";
+import { mockSuppliersProvider } from "./impl/mock/suppliers";
+import { mockFiscalNotesProvider } from "./impl/mock/fiscalNotes";
 import { mockMediaProvider } from "./impl/mock/media";
 import { mockAssetLibraryProvider } from "./impl/mock/assetLibrary";
 import { mockQuickReplyProvider } from "./impl/mock/quickReply";
@@ -180,6 +182,8 @@ const mockProviders: IDataProviders = {
   indicators: mockIndicatorsProvider,
   vehicleModels: mockVehicleModelsProvider,
   modelKits: mockModelKitsProvider,
+  suppliers: mockSuppliersProvider,
+  fiscalNotes: mockFiscalNotesProvider,
   media: mockMediaProvider,
   assetLibrary: mockAssetLibraryProvider,
   quickReply: mockQuickReplyProvider,

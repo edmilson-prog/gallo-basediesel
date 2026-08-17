@@ -36,6 +36,8 @@ import type { ICopilotProvider } from "./copilot";
 import type { IIndicatorsProvider } from "./indicators";
 import type { IVehicleModelsProvider } from "./vehicleModels";
 import type { IModelKitsProvider } from "./modelKits";
+import type { ISuppliersProvider } from "./suppliers";
+import type { IFiscalNotesProvider } from "./fiscalNotes";
 import type { IMediaStorageProvider } from "./mediaStorage";
 import type { IAssetLibraryProvider } from "./assetLibrary";
 import type { IQuickReplyProvider } from "./quickReply";
@@ -161,6 +163,14 @@ export type {
   ICreateModelKitInput,
   IUpdateModelKitPatch,
 } from "./modelKits";
+// Notas fiscais de entrada (PRD-216 "Tally")
+export type { ISuppliersProvider, IListSuppliersParams } from "./suppliers";
+export type {
+  IFiscalNotesProvider,
+  IListFiscalNotesParams,
+  ICreateFiscalNoteInput,
+  IUpdateFiscalNoteItemPatch,
+} from "./fiscalNotes";
 export type { IMediaStorageProvider, IMediaUploadInput, IListMediaParams } from "./mediaStorage";
 export type { IAssetLibraryProvider, IAssetLibraryListParams } from "./assetLibrary";
 export type { IQuickReplyProvider } from "./quickReply";
@@ -246,6 +256,8 @@ export interface IDataProviders {
   indicators: IIndicatorsProvider;
   vehicleModels: IVehicleModelsProvider;
   modelKits: IModelKitsProvider;
+  suppliers: ISuppliersProvider;
+  fiscalNotes: IFiscalNotesProvider;
   media: IMediaStorageProvider;
   assetLibrary: IAssetLibraryProvider;
   quickReply: IQuickReplyProvider;
