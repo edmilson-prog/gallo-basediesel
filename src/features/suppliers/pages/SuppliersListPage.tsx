@@ -89,9 +89,13 @@ export function SuppliersListPage() {
   }, [list.visible, missingDocumentOnly, sort, statsIndex]);
 
   // A ficha lateral nunca fica vazia à toa: seleciona a primeira linha assim
-  // que a lista (já filtrada/ordenada) chega e nada foi escolhido ainda.
+  // que a lista (já filtrada/ordenada) chega e nada foi escolhido ainda — e
+  // RE-seleciona quando o item escolhido sai de `tableRows` (filtro de
+  // categoria/busca/"só sem CNPJ" mudou), para a linha destacada na tabela
+  // nunca divergir do fornecedor mostrado no rail. Uma seleção que CONTINUA
+  // presente na lista filtrada não é tocada.
   useEffect(() => {
-    if (selectedId !== null) return;
+    if (selectedId !== null && tableRows.some((s) => s.id === selectedId)) return;
     const [first] = tableRows;
     if (first) setSelectedId(first.id);
   }, [selectedId, tableRows]);

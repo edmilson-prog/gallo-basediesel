@@ -16,16 +16,10 @@ import {
 } from "../../utils/columns";
 import { SUPPLIERS_STRINGS } from "../../i18n/pt-BR";
 import { nextSort, type ISuppliersSort, type SupplierSortBy } from "../../utils/sort";
+import { CATEGORY_LABEL, initials } from "../../utils/supplierDisplay";
 import { SuppliersColumnsContextContent, SuppliersColumnsDropdown } from "./SuppliersColumnsMenu";
 
 const COPY = SUPPLIERS_STRINGS;
-
-const CATEGORY_LABEL: Record<ISupplier["category"], string> = {
-  parts: COPY.categories.parts,
-  services: COPY.categories.services,
-  freight: COPY.categories.freight,
-  financial: COPY.categories.financial,
-};
 
 /**
  * The complete, stable column list — `supplier` first, then every optional
@@ -40,15 +34,6 @@ const RESIZABLE_COLUMNS = ALL_COLUMNS.map((id) => ({
   id,
   defaultWidth: DEFAULT_COLUMN_WIDTHS[id],
 }));
-
-function initials(name: string): string {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((word) => word.charAt(0))
-    .join("")
-    .toUpperCase();
-}
 
 /**
  * Maps a column to the sort field it drives — only the four the segmented

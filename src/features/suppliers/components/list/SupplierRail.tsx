@@ -5,24 +5,9 @@ import { Icon } from "@/components/Icon";
 import { formatBRL } from "@/shared/utils/format";
 import { supplierCompleteness } from "../../engine/completeness";
 import { SUPPLIERS_STRINGS } from "../../i18n/pt-BR";
+import { CATEGORY_LABEL, initials } from "../../utils/supplierDisplay";
 
 const COPY = SUPPLIERS_STRINGS;
-
-const CATEGORY_LABEL: Record<ISupplier["category"], string> = {
-  parts: COPY.categories.parts,
-  services: COPY.categories.services,
-  freight: COPY.categories.freight,
-  financial: COPY.categories.financial,
-};
-
-function initials(name: string): string {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((word) => word.charAt(0))
-    .join("")
-    .toUpperCase();
-}
 
 /** Day/month only — density over precision at this size. Mirrors `CatalogRowCells`. */
 function formatShortDate(iso: string): string {
