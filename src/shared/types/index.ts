@@ -393,6 +393,17 @@ export type {
 } from "./expenses";
 export { EXPENSE_CATEGORY_TO_DRE_LINE } from "./expenses";
 
+// Suppliers (ui_kit financeiro — fatia 1)
+export type {
+  ISupplier,
+  ISupplierEntry,
+  ISupplierStats,
+  SupplierCategory,
+  SupplierPaymentMethod,
+  SupplierSource,
+  SupplierStatus,
+} from "./suppliers";
+
 // Cash flow (PRD-055)
 export type {
   ICashFlowEntry,

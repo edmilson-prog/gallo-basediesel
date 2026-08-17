@@ -1,0 +1,66 @@
+import type { ISupplier } from "@/shared/types";
+
+/**
+ * The list is an enrichment queue: the ~126 suppliers backfilled from the
+ * catalog arrive with a name and nothing else. The `Cadastro` column shows what
+ * is MISSING rather than an empty cell, and clicking it opens the form on that
+ * field — same move the catalog list made for parts.
+ */
+
+export type SupplierMissingField =
+  | "document"
+  | "paymentTerms"
+  | "leadTimeDays"
+  | "contact"
+  | "suppliedItems";
+
+/** Order matters: this is the order the form asks for them. */
+const FIELDS: SupplierMissingField[] = [
+  "document",
+  "paymentTerms",
+  "leadTimeDays",
+  "contact",
+  "suppliedItems",
+];
+
+export const SUPPLIER_MISSING_LABELS: Record<SupplierMissingField, string> = {
+  document: "sem CNPJ",
+  paymentTerms: "sem condição",
+  leadTimeDays: "sem prazo",
+  contact: "sem contato",
+  suppliedItems: "sem itens",
+};
+
+export interface ISupplierCompleteness {
+  filled: number;
+  total: number;
+  /** 0–100, rounded. */
+  percent: number;
+  missing: SupplierMissingField[];
+}
+
+function isFilled(supplier: ISupplier, field: SupplierMissingField): boolean {
+  switch (field) {
+    case "document":
+      return Boolean(supplier.document?.trim());
+    case "paymentTerms":
+      return Boolean(supplier.paymentTerms?.trim());
+    case "leadTimeDays":
+      return typeof supplier.leadTimeDays === "number" && supplier.leadTimeDays > 0;
+    case "contact":
+      return Boolean(supplier.contactName?.trim() ?? supplier.contactPhone?.trim());
+    case "suppliedItems":
+      return supplier.suppliedItems.length > 0;
+  }
+}
+
+export function supplierCompleteness(supplier: ISupplier): ISupplierCompleteness {
+  const missing = FIELDS.filter((field) => !isFilled(supplier, field));
+  const filled = FIELDS.length - missing.length;
+  return {
+    filled,
+    total: FIELDS.length,
+    percent: Math.round((filled / FIELDS.length) * 100),
+    missing,
+  };
+}
