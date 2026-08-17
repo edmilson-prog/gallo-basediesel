@@ -608,3 +608,17 @@ export type {
   INpsReasonSplit,
   INpsProvider,
 } from "./nps";
+
+// Notas fiscais de entrada (PRD-216 "Tally")
+export type { ISupplier } from "./supplier";
+export type {
+  FiscalNoteStatus,
+  FiscalNoteOrigin,
+  IngestionSource,
+  ItemLinkMode,
+  ItemConversionMode,
+  IFiscalNoteDuplicate,
+  INewPartDraft,
+  IFiscalNoteItem,
+  IFiscalNote,
+} from "./fiscal-note";
