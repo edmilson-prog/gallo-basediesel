@@ -54,6 +54,7 @@ const OWNER_ENTRIES: ScopedActions[] = [
   p("seller", CRUD, "all"),
   p("store", CRUD, "all"),
   p("settings", CRUD, "all"),
+  p("supplies", CRUD, "all"),
   // Audit log: view-only across all stores. Append-only by design — Owner does
   // not get `delete` so the UI never offers it (Fase 2 enforces append-only at
   // the DB level via revoke + trigger).
@@ -103,6 +104,7 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   p("part", ["view", "create", "edit"], "store"),
   p("vehicleModel", CRUD, "store"),
   p("modelKit", CRUD, "store"),
+  p("supplies", CRUD, "store"),
   p("quote", CRUDA, "store"),
   p("order", CRUD, "store"),
   p("commission", ["approve"], "store"),
@@ -252,6 +254,9 @@ const FINANCEIRO_ENTRIES: ScopedActions[] = [
   p("inventory", ["view"], "store"),
   p("customer_service_analytics", ["view"], "store"),
   p("insight", ["view"], "store"),
+  // Vê porque as duplicatas da nota alimentam o contas a pagar dele; não lança,
+  // porque lançar move estoque e recalcula custo médio (PRD-216).
+  p("supplies", ["view"], "store"),
 ];
 
 function toPermissions(entries: ScopedActions[]): IPermission[] {
