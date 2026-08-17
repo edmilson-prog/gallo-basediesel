@@ -1,4 +1,10 @@
-import type { FiscalNoteOrigin, ID, IFiscalNoteItem, ISupplier, ItemLinkMode } from "@/shared/types";
+import type {
+  FiscalNoteOrigin,
+  ID,
+  IFiscalNoteItem,
+  ISupplier,
+  ItemLinkMode,
+} from "@/shared/types";
 import type { ICreateFiscalNoteInput } from "@/providers/data";
 import type { IParsedNfe, IParsedNfeEmitter } from "./nfeParser";
 import { matchItem, type IMatchCandidate } from "./itemMatcher";

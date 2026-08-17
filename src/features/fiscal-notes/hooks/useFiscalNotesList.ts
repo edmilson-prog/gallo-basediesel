@@ -24,8 +24,7 @@ export function useFiscalNotesList(params: IUseFiscalNotesListParams) {
 
   const query = useQuery({
     queryKey: ["fiscal-notes", "list", storeId, status ?? "all", search ?? "", page, pageSize],
-    queryFn: () =>
-      provider.list({ storeId: storeId ?? undefined, status, search, page, pageSize }),
+    queryFn: () => provider.list({ storeId: storeId ?? undefined, status, search, page, pageSize }),
     // Sem loja resolvida não há o que listar — o provider filtraria por
     // undefined e devolveria as notas de todas as lojas.
     enabled: storeId !== null,

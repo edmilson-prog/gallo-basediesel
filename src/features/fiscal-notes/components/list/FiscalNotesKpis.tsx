@@ -23,9 +23,7 @@ export function FiscalNotesKpis({ notes }: IFiscalNotesKpisProps) {
     {
       label: s.review,
       value: String(inReview.length),
-      hint: inReview.length
-        ? brl(inReview.reduce((sum, n) => sum + n.total, 0))
-        : s.reviewEmpty,
+      hint: inReview.length ? brl(inReview.reduce((sum, n) => sum + n.total, 0)) : s.reviewEmpty,
       tone: inReview.length ? "text-severity-warning" : undefined,
     },
     {
