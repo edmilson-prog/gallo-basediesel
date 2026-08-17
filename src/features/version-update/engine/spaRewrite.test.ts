@@ -101,11 +101,25 @@ describe("vercel.json SPA rewrite (issue #430)", () => {
     }
   });
 
-  it("does not ship long-lived Cache-Control for /assets yet (deferred until 404 behaviour is verified in prod)", () => {
-    // Adding `immutable`/max-age to an /assets/(.*) headers rule is only safe if
-    // Vercel provably does NOT attach it to 404 responses on the same path —
-    // otherwise a 404 caught during a deploy's alias-swap window would be
-    // browser-cached for a year, recreating the 17/08 incident in a worse form.
+  it("never ships long-lived Cache-Control for /assets (measured: the header lands on 404s too)", () => {
+    /*
+     * Do not "optimise" this by adding an /assets/(.*) rule with immutable.
+     * It was tried on a preview deployment (PR #516, closed) and MEASURED:
+     *
+     *   GET /assets/<existing>.js  → 200  Cache-Control: max-age=31536000, immutable
+     *   GET /assets/<missing>.js   → 404  Cache-Control: max-age=31536000, immutable  ← lands here too
+     *
+     * vercel.json headers match on path only — there is no status condition.
+     * The dangerous case is NOT a stale tab asking for a dead chunk (harmless:
+     * the new build asks for new hashes). It is the 17/08 one: a tab already on
+     * the CURRENT build asks for a chunk that EXISTS but has not propagated to
+     * the edge yet. That request would cache a 404 for a YEAR, killing the route
+     * permanently for that user while the file sits intact at the origin — and
+     * no reload path can reach the browser's HTTP cache to fix it.
+     *
+     * The unlock is removing the skew window (Vercel Skew Protection), not
+     * caching harder. Re-measure the table above before revisiting.
+     */
     for (const rule of config.headers) {
       expect(rule.source.startsWith("/assets")).toBe(false);
     }
