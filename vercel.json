@@ -2,7 +2,10 @@
   "rewrites": [
     { "source": "/atendimento", "destination": "/atendimento.html" },
     { "source": "/atendimento/(.*)", "destination": "/atendimento.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/((?!assets/|logos/|social/|version\\.json|CHANGELOG\\.md|manifest\\.webmanifest|atendimento\\.webmanifest|sw\\.js|favicon|apple-touch-icon|android-chrome|atendimento-).*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {

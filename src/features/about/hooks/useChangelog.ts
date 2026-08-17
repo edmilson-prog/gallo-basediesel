@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { IRelease } from "@/shared/types/about";
-import { parseChangelog } from "../parser/parseChangelog";
+import { readChangelogPayload } from "../parser/readChangelogPayload";
 
 const CHANGELOG_URL = "/CHANGELOG.md";
 
@@ -9,7 +9,9 @@ const CHANGELOG_URL = "/CHANGELOG.md";
  * and parses it into IRelease[].
  *
  * Cached forever within the session (the file does not change at runtime).
- * On error the query keeps retrying twice with exponential backoff.
+ * On error the query keeps retrying twice with exponential backoff. The body
+ * is validated by readChangelogPayload so an HTML fallback or an unparseable
+ * body surfaces as an error state instead of an empty list (issue #430).
  */
 export function useChangelog() {
   return useQuery<IRelease[], Error>({
@@ -19,8 +21,7 @@ export function useChangelog() {
       if (!res.ok) {
         throw new Error(`CHANGELOG fetch failed: ${res.status} ${res.statusText}`);
       }
-      const text = await res.text();
-      return parseChangelog(text);
+      return readChangelogPayload(res.headers.get("content-type"), await res.text());
     },
     staleTime: Infinity,
     gcTime: Infinity,
