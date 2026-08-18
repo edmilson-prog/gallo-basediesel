@@ -200,6 +200,10 @@ export function KitSheet({
             >
               {kit.status}
             </span>
+            <span className="inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
+              <Icon icon={CATEGORY_ICON[kit.category] ?? FALLBACK_CATEGORY_ICON} size={11} />
+              {CATEGORY_LABEL[kit.category] ?? kit.category}
+            </span>
           </div>
 
           <div className="max-h-64 min-h-0 flex-1 overflow-y-auto px-3 pb-2.5 pt-1.5">
@@ -317,7 +321,7 @@ function SheetFrame({ children, onClose }: { children: React.ReactNode; onClose:
       className="overflow-hidden rounded-lg border border-border bg-background/40"
     >
       <header className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
-        <Icon icon="mdi:air-filter" size={14} className="text-primary" />
+        <Icon icon="lucide:boxes" size={14} className="text-primary" />
         <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Kits
         </h3>
