@@ -64,6 +64,7 @@ alter table public.ads enable row level security;
 
 -- The catalog carries no PII — headline, copy and public permalinks of an ad
 -- the company itself paid for.
+drop policy if exists "ads_select" on public.ads;
 create policy "ads_select"
   on public.ads for select to authenticated
   using (true);
@@ -72,6 +73,7 @@ alter table public.ad_touches enable row level security;
 
 -- Staff (Owner/Gestor) sees the whole store: this is what the management screen
 -- aggregates over.
+drop policy if exists "ad_touches_select_staff" on public.ad_touches;
 create policy "ad_touches_select_staff"
   on public.ad_touches for select to authenticated
   using (
@@ -81,6 +83,7 @@ create policy "ad_touches_select_staff"
 
 -- Everyone else only sees the touch of a conversation they could already open —
 -- the same two gates (instance + portfolio) that govern the conversation itself.
+drop policy if exists "ad_touches_select_own_conversation" on public.ad_touches;
 create policy "ad_touches_select_own_conversation"
   on public.ad_touches for select to authenticated
   using (public.can_access_conversation(conversation_id));
@@ -152,7 +155,12 @@ begin
   )
   values (
     v_ad_id, v_conv.store_id, p_conversation_id, p_message_id,
-    v_conv.contact_id, v_conv.lead_id, v_conv.customer_id, p_occurred_at, p_origin
+    v_conv.contact_id,
+    -- conversations.lead_id is TEXT in this schema while ad_touches.lead_id is
+    -- uuid, so without the cast Postgres rejects the whole statement at plan
+    -- time (42804) — on every call, even when lead_id is null. Do not remove.
+    v_conv.lead_id::uuid,
+    v_conv.customer_id, p_occurred_at, p_origin
   )
   on conflict do nothing
   returning id into v_touch_id;
