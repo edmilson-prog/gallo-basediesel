@@ -99,12 +99,12 @@ describe("deriveInventoryMovements — entrada_compra (PRD-216 RF-102)", () => {
     ).toHaveLength(0);
   });
 
-  it("ignora nota cancelada", () => {
+  it("ignora nota em rascunho — parada não move estoque", () => {
     expect(
       deriveInventoryMovements({
         orders: [],
         parts: [part("p-fs")],
-        fiscalNotes: [postedNote({ status: "cancelada" })],
+        fiscalNotes: [postedNote({ status: "rascunho", postedAt: undefined })],
       }),
     ).toHaveLength(0);
   });

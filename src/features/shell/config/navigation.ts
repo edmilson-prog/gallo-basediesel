@@ -167,6 +167,12 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         permission: { resource: "supplies" },
       },
       {
+        label: "Entrada de nota",
+        icon: "mdi:clipboard-check-outline",
+        to: ROUTES.APP_SUPRIMENTOS_ENTRADA,
+        permission: { resource: "supplies" },
+      },
+      {
         label: "Análise IA",
         icon: "mdi:auto-fix",
         to: ROUTES.APP_SUPRIMENTOS_ANALISE,

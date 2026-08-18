@@ -42,8 +42,10 @@ export interface IPostContext {
 /**
  * Contract de acesso a notas fiscais de entrada (PRD-216).
  *
- * Não há `delete`: nota lançada é imutável e nota em conferência se cancela,
- * não se apaga — o XML já foi arquivado e a trilha tem de sobreviver.
+ * `remove` apaga de verdade — linha, filhos (por cascade) e o XML no bucket —
+ * e com isso libera a chave de acesso para o mesmo arquivo entrar de novo. A
+ * trilha sobrevive na auditoria, não na tabela. Nota lançada não pode ser
+ * apagada: estorne primeiro.
  *
  * `post` e `reverse` são transacionais: no Supabase, uma RPC `security
  * definer`; no mock, a mesma validação do engine antes de mudar qualquer coisa.
@@ -58,7 +60,16 @@ export interface IFiscalNotesProvider {
   findByAccessKey(accessKey: string): Promise<IFiscalNote | null>;
   create(input: ICreateFiscalNoteInput): Promise<IFiscalNote>;
   updateItem(itemId: ID, patch: IUpdateFiscalNoteItemPatch): Promise<IFiscalNoteItem>;
-  cancel(id: ID): Promise<IFiscalNote>;
+  /** Estaciona a nota fora da fila de conferência, preservando tudo. */
+  markDraft(id: ID): Promise<IFiscalNote>;
+  /** Devolve o rascunho para a fila de conferência. */
+  resumeFromDraft(id: ID): Promise<IFiscalNote>;
+  /**
+   * Apaga a nota e libera a chave de acesso. Recusa nota lançada — essa
+   * estorna. O chamador é responsável por registrar a auditoria ANTES, porque
+   * depois não há mais o que ler.
+   */
+  remove(id: ID): Promise<void>;
   /**
    * Lança a nota (RF-100): valida, aplica saldo e custo médio, grava o que a
    * conferência aprendeu e marca a nota imutável. Recusa com erro explícito

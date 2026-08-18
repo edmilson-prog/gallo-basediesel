@@ -12,6 +12,7 @@ export const FISCAL_NOTES_STRINGS = {
     filterAll: "Todas",
     filterConferencia: "Em conferência",
     filterLancada: "Lançadas",
+    filterRascunho: "Rascunhos",
     importCta: "Importar XML",
     emptyTitle: "Nenhuma nota neste filtro",
     emptyDescription: "Importe um XML — a nota entra aqui pronta para a conferência.",
@@ -37,9 +38,9 @@ export const FISCAL_NOTES_STRINGS = {
     status: "Situação",
   },
   status: {
+    rascunho: "Rascunho",
     conferencia: "Em conferência",
     lancada: "Lançada",
-    cancelada: "Cancelada",
   },
   origin: {
     upload: "XML importado",
@@ -106,6 +107,22 @@ export const FISCAL_NOTES_STRINGS = {
     reverseKeepsCost:
       "O estorno devolve o saldo, mas não reverte o custo médio: média ponderada não tem inversa exata.",
     notFound: "Nota não encontrada",
+    selectLabel: "Escolher nota para conferir",
+    draftCta: "Salvar como rascunho",
+    draftDone: "Nota estacionada como rascunho — ela sai da fila de conferência",
+    resumeCta: "Retomar conferência",
+    resumeDone: "Nota de volta na fila de conferência",
+    draftBanner:
+      "Esta nota está parada como rascunho. Tudo que você já decidiu está guardado; ela só não aparece na fila nem nos KPIs.",
+    discardCta: "Descartar nota",
+    discardTitle: "Descartar a NF {num}?",
+    discardBody:
+      "A nota, seus itens e o XML arquivado são apagados de vez. Isso libera a chave de acesso — o mesmo arquivo pode ser importado de novo do zero. A exclusão fica registrada na auditoria, mas a nota não volta.",
+    discardConfirm: "Apagar de vez",
+    discardCancel: "Manter a nota",
+    discardDone: (num: string) => `NF ${num} apagada — a chave de acesso foi liberada`,
+    emptyTitle: "Nenhuma nota para conferir",
+    emptyDescription: "Importe um XML — a nota entra aqui pronta para a conferência.",
     defineConversion: "definir conversão",
     withAllocation: "c/ rateio",
     blockers: {
@@ -164,6 +181,8 @@ export const FISCAL_NOTES_STRINGS = {
       previewCost: (cost: string, unit: string) => `Custo por ${unit}: ${cost} (com rateio)`,
       previewDelta: (pct: string) => `${pct} sobre o custo médio atual`,
       aiEvidence: (confidence: number) => `Sugestão da IA · ${confidence}% de confiança.`,
+      saveDraft: "Salvar rascunho",
+      saveDraftHint: "Guarda o que você já decidiu, sem marcar o item como conferido.",
       confirm: "Confirmar item",
       confirmNew: "Criar produto e confirmar",
       cancel: "Cancelar",

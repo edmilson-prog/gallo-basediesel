@@ -1,7 +1,15 @@
 import type { Division, ID, ISO8601, Money } from "./common";
 
-/** Ciclo da nota. `lancada` é terminal — corrigir é estornar. */
-export type FiscalNoteStatus = "conferencia" | "lancada" | "cancelada";
+/**
+ * Ciclo da nota.
+ *
+ * `rascunho` — parada de propósito: sai da fila de conferência e não conta nos
+ * KPIs, mas guarda tudo que já foi decidido. `lancada` é terminal — corrigir é
+ * estornar. Não há `cancelada`: descartar uma nota a APAGA (e libera a chave
+ * de acesso para reimportar o mesmo XML), com a exclusão registrada na
+ * auditoria.
+ */
+export type FiscalNoteStatus = "rascunho" | "conferencia" | "lancada";
 
 /** Por onde o XML entrou. `manual` é reservado, sem produtor na Fase 1. */
 export type FiscalNoteOrigin = "upload" | "upload_edge" | "email" | "sefaz" | "manual";

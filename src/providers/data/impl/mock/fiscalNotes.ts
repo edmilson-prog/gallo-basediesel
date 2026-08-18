@@ -6,10 +6,7 @@ import type {
   IPostContext,
   IUpdateFiscalNoteItemPatch,
 } from "../../contracts/fiscalNotes";
-import {
-  computePostEffects,
-  validateForPosting,
-} from "@/features/fiscal-notes/engine/postEffects";
+import { computePostEffects, validateForPosting } from "@/features/fiscal-notes/engine/postEffects";
 import type { IPaginatedResult } from "../../contracts/_shared";
 
 /**
@@ -25,6 +22,18 @@ let notes: IFiscalNote[] = [];
 /** Uso exclusivo de teste. */
 export function __resetFiscalNotesMock(): void {
   notes = [];
+}
+
+/** Troca de estado entre `rascunho` e `conferencia`. Nota lançada é imutável. */
+function setStatus(id: ID, status: IFiscalNote["status"], op: string): IFiscalNote {
+  const current = notes.find((n) => n.id === id);
+  if (!current) throw new Error(`[mock] fiscalNotes.${op}(${id}): nota não encontrada`);
+  if (current.status === "lancada") {
+    throw new Error(`[mock] fiscalNotes.${op}(${id}): nota lançada é imutável — estorne antes`);
+  }
+  const updated: IFiscalNote = { ...current, status, updatedAt: new Date().toISOString() };
+  notes = notes.map((n) => (n.id === id ? updated : n));
+  return updated;
 }
 
 export const mockFiscalNotesProvider: IFiscalNotesProvider = {
@@ -83,8 +92,8 @@ export const mockFiscalNotesProvider: IFiscalNotesProvider = {
     for (const note of notes) {
       const current = note.items.find((item) => item.id === itemId);
       if (!current) continue;
-      if (note.status !== "conferencia") {
-        throw new Error(`[mock] fiscalNotes.updateItem(${itemId}): nota ${note.status} é imutável`);
+      if (note.status === "lancada") {
+        throw new Error(`[mock] fiscalNotes.updateItem(${itemId}): nota lançada é imutável`);
       }
       const updated: IFiscalNoteItem = { ...current, ...patch };
       note.items = note.items.map((item) => (item.id === itemId ? updated : item));
@@ -94,19 +103,22 @@ export const mockFiscalNotesProvider: IFiscalNotesProvider = {
     throw new Error(`[mock] fiscalNotes.updateItem(${itemId}): item não encontrado`);
   },
 
-  async cancel(id: ID): Promise<IFiscalNote> {
+  async markDraft(id: ID): Promise<IFiscalNote> {
+    return setStatus(id, "rascunho", "markDraft");
+  },
+
+  async resumeFromDraft(id: ID): Promise<IFiscalNote> {
+    return setStatus(id, "conferencia", "resumeFromDraft");
+  },
+
+  async remove(id: ID): Promise<void> {
     const current = notes.find((n) => n.id === id);
-    if (!current) throw new Error(`[mock] fiscalNotes.cancel(${id}): nota não encontrada`);
+    if (!current) throw new Error(`[mock] fiscalNotes.remove(${id}): nota não encontrada`);
     if (current.status === "lancada") {
-      throw new Error(`[mock] fiscalNotes.cancel(${id}): nota lançada se estorna, não se cancela`);
+      throw new Error(`[mock] fiscalNotes.remove(${id}): nota lançada se estorna, não se apaga`);
     }
-    const updated: IFiscalNote = {
-      ...current,
-      status: "cancelada",
-      updatedAt: new Date().toISOString(),
-    };
-    notes = notes.map((n) => (n.id === id ? updated : n));
-    return updated;
+    // Some inteira: é o que libera a chave de acesso para o mesmo XML voltar.
+    notes = notes.filter((n) => n.id !== id);
   },
 
   async post(id: ID, ctx: IPostContext): Promise<IFiscalNote> {

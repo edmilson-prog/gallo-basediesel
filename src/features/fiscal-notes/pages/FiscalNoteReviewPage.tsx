@@ -1,27 +1,82 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { ID } from "@/shared/types";
 import { NoteItemDrawer } from "../components/review/NoteItemDrawer";
 import { NoteItemsTable } from "../components/review/NoteItemsTable";
 import { autoConfirmable } from "../engine/postEffects";
+import { useFiscalNotesList } from "../hooks/useFiscalNotesList";
 import { useNoteReview } from "../hooks/useNoteReview";
+import { useCurrentStore } from "@/features/multistore";
 import { FISCAL_NOTES_STRINGS } from "../i18n/pt-BR";
 
 const brl = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export function FiscalNoteReviewPage() {
-  const { id } = useParams({ from: "/app/suprimentos/entrada/$id" });
+export interface IFiscalNoteReviewPageProps {
+  /**
+   * Nota a conferir. Sem ela a tela vira destino de menu e escolhe sozinha a
+   * primeira em conferência — é assim que o kit desenha a Entrada de nota.
+   */
+  noteId?: ID;
+}
+
+export function FiscalNoteReviewPage({ noteId }: IFiscalNoteReviewPageProps = {}) {
   const navigate = useNavigate();
+  const { currentStoreId } = useCurrentStore();
   const [openItemId, setOpenItemId] = useState<ID | null>(null);
-  const review = useNoteReview(id);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const s = FISCAL_NOTES_STRINGS.review;
 
-  const { note, parts, partsById, validation, isLoading, isError, isMutating } = review;
+  // Todas as notas com item, para o seletor e para o fallback de seleção.
+  const { notes: allNotes, isLoading: listLoading } = useFiscalNotesList({
+    storeId: currentStoreId,
+  });
+  // Rascunho entra no seletor: estacionar uma nota não pode escondê-la de quem
+  // quer retomá-la.
+  const selectable = allNotes;
+  const effectiveId =
+    noteId ?? selectable.find((n) => n.status === "conferencia")?.id ?? selectable[0]?.id;
+
+  const review = useNoteReview(effectiveId);
+
+  const { note, parts, partsById, validation, isError, isMutating } = review;
+  const isLoading = listLoading || (effectiveId !== undefined && review.isLoading);
+
+  // Nenhuma nota na loja: estado vazio próprio, com o caminho de saída.
+  if (!isLoading && selectable.length === 0) {
+    return (
+      <div className="grid h-full place-items-center gap-3 p-8 text-center">
+        <Icon
+          icon="mdi:clipboard-check-outline"
+          size={30}
+          className="text-muted-foreground"
+          aria-hidden
+        />
+        <p className="font-display text-lg font-extrabold uppercase text-foreground">
+          {s.emptyTitle}
+        </p>
+        <p className="max-w-sm text-sm text-muted-foreground">{s.emptyDescription}</p>
+        <Button size="sm" onClick={() => void navigate({ to: "/app/suprimentos/importar" })}>
+          <Icon icon="mdi:file-upload-outline" size={15} aria-hidden />
+          {FISCAL_NOTES_STRINGS.list.importCta}
+        </Button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -50,6 +105,7 @@ export function FiscalNoteReviewPage() {
   }
 
   const posted = note.status === "lancada";
+  const isDraft = note.status === "rascunho";
   const pending = note.items.filter((item) => !item.confirmed).length;
   const done = note.items.length - pending;
   const openItem = openItemId ? note.items.find((item) => item.id === openItemId) : undefined;
@@ -82,10 +138,32 @@ export function FiscalNoteReviewPage() {
           </div>
           <div className="min-w-0">
             <h1 className="font-display text-xl font-extrabold uppercase leading-none tracking-[0.01em] text-foreground">
-              NF {note.number} · série {note.series}
+              {s.title}
             </h1>
             <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">{note.accessKey}</p>
           </div>
+
+          {/* Seletor do kit: a tela troca de nota sem voltar para a lista. */}
+          <label className="sr-only" htmlFor="nf-note-select">
+            {s.selectLabel}
+          </label>
+          <select
+            id="nf-note-select"
+            value={note.id}
+            onChange={(e) =>
+              void navigate({
+                to: "/app/suprimentos/entrada/$id",
+                params: { id: e.target.value },
+              })
+            }
+            className="h-9 max-w-[340px] flex-1 rounded-md border border-input bg-background px-2 text-sm font-medium text-foreground"
+          >
+            {selectable.map((option) => (
+              <option key={option.id} value={option.id}>
+                NF {option.number} · {FISCAL_NOTES_STRINGS.status[option.status]}
+              </option>
+            ))}
+          </select>
           <Badge
             variant="outline"
             className={
@@ -128,6 +206,18 @@ export function FiscalNoteReviewPage() {
               <p className="mt-1 text-[12.5px] text-muted-foreground">{s.immutable}</p>
               <p className="mt-1 text-[11.5px] text-muted-foreground">{s.reverseKeepsCost}</p>
             </div>
+          </div>
+        )}
+
+        {isDraft && (
+          <div className="mb-4 flex items-start gap-3 rounded-xl border border-severity-info/40 bg-severity-info/10 px-4 py-3">
+            <Icon
+              icon="mdi:content-save-outline"
+              size={20}
+              className="mt-0.5 shrink-0 text-severity-info"
+              aria-hidden
+            />
+            <p className="text-[12.5px] text-muted-foreground">{s.draftBanner}</p>
           </div>
         )}
 
@@ -229,14 +319,72 @@ export function FiscalNoteReviewPage() {
                 {s.reverseCta}
               </Button>
             ) : (
-              <Button size="lg" disabled={!validation.ok || isMutating} onClick={handlePost}>
-                <Icon icon="mdi:warehouse" size={16} aria-hidden />
-                {validation.ok ? s.postCta : s.postBlocked(validation.blockers.length)}
-              </Button>
+              <>
+                {!isDraft && (
+                  <Button size="lg" disabled={!validation.ok || isMutating} onClick={handlePost}>
+                    <Icon icon="mdi:warehouse" size={16} aria-hidden />
+                    {validation.ok ? s.postCta : s.postBlocked(validation.blockers.length)}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  disabled={isMutating}
+                  onClick={async () => {
+                    if (isDraft) {
+                      await review.resumeFromDraft();
+                      toast.success(s.resumeDone);
+                    } else {
+                      await review.markDraft();
+                      toast.success(s.draftDone);
+                    }
+                  }}
+                >
+                  <Icon
+                    icon={isDraft ? "mdi:play-outline" : "mdi:content-save-outline"}
+                    size={16}
+                    aria-hidden
+                  />
+                  {isDraft ? s.resumeCta : s.draftCta}
+                </Button>
+                <Button
+                  variant="ghost"
+                  disabled={isMutating}
+                  className="text-severity-critical hover:bg-severity-critical/10 hover:text-severity-critical"
+                  onClick={() => setConfirmDiscard(true)}
+                >
+                  <Icon icon="mdi:trash-can-outline" size={16} aria-hidden />
+                  {s.discardCta}
+                </Button>
+              </>
             )}
           </aside>
         </div>
       </div>
+
+      <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{s.discardTitle.replace("{num}", note.number)}</AlertDialogTitle>
+            <AlertDialogDescription>{s.discardBody}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isMutating}>{s.discardCancel}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isMutating}
+              className="bg-severity-critical text-white hover:bg-severity-critical/90"
+              onClick={async () => {
+                const num = note.number;
+                await review.remove();
+                setConfirmDiscard(false);
+                toast.success(s.discardDone(num));
+                void navigate({ to: "/app/suprimentos/notas" });
+              }}
+            >
+              {s.discardConfirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {openItem && !posted && (
         <NoteItemDrawer
@@ -249,6 +397,10 @@ export function FiscalNoteReviewPage() {
           onClose={() => setOpenItemId(null)}
           onConfirm={async (patch) => {
             await review.confirmItem(openItem.id, patch);
+            setOpenItemId(null);
+          }}
+          onSaveDraft={async (patch) => {
+            await review.saveItemDraft(openItem.id, patch);
             setOpenItemId(null);
           }}
         />
