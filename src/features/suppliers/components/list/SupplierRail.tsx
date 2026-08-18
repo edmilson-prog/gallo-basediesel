@@ -2,35 +2,13 @@ import type { ISupplier, ISupplierStats } from "@/shared/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/Icon";
-import { formatBRL } from "@/shared/utils/format";
+import { formatBRL, formatShortDateBR } from "@/shared/utils/format";
 import { supplierCompleteness } from "../../engine/completeness";
 import { SUPPLIERS_STRINGS } from "../../i18n/pt-BR";
 import { CATEGORY_LABEL, initials } from "../../utils/supplierDisplay";
+import { SupplierMetric } from "../SupplierMetric";
 
 const COPY = SUPPLIERS_STRINGS;
-
-/** Day/month only — density over precision at this size. Mirrors `CatalogRowCells`. */
-function formatShortDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-}
-
-function Metric({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="min-w-0">
-      <span className="block text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </span>
-      <span className="mt-1 block truncate text-lg font-bold leading-none text-foreground">
-        {value}
-      </span>
-      {sub && (
-        <span className="mt-1.5 block truncate text-[11px] text-muted-foreground">{sub}</span>
-      )}
-    </div>
-  );
-}
 
 interface ISupplierRailProps {
   supplier: ISupplier | null;
@@ -86,9 +64,15 @@ export function SupplierRail({
         </div>
 
         <div className="grid grid-cols-2 gap-3.5 border-t border-border pt-3.5">
-          <Metric label={COPY.kpis.linkedParts} value={stats ? String(stats.linkedParts) : "—"} />
-          <Metric label={COPY.kpis.purchases} value={formatBRL(stats?.purchasesLast12Months)} />
-          <Metric
+          <SupplierMetric
+            label={COPY.kpis.linkedParts}
+            value={stats ? String(stats.linkedParts) : "—"}
+          />
+          <SupplierMetric
+            label={COPY.kpis.purchases}
+            value={formatBRL(stats?.purchasesLast12Months)}
+          />
+          <SupplierMetric
             label={COPY.kpis.leadTime}
             value={
               supplier.leadTimeDays === undefined
@@ -96,7 +80,7 @@ export function SupplierRail({
                 : `${supplier.leadTimeDays} ${COPY.kpis.leadTimeUnit}`
             }
           />
-          <Metric
+          <SupplierMetric
             label={COPY.columns.contact}
             // `||`, not `??`: a cleared field can be stored as `""`, and an
             // empty string must fall back to the placeholder same as absent.
@@ -150,7 +134,7 @@ export function SupplierRail({
                   className="flex items-center gap-2.5 border-b border-border py-2 last:border-b-0"
                 >
                   <span className="w-16 shrink-0 text-[11px] text-muted-foreground">
-                    {entry.invoiceDate ? formatShortDate(entry.invoiceDate) : "—"}
+                    {formatShortDateBR(entry.invoiceDate)}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
                     {entry.invoiceNumber ?? entry.partName}

@@ -9,31 +9,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { formatBRL, formatCNPJ } from "@/shared/utils/format";
+import { formatBRL, formatCNPJ, formatShortDateBR } from "@/shared/utils/format";
 import { supplierCompleteness } from "../../engine/completeness";
 import { SUPPLIERS_STRINGS } from "../../i18n/pt-BR";
 import { CATEGORY_LABEL, initials } from "../../utils/supplierDisplay";
+import { SupplierMetric } from "../SupplierMetric";
 import { SupplierPurchasesChart } from "./SupplierPurchasesChart";
 
 const COPY = SUPPLIERS_STRINGS;
-
-/** Day/month only — mirrors `SupplierRail`'s formatter so both surfaces read identically. */
-function formatShortDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <span className="block text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </span>
-      <span className="mt-1 block truncate text-sm font-bold text-foreground">{value}</span>
-    </div>
-  );
-}
 
 export interface ISupplierSheetProps {
   supplier: ISupplier | null;
@@ -102,12 +85,18 @@ export function SupplierSheet({
             <div className="flex-1 space-y-4 overflow-y-auto p-4">
               {/* 2. Grade 3×2 de fatos */}
               <section className="grid grid-cols-3 gap-4 rounded-xl border border-border bg-card p-4">
-                <Fact
+                <SupplierMetric
+                  size="sm"
                   label={COPY.kpis.linkedParts}
                   value={stats ? String(stats.linkedParts) : "—"}
                 />
-                <Fact label={COPY.kpis.purchases} value={formatBRL(stats?.purchasesLast12Months)} />
-                <Fact
+                <SupplierMetric
+                  size="sm"
+                  label={COPY.kpis.purchases}
+                  value={formatBRL(stats?.purchasesLast12Months)}
+                />
+                <SupplierMetric
+                  size="sm"
                   label={COPY.kpis.leadTime}
                   value={
                     supplier.leadTimeDays === undefined
@@ -115,12 +104,18 @@ export function SupplierSheet({
                       : `${supplier.leadTimeDays} ${COPY.kpis.leadTimeUnit}`
                   }
                 />
-                <Fact label={COPY.columns.completeness} value={`${completeness.percent}%`} />
-                <Fact
+                <SupplierMetric
+                  size="sm"
+                  label={COPY.columns.completeness}
+                  value={`${completeness.percent}%`}
+                />
+                <SupplierMetric
+                  size="sm"
                   label={COPY.form.documentLabel}
                   value={supplier.document ? formatCNPJ(supplier.document) : "—"}
                 />
-                <Fact
+                <SupplierMetric
+                  size="sm"
                   label={COPY.sheet.factsLabels.registryStatus}
                   value={supplier.registryStatus || "—"}
                 />
@@ -185,7 +180,7 @@ export function SupplierSheet({
                             className="flex items-center gap-2.5 border-b border-border py-2 last:border-b-0"
                           >
                             <span className="w-14 shrink-0 text-[11px] text-muted-foreground">
-                              {entry.invoiceDate ? formatShortDate(entry.invoiceDate) : "—"}
+                              {formatShortDateBR(entry.invoiceDate)}
                             </span>
                             <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
                               {entry.invoiceNumber ?? entry.partName}

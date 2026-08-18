@@ -4,6 +4,7 @@ import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { useSuppliersList, type ISuppliersListFilters } from "../hooks/useSuppliersList";
 import { useSuppliersStatsIndex } from "../hooks/useSuppliersStatsIndex";
+import { useSupplierStats } from "../hooks/useSupplierStats";
 import { supplierCompleteness } from "../engine/completeness";
 import { SuppliersKpiStrip } from "../components/list/SuppliersKpiStrip";
 import { SuppliersFiltersBar } from "../components/list/SuppliersFiltersBar";
@@ -66,11 +67,9 @@ export function SuppliersListPage() {
 
   // KPIs e chips de categoria descrevem a BASE (todos os ~126, sem o filtro de
   // busca/documento), nunca a página filtrada — por isso usam `list.all`.
-  // `sheetOpen` também liga a busca: a ficha completa mostra compras/entradas
-  // mesmo com as colunas opcionais escondidas, e sem isso `stats` ficaria
-  // `null` para sempre (consulta nunca disparada), nunca resolvendo o
-  // "carregando" da gaveta para um valor real.
-  const statsEnabled = visibleColumns.has("parts") || visibleColumns.has("purchases") || sheetOpen;
+  // Fica de fora do `sheetOpen`: essa consulta é O(lista inteira) — ver
+  // `useSupplierStats` logo abaixo para a busca dedicada da gaveta.
+  const statsEnabled = visibleColumns.has("parts") || visibleColumns.has("purchases");
   const statsIds = useMemo(() => list.all.map((s) => s.id), [list.all]);
   const { index: statsIndex } = useSuppliersStatsIndex(statsIds, statsEnabled);
 
@@ -122,6 +121,19 @@ export function SuppliersListPage() {
     [tableRows, selectedId],
   );
   const selectedStats = selectedSupplier ? (statsIndex?.get(selectedSupplier.id) ?? null) : null;
+
+  // A gaveta precisa que `stats` resolva mesmo quando as colunas "parts"/
+  // "purchases" estão escondidas (senão o índice em lote acima nunca busca
+  // nada e a gaveta fica "carregando" para sempre). Em vez de forçar o
+  // índice inteiro por causa de UMA ficha, busca só o fornecedor selecionado
+  // — e só quando o índice em lote ainda não tem esse id (evita refetch
+  // duplicado quando as colunas já estão visíveis).
+  const needsOwnStats = sheetOpen && selectedSupplier !== null && selectedStats === null;
+  const { stats: singleSupplierStats } = useSupplierStats(
+    selectedSupplier?.id ?? null,
+    needsOwnStats,
+  );
+  const sheetStats = selectedStats ?? singleSupplierStats;
 
   // A tabela expõe seu próprio container rolável (scrollRef) — a linha de
   // progresso o recebe explicitamente, igual ao CatalogListPage.
@@ -216,7 +228,7 @@ export function SuppliersListPage() {
 
       <SupplierSheet
         supplier={selectedSupplier}
-        stats={selectedStats}
+        stats={sheetStats}
         open={sheetOpen}
         canEdit={canEdit}
         onClose={() => setSheetOpen(false)}
