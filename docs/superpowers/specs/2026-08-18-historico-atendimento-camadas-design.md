@@ -68,6 +68,19 @@ Todas validadas com o dono antes desta spec.
 
 **D6 — `customer_notes` fica fora do fio.** São notas da ficha, não de atendimento, e não pertencem a nenhuma conversa — entrariam quebrando D2/D3. Continuam na aba Notas da ficha, onde já vivem. (Custo da exclusão hoje: 3 registros.)
 
+**D0 — Fato de domínio que contradiz o nome dos tipos (descoberto na execução, 18/08).** O tipo `assignment` **não** é onde moram as atribuições. O trigger classifica o evento pelo que mudou, nesta ordem: se o status mudou, o tipo é `status`, mesmo que o dono tenha mudado junto. Como assumir uma conversa muda status **e** dono na mesma `UPDATE`, a atribuição sai gravada como `status` com `to_seller_id` preenchido.
+
+Medido em produção:
+
+| tipo | total | com `to_seller_id` |
+|---|---|---|
+| `status` | 3.322 | **1.478** |
+| `assignment` | 154 | 143 |
+| `participant_add` | 121 | 121 |
+| `created` | 3.304 | 12 |
+
+Portanto **qualquer código que queira saber "quem assumiu" deve olhar `to_seller_id`, nunca o tipo `assignment`** — filtrar por tipo descarta ~91% das atribuições reais. Colaboradores são excluídos por tipo (`participant_add`/`participant_remove`), que é o único uso legítimo do tipo nessa decisão.
+
 **D7 — A agregação de mensagens roda no banco.** Medido via `EXPLAIN ANALYZE`: a agregação usa *index only scan* sobre `messages_conversation_created_at_idx`. Feita pelo cliente, pagaria RLS por linha sobre 217 mil registros — o padrão que já causou incidente de performance neste projeto (ver `docs/dev/` e o histórico de assinatura de mídia).
 
 ---
