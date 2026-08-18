@@ -102,6 +102,12 @@ export type {
   IListModelKitsParams,
   ICreateModelKitInput,
   IUpdateModelKitPatch,
+  ISuppliersProvider,
+  IListSuppliersParams,
+  IFiscalNotesProvider,
+  IListFiscalNotesParams,
+  ICreateFiscalNoteInput,
+  IUpdateFiscalNoteItemPatch,
   IMediaStorageProvider,
   IMediaUploadInput,
   IListMediaParams,
@@ -178,6 +184,8 @@ export { useCopilotProvider } from "./hooks/useCopilotProvider";
 export { useIndicatorsProvider } from "./hooks/useIndicatorsProvider";
 export { useVehicleModelsProvider } from "./hooks/useVehicleModelsProvider";
 export { useModelKitsProvider } from "./hooks/useModelKitsProvider";
+export { useSuppliersProvider } from "./hooks/useSuppliersProvider";
+export { useFiscalNotesProvider } from "./hooks/useFiscalNotesProvider";
 export { useMediaStorageProvider } from "./hooks/useMediaStorageProvider";
 export { useAssetLibraryProvider } from "./hooks/useAssetLibraryProvider";
 export { useQuickReplyProvider } from "./hooks/useQuickReplyProvider";

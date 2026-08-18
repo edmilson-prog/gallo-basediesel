@@ -31,6 +31,8 @@ import { mockCopilotProvider } from "./impl/mock/copilot";
 import { mockIndicatorsProvider } from "./impl/mock/indicators";
 import { mockVehicleModelsProvider } from "./impl/mock/vehicleModels";
 import { mockModelKitsProvider } from "./impl/mock/modelKits";
+import { mockSuppliersProvider } from "./impl/mock/suppliers";
+import { mockFiscalNotesProvider } from "./impl/mock/fiscalNotes";
 import { mockMediaProvider } from "./impl/mock/media";
 import { mockAssetLibraryProvider } from "./impl/mock/assetLibrary";
 import { mockQuickReplyProvider } from "./impl/mock/quickReply";
@@ -89,6 +91,8 @@ import { supabaseCopilotProvider } from "./impl/supabase/copilot";
 import { supabaseIndicatorsProvider } from "./impl/supabase/indicators";
 import { supabaseVehicleModelsProvider } from "./impl/supabase/vehicleModels";
 import { supabaseModelKitsProvider } from "./impl/supabase/modelKits";
+import { supabaseSuppliersProvider } from "./impl/supabase/suppliers";
+import { supabaseFiscalNotesProvider } from "./impl/supabase/fiscalNotes";
 import { supabaseMediaProvider } from "./impl/supabase/media";
 import { supabaseAssetLibraryProvider } from "./impl/supabase/assetLibrary";
 import { supabaseQuickReplyProvider } from "./impl/supabase/quickReply";
@@ -180,6 +184,8 @@ const mockProviders: IDataProviders = {
   indicators: mockIndicatorsProvider,
   vehicleModels: mockVehicleModelsProvider,
   modelKits: mockModelKitsProvider,
+  suppliers: mockSuppliersProvider,
+  fiscalNotes: mockFiscalNotesProvider,
   media: mockMediaProvider,
   assetLibrary: mockAssetLibraryProvider,
   quickReply: mockQuickReplyProvider,
@@ -240,6 +246,8 @@ const supabaseProviders: IDataProviders = {
   indicators: supabaseIndicatorsProvider,
   vehicleModels: supabaseVehicleModelsProvider,
   modelKits: supabaseModelKitsProvider,
+  suppliers: supabaseSuppliersProvider,
+  fiscalNotes: supabaseFiscalNotesProvider,
   media: supabaseMediaProvider,
   assetLibrary: supabaseAssetLibraryProvider,
   quickReply: supabaseQuickReplyProvider,

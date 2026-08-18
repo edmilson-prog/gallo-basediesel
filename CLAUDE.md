@@ -31,6 +31,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Todo `apply_migration` via MCP **deve** ser exportado para `supabase/migrations/` no mesmo PR. **Mergear o PR não aplica a migration** — a aplicação em produção é manual e exige OK explícito do dono.
 - Mudou `src/providers/whatsapp/`? Rode `scripts/sync-whatsapp-shared.ts` (espelha os núcleos em `supabase/functions/_shared/whatsapp/`) e redeploye as Edge Functions afetadas.
+- Mudou `src/features/fiscal-notes/engine/{nfeKey,xml,nfeParser,costAllocation}.ts`? Rode `bun run sync:fiscal` (espelha em `supabase/functions/_shared/fiscal/`) e redeploye as Edge Functions de nota fiscal. Esses quatro módulos rodam em dois runtimes — **não podem depender de DOM**, porque o Deno não tem `DOMParser`.
 - Deploy de Edge Function: `npx supabase functions deploy <nome>` — também exige OK explícito do dono.
 
 > ⚠️ **Worktrees — IGNORAR.** A pasta `.claude/worktrees/` (qualquer caminho contendo `worktrees`) contém git worktrees isoladas de outras branches e **não faz parte da branch `main`**. Ao explorar, buscar (grep/glob), editar ou raciocinar sobre o código, **ignore completamente** esse diretório. Trabalhe apenas no diretório principal do projeto (sobretudo `src/`). Não relate, edite nem referencie arquivos dentro de `worktrees`.
