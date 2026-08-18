@@ -38,10 +38,10 @@ function TrendBadge({ trend, comparisonLabel }: { trend: ITrendInfo; comparisonL
         ? "mdi:arrow-bottom-right"
         : "mdi:minus";
   const colorClass = trend.isImprovement
-    ? "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10"
+    ? "text-severity-success bg-severity-success/10"
     : trend.changePct === 0
       ? "text-muted-foreground bg-muted/60"
-      : "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-500/10";
+      : "text-severity-critical bg-severity-critical/10";
   const label =
     trend.direction === "up"
       ? S.kpiTrendUp
@@ -200,7 +200,7 @@ export function ExecutiveKpiCard({
           <Skeleton className="h-8 w-24" />
         ) : hasError ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Icon icon="mdi:alert-circle-outline" size={14} className="text-amber-500" />
+            <Icon icon="mdi:alert-circle-outline" size={14} className="text-severity-warning" />
             <span>Falha ao carregar</span>
             {onRetry && (
               <button

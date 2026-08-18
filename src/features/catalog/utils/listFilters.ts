@@ -1,9 +1,17 @@
 import type { ID, PartCategory } from "@/shared/types";
 import type { IListPartsParams } from "@/providers/data/contracts/parts";
+import { DEFAULT_COVERAGE, type CoverageBucket } from "./completeness";
 
-export type StockBucket = "any" | "in_stock" | "low" | "zero";
+export type StockBucket = "any" | "in_stock" | "low" | "zero" | "restock";
 export type StatusBucket = "any" | "active" | "inactive";
 export type OriginBucket = "any" | "original" | "equivalent";
+
+/** Flat working desk vs. grouped-by-category reading of the same result set. */
+export type CatalogView = "table" | "grouped";
+export const DEFAULT_VIEW: CatalogView = "table";
+export function isCatalogView(value: unknown): value is CatalogView {
+  return value === "table" || value === "grouped";
+}
 
 export interface ICatalogListFilters {
   categories: PartCategory[];
@@ -19,6 +27,8 @@ export interface ICatalogListFilters {
   status: StatusBucket;
   storeIds: ID[];
   search: string;
+  /** Completeness slice driven by the coverage strip. */
+  coverage: CoverageBucket;
 }
 
 export const EMPTY_FILTERS: ICatalogListFilters = {
@@ -35,20 +45,27 @@ export const EMPTY_FILTERS: ICatalogListFilters = {
   status: "active",
   storeIds: [],
   search: "",
+  coverage: DEFAULT_COVERAGE,
 };
 
 export type CatalogOrderBy =
   | "name"
   | "oem"
   | "category"
+  | "ficha"
   | "manufacturer"
   | "applications"
   | "unitPrice"
+  | "margin"
+  | "turnover"
   | "stockAvailable"
   | "status";
 export type CatalogOrderDir = "asc" | "desc";
 
-/** Order fields the parts provider can sort natively; others are sorted client-side. */
+/** Order fields the parts provider can sort natively; others are sorted client-side.
+ *  NOTE: useCatalogList strips orderBy/orderDir before its full-window fetch
+ *  (sortParts re-sorts locally and a sort-free params object keeps the queryKey
+ *  stable) — these only matter for consumers that paginate server-side. */
 const PROVIDER_ORDER_BY = new Set<CatalogOrderBy>(["name", "unitPrice", "stockAvailable"]);
 
 export interface ICatalogListSort {
@@ -95,5 +112,6 @@ export function activeFilterCount(filters: ICatalogListFilters): number {
   if (filters.stock !== "any") count += 1;
   if (filters.status !== "active") count += 1;
   if (filters.storeIds.length > 0) count += 1;
+  if (filters.coverage !== DEFAULT_COVERAGE) count += 1;
   return count;
 }

@@ -76,7 +76,7 @@ export function GoalDetailHeader({
             variant="outline"
             size="sm"
             onClick={onCancel}
-            className="gap-1 text-red-600 hover:text-red-700 dark:text-red-400"
+            className="gap-1 text-severity-critical hover:text-severity-critical/80"
           >
             <Icon icon="mdi:close-circle-outline" size={14} />
             {S.cancelCta}

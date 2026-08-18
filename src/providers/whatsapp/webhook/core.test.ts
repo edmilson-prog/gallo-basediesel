@@ -90,17 +90,6 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
       const found = state.customers.find((c) => c.storeId === storeId && c.phoneDigits === digits);
       return found ? { id: found.id } : null;
     },
-    createPendingCustomer: async ({ storeId, phone, name }) => {
-      const customer = {
-        id: nextId("cust"),
-        storeId,
-        phoneDigits: phone.replace(/\D/g, ""),
-        name,
-        whatsappName: name,
-      };
-      state.customers.push(customer);
-      return { id: customer.id };
-    },
     findLeadByPhone: async (storeId, digits) => {
       const found = state.leads.find((l) => l.storeId === storeId && l.phoneDigits === digits);
       return found ? { id: found.id, sellerId: found.sellerId, lossReason: found.lossReason } : null;

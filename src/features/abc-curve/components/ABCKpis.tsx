@@ -18,18 +18,18 @@ export interface IABCKpisProps {
 const CLASS_BADGE: Record<ABCClass, { label: string; bg: string; fg: string }> = {
   A: {
     label: S.kpiClassA,
-    bg: "bg-emerald-500/10",
-    fg: "text-emerald-600 dark:text-emerald-300",
+    bg: "bg-severity-success/10",
+    fg: "text-severity-success",
   },
   B: {
     label: S.kpiClassB,
-    bg: "bg-amber-500/10",
-    fg: "text-amber-600 dark:text-amber-300",
+    bg: "bg-severity-warning/10",
+    fg: "text-severity-warning",
   },
   C: {
     label: S.kpiClassC,
-    bg: "bg-orange-500/10",
-    fg: "text-orange-600 dark:text-orange-300",
+    bg: "bg-severity-critical/10",
+    fg: "text-severity-critical",
   },
 };
 

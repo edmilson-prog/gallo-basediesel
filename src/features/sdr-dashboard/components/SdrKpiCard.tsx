@@ -31,8 +31,8 @@ function TrendBadge({ changePct, lowerIsBetter }: { changePct: number; lowerIsBe
   const direction = changePct > 0 ? "up" : "down";
   const isImprovement = lowerIsBetter ? direction === "down" : direction === "up";
   const colorClass = isImprovement
-    ? "text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-500/15"
-    : "text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-500/15";
+    ? "text-severity-success bg-severity-success/10"
+    : "text-severity-critical bg-severity-critical/10";
   const arrow = direction === "up" ? "mdi:arrow-top-right" : "mdi:arrow-bottom-right";
   return (
     <span

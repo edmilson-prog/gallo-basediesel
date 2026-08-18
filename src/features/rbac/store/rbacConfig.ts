@@ -65,6 +65,30 @@ const state: RbacSnapshot = {
   hydrated: false,
 };
 
+// Because the cache lives outside React, a hydration that lands after the first
+// render would otherwise never reach the screen. `version` + `subscribe` let
+// consumers bind to it through `useSyncExternalStore` and re-render on change.
+let version = 0;
+const listeners = new Set<() => void>();
+
+function emit(): void {
+  version += 1;
+  for (const listener of listeners) listener();
+}
+
+/** Monotonic counter bumped on every accepted hydration / invalidation. */
+export function getRbacVersion(): number {
+  return version;
+}
+
+/** Subscribes to matrix changes. Returns the unsubscribe function. */
+export function subscribeRbac(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
 /**
  * Returns the current effective-permissions snapshot.
  *
@@ -82,14 +106,29 @@ export function getRbacSnapshot(): RbacSnapshot {
 /**
  * Replaces the cache with the effective matrix derived from persisted roles.
  * Keyed by `role.slug` (for the 7 system roles, `slug === RoleName`).
+ *
+ * ⚠️ An **empty** role list is rejected (returns `false`, cache untouched). The
+ * seed guarantees seven system roles, so `[]` never means "nobody may do
+ * anything" — it means the read came back empty. That happens on a read the
+ * caller was not entitled to make: `roles`/`role_permissions` grant SELECT to
+ * `anon` but carry no policy for it, so an unauthenticated query resolves with
+ * `data: []` and `error: null` instead of failing. Accepting it flipped
+ * `hydrated=true` over an empty index, and every `hasPermission()` answered
+ * false until the page was reloaded — hiding every matrix-driven menu item and
+ * tab right after login.
+ *
+ * @returns true when the matrix was accepted and the cache replaced.
  */
-export function hydrateRbac(roles: IRole[]): void {
+export function hydrateRbac(roles: IRole[]): boolean {
+  if (roles.length === 0) return false;
   const byRole: Record<string, ResourceIndex> = {};
   for (const role of roles) {
     byRole[role.slug] = indexPermissions(role.permissions);
   }
   state.byRole = byRole;
   state.hydrated = true;
+  emit();
+  return true;
 }
 
 /**
@@ -98,6 +137,10 @@ export function hydrateRbac(roles: IRole[]): void {
  * saves, before re-hydrating with the fresh persisted matrix.
  */
 export function invalidateRbac(): void {
+  const wasHydrated = state.hydrated;
   state.byRole = {};
   state.hydrated = false;
+  // Idempotent: clearing an already-cleared cache changes nothing on screen, so
+  // it must not wake every subscriber (this runs on each signed-out render).
+  if (wasHydrated) emit();
 }

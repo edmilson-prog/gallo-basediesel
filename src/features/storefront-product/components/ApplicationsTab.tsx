@@ -194,7 +194,7 @@ export function ApplicationsTab({ part }: IApplicationsTabProps) {
         </div>
 
         {applied && !hasAnyMatch && (
-          <p className="rounded-sm border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
+          <p className="rounded-sm border border-severity-warning/30 bg-severity-warning/10 p-2 text-xs text-severity-warning">
             {S.appNoMatchHint}
           </p>
         )}

@@ -5,7 +5,7 @@ import { InventoryAnalysisConfigPage } from "@/features/inventory-analytics";
 
 export const Route = createFileRoute("/app/configuracoes/estoque-analise")({
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner"], { resource: "inventory", action: "edit" }),
+    requireAuth(location.pathname, undefined, { resource: "inventory", action: "edit" }),
   component: () => (
     <SettingsLayout>
       <InventoryAnalysisConfigPage />

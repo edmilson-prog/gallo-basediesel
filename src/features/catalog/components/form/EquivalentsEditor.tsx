@@ -26,13 +26,15 @@ export function EquivalentsEditor({ selectedIds, excludeId, onChange }: IEquival
     };
   }, [query]);
 
-  // Resolve currently selected parts (one batch call).
+  // Resolve currently selected parts — a handful at most, one get() per id
+  // (never a catalog-wide fetch). The key is the sorted id list so the cache
+  // entry is insensitive to selection order.
+  const selectedKey = [...selectedIds].sort();
   const selectedQuery = useQuery({
-    queryKey: ["parts-by-ids", selectedIds] as const,
+    queryKey: ["parts-by-ids", selectedKey] as const,
     queryFn: async () => {
-      if (selectedIds.length === 0) return [] as IPart[];
-      const result = await provider.list({ pageSize: 2000 });
-      return result.data.filter((p) => selectedIds.includes(p.id));
+      if (selectedKey.length === 0) return [] as IPart[];
+      return Promise.all(selectedKey.map((id) => provider.get(id)));
     },
     staleTime: 60_000,
   });

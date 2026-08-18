@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { IMessage } from "@/shared/types";
 import { Icon } from "@/components/Icon";
-import { BubbleChrome } from "./bubbleChrome";
+import { BubbleChrome, type IBubbleProps } from "./bubbleChrome";
 import { WhatsAppText } from "./WhatsAppText";
 import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
 import { messageToMediaItem } from "../../engine/conversationMedia";
@@ -9,7 +9,7 @@ import { MediaViewerDialog } from "../media/MediaViewerDialog";
 import { downloadFileName, triggerMediaDownload } from "../../utils/mediaDownload";
 import { CONVERSATION_STRINGS } from "../../i18n/pt-BR";
 
-export function VideoBubble({ message, onRetry }: { message: IMessage; onRetry?: () => void }) {
+export function VideoBubble({ message, onRetry, ...extras }: IBubbleProps) {
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
@@ -27,7 +27,7 @@ export function VideoBubble({ message, onRetry }: { message: IMessage; onRetry?:
   // or the <video> itself failed to load (e.g. an expired/absent object).
   if (!message.mediaUrl || (!isLoading && !url) || errored) {
     return (
-      <BubbleChrome message={message} onRetry={onRetry}>
+      <BubbleChrome message={message} onRetry={onRetry} {...extras}>
         <div className="flex items-center gap-2 text-muted-foreground">
           <Icon icon="mdi:video-off-outline" size={16} />
           <span className="text-xs">Vídeo indisponível</span>
@@ -46,7 +46,7 @@ export function VideoBubble({ message, onRetry }: { message: IMessage; onRetry?:
 
   return (
     <>
-      <BubbleChrome message={message} onRetry={onRetry} unpadded>
+      <BubbleChrome message={message} onRetry={onRetry} {...extras} unpadded>
         <div className="group relative w-full">
           <button
             type="button"

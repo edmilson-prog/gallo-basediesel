@@ -17,6 +17,7 @@ import {
 import { useAuth } from "@/features/auth/useAuth";
 import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
 import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
@@ -96,7 +97,7 @@ export function OrdersListPage() {
 
   const customersQuery = useQuery({
     queryKey: ["customers-for-orders"] as const,
-    queryFn: () => customersProvider.list({ pageSize: 500 }),
+    queryFn: () => customersProvider.list({ pageSize: FETCH_ALL_PAGE_SIZE }),
     staleTime: 60_000,
   });
   const customersMap = useMemo<Map<ID, ICustomer>>(() => {
@@ -256,7 +257,7 @@ export function OrdersListPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem)]">
+    <div className="flex h-[calc(100vh-4rem-var(--shell-banner-offset,0px))] min-h-0 flex-col bg-background md:h-[calc(100vh-6rem-var(--shell-banner-offset,0px))]">
       <OrdersHeader
         total={list.total}
         searchValue={filters.search}

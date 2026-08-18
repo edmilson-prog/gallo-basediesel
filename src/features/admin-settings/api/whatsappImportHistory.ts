@@ -22,7 +22,10 @@ export interface IGoHistoryAggregateStats {
 }
 
 export interface IGoHistoryLandStats {
-  customersCreated: number;
+  /** New owner-less leads created (Funnel Frente 3) — imports never create customers. */
+  leadsCreated: number;
+  /** Existing leads reused as-is (never reopened, owner never touched). */
+  leadsReused: number;
   conversationsCreated: number;
   messagesImported: number;
   messagesSkipped: number;

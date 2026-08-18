@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ICustomer, ID, IOrder, IPart, ISeller } from "@/shared/types";
 import type { PartCategory } from "@/shared/types/part-identification";
 import {
+  FETCH_ALL_PAGE_SIZE,
   useCustomersProvider,
   useOrdersProvider,
   usePartsProvider,
@@ -64,7 +65,7 @@ export interface IUseProfitabilityDataResult {
 }
 
 const STALE_MS = 60_000;
-const PAGE_SIZE = 1000;
+const PAGE_SIZE = FETCH_ALL_PAGE_SIZE;
 
 function monthBounds(monthKey: string): { startIso: string; endIso: string } {
   const [year, month] = monthKey.split("-").map(Number);

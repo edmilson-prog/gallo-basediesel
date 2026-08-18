@@ -38,6 +38,13 @@ export interface IUpdateModelKitPatch {
 export interface IModelKitsProvider {
   list(params?: IListModelKitsParams): Promise<IVehicleModelKit[]>;
   get(id: ID): Promise<IVehicleModelKit>;
+  /**
+   * How many quotes applied each of the given kits, aggregated from
+   * `IQuote.appliedKitIds` (written by the quote editor at save time). Kits with
+   * no application are omitted from the result. Scoped by what the caller can
+   * read — a seller restricted to their own quotes sees their own count.
+   */
+  applicationCounts(kitIds: ID[]): Promise<Record<ID, number>>;
   create(input: ICreateModelKitInput): Promise<IVehicleModelKit>;
   update(id: ID, patch: IUpdateModelKitPatch): Promise<IVehicleModelKit>;
   delete(id: ID): Promise<void>;

@@ -10,6 +10,7 @@ import { formatBRL, formatDateBR } from "@/shared/utils/format";
 import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
 import { TabSkeleton } from "../TabSkeleton";
 import { TabEmptyState } from "../TabEmptyState";
+import { CustomerEmptyState } from "../detail/CustomerEmptyState";
 
 const COPY = CUSTOMER_STRINGS.quotes;
 const PAGE_SIZE = 10;
@@ -32,9 +33,11 @@ const ORIGIN_LABEL: Record<IQuote["origin"], string> = {
 
 export interface IQuotesTabProps {
   customer: ICustomer;
+  /** Drops the internal title — the detail page's `CustomerPanel` owns it. */
+  headless?: boolean;
 }
 
-export function QuotesTab({ customer }: IQuotesTabProps) {
+export function QuotesTab({ customer, headless }: IQuotesTabProps) {
   const provider = useQuotesProvider();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
@@ -59,8 +62,12 @@ export function QuotesTab({ customer }: IQuotesTabProps) {
   return (
     <div className="space-y-3">
       <header className="flex items-center gap-2">
-        <Icon icon="mdi:file-document-outline" size={16} className="text-muted-foreground" />
-        <h3 className="text-sm font-semibold text-foreground">{COPY.title}</h3>
+        {!headless && (
+          <>
+            <Icon icon="mdi:file-document-outline" size={16} className="text-muted-foreground" />
+            <h3 className="text-sm font-semibold text-foreground">{COPY.title}</h3>
+          </>
+        )}
         <span className="ml-auto text-xs text-muted-foreground">
           {quotes.length > 0
             ? CUSTOMER_STRINGS.orders.pageLabel(visible.length, quotes.length)
@@ -71,7 +78,15 @@ export function QuotesTab({ customer }: IQuotesTabProps) {
       {query.isLoading ? (
         <TabSkeleton rows={5} />
       ) : quotes.length === 0 ? (
-        <TabEmptyState icon="mdi:file-document-off-outline" message={COPY.empty} />
+        headless ? (
+          <CustomerEmptyState
+            icon="mdi:file-document-off-outline"
+            title={COPY.emptyTitle}
+            text={COPY.emptyHint}
+          />
+        ) : (
+          <TabEmptyState icon="mdi:file-document-off-outline" message={COPY.empty} />
+        )
       ) : (
         <>
           <ul className="space-y-1.5">

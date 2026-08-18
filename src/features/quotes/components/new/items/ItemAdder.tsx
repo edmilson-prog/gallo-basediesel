@@ -1,30 +1,31 @@
 // src/features/quotes/components/new/items/ItemAdder.tsx
-import type { IOrder, IPart, IVehicle } from "@/shared/types";
 import type { QuoteAddMode } from "../../../types/editor";
-import { ContinuousAdder } from "./ContinuousAdder";
+import { ContinuousAdder, type IAdderProps } from "./ContinuousAdder";
 import { QuickAddBar } from "./QuickAddBar";
-import { CatalogDrawer } from "./CatalogDrawer";
+import { CatalogGrid } from "./CatalogGrid";
 import { ModeSwitcher } from "./ModeSwitcher";
 
-export interface IItemAdderProps {
+export interface IItemAdderProps extends IAdderProps {
   mode: QuoteAddMode;
   onModeChange: (mode: QuoteAddMode) => void;
-  vehicles: IVehicle[];
-  orders: IOrder[];
-  inQuoteQtyByPart: Map<string, number>;
-  onAddPart: (part: IPart) => void;
-  onAddFreeItemClick: () => void;
+  /** Focus target for the ghost "Adicionar item" row of the table. */
+  searchInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
-export function ItemAdder({ mode, onModeChange, ...adder }: IItemAdderProps) {
+/**
+ * Mode switcher on the left, where the action starts — in continuous mode the
+ * search sits right next to it on the same row; catalog and quick modes open
+ * their surface below.
+ */
+export function ItemAdder({ mode, onModeChange, searchInputRef, ...adder }: IItemAdderProps) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-end">
+    <div className="space-y-2.5">
+      <div className="flex items-center gap-2.5">
         <ModeSwitcher value={mode} onChange={onModeChange} />
+        {mode === "continuous" && <ContinuousAdder {...adder} inputRef={searchInputRef} />}
       </div>
-      {mode === "continuous" && <ContinuousAdder {...adder} />}
+      {mode === "catalog" && <CatalogGrid {...adder} />}
       {mode === "quick" && <QuickAddBar {...adder} />}
-      {mode === "catalog" && <CatalogDrawer {...adder} />}
     </div>
   );
 }

@@ -1,22 +1,24 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@/components/Icon";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { ISeller } from "@/shared/types";
 import { useCurrentStore } from "@/features/multistore";
-import { useDepartmentsProvider, useSellersProvider } from "@/providers/data";
+import { useDepartmentsProvider, useRolesProvider, useSellersProvider } from "@/providers/data";
 import { AUTH_SOURCE } from "@/features/auth/authSource";
 import { useAuth } from "@/features/auth/useAuth";
-import { mapDbRoleToRoleName } from "@/features/auth/roleMap";
 import { useStorePresence } from "@/features/shell/hooks/useStorePresence";
+import { effectiveRoleLabel, resolveEffectiveRoleId } from "../engine/effectiveRole";
 import { SectionHeader } from "../components/SectionHeader";
 import { listSellerAccessInfo, type ISellerAccessInfo } from "../api/sellerAccess";
 import { CreateAccessDialog } from "../components/CreateAccessDialog";
 import { ChangeRoleDialog } from "../components/ChangeRoleDialog";
 import { ResetPasswordDialog } from "../components/ResetPasswordDialog";
+import { ResetMfaDialog } from "../components/ResetMfaDialog";
 import { ToggleSellerAccessButton } from "../components/ToggleSellerAccessButton";
 import { SellerFormDialog } from "../components/SellerFormDialog";
 import { DeleteSellerDialog } from "../components/DeleteSellerDialog";
@@ -34,15 +36,27 @@ const LAST_SIGN_IN_FORMAT = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
 });
 
-/** Secondary line under the e-mail: last sign-in, or a placeholder in demo mode. */
+/**
+ * Secondary line under the e-mail: current activity, last access, or a
+ * placeholder in demo mode.
+ *
+ * Prefers `lastSeenAt` (last sign-in OR last session refresh) over
+ * `lastSignInAt`, which only moves when the user actually types their password
+ * — someone who stays logged in for a week would otherwise read as "last
+ * access: a week ago". `lastSeenAt` is null while the database still runs the
+ * older RPC, hence the fallback.
+ */
 function lastAccessLabel(
   info: ISellerAccessInfo | undefined,
   supabaseAuth: boolean,
+  isOnline: boolean,
 ): string | null {
   if (!supabaseAuth) return "Último acesso: —";
   if (!info) return null; // no access yet — nothing to show
-  if (!info.lastSignInAt) return "Nunca acessou";
-  return `Último acesso: ${LAST_SIGN_IN_FORMAT.format(new Date(info.lastSignInAt))}`;
+  if (isOnline) return "Online agora";
+  const lastAccess = info.lastSeenAt ?? info.lastSignInAt;
+  if (!lastAccess) return "Nunca acessou";
+  return `Último acesso: ${LAST_SIGN_IN_FORMAT.format(new Date(lastAccess))}`;
 }
 
 /**
@@ -57,8 +71,10 @@ export function UsersPage() {
   const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const provider = useSellersProvider();
   const departmentsProvider = useDepartmentsProvider();
+  const rolesProvider = useRolesProvider();
   const [inviteFor, setInviteFor] = useState<ISeller | null>(null);
   const [resetFor, setResetFor] = useState<ISeller | null>(null);
+  const [mfaResetFor, setMfaResetFor] = useState<ISeller | null>(null);
   const [roleFor, setRoleFor] = useState<ISeller | null>(null);
   const [editFor, setEditFor] = useState<ISeller | null>(null);
   const [deleteFor, setDeleteFor] = useState<ISeller | null>(null);
@@ -83,6 +99,18 @@ export function UsersPage() {
     queryKey: ["departments", storeId],
     queryFn: () => departmentsProvider.list({ storeId }),
   });
+
+  // Role catalog for the effective-role badge (custom role names live there).
+  // Same key as ChangeRoleDialog, so the two screens share one cached fetch.
+  const rolesQuery = useQuery({
+    queryKey: ["rbac", "roles"],
+    queryFn: () => rolesProvider.list(),
+    enabled: SUPABASE_AUTH,
+  });
+  const roleNameById = new Map((rolesQuery.data ?? []).map((r) => [r.id, r.name] as const));
+  // While either query is in flight the badge would show the business type and
+  // then swap to the effective role — a skeleton avoids the text flicker.
+  const roleBadgeLoading = SUPABASE_AUTH && (accessQuery.isLoading || rolesQuery.isLoading);
 
   const sellers = sellersQuery.data;
   const accessInfo = accessQuery.data ?? new Map<string, ISellerAccessInfo>();
@@ -132,7 +160,8 @@ export function UsersPage() {
               const isOwnerAccess = accessRole === "owner";
               const isSelf = currentUser?.sellerId === s.id;
               const isOnline = presence ? presence.has(s.id) : s.availability !== "offline";
-              const accessLabel = lastAccessLabel(accessInfo.get(s.id), SUPABASE_AUTH);
+              const accessLabel = lastAccessLabel(accessInfo.get(s.id), SUPABASE_AUTH, isOnline);
+              const roleLabel = effectiveRoleLabel(accessInfo.get(s.id), roleNameById);
               const departmentName = s.departmentId
                 ? departmentNameById.get(s.departmentId)
                 : undefined;
@@ -143,9 +172,14 @@ export function UsersPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                        {s.fullName.slice(0, 2).toUpperCase()}
-                      </div>
+                      <Avatar className="h-8 w-8">
+                        {s.avatarUrl && (
+                          <AvatarImage src={s.avatarUrl} alt="" className="object-cover" />
+                        )}
+                        <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                          {s.fullName.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                       <span
                         aria-hidden
                         className={cn(
@@ -167,6 +201,9 @@ export function UsersPage() {
                       <p className="flex items-center gap-1 text-[11px] text-muted-foreground/80">
                         <Icon icon="mdi:office-building-outline" size={12} />
                         {departmentName ?? "Sem departamento"}
+                        {/* With the badge now showing the platform role, the
+                            business type moves here to stay at-a-glance. */}
+                        {roleLabel && <span>· {ROLE_LABEL[s.type]}</span>}
                       </p>
                       {accessLabel && (
                         <p className="text-[11px] text-muted-foreground/80">{accessLabel}</p>
@@ -174,10 +211,21 @@ export function UsersPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{ROLE_LABEL[s.type]}</Badge>
-                    {SUPABASE_AUTH && accessRole === "manager" && (
-                      <Badge variant="outline" className="border-primary/40 text-primary">
-                        Gestor
+                    {/* Effective platform role (incl. custom role names); a
+                        seller without platform access has no role, so the badge
+                        falls back to the business type. Owner/Gestor keep the
+                        primary emphasis the old dedicated badge had. */}
+                    {roleBadgeLoading ? (
+                      <Skeleton className="h-5 w-24" />
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          (accessRole === "owner" || accessRole === "manager") &&
+                            "border-primary/40 text-primary",
+                        )}
+                      >
+                        {roleLabel ?? ROLE_LABEL[s.type]}
                       </Badge>
                     )}
                     <Button
@@ -240,12 +288,27 @@ export function UsersPage() {
                                 <Icon icon="mdi:key-variant" size={14} />
                                 Redefinir senha
                               </Button>
+                              {isOwner && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="gap-1.5"
+                                  onClick={() => setMfaResetFor(s)}
+                                >
+                                  <Icon icon="mdi:cellphone-remove" size={14} />
+                                  Remover 2FA
+                                </Button>
+                              )}
                               <ToggleSellerAccessButton seller={s} storeId={storeId} />
                             </>
                           )}
                         </>
                       ))}
-                    {!isOwnerAccess && !isSelf && (
+                    {/* Owner-only, mirroring `delete-seller`'s own guard: the
+                        Gestor now reaches this screen, and an ungated button
+                        would just hand them a 403. Same reasoning already
+                        applies to "Alterar papel" and "Remover 2FA" above. */}
+                    {isOwner && !isOwnerAccess && !isSelf && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -323,12 +386,19 @@ export function UsersPage() {
         />
       )}
 
+      {mfaResetFor && (
+        <ResetMfaDialog
+          seller={mfaResetFor}
+          open={mfaResetFor !== null}
+          onOpenChange={(open) => {
+            if (!open) setMfaResetFor(null);
+          }}
+        />
+      )}
+
       {roleFor &&
         (() => {
-          const info = accessInfo.get(roleFor.id);
-          // Effective role id: the custom override if pinned, else the system
-          // role id (=== RoleName) derived from the base role.
-          const currentRoleId = info?.roleId ?? mapDbRoleToRoleName(info?.role ?? "seller_internal");
+          const currentRoleId = resolveEffectiveRoleId(accessInfo.get(roleFor.id));
           return (
             <ChangeRoleDialog
               seller={roleFor}

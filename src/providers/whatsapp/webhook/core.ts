@@ -68,26 +68,8 @@ export interface IWebhookDb {
     status: "connected" | "disconnected",
   ): Promise<boolean>;
   findCustomerByPhone(storeId: string, phoneDigits: string): Promise<ICustomerRecord | null>;
-  /**
-   * Create the contact anchor for an inbound/echo message. Auto-created customers
-   * carry NO wallet owner (seller_id null) — they only anchor a pool conversation
-   * and become a real, owned customer through a manual conversion.
-   */
-  createPendingCustomer(input: {
-    storeId: string;
-    phone: string;
-    /** Contact's WhatsApp profile name; seeds full_name (falls back to the phone
-     *  when absent) AND whatsapp_name when present. */
-    name?: string;
-  }): Promise<ICustomerRecord>;
-  /**
-   * Best-effort, called on every inbound message carrying a pushName:
-   *  1. ALWAYS records `name` in whatsapp_name (the live WhatsApp profile name),
-   *     even when the display name was renamed by hand.
-   *  2. Heals the display name (full_name / nome_fantasia) to `name` ONLY when it
-   *     is still the phone-number placeholder (or empty) — a manually-set name is
-   *     never overwritten.
-   */
+  /** Looks up an existing lead for this store+phone — open or lost (the caller
+   *  decides whether to reopen it via `reopenLostLead`). */
   findLeadByPhone(storeId: string, phoneDigits: string): Promise<ILeadRecord | null>;
   /**
    * Clears lossReason/lossNotes and resets the lead to the store's first
@@ -109,6 +91,14 @@ export interface IWebhookDb {
   ): Promise<{ id: string; status: string } | null>;
   /** Idempotently appends conversationId to lead.conversations. */
   linkConversationToLead(leadId: string, conversationId: string): Promise<void>;
+  /**
+   * Best-effort, called on every inbound message carrying a pushName:
+   *  1. ALWAYS records `name` in whatsapp_name (the live WhatsApp profile name),
+   *     even when the display name was renamed by hand.
+   *  2. Heals the display name (full_name / nome_fantasia) to `name` ONLY when it
+   *     is still the phone-number placeholder (or empty) — a manually-set name is
+   *     never overwritten.
+   */
   applyInboundContactName(customerId: string, name: string): Promise<void>;
   /**
    * Looks up the latest conversation for this customer+account. By default
@@ -667,7 +657,12 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     const resolved = await resolveContact(db, account.storeId, parsed.toPhone, undefined);
     // OPEN-ONLY lookup (includeTerminal omitted): the echo is business-sent,
     // never reopens a closed conversation — spawns a fresh one instead
-    // (spec 2026-07-03 §1.5).
+    // (spec 2026-07-03 §1.5). NOTE: the WAHA pipeline additionally applies
+    // the echo-continuity window (appends to a recently-`resolvida` thread —
+    // docs/dev/conversation-split-echo-after-close.md §7 item 3). This legacy
+    // pipeline (Meta/Evolution/Go/OpenWA) keeps always-create ON PURPOSE
+    // while it carries no live traffic — port the window here if these
+    // providers return.
     let conversation: { id: string } | null =
       resolved.kind === "customer"
         ? await db.findOpenConversation(resolved.id, account.id)
@@ -788,14 +783,23 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
     }
   }
 
-  // 6. Conversation resolution (RF-040.3) — includeTerminal:true reuses the
-  //    latest conversation regardless of status; a closed one (resolvida/
-  //    arquivada) is REOPENED on customer inbound instead of spawning a
-  //    duplicate (spec 2026-07-03 §1.5).
+  // 6. Conversation resolution (RF-040.3) — OPEN-FIRST (PR #357): prefer the
+  //    open conversation; only when none is open, look up regardless of status
+  //    and REOPEN a closed one (resolvida/arquivada) on customer inbound
+  //    instead of spawning a duplicate (spec 2026-07-03 §1.5). Open-first also
+  //    removes the reopen-collision class under the
+  //    one-open-per-contact-per-account unique index (migration
+  //    20260723165509): a reopen only ever runs when no open row exists.
   let conversation: { id: string; status: string } | null =
     resolved.kind === "customer"
-      ? await db.findOpenConversation(resolved.id, account.id, true)
-      : await db.findOpenConversationForLead(resolved.id, account.id, true);
+      ? await db.findOpenConversation(resolved.id, account.id)
+      : await db.findOpenConversationForLead(resolved.id, account.id);
+  if (!conversation) {
+    conversation =
+      resolved.kind === "customer"
+        ? await db.findOpenConversation(resolved.id, account.id, true)
+        : await db.findOpenConversationForLead(resolved.id, account.id, true);
+  }
   let didReopen = false;
   if (!conversation) {
     const created = await db.createConversation({

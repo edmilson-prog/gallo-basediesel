@@ -33,8 +33,18 @@ export interface INewTemporaryTransferModalProps {
   open: boolean;
   sellers: ISeller[];
   storeId: ID;
-  currentUserId: ID;
+  /**
+   * ISeller.id of the acting user — NOT the auth user id. It is stored in
+   * `carteira_transfers.created_by`, which carries a FK to sellers(id).
+   */
+  currentSellerId: ID | undefined;
   activeTransfers: ICarteiraTransfer[];
+  /**
+   * Pre-selects the titular when the modal is opened from a specific seller's
+   * row on the wallet board — the manager already said who is leaving by
+   * clicking there, so asking again would be busywork.
+   */
+  presetFromSellerId?: ID;
   onClose: () => void;
   onCreated?: (transfer: ICarteiraTransfer) => void;
 }
@@ -51,8 +61,9 @@ export function NewTemporaryTransferModal({
   open,
   sellers,
   storeId,
-  currentUserId,
+  currentSellerId,
   activeTransfers,
+  presetFromSellerId,
   onClose,
   onCreated,
 }: INewTemporaryTransferModalProps) {
@@ -77,7 +88,7 @@ export function NewTemporaryTransferModal({
 
   useEffect(() => {
     if (open) {
-      setFromSellerId("");
+      setFromSellerId(presetFromSellerId ?? "");
       setToSellerId("");
       setStartDate(today);
       setEndDate(tomorrow);
@@ -87,7 +98,7 @@ export function NewTemporaryTransferModal({
       setSelectedCustomerIds(new Set());
       setAllowConflict(false);
     }
-  }, [open, today, tomorrow]);
+  }, [open, today, tomorrow, presetFromSellerId]);
 
   const customersQuery = useSellerCustomers(fromSellerId || undefined, storeId);
   const sellerCustomers = useMemo(
@@ -125,6 +136,7 @@ export function NewTemporaryTransferModal({
     Boolean(reason) &&
     customerIds.length > 0 &&
     !mutation.isPending &&
+    Boolean(currentSellerId) &&
     (!conflict || allowConflict);
 
   const handleToggleCustomer = (id: ID) => {
@@ -154,7 +166,7 @@ export function NewTemporaryTransferModal({
         reason: fullReason,
         startDate: startIso,
         endDate: endIso,
-        createdBy: currentUserId,
+        createdBy: currentSellerId as ID,
       });
       toast.success(CARTEIRA_STRINGS.modals.temporary.successToast(customerIds.length, toName));
       onCreated?.(created);
@@ -332,6 +344,13 @@ export function NewTemporaryTransferModal({
               </p>
             )}
           </div>
+
+          {!currentSellerId && (
+            <Alert variant="destructive">
+              <Icon icon="mdi:alert-circle-outline" size={16} />
+              <AlertDescription>{CARTEIRA_STRINGS.modals.missingSellerError}</AlertDescription>
+            </Alert>
+          )}
 
           {conflict && (
             <Alert>

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ICustomer, ID, IVisit } from "@/shared/types";
-import { useCustomersProvider } from "@/providers/data";
+import { FETCH_ALL_PAGE_SIZE, useCustomersProvider } from "@/providers/data";
 import { usePwaVisitsStore } from "../store/visitsStore";
 
 const SEED_COUNT = 12;
@@ -56,7 +56,7 @@ export function usePwaVisits(sellerId: ID | undefined) {
     enabled: Boolean(sellerId),
     staleTime: 60_000,
     queryFn: async () => {
-      const result = await provider.list({ sellerId, pageSize: 200 });
+      const result = await provider.list({ sellerId, pageSize: FETCH_ALL_PAGE_SIZE });
       return result.data;
     },
   });

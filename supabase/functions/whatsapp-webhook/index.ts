@@ -47,6 +47,13 @@ import { transcribeMessageAudio } from "../_shared/ai/transcribeAudio.ts";
 
 const CLOSED_CONVERSATION_STATUSES = ["resolvida", "arquivada"];
 
+// Tagged transient-DB failure thrown by the DB adapter below. The handler's
+// catch converts it into a 503 WITHOUT any processed-mark so Meta/Evolution
+// redeliver on their non-2xx backoff (fail-closed, PR #357 item 2); every
+// other error keeps the RF-090 always-200 "error-logged" contract (no retry
+// storms on permanent failures).
+class TransientDbError extends Error {}
+
 /**
  * Deep-clones a JSON payload truncating every string longer than `max` chars
  * (diagnostic logging only — inline base64 media would otherwise bloat
@@ -291,29 +298,6 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       );
       return row ? { id: row.id as string } : null;
     },
-    async createPendingCustomer({ storeId, phone, name }) {
-      const { data, error } = await admin
-        .from("customers")
-        .insert({
-          store_id: storeId,
-          // customers_type_check requires uppercase 'B2C' (matches the app/seed).
-          type: "B2C",
-          phone,
-          // Name the contact from its WhatsApp profile when known; the phone is
-          // only a last-resort placeholder.
-          full_name: name ?? phone,
-          // whatsapp_name holds the live profile name only (no phone fallback).
-          whatsapp_name: name ?? null,
-          // No wallet owner: imported anchors carry seller_id null until a manual
-          // conversion assigns a real seller (customers.seller_id is nullable).
-          status: "ativo",
-          tags: ["pending_review"],
-        })
-        .select("id")
-        .single();
-      if (error) throw new Error(`createPendingCustomer: ${error.message}`);
-      return { id: data.id as string };
-    },
     async findLeadByPhone(storeId, phoneDigits) {
       const { data } = await admin
         .from("leads")
@@ -380,7 +364,12 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       if (!includeTerminal) {
         query = query.not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`);
       }
-      const { data } = await query.order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data, error } = await query
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      // Fail CLOSED — same rationale as findOpenConversation above.
+      if (error) throw new TransientDbError(`findOpenConversationForLead: ${error.message}`);
       return data ? { id: data.id as string, status: data.status as string } : null;
     },
     async linkConversationToLead(leadId, conversationId) {
@@ -432,7 +421,13 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
       if (!includeTerminal) {
         query = query.not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`);
       }
-      const { data } = await query.order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data, error } = await query
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      // Fail CLOSED: a discarded lookup error used to read as "no conversation"
+      // and fail open into a duplicate INSERT (PR #357 item 2).
+      if (error) throw new TransientDbError(`findOpenConversation: ${error.message}`);
       return data
         ? { id: data.id as string, status: data.status as string, isSdrActive: Boolean(data.is_sdr_active) }
         : null;
@@ -453,7 +448,29 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         })
         .select("id")
         .single();
-      if (error) throw new Error(`createConversation: ${error.message}`);
+      if (error) {
+        if (error.code === "23505") {
+          // Lost a concurrent-create race: the one-open-per-contact-per-account
+          // unique index vetoed this INSERT — reuse the winner's open row.
+          let winnerQuery = admin
+            .from("conversations")
+            .select("id")
+            .eq("whatsapp_account_id", input.accountId)
+            .not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`);
+          winnerQuery = input.customerId
+            ? winnerQuery.eq("customer_id", input.customerId)
+            : winnerQuery.eq("lead_id", input.leadId as string);
+          const { data: winner, error: winnerErr } = await winnerQuery
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (winner) return { id: winner.id as string };
+          throw new TransientDbError(
+            `createConversation race recovery failed: ${winnerErr?.message ?? "no open conversation found"}`,
+          );
+        }
+        throw new TransientDbError(`createConversation: ${error.message}`);
+      }
       return { id: data.id as string };
     },
     async insertInboundMessage(input) {
@@ -540,7 +557,7 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         .select("unread_count")
         .eq("id", conversationId)
         .maybeSingle();
-      await admin
+      const { error } = await admin
         .from("conversations")
         .update({
           status: "aguardando",
@@ -550,6 +567,12 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
           updated_at: new Date().toISOString(),
         })
         .eq("id", conversationId);
+      // Fail CLOSED (PR #357): a swallowed error here — notably the 23505 the
+      // one-open-per-contact-per-account unique index raises when another open
+      // row exists — used to strand the inbound message inside the still-closed
+      // conversation. A 503 makes the provider redeliver; the retry resolves
+      // open-first (core.ts) and lands in the open winner.
+      if (error) throw new TransientDbError(`reopenConversation: ${error.message}`);
     },
     async findOutboundMessageByProviderMessageId(providerMessageId) {
       const { data } = await admin
@@ -1208,6 +1231,16 @@ Deno.serve(async (req) => {
     const message = err instanceof Error ? err.message : String(err);
     log.error("webhook processing failed", { error: message });
     captureException(err, { traceId, functionName: "whatsapp-webhook" });
+    if (err instanceof TransientDbError) {
+      // Fail closed: the idempotency mark only runs after the message lands,
+      // so the provider's non-2xx redelivery reprocesses this event cleanly
+      // instead of the old silent-200 drop (PR #357 item 2).
+      return respond(json({ error: "transient-db-error", traceId }, 503), {
+        outcome: "error",
+        eventType: message,
+        requestPayload: payload,
+      });
+    }
     return respond(json({ status: "error-logged", traceId }, 200), {
       outcome: "error",
       eventType: message,

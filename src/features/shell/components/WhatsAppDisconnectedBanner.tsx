@@ -7,10 +7,10 @@ import {
 } from "../hooks/useWhatsAppConnectionStatus";
 
 /**
- * Global translucent alert pinned right under the sticky TopBar (top-16)
- * while at least one WhatsApp account is disconnected — operation is stopped,
- * so the signal must survive scrolling (unlike the informational banners that
- * live above the scroll container).
+ * Translucent alert shown while at least one WhatsApp account is
+ * disconnected — operation is stopped, so the signal must survive scrolling.
+ * Mounted stacked inside `<AlertBannerStack>` (shared sticky anchor with the
+ * other operational banners); it renders as a normal flow block here.
  *
  * Per the design review: critical tint stays on the icon/border/background
  * (text keeps `foreground` for contrast over scrolling content), the blur has
@@ -27,7 +27,7 @@ export function WhatsAppDisconnectedBanner() {
   return (
     <div
       role="alert"
-      className="sticky top-16 z-20 flex items-center gap-3 border-b border-severity-critical/40 bg-severity-critical/15 px-4 py-2 text-sm text-foreground backdrop-blur-md supports-[backdrop-filter]:bg-severity-critical/10 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 motion-safe:duration-200"
+      className="flex items-center gap-3 border-b border-severity-critical/40 bg-severity-critical/15 px-4 py-2 text-sm text-foreground backdrop-blur-md supports-[backdrop-filter]:bg-severity-critical/10 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 motion-safe:duration-200"
     >
       <Icon
         icon="mdi:alert-circle-outline"

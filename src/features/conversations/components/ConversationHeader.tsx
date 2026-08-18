@@ -1,5 +1,9 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import type {
+  ID,
+  IContact,
   IConversation,
   IConversationContact,
   ICustomer,
@@ -14,7 +18,8 @@ import { AvatarLightbox } from "@/components/AvatarLightbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useCustomersProvider } from "@/providers/data";
+import { useContactsProvider, useCustomersProvider } from "@/providers/data";
+import { LinkCustomerDialog } from "@/features/contacts";
 import { useAuth } from "@/features/auth/useAuth";
 import {
   CHANNEL_META,
@@ -48,6 +53,8 @@ export interface IConversationHeaderProps {
   /** Whether to surface the assignee chip (staff/manager oversight). */
   showAssignee?: boolean;
   ficheOpen: boolean;
+  /** No contact anchor at all (neither customer nor lead) — spec §5: disabled with tooltip. */
+  ficheDisabled?: boolean;
   onToggleFiche: () => void;
   /** Whether the media gallery sheet is open. */
   mediaOpen?: boolean;
@@ -57,10 +64,6 @@ export interface IConversationHeaderProps {
   consultorOpen?: boolean;
   /** Toggles the part-lookup consultor panel. */
   onToggleConsultor?: () => void;
-  /** Whether the attendance history panel is open. */
-  historyOpen?: boolean;
-  /** Toggles the attendance history panel. */
-  onToggleHistory?: () => void;
   /** Action menu rendered as a popover trigger (kebab). */
   menuSlot?: React.ReactNode;
   /** SDR escalation record bound to this conversation (PRD-023), when any. */
@@ -81,13 +84,12 @@ export function ConversationHeader({
   assignedSeller,
   showAssignee,
   ficheOpen,
+  ficheDisabled,
   onToggleFiche,
   mediaOpen,
   onToggleMedia,
   consultorOpen,
   onToggleConsultor,
-  historyOpen,
-  onToggleHistory,
   menuSlot,
   escalation,
   onCustomerUpdated,
@@ -118,10 +120,59 @@ export function ConversationHeader({
   const scheduled = useConversationScheduled(conversation.id);
   const pendingScheduled = scheduled.items.filter((i) => i.status === "pending").length;
 
+  // "Vincular a empresa" — the counterpart of the company chip. It occupies the
+  // exact spot where the affiliation would sit, so the gap itself is the
+  // invitation, rather than a button parked elsewhere on the screen.
+  //
+  // Gated on `conversation.contactId`: linking writes to an Agenda contact, and
+  // ~9% of threads could not be resolved to one without guessing. Rather than
+  // offer an action that would fail, the chip stays hidden there — the Agenda
+  // remains the way in for those.
+  const contactsProvider = useContactsProvider();
+  const [linkOpen, setLinkOpen] = useState(false);
+  const linkableContactId = conversation.contactId ?? null;
+  const canLinkCompany = Boolean(linkableContactId) && !display.companyId;
+
+  const linkTargetQuery = useQuery({
+    queryKey: ["conversation-link-contact", linkableContactId] as const,
+    queryFn: () => (linkableContactId ? contactsProvider.get(linkableContactId) : null),
+    enabled: linkOpen && Boolean(linkableContactId),
+    staleTime: 30_000,
+  });
+
+  const handleLinkCompany = async (contactRow: IContact, customerId: ID) => {
+    try {
+      await contactsProvider.linkToCustomer(contactRow.id, customerId);
+      setLinkOpen(false);
+      onCustomerUpdated?.();
+      onConversationUpdated?.();
+      toast.success(CONVERSATION_STRINGS.linkCompany.success(contactRow.name), {
+        action: {
+          label: CONVERSATION_STRINGS.linkCompany.undo,
+          onClick: () =>
+            void contactsProvider
+              .linkToCustomer(contactRow.id, null)
+              .then(() => {
+                onCustomerUpdated?.();
+                onConversationUpdated?.();
+                toast.success(CONVERSATION_STRINGS.linkCompany.undone);
+              })
+              .catch(() => toast.error(CONVERSATION_STRINGS.linkCompany.undoFailed)),
+        },
+      });
+    } catch {
+      toast.error(CONVERSATION_STRINGS.linkCompany.failed);
+    }
+  };
+
   // Subtitle shows ONLY the contact's own phone — never our own GALLO line,
   // which would mislabel our number as the contact's (e.g. when RLS hides the
   // customer for a seller handling a transferred conversation).
-  const channelSubtitle = display.phone ? `${channel.label} • ${display.phone}` : channel.label;
+  //
+  // The channel WORD is gone: the icon beside it already says WhatsApp, and the
+  // ~58px it cost now pay for the company chip. The label survives as the
+  // fallback for a contact with no number at all, so nothing renders empty.
+  const channelSubtitle = display.phone || channel.label;
 
   return (
     <header data-tour="conversation-header" className="shrink-0 border-b border-border bg-card">
@@ -130,7 +181,11 @@ export function ConversationHeader({
           <ContactAvatar display={display} />
         </AvatarLightbox>
 
-        <div className="min-w-0 flex-1">
+        {/* `overflow-hidden` keeps this block from contributing its chips'
+            intrinsic width to the header's min-content: `min-w-0` alone lets it
+            shrink, but the header would still *ask* for ~160px extra and push
+            the fiche off-screen. */}
+        <div className="min-w-0 flex-1 overflow-hidden">
           <div className="flex items-center gap-2">
             <h2 className="truncate text-sm font-semibold uppercase text-foreground">{display.name}</h2>
             {conversation.isSdrActive && (
@@ -182,15 +237,53 @@ export function ConversationHeader({
               </>
             )}
           </div>
+          {/* Line 2 already existed and already was a flex row — the company
+              chip is a SIBLING here, not a new line. Vertically the header
+              spends ~44px of its 64px, so nothing grows. */}
           <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+            {display.companyName && display.companyId ? (
+              <Link
+                to="/app/clientes/$id"
+                params={{ id: display.companyId }}
+                title={
+                  display.role
+                    ? `${display.companyName} · ${display.role}`
+                    : display.companyName
+                }
+                className="inline-flex min-w-0 items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary transition-colors hover:bg-primary/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+              >
+                <Icon icon="mdi:office-building" size={12} aria-hidden />
+                <span className="truncate">{display.companyName}</span>
+                {display.role && (
+                  <span className="hidden shrink-0 text-primary/70 @min-[46rem]:inline">
+                    · {display.role}
+                  </span>
+                )}
+              </Link>
+            ) : canLinkCompany ? (
+              // Same dashed vocabulary the Agenda uses for a loose contact, so
+              // anyone who has seen that screen recognises the state instantly.
+              <button
+                type="button"
+                onClick={() => setLinkOpen(true)}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-dashed border-severity-info bg-severity-info/10 px-2 py-0.5 text-[11px] font-medium text-severity-info transition-colors hover:bg-severity-info/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+              >
+                <Icon icon="mdi:link-variant-plus" size={12} aria-hidden />
+                {CONVERSATION_STRINGS.linkCompany.chip}
+              </button>
+            ) : null}
+            {/* `shrink-0`: it is the COMPANY that gives way when space runs out,
+                never the number. A truncated "+55 46 9919…" is worse than no
+                number at all, while the company name has a tooltip and a whole
+                ficha behind it. */}
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]",
+                "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px]",
                 channel.tone,
               )}
             >
-              <Icon icon={channel.icon} size={12} />
-              <span className="truncate">{channelSubtitle}</span>
+              <Icon icon={channel.icon} size={12} aria-label={channel.label} />
+              <span className="tabular-nums">{channelSubtitle}</span>
             </span>
           </div>
         </div>
@@ -200,7 +293,7 @@ export function ConversationHeader({
             <AssigneeChip
               seller={assignedSeller}
               variant="full"
-              className="mr-1 hidden lg:inline-flex"
+              className="mr-1 hidden @min-[46rem]:inline-flex"
             />
           )}
           <StatusControl
@@ -209,21 +302,45 @@ export function ConversationHeader({
             onChanged={onConversationUpdated}
           />
           <span className="mx-1 h-6 w-px bg-border" aria-hidden />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={ficheOpen ? "secondary" : "ghost"}
-                size="sm"
-                className="gap-1.5"
-                onClick={onToggleFiche}
-                aria-pressed={ficheOpen}
-              >
-                <Icon icon="mdi:account-details" size={14} />
-                <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleFiche}</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{CONVERSATION_STRINGS.toggleFiche}</TooltipContent>
-          </Tooltip>
+          {!ficheDisabled ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={ficheOpen ? "secondary" : "ghost"}
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={onToggleFiche}
+                  aria-pressed={ficheOpen}
+                >
+                  <Icon icon="mdi:account-details" size={14} />
+                  <span className="hidden @min-[52rem]:inline">
+                    {CONVERSATION_STRINGS.toggleFiche}
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{CONVERSATION_STRINGS.toggleFiche}</TooltipContent>
+            </Tooltip>
+          ) : (
+            // aria-disabled (not `disabled`) keeps the button focusable so the
+            // tooltip is reachable by keyboard/screen readers; no onClick = no-op.
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="cursor-not-allowed gap-1.5 opacity-50"
+                  aria-disabled="true"
+                  aria-label={CONVERSATION_STRINGS.ficheUnavailableTooltip}
+                >
+                  <Icon icon="mdi:account-details" size={14} />
+                  <span className="hidden @min-[52rem]:inline">
+                    {CONVERSATION_STRINGS.toggleFiche}
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{CONVERSATION_STRINGS.ficheUnavailableTooltip}</TooltipContent>
+            </Tooltip>
+          )}
           {onToggleMedia && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -235,7 +352,9 @@ export function ConversationHeader({
                   aria-pressed={mediaOpen}
                 >
                   <Icon icon="mdi:image-multiple-outline" size={14} />
-                  <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleMedia}</span>
+                  <span className="hidden @min-[52rem]:inline">
+                    {CONVERSATION_STRINGS.toggleMedia}
+                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{CONVERSATION_STRINGS.toggleMedia}</TooltipContent>
@@ -252,29 +371,15 @@ export function ConversationHeader({
                   aria-pressed={consultorOpen}
                 >
                   <Icon icon="mdi:magnify-scan" size={14} />
-                  <span className="hidden md:inline">{PART_LOOKUP_STRINGS.toggle}</span>
+                  <span className="hidden @min-[52rem]:inline">{PART_LOOKUP_STRINGS.toggle}</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{PART_LOOKUP_STRINGS.panelTitle}</TooltipContent>
             </Tooltip>
           )}
-          {onToggleHistory && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={historyOpen ? "secondary" : "ghost"}
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={onToggleHistory}
-                  aria-pressed={historyOpen}
-                >
-                  <Icon icon="mdi:history" size={14} />
-                  <span className="hidden md:inline">{CONVERSATION_STRINGS.toggleHistory}</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{CONVERSATION_STRINGS.toggleHistory}</TooltipContent>
-            </Tooltip>
-          )}
+          {/* No "Histórico" button here on purpose: the attendance timeline is
+              already one tab away inside the ficha (ProfileTabs → "Histórico"),
+              so a second entry point in the header was pure duplication. */}
           {pendingScheduled > 0 && (
             <span
               className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
@@ -315,6 +420,18 @@ export function ConversationHeader({
         area="band"
         onChanged={onConversationUpdated}
       />
+      {/* Reuses the Agenda's dialog rather than growing a second one: it already
+          runs its search under the caller's own RLS, so a seller can only ever
+          link to companies they legitimately reach. Mounted only while open, so
+          the contact fetch never runs for the vast majority of conversations
+          that already know their company. */}
+      {linkOpen && linkTargetQuery.data && (
+        <LinkCustomerDialog
+          contact={linkTargetQuery.data}
+          onClose={() => setLinkOpen(false)}
+          onConfirm={(contactRow, customerId) => void handleLinkCompany(contactRow, customerId)}
+        />
+      )}
     </header>
   );
 }

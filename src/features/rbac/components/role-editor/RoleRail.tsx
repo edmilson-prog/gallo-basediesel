@@ -427,12 +427,17 @@ function RoleActionsMenu({
 }) {
   if (!role) return null;
   const isCustom = !role.isSystem;
+  // Duplicating the Dono produced a clone with base `Owner` — listed in the
+  // assignment dropdown, then refused by the Edge with 403. Its permission set
+  // isn't copyable in any useful way either, since Owner's power comes from the
+  // base role, not from the matrix.
+  const canDuplicate = canCreate && !role.isOwnerImmutable;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuItem disabled={!canCreate} onSelect={() => onDuplicate(role)}>
+        <DropdownMenuItem disabled={!canDuplicate} onSelect={() => onDuplicate(role)}>
           <Icon icon="mdi:content-copy" size={15} />
           {ROLE_EDITOR_LABELS.actionDuplicate}
         </DropdownMenuItem>

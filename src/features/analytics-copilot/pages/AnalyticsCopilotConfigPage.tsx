@@ -103,7 +103,7 @@ export function AnalyticsCopilotConfigPage() {
       </div>
 
       {!canEdit && (
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+        <div className="rounded-md border border-severity-info/30 bg-severity-info/5 px-4 py-3 text-sm text-severity-info">
           <div className="flex items-center gap-2">
             <Icon icon="mdi:eye-outline" className="size-4" />
             <span>Você está em modo de visualização. A edição requer permissão de Owner.</span>

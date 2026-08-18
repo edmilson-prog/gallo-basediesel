@@ -1,6 +1,12 @@
 import type { IConversation, ID, ISeller, IWhatsAppAccount } from "@/shared/types";
 import type { ICollaboratorWithSeller } from "@/features/conversations/hooks/useConversationDetail";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { CustomerProfile } from "./CustomerProfile";
 import { useFicheLayout } from "../hooks/useFicheLayout";
@@ -59,6 +65,9 @@ export function CustomerProfileFiche({
         <SheetContent side="right" className="w-full max-w-sm overflow-hidden p-0 sm:max-w-md">
           <SheetHeader className="sr-only">
             <SheetTitle>Ficha do cliente</SheetTitle>
+            <SheetDescription>
+              Dados cadastrais, status, carteira e histórico do cliente.
+            </SheetDescription>
           </SheetHeader>
           <CustomerProfile
             customerId={customerId}
@@ -81,7 +90,7 @@ export function CustomerProfileFiche({
   return (
     <aside
       className={cn(
-        "hidden h-full shrink-0 transition-[width] duration-200 ease-in-out xl:block",
+        "hidden h-full shrink-0 transition-[width] duration-200 ease-in-out min-[1440px]:block",
         open ? "w-[360px]" : "w-0 overflow-hidden",
       )}
       aria-hidden={!open}

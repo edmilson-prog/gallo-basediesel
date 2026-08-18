@@ -5,7 +5,7 @@ import { QuickRepliesPage } from "@/features/quick-send";
 
 export const Route = createFileRoute("/app/configuracoes/respostas-rapidas")({
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner", "Gestor", "Vendedor", "SDR"]),
+    requireAuth(location.pathname, undefined, { resource: "quick_reply", action: "view" }),
   component: () => (
     <SettingsLayout>
       <QuickRepliesPage />

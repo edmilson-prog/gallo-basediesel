@@ -35,7 +35,7 @@ export const EXECUTIVE_COCKPIT_STRINGS = {
   kpiConversionRate: "Conversão orçamento→pedido",
   kpiPendingCommissions: "Comissões a pagar",
   kpiNps: "NPS",
-  kpiNpsSoon: "Em breve",
+  kpiNpsCollecting: (n: number, min: number) => `Coletando (${n}/${min})`,
 
   // KPI help (tooltips)
   kpiRevenueHelp: "Receita total de pedidos pagos no período selecionado.",
@@ -54,7 +54,8 @@ export const EXECUTIVE_COCKPIT_STRINGS = {
   kpiConversionRateHelp: "Percentual de orçamentos que viraram pedido no período.",
   kpiPendingCommissionsHelp:
     "Total de comissões a pagar aos vendedores no período. Valor estimado.",
-  kpiNpsHelp: "Índice de satisfação dos clientes (Net Promoter Score). Disponível em breve.",
+  kpiNpsHelp:
+    "Net Promoter Score das conversas resolvidas nos últimos 90 dias. O score só aparece a partir de 5 respostas — abaixo disso, o número enganaria mais do que informaria.",
 
   kpiVsPrevious: "vs período anterior",
   kpiVsYoY: "vs ano anterior",

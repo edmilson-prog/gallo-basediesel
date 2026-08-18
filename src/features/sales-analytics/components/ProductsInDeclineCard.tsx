@@ -20,7 +20,7 @@ export function ProductsInDeclineCard({ rows }: IProductsInDeclineCardProps) {
           </h3>
           <p className="text-xs text-muted-foreground">{S.productsInDeclineHelp}</p>
         </div>
-        <Icon icon="mdi:alert-decagram-outline" size={20} className="text-amber-600" />
+        <Icon icon="mdi:alert-decagram-outline" size={20} className="text-severity-warning" />
       </header>
       {rows.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">{S.productsInDeclineEmpty}</p>
@@ -40,7 +40,7 @@ export function ProductsInDeclineCard({ rows }: IProductsInDeclineCardProps) {
                   <span className="font-mono text-xs text-muted-foreground">{row.sku}</span>
                 </div>
                 <div className="flex flex-col items-end">
-                  <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                  <span className="text-sm font-medium text-severity-critical">
                     {row.trendPctValue !== null
                       ? `${row.trendPctValue > 0 ? "+" : ""}${row.trendPctValue}%`
                       : "—"}

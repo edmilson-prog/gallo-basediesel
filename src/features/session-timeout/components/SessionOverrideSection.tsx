@@ -5,7 +5,6 @@ import { useCurrentStore } from "@/features/multistore";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 
 interface ISessionOverrideSectionProps {
   /** null = inherit global policy; object = full per-user override snapshot. */
@@ -122,18 +121,13 @@ export function SessionOverrideSection({ value, onChange }: ISessionOverrideSect
             />
           </div>
 
-          <div className="space-y-1">
-            <Label>Intensidade do som</Label>
-            <Slider
-              value={[cfg.soundVolume]}
-              min={0}
-              max={1}
-              step={0.05}
-              onValueChange={(v) => patch({ soundVolume: v[0] ?? cfg.soundVolume })}
-              aria-label="Intensidade do som"
-              disabled={!cfg.enabled}
-            />
-          </div>
+          <p className="text-xs text-muted-foreground">
+            O som do aviso é configurado em{" "}
+            <a href="/app/configuracoes/sons" className="underline">
+              Sons de notificação
+            </a>
+            .
+          </p>
         </div>
       )}
     </div>

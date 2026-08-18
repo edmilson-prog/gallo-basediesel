@@ -34,7 +34,14 @@ describe("buildIntegrationKeyCatalog", () => {
   it("always includes the Resend and webhook app-level groups", () => {
     const groups = buildIntegrationKeyCatalog([]);
     const ids = groups.map((group) => group.id);
-    expect(ids).toEqual(["resend", "whatsapp-webhook", "llm-providers", "melhor-envio"]);
+    expect(ids).toEqual([
+      "resend",
+      "whatsapp-webhook",
+      "llm-providers",
+      "melhor-envio",
+      "mercado-pago",
+      "fiscal-notes",
+    ]);
 
     const resend = groups[0];
     expect(resend?.keys.map((key) => key.name)).toEqual([
@@ -77,6 +84,52 @@ describe("buildIntegrationKeyCatalog", () => {
     ]);
   });
 
+  it("inclui o grupo Pagamentos — Mercado Pago com chaves por ambiente (produção + teste)", () => {
+    const groups = buildIntegrationKeyCatalog([]);
+    const mp = groups.find((group) => group.id === "mercado-pago");
+    expect(mp).toBeDefined();
+    expect(mp!.keys.map((key) => key.name)).toEqual([
+      "MERCADO_PAGO_ACCESS_TOKEN",
+      "MERCADO_PAGO_PUBLIC_KEY",
+      "MERCADO_PAGO_TEST_ACCESS_TOKEN",
+      "MERCADO_PAGO_TEST_PUBLIC_KEY",
+      "MERCADO_PAGO_WEBHOOK_SECRET",
+    ]);
+    // Access tokens and the signature secret are sensitive; public keys are meant
+    // to reach the browser, so they follow the plain-config path.
+    const secretNames = mp!.keys.filter((key) => key.kind === "secret").map((key) => key.name);
+    expect(secretNames).toEqual([
+      "MERCADO_PAGO_ACCESS_TOKEN",
+      "MERCADO_PAGO_TEST_ACCESS_TOKEN",
+      "MERCADO_PAGO_WEBHOOK_SECRET",
+    ]);
+  });
+
+  it("inclui o grupo NF-e com as credenciais das origens automáticas", () => {
+    const groups = buildIntegrationKeyCatalog([]);
+    const fiscal = groups.find((group) => group.id === "fiscal-notes");
+    expect(fiscal).toBeDefined();
+    expect(fiscal!.keys.map((key) => key.name)).toEqual([
+      "FISCAL_INBOX_CREDENTIAL",
+      "SEFAZ_A1_CERTIFICATE",
+    ]);
+    // Credencial de caixa e certificado A1 são material sensível: nenhum dos
+    // dois é config de exibição.
+    expect(fiscal!.keys.every((key) => key.kind === "secret")).toBe(true);
+  });
+
+  it("não expõe o segredo do agendador da NF-e — worker secret é infra, não chave de integração", () => {
+    // Os seis worker secrets do projeto (NPS, SDR, push, scheduled, rescue e
+    // este) vivem nos env secrets da Edge Function, ao lado do agendador que os
+    // envia. Colocar um deles na tela sugeriria que o Owner deve girá-lo por
+    // ali, e o agendador ficaria para trás.
+    const names = buildIntegrationKeyCatalog([]).flatMap((group) =>
+      group.keys.map((key) => key.name),
+    );
+    expect(names).not.toContain("FISCAL_INBOX_WORKER_SECRET");
+    expect(names.some((name) => name.endsWith("_WORKER_SECRET"))).toBe(false);
+  });
+
   it("derives Meta account keys from credentials_ref (engine convention)", () => {
     const groups = buildIntegrationKeyCatalog([META_ACCOUNT]);
     const accountGroup = groups.find((group) => group.id === "account-wa-meta-1");
@@ -107,6 +160,8 @@ describe("buildIntegrationKeyCatalog", () => {
       "whatsapp-webhook",
       "llm-providers",
       "melhor-envio",
+      "mercado-pago",
+      "fiscal-notes",
     ]);
   });
 

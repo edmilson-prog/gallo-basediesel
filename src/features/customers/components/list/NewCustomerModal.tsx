@@ -1,17 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
-import type { ICustomer, ID, ISeller } from "@/shared/types";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ICustomer, ICustomerB2B, ICustomerB2C, ID, ISeller } from "@/shared/types";
+import type { ICustomerDocumentMatch } from "@/providers/data";
+import { useCustomersProvider } from "@/providers/data";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -21,16 +19,28 @@ import {
 } from "@/components/ui/select";
 import { Icon } from "@/components/Icon";
 import { useDebounce } from "@/shared/hooks/useDebounce";
-import {
-  formatCnpj,
-  formatCpf,
-  formatPhone,
-  isValidCnpj,
-  isValidCpf,
-  isValidPhone,
-  onlyDigits,
-} from "../../utils/cnpjCpf";
+import { formatCnpj, formatCpf, formatPhone, isValidPhone, onlyDigits } from "../../utils/cnpjCpf";
 import { useMinhaReceita } from "../../hooks/useMinhaReceita";
+import type { ICnpjCompany } from "../../utils/minhaReceitaMapper";
+import {
+  canSubmitDocument,
+  deriveDocState,
+  documentLength,
+  offersManualFill,
+} from "../../engine/newCustomerLookup";
+import { CUSTOMER_STRINGS } from "../../i18n/pt-BR";
+import { CustomerTypeCard } from "./new-customer/CustomerTypeCard";
+import { NewCustomerField } from "./new-customer/NewCustomerField";
+import { LookupStatusLine } from "./new-customer/LookupStatusLine";
+import { ReceitaPanel } from "./new-customer/ReceitaPanel";
+import { DuplicatePanel } from "./new-customer/DuplicatePanel";
+
+const COPY = CUSTOMER_STRINGS.newCustomer;
+
+/** How long an autofilled field stays highlighted. */
+const FLASH_MS = 1600;
+/** Keystroke settle time before the Receita and duplicate lookups fire. */
+const LOOKUP_DEBOUNCE_MS = 450;
 
 export interface INewCustomerModalProps {
   open: boolean;
@@ -40,13 +50,22 @@ export interface INewCustomerModalProps {
   storeId: ID;
   onClose: () => void;
   onSubmit: (input: Omit<ICustomer, "id" | "createdAt" | "notes">) => Promise<void>;
+  /** Opens the ficha of a customer the duplicate guard found. */
+  onOpenCustomer?: (id: ID) => void;
 }
 
 type CustomerType = ICustomer["type"];
+type FlashKey = "name" | "phone" | "email";
 
-/** Visual validation state for the document field (drives icon + message). */
-type DocFieldState = "idle" | "checking" | "valid" | "invalid" | "warning";
-
+/**
+ * Cadastro rápido de cliente.
+ *
+ * The document leads the form because it is what fills the rest of it: a CNPJ
+ * brings razão social, endereço, CNAE and (often) telefone straight from the
+ * Receita, so asking for the name first would be asking the user to type what
+ * the form is about to know anyway. Everything downstream — the status line,
+ * the Receita panel, the duplicate block — reports on that one field.
+ */
 export function NewCustomerModal({
   open,
   sellers,
@@ -55,16 +74,33 @@ export function NewCustomerModal({
   storeId,
   onClose,
   onSubmit,
+  onOpenCustomer,
 }: INewCustomerModalProps) {
+  const customersProvider = useCustomersProvider();
+
   const [type, setType] = useState<CustomerType>("B2B");
-  const [name, setName] = useState("");
   const [document, setDocument] = useState("");
+  const [name, setName] = useState("");
+  const [contactName, setContactName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [sellerId, setSellerId] = useState<ID | "">(defaultSellerId ?? "");
-  const [contactName, setContactName] = useState("");
+  const [manual, setManual] = useState(false);
+  const [flash, setFlash] = useState<Partial<Record<FlashKey, boolean>>>({});
+  const [duplicates, setDuplicates] = useState<ICustomerDocumentMatch[]>([]);
+  const [duplicateChecking, setDuplicateChecking] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const documentRef = useRef<HTMLInputElement>(null);
+  // Autofill must only write into fields that are still empty, and it runs from
+  // inside the lookup effect — reading state through a ref keeps the effect off
+  // the name/phone/email dependency list, which would re-fire it per keystroke.
+  const currentValues = useRef({ name, phone, email });
+  currentValues.current = { name, phone, email };
+  // What the user is looking at RIGHT NOW, as opposed to what the debounced
+  // lookup was fired for — an answer that lands after the field moved on (kept
+  // typing, switched type, closed and reopened the modal) must not autofill.
+  const liveDigits = useRef("");
 
   const {
     lookup: lookupCnpj,
@@ -72,124 +108,196 @@ export function NewCustomerModal({
     status: cnpjStatus,
     data: cnpjData,
   } = useMinhaReceita();
-  const debouncedDocument = useDebounce(document, 500);
+  const debouncedDocument = useDebounce(document, LOOKUP_DEBOUNCE_MS);
+
+  const digits = onlyDigits(document);
+  liveDigits.current = digits;
+  const debouncedDigits = onlyDigits(debouncedDocument);
+  const complete = digits.length === documentLength(type);
+
+  // True while the debounced lookups still describe the PREVIOUS document.
+  // Trusting them inside that window is how a pasted duplicate slips through.
+  const lookupsPending = complete && (digits !== debouncedDigits || duplicateChecking);
+
+  const docState = deriveDocState({
+    type,
+    digits,
+    pending: lookupsPending,
+    cnpjStatus,
+    duplicateFound: duplicates.length > 0,
+    manual,
+  });
+
+  const resetForm = useCallback(() => {
+    setType("B2B");
+    setDocument("");
+    setName("");
+    setContactName("");
+    setPhone("");
+    setEmail("");
+    setSellerId(defaultSellerId ?? "");
+    setManual(false);
+    setFlash({});
+    setDuplicates([]);
+    setDuplicateChecking(false);
+    resetCnpj();
+  }, [defaultSellerId, resetCnpj]);
 
   useEffect(() => {
-    if (open) {
-      setType("B2B");
-      setName("");
-      setDocument("");
-      setPhone("");
-      setEmail("");
-      setSellerId(defaultSellerId ?? "");
-      setContactName("");
-      setErrors({});
-      resetCnpj();
-    }
-  }, [open, defaultSellerId, resetCnpj]);
+    if (open) resetForm();
+  }, [open, resetForm]);
 
-  // CNPJ lookup against Minha Receita once a valid 14-digit number is typed.
-  // Autofill only happens into empty fields so the user's input is never lost.
+  // The document is the field that fills the rest of the form, so that is where
+  // the cursor starts — and where it goes back to when switching type swaps the
+  // input out. Deferred a tick so the dialog's own initial focus lands first.
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(() => documentRef.current?.focus(), 0);
+    return () => clearTimeout(timer);
+  }, [open, type]);
+
+  /** Fills the empty fields the Receita can answer for, and says which it touched. */
+  const applyCompany = useCallback((company: ICnpjCompany) => {
+    const touched: Partial<Record<FlashKey, boolean>> = {};
+    const { name: currentName, phone: currentPhone, email: currentEmail } = currentValues.current;
+
+    const filledName = company.nomeFantasia || company.razaoSocial;
+    if (!currentName.trim() && filledName) {
+      setName(filledName);
+      touched.name = true;
+    }
+    if (!currentPhone.trim() && company.phone) {
+      setPhone(formatPhone(company.phone));
+      touched.phone = true;
+    }
+    if (!currentEmail.trim() && company.email) {
+      setEmail(company.email);
+      touched.email = true;
+    }
+    if (Object.keys(touched).length > 0) setFlash(touched);
+  }, []);
+
+  useEffect(() => {
+    if (Object.keys(flash).length === 0) return;
+    const timer = setTimeout(() => setFlash({}), FLASH_MS);
+    return () => clearTimeout(timer);
+  }, [flash]);
+
+  // Receita lookup — CNPJ only, once the checksum passes.
   useEffect(() => {
     if (type !== "B2B") {
       resetCnpj();
       return;
     }
-    const digits = onlyDigits(debouncedDocument);
-    if (digits.length !== 14 || !isValidCnpj(debouncedDocument)) {
+    const target = onlyDigits(debouncedDocument);
+    if (target.length !== documentLength("B2B")) {
       resetCnpj();
       return;
     }
     let active = true;
-    void lookupCnpj(debouncedDocument).then((company) => {
-      if (!active || !company) return;
-      const filled = company.razaoSocial || company.nomeFantasia;
-      if (filled) setName((prev) => (prev.trim() ? prev : filled));
+    void lookupCnpj(target).then((company) => {
+      // `active` alone isn't enough: reopening the modal remounts nothing, so
+      // the effect never tears down and a lookup fired for the previous CNPJ
+      // would autofill the freshly reset form.
+      if (active && company && liveDigits.current === target) applyCompany(company);
     });
     return () => {
       active = false;
     };
-  }, [debouncedDocument, type, lookupCnpj, resetCnpj]);
+  }, [debouncedDocument, type, lookupCnpj, resetCnpj, applyCompany]);
 
-  // Document field visual state: instant for CPF, API-driven for CNPJ.
-  const docState = useMemo<DocFieldState>(() => {
-    const digits = onlyDigits(document);
-    if (type === "B2C") {
-      if (digits.length < 11) return "idle";
-      return isValidCpf(document) ? "valid" : "invalid";
+  // Duplicate guard. Runs off a SECURITY DEFINER RPC rather than a customers
+  // search on purpose: `customers_select` hides other sellers' customers from a
+  // non-staff caller, so a plain search would answer "none" and the duplicate
+  // would be created anyway.
+  useEffect(() => {
+    const target = onlyDigits(debouncedDocument);
+    // Every exit path must clear `duplicateChecking`: the cleanup below flips
+    // `active` to false, so an early return that skipped the reset would latch
+    // the flag at true and hold the form in "loading" for good.
+    if (target.length !== documentLength(type)) {
+      setDuplicates([]);
+      setDuplicateChecking(false);
+      return;
     }
-    if (digits.length < 14) return "idle";
-    if (!isValidCnpj(document)) return "invalid";
-    if (cnpjStatus === "loading") return "checking";
-    if (cnpjStatus === "invalid") return "invalid";
-    if (cnpjStatus === "error") return "warning";
-    if (cnpjStatus === "success") return "valid";
-    return "checking";
-  }, [type, document, cnpjStatus]);
+    let active = true;
+    setDuplicateChecking(true);
+    void customersProvider
+      .findByDocument(target)
+      .then((rows) => {
+        if (active) setDuplicates(rows);
+      })
+      .catch(() => {
+        // Fail open: a guard outage must not block a legitimate cadastro.
+        if (active) setDuplicates([]);
+      })
+      .finally(() => {
+        if (active) setDuplicateChecking(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [debouncedDocument, type, customersProvider]);
 
-  // Local gate for submit: a network failure (warning) must not block, a
-  // 404 (invalid) must. CPF is purely local.
-  const documentValid = useMemo(() => {
-    if (type === "B2C") return isValidCpf(document);
-    if (!isValidCnpj(document)) return false;
-    return cnpjStatus !== "invalid";
-  }, [type, document, cnpjStatus]);
+  const handleTypeChange = (next: CustomerType) => {
+    if (next === type) return;
+    setType(next);
+    setDocument("");
+    setManual(false);
+    setDuplicates([]);
+    setDuplicateChecking(false);
+    resetCnpj();
+  };
 
-  const cnpjChecking = type === "B2B" && cnpjStatus === "loading";
-
+  const isDuplicate = docState === "duplicate";
+  const phoneTouched = onlyDigits(phone).length > 0;
   const phoneValid = useMemo(() => isValidPhone(phone), [phone]);
+  const receitaCompany = type === "B2B" && docState === "done" ? cnpjData : null;
 
   const formValid =
     name.trim().length > 0 &&
-    documentValid &&
+    canSubmitDocument(docState) &&
     phoneValid &&
     sellerId !== "" &&
     (type === "B2C" || contactName.trim().length > 0);
 
-  const documentLabel = type === "B2B" ? "CNPJ" : "CPF";
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formValid) {
-      const next: Record<string, string> = {};
-      if (!name.trim()) next.name = "Obrigatório.";
-      if (!documentValid) {
-        if (type === "B2C") next.document = "CPF inválido.";
-        else if (cnpjStatus === "invalid") next.document = "CNPJ não encontrado na Receita.";
-        else next.document = "CNPJ inválido.";
-      }
-      if (!phoneValid) next.phone = "Telefone inválido.";
-      if (sellerId === "") next.seller = "Selecione um vendedor.";
-      if (type === "B2B" && !contactName.trim()) next.contactName = "Obrigatório.";
-      setErrors(next);
-      return;
-    }
+    if (!formValid || isSubmitting) return;
     setIsSubmitting(true);
     try {
       const base = {
         storeId,
-        phone: phone.replace(/\D/g, ""),
+        phone: onlyDigits(phone),
         email: email.trim() || undefined,
         sellerId: sellerId as ID,
         status: "ativo" as const,
         tags: [],
+        // The Receita's address is the one piece of the lookup that has nowhere
+        // to show on this form — it goes straight to the ficha.
+        address: receitaCompany?.address,
       };
-      const input: Omit<ICustomer, "id" | "createdAt" | "notes"> =
+      // `Omit` does not distribute over a union, so `Omit<ICustomer, …>`
+      // collapses to the shared base fields and would reject `cnpj`/`cpf` here.
+      // Checking each branch against its own variant keeps the fields typed.
+      const input =
         type === "B2B"
-          ? {
+          ? ({
               ...base,
               type: "B2B",
-              cnpj: document.replace(/\D/g, ""),
-              razaoSocial: name.trim(),
+              cnpj: onlyDigits(document),
+              // Razão social is the Receita's, never the user's — the field on
+              // screen is the nome fantasia, which is what the CRM displays.
+              razaoSocial: receitaCompany?.razaoSocial || name.trim(),
               nomeFantasia: name.trim(),
               contactName: contactName.trim(),
-            }
-          : {
+            } satisfies Omit<ICustomerB2B, "id" | "createdAt" | "notes">)
+          : ({
               ...base,
               type: "B2C",
-              cpf: document.replace(/\D/g, ""),
+              cpf: onlyDigits(document),
               fullName: name.trim(),
-            };
+            } satisfies Omit<ICustomerB2C, "id" | "createdAt" | "notes">);
       await onSubmit(input);
       onClose();
     } finally {
@@ -197,207 +305,247 @@ export function NewCustomerModal({
     }
   };
 
+  const documentAdornment =
+    {
+      loading: (
+        <span
+          aria-hidden="true"
+          className="size-[15px] animate-spin rounded-full border-2 border-primary/25 border-t-primary motion-reduce:animate-none"
+        />
+      ),
+      done: <Icon icon="mdi:check-decagram" size={16} className="text-severity-success" />,
+      manual: <Icon icon="mdi:pencil-outline" size={16} className="text-muted-foreground" />,
+      invalid: (
+        <Icon icon="mdi:alert-circle-outline" size={16} className="text-severity-critical" />
+      ),
+      notfound: (
+        <Icon icon="mdi:magnify-remove-outline" size={16} className="text-severity-critical" />
+      ),
+      error: <Icon icon="mdi:wifi-off" size={16} className="text-primary" />,
+      duplicate: <Icon icon="mdi:account-check-outline" size={16} className="text-primary" />,
+      idle: null,
+      typing: null,
+    }[docState] ?? null;
+
+  const documentFallbackIcon =
+    type === "B2B" ? (
+      <Icon icon="mdi:magnify" size={15} className="text-muted-foreground/70" />
+    ) : (
+      <Icon
+        icon="mdi:card-account-details-outline"
+        size={15}
+        className="text-muted-foreground/70"
+      />
+    );
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <DialogHeader>
-            <DialogTitle>Novo cliente</DialogTitle>
-            <DialogDescription>
-              Cadastro rápido — você poderá completar endereço e dados extras na ficha após criar.
+      <DialogContent className="max-w-[600px] gap-0 overflow-hidden p-0">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader className="px-[22px] pr-12 pt-[18px] text-left">
+            <DialogTitle className="font-display text-[21px] font-extrabold uppercase leading-none tracking-[0.02em] text-foreground">
+              {COPY.title}
+            </DialogTitle>
+            <DialogDescription className="text-[12.5px] text-muted-foreground">
+              {COPY.subtitle}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>Tipo</Label>
-              <RadioGroup
-                value={type}
-                onValueChange={(v) => {
-                  setType(v as CustomerType);
-                  setDocument("");
-                  setErrors((prev) => ({ ...prev, document: "" }));
-                }}
-                className="grid grid-cols-2 gap-2"
-              >
-                <label className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-accent">
-                  <RadioGroupItem value="B2B" />
-                  <span>Pessoa jurídica (CNPJ)</span>
-                </label>
-                <label className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-accent">
-                  <RadioGroupItem value="B2C" />
-                  <span>Pessoa física (CPF)</span>
-                </label>
-              </RadioGroup>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="customer-name">
-                {type === "B2B" ? "Razão social / Nome fantasia" : "Nome completo"}
-              </Label>
-              <Input
-                id="customer-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={type === "B2B" ? "Frota XYZ Ltda" : "Maria Santos"}
+          <div className="grid gap-3.5 px-[22px] pt-4">
+            <div role="radiogroup" aria-label={COPY.typeLegend} className="flex gap-2.5">
+              <CustomerTypeCard
+                active={type === "B2B"}
+                icon="mdi:office-building-outline"
+                title={COPY.typePj.title}
+                subtitle={COPY.typePj.subtitle}
+                onClick={() => handleTypeChange("B2B")}
               />
-              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+              <CustomerTypeCard
+                active={type === "B2C"}
+                icon="mdi:account-outline"
+                title={COPY.typePf.title}
+                subtitle={COPY.typePf.subtitle}
+                onClick={() => handleTypeChange("B2C")}
+              />
             </div>
 
-            {type === "B2B" && (
-              <div className="space-y-1.5">
-                <Label htmlFor="customer-contact">Contato principal</Label>
-                <Input
-                  id="customer-contact"
-                  value={contactName}
-                  onChange={(e) => setContactName(e.target.value)}
-                  placeholder="Nome do responsável"
-                />
-                {errors.contactName && (
-                  <p className="text-xs text-destructive">{errors.contactName}</p>
+            {type === "B2B" ? (
+              <NewCustomerField
+                ref={documentRef}
+                id="customer-document"
+                label={COPY.cnpj.label}
+                note={COPY.cnpj.note}
+                mono
+                inputMode="numeric"
+                value={document}
+                onChange={(v) => setDocument(formatCnpj(v))}
+                placeholder="00.000.000/0000-00"
+                invalid={docState === "invalid" || docState === "notfound"}
+                describedBy="customer-document-status"
+                adornment={documentAdornment ?? documentFallbackIcon}
+              >
+                <LookupStatusLine id="customer-document-status" state={docState} type={type} />
+                {offersManualFill(docState) && (
+                  <button
+                    type="button"
+                    onClick={() => setManual(true)}
+                    className="mt-1.5 cursor-pointer text-xs font-bold text-primary hover:underline"
+                  >
+                    {COPY.manualFillCta}
+                  </button>
                 )}
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="customer-document">{documentLabel}</Label>
-                <div className="relative">
-                  <Input
-                    id="customer-document"
-                    inputMode="numeric"
-                    className="pr-9"
-                    value={document}
-                    aria-invalid={docState === "invalid"}
-                    aria-describedby="customer-document-msg"
-                    onChange={(e) => {
-                      setDocument(
-                        type === "B2B" ? formatCnpj(e.target.value) : formatCpf(e.target.value),
-                      );
-                      if (errors.document) setErrors((prev) => ({ ...prev, document: "" }));
-                    }}
-                    placeholder={type === "B2B" ? "00.000.000/0000-00" : "000.000.000-00"}
-                  />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                    {docState === "checking" && (
-                      <Icon
-                        icon="mdi:loading"
-                        size={16}
-                        className="animate-spin text-muted-foreground motion-reduce:animate-none"
-                      />
-                    )}
-                    {docState === "valid" && (
-                      <Icon icon="mdi:check-circle" size={16} className="text-success" />
-                    )}
-                    {docState === "invalid" && (
-                      <Icon icon="mdi:alert-circle" size={16} className="text-destructive" />
-                    )}
-                    {docState === "warning" && (
-                      <Icon icon="mdi:cloud-alert-outline" size={16} className="text-warning" />
-                    )}
-                  </span>
-                </div>
-                <div id="customer-document-msg" className="min-h-4" aria-live="polite">
-                  {docState === "checking" && (
-                    <p className="text-xs text-muted-foreground">Consultando Receita…</p>
-                  )}
-                  {docState === "valid" && type === "B2C" && (
-                    <p className="text-xs text-success">CPF válido.</p>
-                  )}
-                  {docState === "invalid" && (
-                    <p role="alert" className="text-xs text-destructive">
-                      {type === "B2C"
-                        ? "CPF inválido."
-                        : cnpjStatus === "invalid"
-                          ? "CNPJ não encontrado na Receita."
-                          : "CNPJ inválido."}
-                    </p>
-                  )}
-                  {docState === "idle" && errors.document && (
-                    <p role="alert" className="text-xs text-destructive">
-                      {errors.document}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="customer-phone">Telefone</Label>
-                <Input
-                  id="customer-phone"
-                  inputMode="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(formatPhone(e.target.value))}
-                  placeholder="(55) 99800-0000"
-                />
-                <div className="min-h-4">
-                  {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
-                </div>
-              </div>
-            </div>
-
-            {type === "B2B" && docState === "valid" && cnpjData?.razaoSocial && (
-              <p className="inline-flex items-center gap-1.5 rounded-md bg-success/10 px-2.5 py-1.5 text-xs text-success">
-                <Icon icon="mdi:office-building-outline" size={14} />
-                <span className="font-medium">{cnpjData.razaoSocial}</span>
-              </p>
-            )}
-
-            {type === "B2B" && docState === "warning" && (
-              <div className="flex flex-wrap items-center gap-2 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning">
-                <Icon icon="mdi:cloud-alert-outline" size={14} />
-                <span>Não foi possível validar o CNPJ na Receita agora.</span>
-                <button
-                  type="button"
-                  onClick={() => void lookupCnpj(document)}
-                  className="inline-flex items-center gap-1 font-medium underline underline-offset-2 hover:no-underline"
-                >
-                  <Icon icon="mdi:refresh" size={14} />
-                  Tentar novamente
-                </button>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <Label htmlFor="customer-email">Email (opcional)</Label>
-              <Input
-                id="customer-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="cliente@empresa.com"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="customer-seller">Vendedor responsável</Label>
-              <Select
-                value={sellerId === "" ? undefined : sellerId}
-                onValueChange={(v) => setSellerId(v)}
-                disabled={sellerLocked}
+              </NewCustomerField>
+            ) : (
+              <NewCustomerField
+                ref={documentRef}
+                id="customer-document"
+                label={COPY.cpf.label}
+                mono
+                inputMode="numeric"
+                value={document}
+                onChange={(v) => setDocument(formatCpf(v))}
+                placeholder="000.000.000-00"
+                invalid={docState === "invalid"}
+                describedBy="customer-document-status"
+                adornment={documentAdornment ?? documentFallbackIcon}
               >
-                <SelectTrigger id="customer-seller">
-                  <SelectValue placeholder="Selecionar…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sellers.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.fullName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.seller && <p className="text-xs text-destructive">{errors.seller}</p>}
-            </div>
+                {docState === "invalid" || docState === "loading" ? (
+                  <LookupStatusLine id="customer-document-status" state={docState} type={type} />
+                ) : (
+                  <div
+                    id="customer-document-status"
+                    className="mt-[7px] flex min-h-4 items-center gap-[7px] text-muted-foreground"
+                  >
+                    <Icon icon="mdi:information-outline" size={13} className="shrink-0" />
+                    <span className="text-xs">{COPY.cpf.hint}</span>
+                  </div>
+                )}
+              </NewCustomerField>
+            )}
+
+            {receitaCompany && <ReceitaPanel company={receitaCompany} />}
+            {isDuplicate && (
+              <DuplicatePanel
+                matches={duplicates}
+                onOpenCustomer={(id) => {
+                  onOpenCustomer?.(id);
+                  onClose();
+                }}
+              />
+            )}
+
+            {/* A duplicate ends the form: there is nothing left to fill in. */}
+            {!isDuplicate && (
+              <>
+                <div className="grid grid-cols-1 gap-x-3 gap-y-3.5 sm:grid-cols-2">
+                  <NewCustomerField
+                    id="customer-name"
+                    label={type === "B2B" ? COPY.fields.nameB2B : COPY.fields.nameB2C}
+                    note={type === "B2B" ? COPY.fields.nameB2BNote : null}
+                    flash={flash.name}
+                    value={name}
+                    onChange={setName}
+                    placeholder={
+                      type === "B2B"
+                        ? COPY.fields.nameB2BPlaceholder
+                        : COPY.fields.nameB2CPlaceholder
+                    }
+                  />
+                  {type === "B2B" && (
+                    <NewCustomerField
+                      id="customer-contact"
+                      label={COPY.fields.contact}
+                      value={contactName}
+                      onChange={setContactName}
+                      placeholder={COPY.fields.contactPlaceholder}
+                    />
+                  )}
+                  <NewCustomerField
+                    id="customer-phone"
+                    label={COPY.fields.phone}
+                    flash={flash.phone}
+                    inputMode="tel"
+                    value={phone}
+                    onChange={(v) => setPhone(formatPhone(v))}
+                    placeholder={COPY.fields.phonePlaceholder}
+                    invalid={phoneTouched && !phoneValid}
+                    describedBy="customer-phone-error"
+                  >
+                    <div id="customer-phone-error" className="min-h-4" aria-live="polite">
+                      {phoneTouched && !phoneValid && (
+                        <p className="mt-1 text-[11px] font-semibold text-severity-critical">
+                          {COPY.errors.invalidPhone}
+                        </p>
+                      )}
+                    </div>
+                  </NewCustomerField>
+                  <NewCustomerField
+                    id="customer-email"
+                    label={COPY.fields.email}
+                    note={COPY.fields.emailNote}
+                    flash={flash.email}
+                    type="email"
+                    inputMode="email"
+                    value={email}
+                    onChange={setEmail}
+                    placeholder={COPY.fields.emailPlaceholder}
+                  />
+                </div>
+
+                <div className="min-w-0">
+                  <div className="mb-1.5 flex items-baseline gap-[7px]">
+                    <label
+                      htmlFor="customer-seller"
+                      className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground"
+                    >
+                      {COPY.fields.seller}
+                    </label>
+                  </div>
+                  <Select
+                    value={sellerId === "" ? undefined : sellerId}
+                    onValueChange={(v) => setSellerId(v)}
+                    disabled={sellerLocked}
+                  >
+                    <SelectTrigger
+                      id="customer-seller"
+                      className="h-auto rounded-[7px] border-border bg-muted/40 px-3 py-2.5 text-sm font-semibold focus:border-primary focus:ring-[3px] focus:ring-primary/15"
+                    >
+                      <SelectValue placeholder={COPY.fields.sellerPlaceholder} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sellers.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.fullName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
+          <div className="mt-1 flex items-center gap-2.5 px-[22px] pb-[18px] pt-4">
+            <span className="flex-1 text-[11.5px] text-muted-foreground/70">
+              {isDuplicate ? COPY.duplicate.blocked : COPY.footerHint}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="font-display text-[13px] font-bold uppercase tracking-[0.045em]"
+            >
+              {COPY.cancel}
             </Button>
-            <Button type="submit" disabled={!formValid || isSubmitting || cnpjChecking}>
-              {isSubmitting ? "Criando…" : cnpjChecking ? "Validando CNPJ…" : "Criar cliente"}
+            <Button
+              type="submit"
+              disabled={!formValid || isSubmitting}
+              className="gap-1.5 font-display text-[13px] font-bold uppercase tracking-[0.045em]"
+            >
+              <Icon icon="mdi:account-plus-outline" size={14} />
+              {isSubmitting ? COPY.submitting : COPY.submit}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

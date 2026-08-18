@@ -94,6 +94,47 @@ A partir do PRD-211 os papéis e permissões deixaram de ser apenas constantes e
 
 ---
 
+## Telas de Configurações
+
+As 47 telas sob `/app/configuracoes` são governadas por dois portões que precisam
+concordar: a entrada em `SETTINGS_GROUPS` (`SettingsLayout.tsx`) e o `beforeLoad`
+da rota. Quando divergem, o usuário ganha um **beco**: o item aparece no menu e o
+clique cai em `/sem-permissao`.
+
+> ⚠️ **Nunca empilhe `roles` e `permission` no mesmo `requireAuth`.**
+> `requireAuth(pathname, roles, permission)` exige os **dois**, e a allowlist
+> compara o **papel-base**, não o papel customizado. Um papel com base `Gestor`
+> jamais passa num `["Owner"]`, por mais que a matriz conceda — o resultado é uma
+> permissão **inerte**, que o Editor de Papéis só consegue restringir, nunca
+> conceder. `SettingsLayout.routeParity.test.ts` falha se isso reaparecer.
+
+Recursos por área administrativa (grão deliberadamente mais grosso que
+uma-tela-um-recurso, para a matriz continuar legível):
+
+| Recurso              | Telas                                                        |
+| -------------------- | ------------------------------------------------------------ |
+| `settings`           | Distribuição, Pipeline, Motivos de perda, Tags, Ciclo de vida, Horário comercial, Cadastro de veículos, Frete, Insights, Comissões, Forecast, Chaves PIX, Curva ABC |
+| `settings_users`     | Usuários                                                      |
+| `settings_whatsapp`  | Templates WhatsApp (`view`) · Contas WhatsApp (`edit`)        |
+| `settings_api_keys`  | Chaves & API                                                  |
+| `settings_ai`        | Inteligência artificial                                       |
+| `settings_sdr`       | Simulador (`view`) · Templates e Orçamento automático (`edit`)|
+| `settings_automation`| Alertas de ociosidade, Resgate, Continuidade, Sons            |
+| `settings_system`    | Ambiente & Dados, Segurança da sessão                         |
+
+Reaproveitam recursos de domínio já existentes: Biblioteca de ativos
+(`asset_library`), Respostas rápidas (`quick_reply`), Mídias (`media`), Estoque
+(`inventory`), Financeiro/DRE (`dre`), Vitrine (`storefront_admin`), Integração
+E-commerce (`ecommerce_integration`), Auditoria (`audit_log`), Funis (`funnel`),
+Saúde do Sistema (`monitor`).
+
+Seguem em allowlist de papéis, por decisão: as telas **pessoais** (Perfil,
+Aparência, Tours, Notificações, Copiloto, Sobre) — que todo staff possui, e cuja
+lista espelha o guard de `src/routes/app.tsx` — e os **placeholders "Em breve"**
+(Portal do cliente, Gamificação, Divisões), que não têm comportamento a proteger.
+
+---
+
 ## API pública
 
 Tudo deve ser importado do barrel `@/features/rbac`:

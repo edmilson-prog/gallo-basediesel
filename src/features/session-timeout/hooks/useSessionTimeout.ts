@@ -7,9 +7,10 @@ import { useSettingsProvider, useSellersProvider } from "@/providers/data";
 import { resolveSessionTimeout } from "../engine/resolveSessionTimeout";
 import { computeIdlePhase } from "../engine/idlePhases";
 import { shouldBeepAtTick } from "../engine/beepSchedule";
-import { createBeeper, type IBeeper } from "../lib/beep";
+import { createSoundPlayer, type ISoundPlayer } from "@/features/sound-settings";
+import type { ISoundSettings } from "@/shared/types";
 import { useActivityTracker } from "./useActivityTracker";
-import { useAudioUnlock } from "./useAudioUnlock";
+import { useAudioUnlock } from "@/shared/hooks/useAudioUnlock";
 import { useCrossTabActivity } from "./useCrossTabActivity";
 
 export interface ISessionTimeoutState {
@@ -61,11 +62,18 @@ export function useSessionTimeout(): ISessionTimeoutState {
     [settingsQuery.data?.sessionTimeout, sellerQuery.data?.sessionTimeoutOverride],
   );
 
+  // Mirrors settingsQuery.data?.sound on every render so the tick() closure below
+  // can read the latest sound-center config at play-time without being a dep of
+  // the effect that schedules the interval (see comment there).
+  const soundSettingsRef = useRef<ISoundSettings | undefined>(undefined);
+  soundSettingsRef.current = settingsQuery.data?.sound;
+
   // Active only when enabled AND a user is signed in.
   const active = resolved.enabled && Boolean(currentUser);
 
-  const beeperRef = useRef<IBeeper | null>(null);
-  if (!beeperRef.current) beeperRef.current = createBeeper();
+  const soundPlayerRef = useRef<ISoundPlayer | null>(null);
+  if (!soundPlayerRef.current) soundPlayerRef.current = createSoundPlayer();
+  useEffect(() => () => soundPlayerRef.current?.dispose(), []);
 
   const lastActivityRef = useRef<number>(Date.now());
   const lastBeepRemainingRef = useRef<number | null>(null);
@@ -105,7 +113,7 @@ export function useSessionTimeout(): ISessionTimeoutState {
 
   // Unlock audio only on qualifying gestures (not mousemove/scroll/wheel), so
   // AudioContext.resume() never trips the browser autoplay-policy warning.
-  const unlockAudio = useCallback(() => beeperRef.current?.unlock(), []);
+  const unlockAudio = useCallback(() => soundPlayerRef.current?.unlock(), []);
   useAudioUnlock(unlockAudio, active);
 
   // Reset the clock whenever the feature (re)activates.
@@ -148,7 +156,7 @@ export function useSessionTimeout(): ISessionTimeoutState {
             lastBeepRemainingRef.current,
           );
           if (decision.beep) {
-            beeperRef.current?.beep(resolved.soundVolume, decision.urgency);
+            soundPlayerRef.current?.play("sessionTimeout", soundSettingsRef.current);
             lastBeepRemainingRef.current = status.msUntilLogout;
           }
         }
@@ -167,9 +175,13 @@ export function useSessionTimeout(): ISessionTimeoutState {
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
-    // navigate, beeperRef and the *Ref values are stable; only resolved.* drive re-subscription.
+    // navigate, soundPlayerRef and the *Ref values (including soundSettingsRef) are
+    // stable; only resolved.* drive re-subscription. soundSettingsRef.current is
+    // updated every render and read at play-time, so a saved sound-center change
+    // takes effect on the very next beep without forcing the tick interval to
+    // reschedule.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, resolved.idleMs, resolved.warningMs, resolved.soundEnabled, resolved.soundVolume]);
+  }, [active, resolved.idleMs, resolved.warningMs, resolved.soundEnabled]);
 
   const stayConnected = useCallback(() => {
     markActivity();

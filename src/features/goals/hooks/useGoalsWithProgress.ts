@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
 import type { GoalStatus, ID, IGoal, IGoalProgress } from "@/shared/types";
-import { useCustomersProvider, useGoalsProvider, useOrdersProvider } from "@/providers/data";
+import {
+  FETCH_ALL_PAGE_SIZE,
+  useCustomersProvider,
+  useGoalsProvider,
+  useOrdersProvider,
+} from "@/providers/data";
 import { calculateGoalProgress } from "../engine/calculate";
 
 export interface IUseGoalsWithProgressParams {
@@ -51,19 +56,23 @@ export function useGoalsWithProgress(
         staleTime: STALE_MS,
       },
       {
-        queryKey: ["goals", "orders", params.storeId, params.sellerId],
+        // Same key family as useGoalProgress / the detail-page sections — the
+        // fetch params are identical (storeId + sellerId + pago + full window),
+        // so React Query dedups across the goals list and detail pages.
+        queryKey: ["goals-scope-orders", params.storeId, params.sellerId],
         queryFn: () =>
           ordersProvider.list({
             storeId: params.storeId,
             sellerId: params.sellerId,
             paymentStatus: "pago",
-            pageSize: 2000,
+            pageSize: FETCH_ALL_PAGE_SIZE,
           }),
         staleTime: STALE_MS,
       },
       {
-        queryKey: ["goals", "customers", params.storeId],
-        queryFn: () => customersProvider.list({ storeId: params.storeId, pageSize: 2000 }),
+        queryKey: ["goals-scope-customers", params.storeId],
+        queryFn: () =>
+          customersProvider.list({ storeId: params.storeId, pageSize: FETCH_ALL_PAGE_SIZE }),
         staleTime: STALE_MS,
       },
     ],

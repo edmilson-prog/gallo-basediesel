@@ -8,9 +8,6 @@ export const Route = createFileRoute("/app/storefront-admin")({
     subtab: typeof search.subtab === "string" ? search.subtab : undefined,
   }),
   beforeLoad: ({ location }) =>
-    requireAuth(location.pathname, ["Owner", "Gestor"], {
-      resource: "storefront_admin",
-      action: "view",
-    }),
+    requireAuth(location.pathname, undefined, { resource: "storefront_admin", action: "view" }),
   component: StorefrontAdminPage,
 });

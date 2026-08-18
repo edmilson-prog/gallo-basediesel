@@ -1,10 +1,21 @@
 import type { ID, ISO8601, Money } from "./common";
+import type { ICustomerAddress } from "./customer";
 
 /** Lead temperature — heuristic indicator suggested by SDR, adjustable by humans. */
 export type LeadTemperature = "frio" | "morno" | "quente";
 
 /** Origin channel of a lead. */
-export type LeadOrigin = "whatsapp" | "ecommerce" | "indicacao" | "google" | "outro";
+export type LeadOrigin = "whatsapp" | "ecommerce" | "indicacao" | "google" | "outro" | "import";
+
+/**
+ * What the next agreed action actually IS, alongside the date it is due.
+ *
+ * A date on its own answers "when" and leaves "what" to whoever remembers the
+ * conversation — which is exactly the state the detail screen was in. Kept as a
+ * closed set rather than free text: the point is that the four ways out of a
+ * stalled lead are named and countable, not that anybody can write a sentence.
+ */
+export type LeadNextActionKind = "ligar" | "orcamento" | "retomar" | "visita";
 
 /** Pipeline stage of a lead. Stages are configurable per store (see IPlatformSettings.pipelineStages). */
 export interface ILeadStage {
@@ -23,18 +34,58 @@ export interface ILeadStage {
 export interface ILead {
   id: ID;
   storeId: ID;
-  /** Primary seller responsible for working this lead. */
-  sellerId: ID;
+  /**
+   * Primary seller responsible for working this lead, or `null` when
+   * ownerless — an imported/echo-created lead awaiting its first live
+   * inbound message, at which point rotation assigns an owner.
+   */
+  sellerId: ID | null;
   name: string;
   phone: string;
   email?: string;
+  /**
+   * CPF (11) or CNPJ (14), **digits only** — never masked. Captured during the
+   * conversation by the Atendimento panel's conversion checklist, and copied to
+   * `ICustomer.cpf`/`cnpj` on conversion. Column added by migration
+   * 20260814170000; the Supabase provider probes for it, so a build running
+   * against a database without that migration degrades to `undefined` instead
+   * of failing the read.
+   */
+  document?: string;
+  /**
+   * Postal address, same shape the customer carries — so conversion copies the
+   * object across instead of translating it. For a B2B lead the Receita lookup
+   * fills it; see `document` for the column-probe caveat.
+   */
+  address?: ICustomerAddress;
+  /**
+   * WhatsApp profile picture captured by the webhook / copied by the Frente B
+   * migration (`leads.avatar_url`, migration 20260718202917). Read-only in the
+   * app — no editor writes it.
+   */
+  avatarUrl?: string;
+  /**
+   * @deprecated Snapshot of the single-pipeline era. The truth now lives in
+   * `lead_funnel_entries.stage_id`, one per funnel. Still written by legacy
+   * call sites; removed once phase 4 migrates them.
+   */
   stage: ILeadStage;
   temperature: LeadTemperature;
   origin: LeadOrigin;
-  /** Estimated commercial value of this opportunity. */
+  /**
+   * @deprecated Aggregate/legacy value. The per-funnel value lives in
+   * `ILeadFunnelEntry.estimatedValue` — a lead in two funnels is two distinct
+   * revenues, and reading this one per membership double-counts the forecast.
+   */
   estimatedValue?: Money;
   /** Date for the next agreed follow-up action. */
   nextActionAt?: ISO8601;
+  /**
+   * Which action was agreed, when one was. Optional independently of
+   * `nextActionAt`: rows written before the column existed carry a date and no
+   * kind, and the UI degrades to showing the deadline alone.
+   */
+  nextActionKind?: LeadNextActionKind;
   lossReason?: string;
   lossNotes?: string;
   convertedToCustomerId?: ID;
@@ -43,6 +94,14 @@ export interface ILead {
   tags: string[];
   createdAt: ISO8601;
   updatedAt: ISO8601;
+}
+
+/** A free-text note recorded against a lead (mirrors ICustomerNote). */
+export interface ILeadNote {
+  id: ID;
+  authorId: ID;
+  content: string;
+  createdAt: ISO8601;
 }
 
 /** Type of a wallet (carteira) transfer between sellers. */

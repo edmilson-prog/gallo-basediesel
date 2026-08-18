@@ -148,7 +148,9 @@ export function AddressStep({ value, onChange }: IAddressStepProps) {
               {viaCep.loading ? S.addressZipLookupLoading : S.addressZipLookupCta}
             </Button>
           </div>
-          {viaCep.error && <p className="text-xs text-amber-600">{S.addressZipLookupFailed}</p>}
+          {viaCep.error && (
+            <p className="text-xs text-severity-warning">{S.addressZipLookupFailed}</p>
+          )}
         </Field>
         <div />
 

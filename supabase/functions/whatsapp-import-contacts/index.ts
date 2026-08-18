@@ -1,17 +1,21 @@
 /**
- * whatsapp-import-contacts — owner-only import of an Evolution Go instance's
- * WhatsApp contact list into `customers`. Go-only: classic Evolution has no
+ * whatsapp-import-contacts — owner-only ENRICHMENT of existing
+ * `customers`/`leads` from an Evolution Go instance's WhatsApp contact list
+ * (Funnel Frente 3, approved rule b+). Go-only: classic Evolution has no
  * synchronous contacts endpoint wired here; the Go server exposes
  * GET /user/contacts (whatsmeow GetAllContacts).
  *
  * POST { accountId }
- *   → { stats: { contactsFound, customersCreated, customersExisting, failed }, traceId }
+ *   → { stats: { contactsFound, customersEnriched, leadsEnriched, alreadyComplete,
+ *                skippedUnknown, failed }, traceId }
  *
- * Single shot (the contact list is bounded): no pagination/cursor. Idempotent —
- * a re-run never duplicates a customer (matched by phone). New contacts land as
- * `pending_review` B2C customers with NO wallet owner (seller_id null) — a real
- * seller is assigned only through a manual conversion; contacts carry no
- * conversation yet.
+ * Single shot (the contact list is bounded): no pagination/cursor. This
+ * producer creates NO record: a phonebook entry only ever replaces a
+ * placeholder name (empty or phone-shaped) on a customer/lead that already
+ * matches by phone; a number with no match in the base is skipped and
+ * counted (skippedUnknown) — it never becomes a `pending_review` customer
+ * ghost. Idempotent — once a name stops being a placeholder, re-runs leave it
+ * untouched.
  *
  * Secrets: {credentials_ref}_INSTANCE_TOKEN (Vault-first, env fallback).
  */
@@ -30,6 +34,7 @@ import {
   type IContactsImportDb,
 } from "../_shared/whatsapp/import/contacts-core.ts";
 import type { IEngineDeps, IIntegrationLogEntry } from "../_shared/whatsapp/types.ts";
+import { phoneDigitsMatchBr } from "../_shared/whatsapp/phoneBr.ts";
 import { resolveGoServer } from "./goServer.ts";
 
 interface IAccountRow {
@@ -80,37 +85,38 @@ async function resolveActorSellerId(
 function makeContactsDb(admin: SupabaseClient): IContactsImportDb {
   return {
     async findCustomerByPhone(storeId, phoneDigits) {
-      // Suffix narrow in SQL, exact digit match in code (mirrors the webhook).
+      // Suffix narrow in SQL, tolerant BR match in code (mirrors the webhook —
+      // stored numbers vary: missing DDI 55, 9th-digit divergence).
       const { data } = await admin
         .from("customers")
-        .select("id, phone")
+        .select("id, phone, full_name")
         .eq("store_id", storeId)
         .like("phone", `%${phoneDigits.slice(-8)}`);
-      const row = (data ?? []).find(
-        (candidate) => String(candidate.phone).replace(/\D/g, "") === phoneDigits,
+      const match = (data ?? []).find((candidate) =>
+        phoneDigitsMatchBr(String(candidate.phone).replace(/\D/g, ""), phoneDigits),
       );
-      return row ? { id: row.id as string } : null;
+      return match
+        ? { id: match.id as string, name: (match.full_name as string | null) ?? null }
+        : null;
     },
-    async createPendingContact({ storeId, phone, name }) {
-      const display = name && name.length > 0 ? name : phone;
-      const { data, error } = await admin
-        .from("customers")
-        .insert({
-          store_id: storeId,
-          // customers_type_check requires uppercase 'B2C' (matches the app/seed).
-          type: "B2C",
-          phone,
-          full_name: display,
-          whatsapp_name: name ?? null,
-          // No wallet owner: imported anchors carry seller_id null until a manual
-          // conversion assigns a real seller (customers.seller_id is nullable).
-          status: "ativo",
-          tags: ["pending_review"],
-        })
-        .select("id")
-        .single();
-      if (error) throw new Error(`createPendingContact: ${error.message}`);
-      return { id: data.id as string };
+    async findLeadByPhone(storeId, phoneDigits) {
+      const { data } = await admin
+        .from("leads")
+        .select("id, phone_digits, name")
+        .eq("store_id", storeId)
+        .like("phone_digits", `%${phoneDigits.slice(-8)}`);
+      const match = (data ?? []).find((candidate) =>
+        phoneDigitsMatchBr(String(candidate.phone_digits ?? "").replace(/\D/g, ""), phoneDigits),
+      );
+      return match ? { id: match.id as string, name: (match.name as string | null) ?? null } : null;
+    },
+    async enrichCustomerName(id, name) {
+      const { error } = await admin.from("customers").update({ full_name: name }).eq("id", id);
+      if (error) throw new Error(`enrichCustomerName: ${error.message}`);
+    },
+    async enrichLeadName(id, name) {
+      const { error } = await admin.from("leads").update({ name }).eq("id", id);
+      if (error) throw new Error(`enrichLeadName: ${error.message}`);
     },
   };
 }

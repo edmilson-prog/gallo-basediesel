@@ -254,7 +254,7 @@ export function CancelDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         {postPayment && (
-          <div className="flex gap-2 rounded-md border border-orange-500/30 bg-orange-500/5 p-3 text-xs text-orange-700 dark:text-orange-200">
+          <div className="flex gap-2 rounded-md border border-severity-warning/30 bg-severity-warning/5 p-3 text-xs text-severity-warning">
             <Icon icon="mdi:alert-outline" size={16} className="mt-0.5 shrink-0" />
             <p>
               Pagamento já registrado: o refund deve ser feito manualmente. A automação completa

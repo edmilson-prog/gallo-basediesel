@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useCopilotChat } from "../hooks/useCopilotChat";
 import { useCopilotViewMode } from "../hooks/useCopilotViewMode";
@@ -45,7 +51,7 @@ export function AnalyticsCopilotPage() {
   const detailPanel = <CopilotDetailPanel answer={chat.lastResolvedAnswer} />;
 
   return (
-    <div className="flex h-[calc(100dvh-4rem)] flex-col md:h-[calc(100vh-4rem)]">
+    <div className="flex h-[calc(100dvh-4rem-var(--shell-banner-offset,0px))] flex-col md:h-[calc(100vh-4rem-var(--shell-banner-offset,0px))]">
       <CopilotHeader
         mode={mode}
         onModeChange={setMode}
@@ -75,11 +81,21 @@ export function AnalyticsCopilotPage() {
       {/* Mobile / md drawers */}
       <Sheet open={sessionsSheetOpen} onOpenChange={setSessionsSheetOpen}>
         <SheetContent side="left" className="w-80 p-0">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Conversas do copiloto</SheetTitle>
+            <SheetDescription>Histórico de sessões do copiloto de analytics.</SheetDescription>
+          </SheetHeader>
           {sessionList}
         </SheetContent>
       </Sheet>
       <Sheet open={detailSheetOpen} onOpenChange={setDetailSheetOpen}>
         <SheetContent side="right" className={cn("w-[360px] max-w-full p-0")}>
+          <SheetHeader className="sr-only">
+            <SheetTitle>Detalhes da resposta</SheetTitle>
+            <SheetDescription>
+              Dados e fontes usados pelo copiloto para gerar a resposta.
+            </SheetDescription>
+          </SheetHeader>
           {detailPanel}
         </SheetContent>
       </Sheet>

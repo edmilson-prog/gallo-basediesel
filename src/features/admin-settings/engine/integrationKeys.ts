@@ -212,6 +212,66 @@ export function buildIntegrationKeyCatalog(accounts: AccountForCatalog[]): IInte
         },
       ],
     },
+    {
+      id: "mercado-pago",
+      title: "Pagamentos — Mercado Pago",
+      description:
+        "Checkout transparente da loja (Pix, boleto e cartão). Produção e teste têm credenciais próprias; o webhook secret vale para os dois.",
+      icon: "mdi:credit-card-outline",
+      keys: [
+        {
+          name: "MERCADO_PAGO_ACCESS_TOKEN",
+          label: "Access token (Produção)",
+          kind: "secret",
+          help: "Suas integrações → aplicação → Credenciais de produção. Cobra de verdade.",
+        },
+        {
+          name: "MERCADO_PAGO_PUBLIC_KEY",
+          label: "Public key (Produção)",
+          kind: "config",
+          help: "Usada pelo SDK no navegador para tokenizar o cartão. Não é segredo.",
+        },
+        {
+          name: "MERCADO_PAGO_TEST_ACCESS_TOKEN",
+          label: "Access token (Teste)",
+          kind: "secret",
+          help: "Credenciais de teste da mesma aplicação. Use com os usuários de teste do Mercado Pago.",
+        },
+        {
+          name: "MERCADO_PAGO_TEST_PUBLIC_KEY",
+          label: "Public key (Teste)",
+          kind: "config",
+          help: "Par da public key de produção, para o checkout em ambiente de teste.",
+        },
+        {
+          name: "MERCADO_PAGO_WEBHOOK_SECRET",
+          label: "Webhook secret (assinatura)",
+          kind: "secret",
+          help: "Suas integrações → aplicação → Webhooks. Valida o header x-signature das notificações.",
+        },
+      ],
+    },
+    {
+      id: "fiscal-notes",
+      title: "Notas fiscais de entrada (NF-e)",
+      description:
+        "Credenciais das origens automáticas. Upload de XML não usa chave — estas valem para a caixa de e-mail monitorada e para a consulta à SEFAZ.",
+      icon: "mdi:file-document-outline",
+      keys: [
+        {
+          name: "FISCAL_INBOX_CREDENTIAL",
+          label: "Credencial da caixa de e-mail",
+          kind: "secret",
+          help: "Acesso da caixa que recebe os XML dos fornecedores. Sem ela a origem de e-mail responde desligada.",
+        },
+        {
+          name: "SEFAZ_A1_CERTIFICATE",
+          label: "Certificado digital A1 (SEFAZ)",
+          kind: "secret",
+          help: "Certificado da empresa em base64. Sem ele a SEFAZ recusa a conexão.",
+        },
+      ],
+    },
   ];
 
   for (const account of accounts) {

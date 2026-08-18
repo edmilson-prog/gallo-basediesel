@@ -1,190 +1,74 @@
-// src/features/model-kits/pages/ModelKitFormPage.tsx
-import { useCallback, useMemo } from "react";
-import { useNavigate, useParams } from "@tanstack/react-router";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { IKitItem, IPart, IVehicleModelKit, ModelKitCategory } from "@/shared/types";
+import { useMemo, useState } from "react";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import type {
+  ID,
+  IKitItem,
+  IPart,
+  IVehicleModel,
+  IVehicleModelKit,
+  ModelKitStatus,
+} from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/features/auth/useAuth";
 import { hasPermission } from "@/features/rbac/utils/hasPermission";
 import { usePartsIndex } from "@/features/quotes/hooks/usePartsIndex";
 import { useVehicleModel } from "@/features/vehicle-models/hooks/useVehicleModel";
+import { useVehicleModels } from "@/features/vehicle-models/hooks/useVehicleModels";
+import { getCompatiblePartsForModel } from "../utils/modelKitDrift";
+import {
+  CATEGORY_FAMILIES,
+  computeKitTotals,
+  findAlsoForCandidates,
+  findStartFromCandidates,
+  getFamilyCoverage,
+  groupKitsByModel,
+  renameKitForModel,
+  resolvePartFamily,
+  type KitFamily,
+} from "../engine";
 import { useModelKit } from "../hooks/useModelKit";
+import { useModelKits } from "../hooks/useModelKits";
 import { useModelKitMutations } from "../hooks/useModelKitMutations";
-import { modelKitFormSchema, type ModelKitFormValues } from "../utils/modelKitValidation";
-import { KitCatalogSearch } from "../components/KitCatalogSearch";
-import { KitItemEditorRow } from "../components/KitItemEditorRow";
-import { KitDriftBanner } from "../components/KitDriftBanner";
-import { getCompatiblePartsNotInKit } from "../utils/modelKitDrift";
+import { useKitApplicationCounts } from "../hooks/useKitApplicationCounts";
+import { useKitDraft } from "../hooks/useKitDraft";
+import { KitBuildHeader } from "../components/KitBuildHeader";
+import { KitStartFromCard } from "../components/KitStartFromCard";
+import { KitFamilySlot, type IKitSlotLine } from "../components/KitFamilySlot";
+import { KitEditorPartLine } from "../components/KitEditorPartLine";
+import { KitCatalogPanel } from "../components/KitCatalogPanel";
+import { KitAlsoForCard } from "../components/KitAlsoForCard";
+import { KitSaveBar } from "../components/KitSaveBar";
 
-// Category configuration with icons and labels
-const CATEGORY_OPTIONS: Array<{ value: ModelKitCategory; icon: string; label: string }> = [
-  { value: "filtros", icon: "mdi:air-filter", label: "Filtros" },
-  { value: "freios", icon: "mdi:car-brake-alarm", label: "Freios" },
-  { value: "correia", icon: "mdi:fan", label: "Correia" },
-  { value: "revisao", icon: "mdi:wrench-clock", label: "Revisão" },
-  { value: "custom", icon: "mdi:package-variant", label: "Custom" },
-];
+const FALLBACK_STORE_ID = "00000000-0000-0000-0000-000000000001";
 
 export function ModelKitFormPage() {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
 
   // strict: false — shared between create (/kit/novo) and edit (/kit/$kitId/editar)
-  const { modelId, kitId } = useParams({ strict: false }) as {
-    modelId?: string;
-    kitId?: string;
-  };
+  const { modelId, kitId } = useParams({ strict: false }) as { modelId?: string; kitId?: string };
+  const { addPartId } = useSearch({ strict: false }) as { addPartId?: string };
 
-  const mode: "create" | "edit" = kitId ? "edit" : "create";
-  const canEdit = hasPermission(currentUser, "modelKit", "edit");
-
-  // Load vehicle model context
   const modelQuery = useVehicleModel(modelId);
-  const vehicleModel = modelQuery.data;
-
-  // Load existing kit in edit mode
   const kitQuery = useModelKit(kitId);
-  const existingKit = kitQuery.data;
-  const isLoadingKit = mode === "edit" && kitQuery.isLoading;
+  const modelsQuery = useVehicleModels({});
+  const kitsQuery = useModelKits({});
+  const parts = usePartsIndex();
 
-  const mutations = useModelKitMutations();
+  const model = modelQuery.data;
+  const kit = kitId ? kitQuery.data : undefined;
 
-  // Parts catalog for enriching item rows and drift detection
-  const { partsById, allParts } = usePartsIndex();
+  const loading =
+    modelQuery.isLoading ||
+    (Boolean(kitId) && kitQuery.isLoading) ||
+    modelsQuery.isLoading ||
+    kitsQuery.isLoading ||
+    parts.isLoading;
 
-  // --- React Hook Form ---
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<ModelKitFormValues>({
-    resolver: zodResolver(modelKitFormSchema),
-    defaultValues:
-      mode === "edit" && existingKit
-        ? {
-            name: existingKit.name,
-            category: existingKit.category,
-            items: existingKit.items,
-          }
-        : {
-            name: "",
-            category: "filtros",
-            items: [],
-          },
-  });
-
-  const items = watch("items");
-
-  // Rehydrate form when existing kit loads (edit mode)
-  useMemo(() => {
-    if (mode === "edit" && existingKit) {
-      setValue("name", existingKit.name);
-      setValue("category", existingKit.category);
-      setValue("items", existingKit.items);
-    }
-  }, [mode, existingKit, setValue]);
-
-  // Set of part ids already in the form (to exclude from search)
-  const excludePartIds = useMemo(() => new Set(items.map((i) => i.partId)), [items]);
-
-  // Catalog drift: compatible parts not yet in the kit
-  const driftParts = useMemo(() => {
-    const formKitForDrift = { items } as IVehicleModelKit;
-    return getCompatiblePartsNotInKit(formKitForDrift, vehicleModel, allParts);
-  }, [items, vehicleModel, allParts]);
-
-  // --- Item manipulation helpers ---
-  const addItem = useCallback(
-    (part: IPart) => {
-      const current = items;
-      const newItem: IKitItem = {
-        partId: part.id,
-        defaultQuantity: 1,
-        isOptional: false,
-        note: undefined,
-      };
-      setValue("items", [...current, newItem], { shouldValidate: true });
-    },
-    [items, setValue],
-  );
-
-  const patchItem = useCallback(
-    (index: number, patch: Partial<IKitItem>) => {
-      const next = items.map((item, i) => (i === index ? { ...item, ...patch } : item));
-      setValue("items", next, { shouldValidate: true });
-    },
-    [items, setValue],
-  );
-
-  const removeItem = useCallback(
-    (index: number) => {
-      setValue(
-        "items",
-        items.filter((_, i) => i !== index),
-        { shouldValidate: true },
-      );
-    },
-    [items, setValue],
-  );
-
-  // --- Navigation ---
-  function goBack() {
-    if (modelId) {
-      void navigate({ to: "/app/kits/$modelId", params: { modelId } });
-    } else {
-      void navigate({ to: "/app/kits" });
-    }
-  }
-
-  // --- Submit ---
-  async function onSubmit(values: ModelKitFormValues) {
-    try {
-      if (mode === "edit" && kitId) {
-        await mutations.update(kitId, {
-          name: values.name,
-          category: values.category,
-          items: values.items,
-        });
-      } else {
-        await mutations.create({
-          modelId: modelId ?? "",
-          storeId: currentUser?.storeId ?? "00000000-0000-0000-0000-000000000001",
-          name: values.name,
-          category: values.category,
-          items: values.items,
-        });
-      }
-      goBack();
-    } catch {
-      // useModelKitMutations already shows a toast on error; stay on page
-    }
-  }
-
-  // Vehicle model context label
-  const modelLabel = vehicleModel
-    ? `${vehicleModel.brand} ${vehicleModel.model} (${vehicleModel.engine})`
-    : modelQuery.isLoading
-      ? "Carregando modelo…"
-      : "Modelo não encontrado";
-
-  // --- Loading state for edit mode ---
-  if (isLoadingKit) {
+  if (loading) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 p-4">
+      <div className="mx-auto max-w-4xl space-y-4 p-4">
         <div className="h-8 w-48 animate-pulse rounded-md bg-muted" />
         <div className="h-32 animate-pulse rounded-md bg-muted" />
         <div className="h-64 animate-pulse rounded-md bg-muted" />
@@ -192,184 +76,313 @@ export function ModelKitFormPage() {
     );
   }
 
-  const isSaving = mutations.saving;
-  const saveDisabled = isSaving || items.length === 0;
+  if (!model) {
+    return (
+      <div className="mx-auto max-w-4xl space-y-3 p-4">
+        <p className="text-sm text-muted-foreground">Modelo não encontrado.</p>
+        <Button variant="outline" size="sm" onClick={() => void navigate({ to: "/app/kits" })}>
+          Voltar ao catálogo
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <KitBuildView
+      // Remounting on the kit resets the draft — the editor holds no stale composition.
+      key={kit?.id ?? "new"}
+      model={model}
+      kit={kit}
+      models={modelsQuery.data ?? []}
+      kits={kitsQuery.data ?? []}
+      partsById={parts.partsById}
+      allParts={parts.allParts}
+      seedPartId={addPartId}
+    />
+  );
+}
+
+interface IKitBuildViewProps {
+  model: IVehicleModel;
+  kit?: IVehicleModelKit;
+  models: IVehicleModel[];
+  kits: IVehicleModelKit[];
+  partsById: Map<ID, IPart>;
+  allParts: IPart[];
+  seedPartId?: ID;
+}
+
+/**
+ * Direction A: the kit is a template. One slot per family the category expects,
+ * required ones marked, each empty slot listing the compatible parts that could
+ * fill it. It teaches what is missing — which is the shape that fits a catalog
+ * where every kit being curated is the first kit of its engine.
+ */
+function KitBuildView({
+  model,
+  kit,
+  models,
+  kits,
+  partsById,
+  allParts,
+  seedPartId,
+}: IKitBuildViewProps) {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const canPublish = hasPermission(currentUser, "modelKit", "edit");
+  const mutations = useModelKitMutations();
+
+  const draft = useKitDraft({ model, kit, seedPartId });
+  const [alsoFor, setAlsoFor] = useState<ID[]>([]);
+
+  const applicationCounts = useKitApplicationCounts(kit ? [kit.id] : []);
+
+  const inKit = useMemo(() => new Set(draft.items.map((i) => i.partId)), [draft.items]);
+
+  const compatibleParts = useMemo(
+    () => getCompatiblePartsForModel(model, allParts),
+    [model, allParts],
+  );
+  const compatiblePartIds = useMemo(
+    () => new Set(compatibleParts.map((p) => p.id)),
+    [compatibleParts],
+  );
+
+  /** Composition split into the category's slots, with anything else as extras. */
+  const { linesByFamily, extras, slots } = useMemo(() => {
+    const configured = CATEGORY_FAMILIES[draft.category].slots;
+    const byFamily = new Map<KitFamily, IKitSlotLine[]>();
+    const rest: Array<{ item: IKitItem; part: IPart | undefined }> = [];
+
+    for (const item of draft.items) {
+      const part = partsById.get(item.partId);
+      const family = part ? resolvePartFamily(part) : null;
+      if (part && family && configured.includes(family)) {
+        const list = byFamily.get(family);
+        if (list) list.push({ item, part });
+        else byFamily.set(family, [{ item, part }]);
+        continue;
+      }
+      rest.push({ item, part });
+    }
+
+    return { linesByFamily: byFamily, extras: rest, slots: configured };
+  }, [draft.items, draft.category, partsById]);
+
+  const candidatesByFamily = useMemo(() => {
+    const byFamily = new Map<KitFamily, IPart[]>();
+    for (const part of compatibleParts) {
+      if (inKit.has(part.id)) continue;
+      const family = resolvePartFamily(part);
+      if (!family || !slots.includes(family)) continue;
+      const list = byFamily.get(family);
+      if (list) list.push(part);
+      else byFamily.set(family, [part]);
+    }
+    return byFamily;
+  }, [compatibleParts, inKit, slots]);
+
+  const totals = useMemo(() => {
+    const lines = draft.items.flatMap((item) => {
+      const part = partsById.get(item.partId);
+      return part
+        ? [{ part, defaultQuantity: item.defaultQuantity, isOptional: item.isOptional }]
+        : [];
+    });
+    return computeKitTotals(lines);
+  }, [draft.items, partsById]);
+
+  const missingRequired = useMemo(() => {
+    const entries = draft.items.flatMap((item) => {
+      const part = partsById.get(item.partId);
+      return part
+        ? [{ subcategory: part.subcategory, name: part.name, isOptional: item.isOptional }]
+        : [];
+    });
+    return getFamilyCoverage(draft.category, entries).missingRequired;
+  }, [draft.items, draft.category, partsById]);
+
+  const kitsByModel = useMemo(() => groupKitsByModel(kits), [kits]);
+  const modelsById = useMemo(() => new Map(models.map((m) => [m.id, m])), [models]);
+
+  const startFrom = useMemo(() => {
+    if (kit || draft.items.length > 0) return [];
+    return findStartFromCandidates({ target: model, kits, modelsById, compatiblePartIds });
+  }, [kit, draft.items.length, model, kits, modelsById, compatiblePartIds]);
+
+  const alsoForCandidates = useMemo(() => {
+    const basePartIds = draft.items.filter((i) => !i.isOptional).map((i) => i.partId);
+    const compatibleCache = new Map<ID, Set<ID>>();
+    return findAlsoForCandidates({
+      source: model,
+      models,
+      modelsWithKits: new Set(kitsByModel.keys()),
+      basePartIds,
+      compatiblePartIdsFor: (id) => {
+        const cached = compatibleCache.get(id);
+        if (cached) return cached;
+        const target = modelsById.get(id);
+        const ids = new Set(getCompatiblePartsForModel(target, allParts).map((p) => p.id));
+        compatibleCache.set(id, ids);
+        return ids;
+      },
+    });
+  }, [draft.items, model, models, kitsByModel, modelsById, allParts]);
+
+  // Picks whose model stopped qualifying (a part was removed) must not be saved.
+  const validAlsoFor = useMemo(
+    () => alsoFor.filter((id) => alsoForCandidates.some((c) => c.model.id === id)),
+    [alsoFor, alsoForCandidates],
+  );
+
+  const error =
+    draft.items.length === 0
+      ? "Adicione ao menos uma peça ao kit."
+      : draft.name.trim() === ""
+        ? "Informe o nome do kit."
+        : null;
+
+  function backToModel() {
+    void navigate({ to: "/app/kits/$modelId", params: { modelId: model.id } });
+  }
+
+  async function save(status: ModelKitStatus) {
+    const storeId = kit?.storeId ?? currentUser?.storeId ?? FALLBACK_STORE_ID;
+    const name = draft.name.trim();
+    const items = draft.items.map((item) => ({ ...item }));
+
+    try {
+      await mutations.saveKit({
+        existingKitId: kit?.id,
+        primary: { modelId: model.id, storeId, name, category: draft.category, status, items },
+        copies: validAlsoFor.flatMap((id) => {
+          const target = modelsById.get(id);
+          if (!target) return [];
+          return [
+            {
+              modelId: id,
+              storeId,
+              name: renameKitForModel(name, model, target),
+              category: draft.category,
+              status,
+              items: items.map((item) => ({ ...item })),
+            },
+          ];
+        }),
+      });
+      backToModel();
+    } catch {
+      // useModelKitMutations already surfaced the error; stay on the page.
+    }
+  }
 
   return (
     <TooltipProvider>
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="mx-auto max-w-3xl space-y-6 p-4 pb-32"
-        noValidate
-      >
+      <div className="mx-auto flex max-w-4xl flex-col gap-3 p-4 pb-2">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-          <Button type="button" variant="ghost" size="sm" onClick={goBack} className="gap-1 px-1">
+        <div className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1 px-1"
+            onClick={() => void navigate({ to: "/app/kits" })}
+          >
             <Icon icon="mdi:chevron-left" size={16} />
-            {modelLabel}
+            Kits por modelo
           </Button>
           <Icon icon="mdi:chevron-right" size={14} className="opacity-50" />
-          <span className="text-foreground">{mode === "edit" ? "Editar kit" : "Novo kit"}</span>
-        </div>
-
-        {/* Model context (read-only) */}
-        <div className="rounded-md border border-border bg-muted/30 px-4 py-2 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Modelo:</span> {modelLabel}
-        </div>
-
-        {/* Kit name */}
-        <div className="space-y-1.5">
-          <label htmlFor="kit-name" className="text-sm font-medium text-foreground">
-            Nome do kit
-          </label>
-          <Input
-            id="kit-name"
-            placeholder="Ex.: Kit de filtros revisão 30.000 km"
-            {...register("name")}
-            aria-invalid={Boolean(errors.name)}
-          />
-          {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-        </div>
-
-        {/* Category */}
-        <div className="space-y-1.5">
-          <label htmlFor="kit-category" className="text-sm font-medium text-foreground">
-            Categoria
-          </label>
-          <Select
-            defaultValue="filtros"
-            value={watch("category")}
-            onValueChange={(v) =>
-              setValue("category", v as ModelKitCategory, { shouldValidate: true })
-            }
+          <button
+            type="button"
+            onClick={backToModel}
+            className="rounded font-medium underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <SelectTrigger id="kit-category" className="w-48">
-              <SelectValue placeholder="Selecione…" />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORY_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  <div className="flex items-center gap-2">
-                    <Icon icon={opt.icon} size={16} className="text-muted-foreground" />
-                    {opt.label}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.category && <p className="text-xs text-destructive">{errors.category.message}</p>}
+            {model.model} · {model.engine}
+          </button>
+          <Icon icon="mdi:chevron-right" size={14} className="opacity-50" />
+          <span className="text-foreground">{kit ? "Editar kit" : "Novo kit"}</span>
         </div>
 
-        {/* Status badge (read-only) */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Status:</span>
-          {mode === "edit" && existingKit?.status === "oficial" ? (
-            <Badge className="border border-primary/30 bg-primary/15 text-primary">
-              <Icon icon="mdi:check-decagram" size={14} className="mr-1" />
-              Oficial
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="gap-1 text-muted-foreground">
-              <Icon icon="mdi:pencil-ruler" size={14} />
-              Rascunho
-            </Badge>
-          )}
-        </div>
+        <KitBuildHeader
+          model={model}
+          kit={kit}
+          appliedCount={kit ? (applicationCounts.data?.[kit.id] ?? 0) : undefined}
+          name={draft.name}
+          onNameChange={draft.setName}
+          category={draft.category}
+          onCategoryChange={draft.setCategory}
+        />
 
-        {/* Add part row */}
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-start gap-3">
-            <div className="flex-1">
-              <KitCatalogSearch onAdd={addItem} excludePartIds={excludePartIds} />
-            </div>
-            {/* AI suggestion button — disabled, Fase 2 */}
-            <div className="flex flex-col items-start gap-0.5">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span tabIndex={0} className="inline-block">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled
-                      className="gap-1.5 pointer-events-none"
-                    >
-                      <Icon icon="mdi:auto-fix" size={16} />
-                      Sugerir composição (IA)
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>Disponível na Fase 2</TooltipContent>
-              </Tooltip>
-              <span className="text-[10px] text-muted-foreground">ⓘ Fase 2</span>
-            </div>
+        {startFrom.length > 0 && <KitStartFromCard candidates={startFrom} onUse={draft.adopt} />}
+
+        {slots.length > 0 && (
+          <div className="flex flex-col gap-2.5">
+            {slots.map((family) => (
+              <KitFamilySlot
+                key={family}
+                family={family}
+                required={CATEGORY_FAMILIES[draft.category].required.includes(family)}
+                lines={linesByFamily.get(family) ?? []}
+                candidates={candidatesByFamily.get(family) ?? []}
+                engineLabel={model.engine}
+                onAdd={draft.add}
+                onPatch={draft.patch}
+                onRemove={draft.remove}
+              />
+            ))}
           </div>
+        )}
 
-          <KitDriftBanner parts={driftParts} onAdd={addItem} />
-        </div>
+        {(extras.length > 0 || slots.length === 0) && (
+          <section className="rounded-xl border border-border bg-card px-4 py-3">
+            <header className="flex items-center gap-2">
+              <Icon icon="mdi:package-variant" size={15} className="text-muted-foreground" />
+              <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                {slots.length > 0 ? "Outras peças" : "Peças do kit"}
+              </span>
+            </header>
 
-        {/* Items list */}
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-foreground">
-            Peças do kit{" "}
-            {items.length > 0 && <span className="text-muted-foreground">({items.length})</span>}
-          </h2>
-
-          {errors.items && <p className="text-xs text-destructive">{errors.items.message}</p>}
-
-          {items.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border px-6 py-10 text-center">
-              <Icon icon="mdi:tray-plus" size={32} className="text-muted-foreground opacity-40" />
-              <p className="text-sm text-muted-foreground">
-                Nenhuma peça ainda. Busque acima para começar.
+            {extras.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                Categoria sem famílias definidas — monte a lista livremente pela busca.
               </p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {items.map((item, index) => (
-                <KitItemEditorRow
-                  key={`${item.partId}-${index}`}
-                  item={item}
-                  part={partsById.get(item.partId)}
-                  onPatch={(patch) => patchItem(index, patch)}
-                  onRemove={() => removeItem(index)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Sticky footer */}
-        <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-border bg-background px-4 py-3">
-          <div className="mx-auto flex max-w-3xl items-center justify-end gap-3">
-            <Button type="button" variant="outline" onClick={goBack} disabled={isSaving}>
-              Cancelar
-            </Button>
-
-            {items.length === 0 ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span tabIndex={0} className="inline-block">
-                    <Button
-                      type="submit"
-                      disabled
-                      aria-busy={isSaving}
-                      className="pointer-events-none"
-                    >
-                      {canEdit ? "Salvar" : "Salvar rascunho"}
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>Adicione ao menos uma peça</TooltipContent>
-              </Tooltip>
             ) : (
-              <Button type="submit" disabled={saveDisabled} aria-busy={isSaving}>
-                {isSaving && <Icon icon="mdi:loading" size={16} className="mr-2 animate-spin" />}
-                {canEdit ? "Salvar" : "Salvar rascunho"}
-              </Button>
+              extras.map(({ item, part }) => (
+                <KitEditorPartLine
+                  key={item.partId}
+                  item={item}
+                  part={part}
+                  onPatch={(patch) => draft.patch(item.partId, patch)}
+                  onRemove={() => draft.remove(item.partId)}
+                />
+              ))
             )}
-          </div>
-        </div>
-      </form>
+          </section>
+        )}
+
+        <KitCatalogPanel
+          allParts={allParts}
+          inKit={inKit}
+          compatiblePartIds={compatiblePartIds}
+          onAdd={(partId) => draft.add(partId)}
+        />
+
+        <KitAlsoForCard
+          candidates={alsoForCandidates}
+          selected={validAlsoFor}
+          onChange={setAlsoFor}
+        />
+
+        <KitSaveBar
+          totals={totals}
+          missingRequired={missingRequired}
+          error={error}
+          copyCount={1 + validAlsoFor.length}
+          canPublish={canPublish}
+          saving={mutations.saving}
+          onCancel={backToModel}
+          onSave={(status) => void save(status)}
+        />
+      </div>
     </TooltipProvider>
   );
 }

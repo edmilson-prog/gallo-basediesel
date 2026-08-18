@@ -10,6 +10,8 @@ import type { IInventoryAnalysisSettings } from "./inventory";
 import type { IInsightThresholds } from "./insights";
 import type { IStorefrontConfig } from "./storefront";
 import type { IForecastConfig } from "./forecast";
+import type { ISoundSettings } from "./sound";
+import type { IInboundToastSettings } from "./inbound-toast";
 
 /** Idle-timeout (inactivity session-termination) configuration. */
 export interface ISessionTimeoutSettings {
@@ -197,6 +199,30 @@ export interface IConversationRescueSettings {
   maxClientWaitHours: number;
 }
 
+/**
+ * Echo continuity window (decision 2026-07-23 —
+ * docs/dev/conversation-split-echo-after-close.md §7 item 3). A phone-sent
+ * echo may APPEND to the contact's most recent `resolvida` conversation on
+ * the same WhatsApp account when it was closed less than `windowHours` ago —
+ * WITHOUT reopening it (the customer's next inbound reopens that same
+ * thread). 0 disables the window (echo always opens a fresh conversation).
+ * `arquivada` never participates (a deliberate discard). Stored at
+ * `stores.settings->'echoContinuity'` and read by the waha-webhook echo path.
+ */
+export interface IEchoContinuitySettings {
+  windowHours: number;
+}
+
+/**
+ * Pinned inbox conversations (spec 2026-08-11). The pin itself is PERSONAL to
+ * each attendant (table `conversation_pins`); the store only decides how many
+ * fit. Stored at `stores.settings->'inboxPins'`. Absent → DEFAULT_INBOX_PINS_SETTINGS.
+ */
+export interface IInboxPinsSettings {
+  /** Cap of pinned conversations per attendant. Integer in [1, 20]. */
+  maxPinned: number;
+}
+
 /** Reference (not the credential itself) to a WhatsApp account. */
 export interface IWhatsAppAccountRef {
   id: ID;
@@ -272,6 +298,14 @@ export interface IPlatformSettings {
   idleAlerts?: IIdleAlertsSettings;
   /** Offline-rescue broadcast (spec 2026-07-17). Undefined → DEFAULT_CONVERSATION_RESCUE_SETTINGS. */
   conversationRescue?: IConversationRescueSettings;
+  /** Echo continuity window (2026-07-23). Undefined → 24h (DEFAULT_ECHO_CONTINUITY_WINDOW_HOURS). */
+  echoContinuity?: IEchoContinuitySettings;
+  /** Pinned inbox conversations (2026-08-11). Undefined → DEFAULT_INBOX_PINS_SETTINGS. */
+  inboxPins?: IInboxPinsSettings;
+  /** Notification sound center (per-store). Absent on legacy stores → DEFAULT_SOUND_SETTINGS. */
+  sound?: ISoundSettings;
+  /** On-screen alert for inbound messages (per-store). Absent → DEFAULT_INBOUND_TOAST_SETTINGS. */
+  inboundToast?: IInboundToastSettings;
   /** Whether the SDR agent is enabled for this store (PRD-020). */
   sdrEnabled: boolean;
   /** Editable SDR message templates with variable substitution (PRD-020). */

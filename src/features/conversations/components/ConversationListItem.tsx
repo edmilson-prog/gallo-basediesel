@@ -13,8 +13,11 @@ import { AdSourceBadge } from "./AdSourceBadge";
 import { isQueuedConversation } from "@/features/inbox-alerts";
 import { Icon } from "@/components/Icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { useHoverCapable } from "@/shared/hooks/useHoverCapable";
 import { cn } from "@/lib/utils";
 import { ContactAvatar } from "./ContactAvatar";
+import { ConversationSummaryCard } from "./ConversationSummaryCard";
 import { AssigneeChip } from "./AssigneeChip";
 import { useTimeTick } from "../hooks/useTimeTick";
 import { formatRelativeTime, isFresh } from "../utils/formatRelativeTime";
@@ -32,7 +35,9 @@ import {
 import { statusVisual } from "../utils/messageDisplay";
 import { INBOX_STRINGS, CONVERSATION_STRINGS } from "../i18n/pt-BR";
 import type { IConversationContact } from "@/shared/types";
+import { resolveConversationTitle } from "../engine/conversationTitle";
 import { resolveConversationTags, splitVisibleTags } from "../engine/tagCatalog";
+import { canShowSummaryCard } from "../engine/summaryCardVisibility";
 import { useConversationTags } from "../hooks/useConversationTags";
 import { ConversationTagChip, TagOverflowChip } from "./tags/ConversationTagChip";
 import { useAuth } from "@/features/auth/useAuth";
@@ -44,6 +49,8 @@ export interface IConversationListItemProps {
   lastMessage: IMessage | null;
   isSelected: boolean;
   isUnread: boolean;
+  /** Pinned by this attendant — shows the pin next to the timestamp. */
+  isPinned?: boolean;
   highlightTerm?: string;
   /** Render extra trailing actions inside the item (hover/focus). */
   trailing?: React.ReactNode;
@@ -114,6 +121,7 @@ function ConversationListItemInner({
   lastMessage,
   isSelected,
   isUnread,
+  isPinned,
   highlightTerm,
   trailing,
   escalation,
@@ -138,6 +146,10 @@ function ConversationListItemInner({
   const display = useMemo(
     () => displayFromContact(conversation, contact),
     [conversation, contact],
+  );
+  const { primary: primaryLabel, secondary: secondaryLabel } = useMemo(
+    () => resolveConversationTitle(display),
+    [display],
   );
   const liveOriginAccount = useLiveInstanceStatus(originAccount);
   const instanceLock = useMemo(() => deriveInstanceLock(liveOriginAccount), [liveOriginAccount]);
@@ -181,9 +193,22 @@ function ConversationListItemInner({
     return now - created < 60_000;
   }, [escalation, now]);
   const { tags: tagCatalog } = useConversationTags();
-  const rowTags = splitVisibleTags(resolveConversationTags(conversation.tags, tagCatalog), 2);
+  // The row shows two tags and folds the rest into a "+N"; the summary card
+  // shows every one of them — so keep the full resolved list alongside.
+  const resolvedTags = useMemo(
+    () => resolveConversationTags(conversation.tags, tagCatalog),
+    [conversation.tags, tagCatalog],
+  );
+  const rowTags = splitVisibleTags(resolvedTags, 2);
 
-  return (
+  const hoverCapable = useHoverCapable();
+  const showSummary = canShowSummaryCard({
+    isSelected,
+    hoverCapable,
+    isMessageSearchResult: Boolean(conversation.matchedMessage),
+  });
+
+  const row = (
     <Link
       to="/app/atendimento/$id"
       params={{ id: conversation.id }}
@@ -257,16 +282,47 @@ function ConversationListItemInner({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
+          {/* Person and company share ONE truncate. Because the company comes
+              second, it is always the first thing the ellipsis eats — the
+              degradation protects the more important half by itself, with no
+              breakpoint and nothing to measure. Adding a chip to the badge strip
+              below was the obvious alternative and is wrong: that strip already
+              overflows silently, so a new chip would push tags and queue state
+              out of view without a trace. */}
           <span
             className={cn(
-              "truncate text-sm uppercase",
+              "min-w-0 truncate text-sm uppercase",
               isUnread ? "font-semibold text-foreground" : "font-medium text-foreground",
             )}
+            title={secondaryLabel ? `${primaryLabel} · ${secondaryLabel}` : primaryLabel}
           >
-            {highlight(display.name, highlightTerm)}
+            {highlight(primaryLabel, highlightTerm)}
+            {secondaryLabel && (
+              <>
+                <span className="px-1 font-normal text-muted-foreground/50" aria-hidden>
+                  ·
+                </span>
+                {/* `normal-case` against the row's uppercase: the contrast is in
+                    SHAPE as well as weight, so it reads even where colour does
+                    not carry. */}
+                <span className="font-normal normal-case text-muted-foreground">
+                  {highlight(secondaryLabel, highlightTerm)}
+                </span>
+              </>
+            )}
           </span>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
-            <span className="text-xs text-muted-foreground">{relative}</span>
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              {isPinned && (
+                <Icon
+                  icon="mdi:pin"
+                  size={11}
+                  className="shrink-0"
+                  aria-label={INBOX_STRINGS.pin.badgeAria}
+                />
+              )}
+              {relative}
+            </span>
             {isQueued && waitMs >= 0 && (
               <span
                 className={cn(
@@ -340,7 +396,11 @@ function ConversationListItemInner({
           </div>
         )}
 
-        <div className="mt-1.5 flex items-center gap-1.5">
+        {/* The badge strip has no wrap and its chips never shrink: without
+            `overflow-hidden` a busy row (channel + temperature + tags + queue +
+            assignee) overflows the 320px column and gives the whole list a
+            horizontal scrollbar. */}
+        <div className="mt-1.5 flex items-center gap-1.5 overflow-hidden">
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
@@ -406,7 +466,7 @@ function ConversationListItemInner({
           {isQueuedConversation(conversation) && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="inline-flex items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                <span className="inline-flex items-center gap-1 rounded bg-severity-warning/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-severity-warning">
                   <Icon icon="mdi:timer-sand" size={11} />
                   Em fila
                 </span>
@@ -436,6 +496,32 @@ function ConversationListItemInner({
         </div>
       )}
     </Link>
+  );
+
+  if (!showSummary) return row;
+
+  return (
+    <HoverCard openDelay={500} closeDelay={120}>
+      <HoverCardTrigger asChild>{row}</HoverCardTrigger>
+      <HoverCardContent
+        side="right"
+        align="start"
+        sideOffset={8}
+        collisionPadding={12}
+        // The default HoverCardContent is w-64 p-4; the card paints its own padding.
+        className="w-[304px] overflow-hidden p-0 motion-reduce:animate-none"
+      >
+        <ConversationSummaryCard
+          conversation={conversation}
+          display={display}
+          lastMessage={lastMessage}
+          originAccount={liveOriginAccount}
+          assignedSeller={assignedSeller}
+          tags={resolvedTags}
+          now={now}
+        />
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 

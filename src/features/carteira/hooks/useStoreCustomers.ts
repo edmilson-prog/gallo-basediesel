@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ICustomer, ID } from "@/shared/types";
+import { FETCH_ALL_PAGE_SIZE } from "@/providers/data";
 import { useCustomersProvider } from "@/providers/data/hooks/useCustomersProvider";
 
 /**
@@ -16,7 +17,7 @@ export function useSellerCustomers(sellerId: ID | undefined, storeId: ID | undef
         storeId,
         sellerIds: sellerId ? [sellerId] : undefined,
         statuses: ["ativo", "recuperacao", "dormente"],
-        pageSize: 200,
+        pageSize: FETCH_ALL_PAGE_SIZE,
       }),
     enabled: Boolean(sellerId),
     staleTime: 30_000,

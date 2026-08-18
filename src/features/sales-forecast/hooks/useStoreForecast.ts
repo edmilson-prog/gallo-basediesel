@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { useOrdersProvider, useLeadsProvider, useSellersProvider } from "@/providers/data";
+import {
+  FETCH_ALL_PAGE_SIZE,
+  useOrdersProvider,
+  useLeadsProvider,
+  useSellersProvider,
+} from "@/providers/data";
 import { useGoalsWithProgress } from "@/features/goals";
 import { sumBy } from "@/features/sales-analytics/utils/aggregations";
 import type { ID } from "@/shared/types/common";
@@ -85,7 +90,7 @@ export function useStoreForecast(params: IUseStoreForecastParams): IUseStoreFore
 
   const leadsQuery = useQuery({
     queryKey: ["store-forecast", "leads", storeId],
-    queryFn: () => leadsProvider.list({ storeId, pageSize: 2000 }),
+    queryFn: () => leadsProvider.list({ storeId, pageSize: FETCH_ALL_PAGE_SIZE }),
     staleTime: STALE_MS,
   });
 

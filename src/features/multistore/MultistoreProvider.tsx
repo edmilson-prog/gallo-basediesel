@@ -4,6 +4,7 @@ import { useAuth } from "@/features/auth/useAuth";
 import { useStoresProvider } from "@/providers/data";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { hasPermission } from "@/features/rbac/utils/hasPermission";
+import { useRbacVersion } from "@/features/rbac/hooks/useRbacVersion";
 import { CURRENT_STORE_LOCALSTORAGE_KEY } from "./config";
 import { MultistoreContext, type IMultistoreContextValue } from "./MultistoreContext";
 import { multistoreStore } from "./store/multistoreStore";
@@ -80,8 +81,8 @@ export function MultistoreProvider({ children }: { children: React.ReactNode }) 
   // still-loading empty roster from a terminal empty roster (load failed).
   const [rosterLoaded, setRosterLoaded] = useState(false);
 
-  // Load the full store roster from the provider. Called on mount and by
-  // refreshStores() after a store is created/edited/deactivated (Fase 2 —
+  // Load the full store roster from the provider. Called per signed-in identity
+  // and by refreshStores() after a store is created/edited/deactivated (Fase 2 —
   // gestão multi-loja), so the switcher and listings reflect changes without
   // a full page reload. Re-resolution of the active store is handled by the
   // effect below, which preserves the persisted/primary store when still valid.
@@ -97,13 +98,33 @@ export function MultistoreProvider({ children }: { children: React.ReactNode }) 
     }
   }, [storesProvider]);
 
+  // Keyed on the identity, not on mount. `stores` is RLS-gated to
+  // `authenticated`, so a roster fetched before sign-in comes back empty — and
+  // loading it once at mount left the switcher (and every store-scoped screen)
+  // empty for the whole session, because signing in is a client-side navigation
+  // that never remounts this provider.
+  const identity = currentUser?.id ?? null;
   useEffect(() => {
+    if (!identity) {
+      // Signed out — drop the previous user's roster instead of leaking it.
+      setAllStores([]);
+      multistoreStore.setAccessibleStores([]);
+      setRosterLoaded(true);
+      return;
+    }
+    setRosterLoaded(false);
     void loadRoster();
-  }, [loadRoster]);
+  }, [loadRoster, identity]);
 
+  // `computeAccessibleStores` calls hasPermission(), which reads a cache that
+  // hydrates asynchronously after sign-in — recompute when it changes.
+  const rbacVersion = useRbacVersion();
   const accessibleStores = useMemo(
     () => computeAccessibleStores(allStores, currentUser),
-    [allStores, currentUser],
+    // `rbacVersion` looks unused to the linter — it is the invalidation token
+    // for the module-level cache `hasPermission()` reads inside the callee.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allStores, currentUser, rbacVersion],
   );
 
   // Keep the external store in sync so non-React consumers (mock providers

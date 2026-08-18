@@ -23,7 +23,10 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:alt" content="GALLO BASE DIESEL — Plataforma de Inteligência Comercial" />
+    <meta
+      property="og:image:alt"
+      content="GALLO BASE DIESEL — Plataforma de Inteligência Comercial"
+    />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="GALLO BASE DIESEL — Plataforma de Inteligência Comercial" />
     <meta name="twitter:description" content="Plataforma proprietária GALLO BASE DIESEL." />
@@ -31,20 +34,28 @@
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-    <!-- PWA (PRD-070 — external seller installable app) -->
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#16a34a" />
+    <!-- PWA — the external seller app at /pwa (PRD-070).
+         The atendimento app used to share this document, with an inline script
+         swapping these tags by pathname. That cannot work on iOS: WebKit ties a
+         web app's identity to the manifest present when the document loads and
+         never re-reads a mutated href, so Safari kept offering "GALLO Vendedor"
+         while the page was /atendimento. It now has its own `atendimento.html`,
+         routed by `vercel.json`, and these tags belong to the seller alone.
+         The ids are what `usePwaManifest` targets on a client-side navigation
+         into /atendimento, which stays inside this document. -->
+    <link rel="manifest" href="/manifest.webmanifest" id="app-manifest" />
+    <meta name="theme-color" content="#16a34a" id="app-theme-color" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="GALLO Vendedor" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="GALLO Vendedor" id="app-ios-title" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" id="app-apple-icon" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Saira+Condensed:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Saira+Condensed:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     />
 
     <script>

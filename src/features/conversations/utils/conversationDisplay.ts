@@ -1,6 +1,7 @@
 import type {
   ConversationChannel,
   ConversationStatus,
+  ID,
   IConversation,
   IConversationContact,
   ICustomer,
@@ -10,6 +11,7 @@ import type {
 } from "@/shared/types";
 import { hashHue, initialsFrom, isPhoneLikeName } from "@/shared/utils/avatar";
 import { decodeContact, decodeLocation } from "@/providers/whatsapp/contentFormat";
+import { isContentFreeMessage } from "../engine/contentFreeMessage";
 import { INBOX_STRINGS, STRUCTURED_PREVIEW_ICON } from "../i18n/pt-BR";
 
 export interface IConversationDisplay {
@@ -27,6 +29,15 @@ export interface IConversationDisplay {
   phone: string;
   isLead: boolean;
   temperature: LeadTemperature | null;
+  /**
+   * The company this person speaks for. CONTEXT, never a replacement for
+   * `name` — a company reaches us through several people, and swapping the
+   * person's name for the company's is exactly what left an attendant talking
+   * to someone they could no longer identify.
+   */
+  companyId: ID | null;
+  companyName: string | null;
+  role: string | null;
 }
 
 /** The "Lead anônimo" fallback — used when no contact could be resolved. */
@@ -39,6 +50,9 @@ function unknownDisplay(conversation: IConversation): IConversationDisplay {
     phone: "",
     isLead: true,
     temperature: null,
+    companyId: null,
+    companyName: null,
+    role: null,
   };
 }
 
@@ -64,6 +78,12 @@ export function getConversationDisplay(
       phone: customer.phone,
       isLead: false,
       temperature: null,
+      // This path has only the company in hand — it cannot name the person, so
+      // it does not pretend to. Showing the company twice (as identity AND as
+      // affiliation) would be noise; the RPC path is the one that separates them.
+      companyId: null,
+      companyName: null,
+      role: null,
     };
   }
   if (lead) {
@@ -75,6 +95,9 @@ export function getConversationDisplay(
       phone: lead.phone,
       isLead: true,
       temperature: lead.temperature,
+      companyId: null,
+      companyName: null,
+      role: null,
     };
   }
   return unknownDisplay(conversation);
@@ -94,6 +117,7 @@ export function displayFromContact(
 ): IConversationDisplay {
   const name = contact?.name?.trim();
   if (!contact || !name) return unknownDisplay(conversation);
+  const companyName = contact.companyName?.trim() || null;
   return {
     name,
     initials: initialsFrom(name),
@@ -103,6 +127,12 @@ export function displayFromContact(
     phone: contact.phone,
     isLead: contact.isLead,
     temperature: contact.temperature ?? null,
+    companyId: contact.companyId ?? null,
+    // Until a conversation carries a `contact_id`, the RPC resolves `name` FROM
+    // the company — surfacing it again as the affiliation would render
+    // "ACME · ACME". Only claim an affiliation when it names someone else.
+    companyName: companyName && companyName !== name ? companyName : null,
+    role: contact.role?.trim() || null,
   };
 }
 
@@ -122,6 +152,11 @@ export function getMessagePreview(message: IMessage | null): string {
   }
   if (message.mediaType) {
     return INBOX_STRINGS.mediaPreview[message.mediaType] ?? "📎 Anexo";
+  }
+  // Mirrors the thread's UnsupportedBubble: without this the Inbox row for a
+  // conversation whose last message is content-free renders a blank preview.
+  if (isContentFreeMessage(message)) {
+    return INBOX_STRINGS.mediaPreview.unsupported;
   }
   return message.text;
 }

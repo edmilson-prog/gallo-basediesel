@@ -1,4 +1,4 @@
-import type { ID, IPermission, IRbacResource, IRole } from "@/shared/types";
+import type { ID, IPermission, IRbacResource, IRole, RoleName } from "@/shared/types";
 
 /** Input to create a brand-new custom role (PRD-211). */
 export interface ICreateRoleInput {
@@ -24,8 +24,19 @@ export interface IRolesProvider {
   listResources(): Promise<IRbacResource[]>;
   /** Creates a custom role with its initial permission set. */
   create(input: ICreateRoleInput): Promise<IRole>;
-  /** Patches editable metadata (name/description). */
-  updateMeta(id: ID, patch: { name?: string; description?: string }): Promise<IRole>;
+  /**
+   * Patches editable metadata (name/description/base role).
+   *
+   * `baseRole` is only accepted for custom roles with **nobody assigned**: the
+   * base role is written into `profiles.role` at assignment time (by the Edge
+   * `set-seller-role`), so changing it later would leave existing holders
+   * running on the old base — the matrix would say one thing and RLS another.
+   * Implementations must reject the change while the role is in use.
+   */
+  updateMeta(
+    id: ID,
+    patch: { name?: string; description?: string; baseRole?: RoleName },
+  ): Promise<IRole>;
   /** Replaces the full permission set of a role. */
   setPermissions(id: ID, permissions: IPermission[]): Promise<IRole>;
   /** Resets a system role's permissions to the seeded defaults. */

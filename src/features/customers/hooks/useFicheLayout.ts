@@ -6,8 +6,8 @@ import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
 /**
  * Discrete layout mode of the customer fiche (PRD-012 RF-040..042):
  *
- *  - `column`  — ≥ 1280px: lateral 360px column inside `ConversationPage`.
- *  - `drawer`  — 768..1279: overlay sheet toggled by the header button.
+ *  - `column`  — ≥ 1440px: lateral 360px column inside `ConversationPage`.
+ *  - `drawer`  — 768..1439: overlay sheet toggled by the header button.
  *  - `route`   — < 768: the "Ficha" button navigates to `/app/clientes/:id`
  *                 (the page renders the same component with `variant="page"`).
  *
@@ -16,7 +16,12 @@ import { CUSTOMER_STRINGS } from "../i18n/pt-BR";
  */
 export type FicheLayoutMode = "column" | "drawer" | "route";
 
-const COLUMN_MIN_PX = 1280;
+// Sidebar (~255) + inbox list (320) + a usable conversation column (~505, the
+// width below which the header's action row starts clipping) + the 360px fiche.
+// Below this the three panes never fit: the fiche used to be pushed off-screen
+// and clipped, so it falls back to the overlay drawer instead. Keep in sync with
+// the `min-[1440px]:block` guard on CustomerProfileFiche/LeadProfileFiche.
+const COLUMN_MIN_PX = 1440;
 const DRAWER_MIN_PX = 768;
 
 function readMode(): FicheLayoutMode {
@@ -50,7 +55,11 @@ export function useFicheLayout(): FicheLayoutMode {
 /**
  * Returns a click handler for the "Ficha" button in the conversation header
  * that does the right thing per breakpoint: toggle on tablet/desktop, navigate
- * on mobile.
+ * on mobile. Lead-anchored conversations always TOGGLE (LeadProfileFiche
+ * renders its overlay Sheet on route mode too): navigating to /app/leads/:id
+ * would dead-end on "Lead não encontrado" for a pool attendant, since the
+ * lead PAGE reads under the per-owner leads RLS — only the fiche is
+ * conversation-gated.
  */
 export function useFicheButtonHandler(params: {
   customerId: ID | null;

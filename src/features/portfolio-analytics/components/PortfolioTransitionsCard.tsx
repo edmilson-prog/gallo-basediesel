@@ -19,11 +19,11 @@ interface IRowProps {
 function toneClasses(tone: IRowProps["tone"]): string {
   switch (tone) {
     case "good":
-      return "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400";
+      return "bg-severity-success/10 text-severity-success";
     case "warn":
-      return "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400";
+      return "bg-severity-warning/10 text-severity-warning";
     case "bad":
-      return "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400";
+      return "bg-severity-critical/10 text-severity-critical";
     case "neutral":
     default:
       return "bg-muted/40 text-muted-foreground";

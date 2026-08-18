@@ -99,6 +99,20 @@ interface ImportMetaEnv {
    * @see src/features/copilot/config.ts
    */
   readonly VITE_COPILOT_PLACEMENT?: "strip" | "tab" | "card";
+
+  /**
+   * Public half of the Web Push VAPID key pair, base64url-encoded.
+   *
+   * The private half lives in the Supabase Vault and never reaches the client.
+   * Absent until the key is generated and the deploy carries it: the atendimento
+   * PWA then still asks for notification permission (so the OS-level answer is
+   * captured) but registers no endpoint, which keeps the app usable without push
+   * rather than failing at subscribe time.
+   *
+   * Rotating the pair invalidates every stored subscription — see
+   * `docs/dev/notification-push.md`.
+   */
+  readonly VITE_VAPID_PUBLIC_KEY?: string;
 }
 
 interface ImportMeta {

@@ -41,6 +41,19 @@ export const INBOX_STRINGS = {
     emptyDescription: (term: string) => `Nenhuma conversa tem "${term}" no texto das mensagens.`,
   },
 
+  // Conversas fixadas (spec 2026-08-11)
+  pin: {
+    fix: "Fixar conversa",
+    unfix: "Desafixar conversa",
+    badgeAria: "Conversa fixada",
+    blockTitle: "Fixadas",
+    blockCount: (n: number, max: number) => `${n}/${max}`,
+    limitReached: (max: number) =>
+      `Limite de ${max} conversa${max === 1 ? "" : "s"} fixada${max === 1 ? "" : "s"} — desafixe uma para fixar outra.`,
+    limitTooltip: "Limite de conversas fixadas atingido",
+    listSeparator: "Todas as conversas",
+  },
+
   // Filters
   filtersTitle: "Filtros",
   clearAll: "Limpar tudo",
@@ -121,6 +134,16 @@ export const INBOX_STRINGS = {
   sdrBadgeTooltip: "Esta conversa está sendo atendida pelo agente SDR",
   collaboratingBadge: "Colaborando",
   newBadge: "Novo!",
+
+  /** Contact summary card shown on row hover (spec 2026-08-11). */
+  summaryCard: {
+    qualifierCustomer: "Cliente",
+    qualifierLead: "Lead",
+    lastMessageLabel: "Último recado",
+    /** The last-message RPC is RLS-gated, so `lastMessage` arrives null here. */
+    previewUnavailable: "Prévia indisponível — a conversa é de outro atendente.",
+  },
+
   mediaPreview: {
     image: "📎 Foto",
     audio: "🎵 Áudio",
@@ -129,6 +152,8 @@ export const INBOX_STRINGS = {
     sticker: "🌟 Sticker",
     location: `${STRUCTURED_PREVIEW_ICON.location} Localização`,
     contact: `${STRUCTURED_PREVIEW_ICON.contact} Contato`,
+    /** Message that reached us with no readable content — see UnsupportedBubble. */
+    unsupported: "Mensagem não suportada",
   },
 
   // Quick actions
@@ -232,9 +257,28 @@ export const CONVERSATION_STRINGS = {
       segmented: "Segmentado",
     },
   },
+  // Conversation-management card — shared by the customer fiche ("Atendimento"
+  // tab) and the lead fiche, so both stay in sync.
+  management: {
+    status: "Status da conversa",
+    assignee: "Atendente responsável",
+    origin: "Respondendo por",
+    adSource: "Origem da conversa",
+    tags: "Tags da conversa",
+    tagsEmpty: "Nenhuma tag aplicada",
+    collaborators: "Colaboradores",
+    collaboratorsEmpty: "Nenhum colaborador nesta conversa.",
+    // Short forms for the lateral panel: its rows are label-left/value-right in
+    // 360px, where "Atendente responsável" pushes the value off the row. The
+    // card header already says these belong to the conversation.
+    statusShort: "Status",
+    assigneeShort: "Atendente",
+    tagsShort: "Etiquetas",
+    unassignedShort: "Sem atribuição",
+  },
   toggleFiche: "Ficha",
   toggleMedia: "Mídias",
-  toggleHistory: "Histórico",
+  ficheUnavailableTooltip: "Sem contato vinculado a esta conversa",
   moreActions: "Mais ações",
   sdrActiveTag: "SDR ativo",
   sdrActiveTooltip: "Esta conversa está sendo atendida pelo agente SDR",
@@ -299,6 +343,28 @@ export const CONVERSATION_STRINGS = {
   templateBadge: "Template",
   retry: "Tentar novamente",
   reprocess: "Reprocessar",
+
+  // Responder (citar) mensagem
+  reply: {
+    action: "Responder",
+    copyText: "Copiar texto",
+    copied: "Texto copiado",
+    bubbleActions: "Ações da mensagem",
+    composerTitle: "Respondendo a",
+    cancel: "Cancelar resposta",
+    you: "Você",
+    contactFallback: "Cliente",
+    media: {
+      image: "Foto",
+      audio: "Áudio",
+      video: "Vídeo",
+      document: "Documento",
+      location: "Localização",
+      contact: "Contato",
+      generic: "Mensagem",
+    },
+  },
+
   download: "Baixar",
   close: "Fechar",
   downloadImage: "Baixar imagem",
@@ -306,8 +372,12 @@ export const CONVERSATION_STRINGS = {
   downloadVideo: "Baixar vídeo",
   downloadDocument: "Baixar documento",
   transcribingAudio: "Transcrevendo…",
+  transcriptionLabel: "Transcrição",
   transcriptionUnavailable: "Transcrição indisponível",
   retryTranscription: "Tentar transcrever de novo",
+  transcriptionShowMore: "Ver mais",
+  transcriptionShowLess: "Ver menos",
+  audioPosition: "Posição do áudio",
   imageCaption: (caption: string) => caption || "Foto",
   location: {
     label: "Localização",
@@ -500,6 +570,19 @@ export const CONVERSATION_STRINGS = {
     "Uma falha de entrega indicou que este número não está no WhatsApp. Envio exige confirmação de gestor.",
   markWhatsappValid: "Marcar como WhatsApp válido",
   markedWhatsappValid: "Número marcado como válido",
+  /**
+   * Linking the person of this conversation to a company. The verb "vincular"
+   * is the same on the chip, in the dialog's confirm button and in the toast —
+   * an action that renames itself along the way reads as two actions.
+   */
+  linkCompany: {
+    chip: "Vincular a empresa",
+    success: (name: string) => `${name} vinculado à empresa`,
+    undo: "Desfazer",
+    undone: "Vínculo desfeito",
+    undoFailed: "Não foi possível desfazer o vínculo.",
+    failed: "Não foi possível vincular. Você pode não ter permissão sobre este contato.",
+  },
   noteDialog: {
     title: "Adicionar nota à ficha",
     description: "A nota fica visível para vendedores e gestores com acesso a este cliente.",

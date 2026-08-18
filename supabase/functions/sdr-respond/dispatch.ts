@@ -14,6 +14,7 @@
 import { type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.107.0";
 import { createSecretResolver } from "../_shared/secrets.ts";
 import { makeSendDb, makeEngineDeps } from "../_shared/whatsappSendAdapter.ts";
+import { resolveWahaRecipient, withRecipientFallback } from "../_shared/wahaSendAdapter.ts";
 import { buildWhatsAppEngine } from "../_shared/whatsapp/build.ts";
 import {
   processSendRequest,
@@ -22,11 +23,6 @@ import {
 } from "../_shared/whatsapp/send/core.ts";
 import { sendWahaText } from "../_shared/whatsapp/waha/send.ts";
 import { HttpError } from "../_shared/http.ts";
-
-interface IConversationAccountRow {
-  whatsapp_account_id: string | null;
-  customers: { phone: string | null } | null;
-}
 
 async function dispatchWaha(
   admin: SupabaseClient,
@@ -55,13 +51,10 @@ async function dispatchWaha(
   const apiKey = await createSecretResolver(admin)(String(server.api_key_ref ?? ""));
   if (!apiKey) throw new HttpError(422, "chave de API do servidor WAHA não definida");
 
-  const { data: convRow } = await admin
-    .from("conversations")
-    .select("customers(phone)")
-    .eq("id", conversationId)
-    .maybeSingle<IConversationAccountRow>();
-  const toPhone = convRow?.customers?.phone;
-  if (!toPhone) throw new HttpError(422, "cliente sem telefone cadastrado");
+  // Shared resolver: the chat's own JID → customer phone → lead phone (SDR
+  // conversations are lead-only by design since Funnel Frente 3).
+  const recipient = await resolveWahaRecipient(admin, conversationId);
+  if (!recipient) throw new HttpError(422, "contato sem telefone cadastrado");
 
   const messageId = crypto.randomUUID();
   const { error: insertErr } = await admin.from("messages").insert({
@@ -78,10 +71,18 @@ async function dispatchWaha(
   if (insertErr) throw new HttpError(500, `falha ao registrar a mensagem: ${insertErr.message}`);
 
   try {
-    const result = await sendWahaText(apiKey, globalThis.fetch, { baseUrl, sessionName }, {
-      toPhone,
-      text,
-    });
+    const result = await withRecipientFallback(recipient, (address) =>
+      sendWahaText(
+        apiKey,
+        globalThis.fetch,
+        { baseUrl, sessionName },
+        {
+          toPhone: address.toPhone,
+          chatId: address.chatId,
+          text,
+        },
+      ),
+    );
     await admin
       .from("messages")
       .update({ status: "sent", provider_message_id: result.providerMessageId })

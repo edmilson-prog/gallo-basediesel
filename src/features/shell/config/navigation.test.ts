@@ -36,11 +36,51 @@ describe("isNavItemVisible — hybrid nav gating", () => {
   it("role-gated structural items keep their allowlist", () => {
     hydrateRbac(seedRoles());
     expect(isNavItemVisible(navItem("Início"), { role: "Owner" })).toBe(true);
-    expect(isNavItemVisible(navItem("Início"), { role: "Gestor" })).toBe(false);
     // Comissões is kept on roles (Gestor has `approve`, not `view`).
     expect(isNavItemVisible(navItem("Comissões"), { role: "Gestor" })).toBe(true);
     // DRE stays Owner-only despite the matrix granting Gestor view.
     expect(isNavItemVisible(navItem("DRE Gerencial"), { role: "Gestor" })).toBe(false);
+  });
+
+  /**
+   * Regression guard: every structural (`roles`) item must list Gestor whenever
+   * the route's own `requireAuth` allowlist already admits Gestor. Drifting apart
+   * produces pages that are reachable but unreachable *through the UI* — the
+   * class of bug that left the Gestor without "Início" (the Manager Dashboard,
+   * which is also their post-login redirect target).
+   */
+  it("Gestor sees the structural items whose routes already admit Gestor", () => {
+    hydrateRbac(seedRoles());
+    // /app/inicio renders ManagerDashboardPage and is defaultRedirectForRole("Gestor").
+    expect(isNavItemVisible(navItem("Início"), { role: "Gestor" })).toBe(true);
+    // requireAuth(["Owner", "Gestor"]) on /app/carteira and /app/sdr.
+    expect(isNavItemVisible(navItem("Carteira"), { role: "Gestor" })).toBe(true);
+    expect(isNavItemVisible(navItem("Painel SDR"), { role: "Gestor" })).toBe(true);
+    // requireAuth(["Owner", "Gestor", "Vendedor", "Financeiro"]) on /app/gestao/ranking.
+    expect(isNavItemVisible(navItem("Ranking"), { role: "Gestor" })).toBe(true);
+  });
+
+  /**
+   * "Admin" points at /app/configuracoes, which carries no guard at all — it
+   * just redirects to /app/configuracoes/perfil (plain requireAuth). The
+   * SettingsLayout then filters its own sidebar per role, and a Gestor holds 18
+   * of those screens (Papéis, Lojas, Templates WhatsApp, Tags, Auditoria, …).
+   * Gating the entry point on Owner left the Gestor with no labelled door to any
+   * of them.
+   */
+  it("Gestor reaches the settings area entry point", () => {
+    hydrateRbac(seedRoles());
+    expect(isNavItemVisible(navItem("Admin"), { role: "Gestor" })).toBe(true);
+    expect(isNavItemVisible(navItem("Admin"), { role: "Owner" })).toBe(true);
+  });
+
+  it("personal settings entries are visible to every staff role", () => {
+    hydrateRbac(seedRoles());
+    // Mirrors SettingsLayout's own allowlist — the two must not disagree.
+    for (const role of ["Owner", "Gestor", "Vendedor", "SDR", "VendedorExterno", "Financeiro"] as const) {
+      expect(isNavItemVisible(navItem("Perfil"), { role })).toBe(true);
+      expect(isNavItemVisible(navItem("Aparência"), { role })).toBe(true);
+    }
   });
 
   it("custom roles drive matrix-gated items via roleKey", () => {
@@ -71,5 +111,76 @@ describe("isNavItemVisible — hybrid nav gating", () => {
     hydrateRbac(seedRoles());
     expect(isNavItemVisible(navItem("Atendimento"), null)).toBe(false);
     expect(isNavItemVisible(navItem("Início"), null)).toBe(false);
+  });
+
+  // Regression: the RBAC cache used to be hydrated at app boot — above
+  // <AuthProvider>, so it also ran on the login screen. Unauthenticated,
+  // `roles.list()` resolves with `[]` (RLS grants SELECT to `anon` but has no
+  // policy for it), and hydrating that empty array flipped every
+  // matrix-driven nav item to hidden until the user reloaded the page.
+  it("keeps matrix-driven items visible after an unauthenticated empty load", () => {
+    hydrateRbac([]);
+    const owner = { role: "Owner" as const };
+    for (const label of [
+      "Atendimento",
+      "Clientes",
+      "Leads",
+      "Veículos",
+      "Catálogo",
+      "Orçamentos",
+      "Pedidos",
+      "Metas",
+      "Indicadores",
+    ]) {
+      expect(isNavItemVisible(navItem(label), owner), `${label} must stay visible`).toBe(true);
+    }
+  });
+});
+
+describe("grupo SUPRIMENTOS (PRD-216)", () => {
+  afterEach(() => invalidateRbac());
+
+  function suprimentos() {
+    const group = APP_NAV_GROUPS.find((g) => g.label === "Suprimentos");
+    if (!group) throw new Error("grupo Suprimentos não encontrado");
+    return group;
+  }
+
+  it("traz as QUATRO telas do kit, nesta ordem", () => {
+    expect(suprimentos().items.map((i) => i.label)).toEqual([
+      "Notas de entrada",
+      "Importar XML",
+      "Entrada de nota",
+      "Análise IA",
+    ]);
+  });
+
+  it("aparece para quem tem supplies.view", () => {
+    hydrateRbac(seedRoles());
+    for (const item of suprimentos().items) {
+      expect(isNavItemVisible(item, { role: "Owner", roleKey: "Owner" })).toBe(true);
+      expect(isNavItemVisible(item, { role: "Gestor", roleKey: "Gestor" })).toBe(true);
+      expect(isNavItemVisible(item, { role: "Financeiro", roleKey: "Financeiro" })).toBe(true);
+    }
+  });
+
+  it("some para quem vende — custo de compra não é do time comercial", () => {
+    hydrateRbac(seedRoles());
+    for (const item of suprimentos().items) {
+      expect(isNavItemVisible(item, { role: "Vendedor", roleKey: "Vendedor" })).toBe(false);
+      expect(isNavItemVisible(item, { role: "VendedorExterno", roleKey: "VendedorExterno" })).toBe(
+        false,
+      );
+      expect(isNavItemVisible(item, { role: "SDR", roleKey: "SDR" })).toBe(false);
+    }
+  });
+
+  it("é gateado pela matriz, nunca por lista de papéis", () => {
+    // `roles` e `permission` são AND no requireAuth, e uma lista de papéis
+    // anularia o Editor de Papéis para papéis customizados.
+    for (const item of suprimentos().items) {
+      expect(item.permission?.resource).toBe("supplies");
+      expect(item.roles).toBeUndefined();
+    }
   });
 });

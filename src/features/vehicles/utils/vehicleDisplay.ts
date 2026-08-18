@@ -13,10 +13,8 @@ export function iconForBrand(brand: string): string {
 }
 
 export const STATUS_BADGE_CLASSES: Record<VehicleCadastroStatus, string> = {
-  aprovado:
-    "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/15 dark:text-emerald-300",
-  pendente:
-    "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:border-amber-400/30 dark:bg-amber-500/15 dark:text-amber-300",
+  aprovado: "border-severity-success/30 bg-severity-success/10 text-severity-success",
+  pendente: "border-severity-warning/30 bg-severity-warning/10 text-severity-warning",
   rejeitado: "border-destructive/30 bg-destructive/10 text-destructive dark:bg-destructive/15",
 };
 

@@ -4,7 +4,7 @@ import { Icon } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/features/auth/useAuth";
+import { useCurrentUserAvatar } from "@/features/auth/useCurrentUserAvatar";
 import { AUTH_SOURCE } from "@/features/auth/authSource";
 import { getActiveDataSource } from "@/providers/data";
 import { presetOf } from "@/shared/lib/environmentMode";
@@ -23,7 +24,7 @@ import { usePlatformSettings } from "@/features/admin-settings/hooks/usePlatform
 import { AvailabilityToggle } from "@/features/distribution/components/AvailabilityToggle";
 import { NotificationDropdown } from "@/features/notifications/components/NotificationDropdown";
 import { WhatsAppStatusButton } from "@/features/shell/components/WhatsAppStatusButton";
-import { InboxUnreadBadgeIcon, SoundAlertToggle } from "@/features/inbox-alerts";
+import { InboxUnreadBadgeIcon } from "@/features/inbox-alerts";
 import { IdlePendingChip } from "@/features/idle-alerts";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { ROUTES } from "@/features/shell/config/routes";
@@ -31,6 +32,7 @@ import { TourHelpButton } from "@/features/tour";
 
 export function TopBar() {
   const { currentUser, signOut } = useAuth();
+  const avatarUrl = useCurrentUserAvatar();
   const navigate = useNavigate();
 
   // Analytics copilot (PRD-057). Gated by the per-store platform setting
@@ -76,8 +78,6 @@ export function TopBar() {
 
         <IdlePendingChip />
 
-        <SoundAlertToggle />
-
         {/* Analytics copilot entry point (PRD-057). Hidden when disabled per store. */}
         {copilotEnabled && (
           <Button
@@ -106,6 +106,7 @@ export function TopBar() {
               aria-label="Menu do usuário"
             >
               <Avatar className="h-9 w-9">
+                {avatarUrl && <AvatarImage src={avatarUrl} alt="" className="object-cover" />}
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                   {currentUser?.avatarInitials ?? "?"}
                 </AvatarFallback>

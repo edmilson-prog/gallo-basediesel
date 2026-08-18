@@ -382,7 +382,7 @@ export function AddInstanceWizard({
               <div className="space-y-1.5">
                 <Label htmlFor="add-go-server">Servidor Evolution Go</Label>
                 {goServers.length === 0 ? (
-                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                  <div className="rounded-lg border border-severity-warning/40 bg-severity-warning/10 px-3 py-2 text-xs text-severity-warning">
                     Nenhum servidor cadastrado. Cadastre um em{" "}
                     <strong>Configurações → Integrações &amp; Chaves</strong> antes de adicionar um
                     número.
@@ -410,7 +410,7 @@ export function AddInstanceWizard({
               <div className="space-y-1.5">
                 <Label htmlFor="add-openwa-server">Servidor OpenWA</Label>
                 {openwaServers.length === 0 ? (
-                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                  <div className="rounded-lg border border-severity-warning/40 bg-severity-warning/10 px-3 py-2 text-xs text-severity-warning">
                     Nenhum servidor cadastrado. Cadastre um em{" "}
                     <strong>Configurações → Integrações &amp; Chaves</strong> antes de adicionar um
                     número.

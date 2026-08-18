@@ -15,7 +15,10 @@
  *   - "message.any": WAHA's (GOWS engine) only channel for `fromMe: true`
  *     messages — someone replied straight from the paired phone, outside the
  *     platform. Plain "message" never carries these. Mirrored with
- *     open-only-lookup semantics so it never reopens a closed conversation;
+ *     open-only-lookup semantics so it never REOPENS a closed conversation —
+ *     though within the echo-continuity window (default 24h, per-store
+ *     setting) it may APPEND to a recently-`resolvida` thread without
+ *     changing its status (decision 2026-07-23, doc §7 item 3);
  *     any "message.any" envelope that turns out NOT to be an echo (i.e.
  *     genuine inbound, already covered by "message") is ignored to avoid
  *     double-processing. A duplicate echo (app-sent message already
@@ -48,7 +51,12 @@ import { wahaStateToAccountStatus } from "../_shared/whatsapp/waha/constants.ts"
 import { getWahaContactName, resolveWahaLid } from "../_shared/whatsapp/waha/contacts.ts";
 import { buildWahaEventKey } from "../_shared/whatsapp/waha/eventKey.ts";
 import { statusAdvances, type DeliveryStatus } from "../_shared/whatsapp/messageStatus.ts";
+import {
+  echoContinuityCutoffIso,
+  resolveEchoContinuityWindowHours,
+} from "../_shared/whatsapp/echoContinuity.ts";
 import { phoneDigitsMatchBr } from "../_shared/whatsapp/phoneBr.ts";
+import { resolveReplyRef } from "../_shared/replyRef.ts";
 import { logWebhookDelivery } from "../_shared/webhookDeliveryLog.ts";
 import { runInBackground } from "../_shared/backgroundTask.ts";
 import { transcribeMessageAudio } from "../_shared/ai/transcribeAudio.ts";
@@ -61,6 +69,17 @@ interface IWahaEnvelope {
 }
 
 const CLOSED_CONVERSATION_STATUSES = ["resolvida", "arquivada"];
+
+// Tagged transient-DB failure thrown by helpers deep in the call tree
+// (contact resolution, lead upserts). The global catch converts it into a 503
+// WITHOUT the idempotency mark so WAHA redelivers (fail-closed, PR #357 item
+// 2); every other error keeps the legacy 200 "error-logged" contract.
+class TransientDbError extends Error {}
+
+// Fallback pipeline stage when the store has none configured yet — mirrors the
+// app-level default (src/mocks/data/platform.ts) and the reference
+// whatsapp-webhook's DEFAULT_FIRST_STAGE. Used by the lead helpers below.
+const DEFAULT_FIRST_STAGE = { id: "stage-novo", name: "Novo", order: 1, color: "#5b6b7a" };
 
 function extForMimetype(mimetype: string): string {
   const map: Record<string, string> = {
@@ -256,6 +275,27 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fail CLOSED on transient DB failures (2026-07-23, PR #357 item 2): a
+    // discarded lookup/insert error used to read as "row not found" and fail
+    // open into a duplicate conversation INSERT — or into a silent 200 that
+    // dropped the message. A 503 WITHOUT markProcessed() makes WAHA redeliver
+    // the event; the deferred idempotency mark guarantees the retry
+    // reprocesses cleanly.
+    function transientDbFailure(stage: string, error: { message: string }): Response {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          msg: `waha webhook: ${stage} failed`,
+          error: error.message,
+        }),
+      );
+      return respond(json({ error: "transient-db-error", stage }, 503), {
+        outcome: "error",
+        errorMessage: `${stage}: ${error.message}`,
+        requestPayload: envelope,
+      });
+    }
+
     // Shared phone→customer lookup (suffix pre-filter + tolerant match via
     // phoneDigitsMatchBr — phone formatting varies in the base: +55...,
     // (55) 9..., etc.; a stored number may also be missing the 9th digit).
@@ -273,11 +313,15 @@ Deno.serve(async (req) => {
       phoneDigits: string,
       opts?: { adoptCanonical?: boolean },
     ): Promise<string | undefined> {
-      const { data: candidates } = await admin
+      const { data: candidates, error: candidatesErr } = await admin
         .from("customers")
         .select("id, phone")
         .eq("store_id", accountRow.store_id as string)
         .like("phone", `%${phoneDigits.slice(-8)}`);
+      // Fail CLOSED: a discarded error here read as "unknown number" and fell
+      // through to lead creation — a duplicate anchor the unique index cannot
+      // veto (different anchor column).
+      if (candidatesErr) throw new TransientDbError(`findCustomerByPhone: ${candidatesErr.message}`);
       const match = (candidates ?? []).find((c) =>
         phoneDigitsMatchBr(String(c.phone).replace(/\D/g, ""), phoneDigits),
       );
@@ -310,6 +354,275 @@ Deno.serve(async (req) => {
         }
       }
       return match.id as string;
+    }
+
+    // ===== Lead resolution (Funnel Frente 3) =================================
+    // Mirrored — DELIBERATELY, never imported — from the reference
+    // whatsapp-webhook adapter (`createLead`/`reopenLostLead`/
+    // `findOpenConversationForLead`, index.ts L340-385; helpers `assignNext-
+    // FromRotation`/`getFirstPipelineStage`/`DEFAULT_FIRST_STAGE`, L74-100) and
+    // the shared core's `resolveContact` (webhook/core.ts L420-440 — resolution
+    // ORDER only). WAHA stays fully isolated (see the file header): the shape is
+    // copied here on purpose so a change to the shared pipeline can never
+    // silently alter WAHA's behavior. Why: an unknown number used to spawn a
+    // pending_review customer ghost; now it becomes a real Lead (owned by the
+    // rotation pick on live inbound), which stops the Funnel from manufacturing
+    // fake customers. The @lid-unresolved (forged-phone) branches keep the
+    // minimal customer anchor — those digits are NOT a validated phone and must
+    // never seed a lead.
+    async function getFirstPipelineStage(): Promise<Record<string, unknown>> {
+      const { data } = await admin
+        .from("stores")
+        .select("settings")
+        .eq("id", accountRow.store_id as string)
+        .maybeSingle();
+      const stages = (data?.settings as { pipelineStages?: Array<Record<string, unknown>> } | null)
+        ?.pipelineStages;
+      if (!stages || stages.length === 0) return DEFAULT_FIRST_STAGE;
+      return [...stages].sort((a, b) => (a.order as number) - (b.order as number))[0]!;
+    }
+
+    // Echo-continuity window setting (decision 2026-07-23, doc §7 item 3) —
+    // per store, stores.settings->echoContinuity.windowHours (default 24,
+    // 0 = disabled). A transient read failure fails CLOSED (503 → WAHA
+    // retries) instead of silently degrading to always-create.
+    async function getEchoContinuityWindowHours(): Promise<number> {
+      const { data, error } = await admin
+        .from("stores")
+        .select("settings")
+        .eq("id", accountRow.store_id as string)
+        .maybeSingle();
+      if (error) throw new TransientDbError(`echo continuity settings read: ${error.message}`);
+      return resolveEchoContinuityWindowHours(data?.settings);
+    }
+
+    // Rotation owner for a live inbound lead. The RPC is frozen (never returns
+    // null — it falls back to a fixed seller when no queue/eligible member
+    // exists). leads.seller_id is nullable since migration 20260718150000
+    // (ownerless leads on the echo/archive/import paths); a live inbound
+    // always resolves an owner here, so it just never needs the null case.
+    async function assignRotationSeller(): Promise<string> {
+      const { data, error } = await admin.rpc("assign_next_from_rotation", {
+        p_store_id: accountRow.store_id as string,
+      });
+      if (error) throw new Error(`assign_next_from_rotation: ${error.message}`);
+      return data as string;
+    }
+
+    // Suffix pre-filter on the generated digits column + tolerant BR match —
+    // same shape as findCustomerByPhone above (stored numbers vary: missing DDI
+    // 55, 9th-digit divergence). leads.phone_digits is a generated digits-only
+    // column (migration 20260716210000). Returns the lead's owner + loss state
+    // so the caller can decide reuse / reopen / owner-assignment.
+    async function findLeadByPhone(phoneDigits: string): Promise<
+      | {
+          id: string;
+          sellerId: string | null;
+          lossReason: string | null;
+          convertedToCustomerId: string | null;
+        }
+      | undefined
+    > {
+      const { data: candidates, error: candidatesErr } = await admin
+        .from("leads")
+        .select("id, seller_id, loss_reason, phone_digits, converted_to_customer_id")
+        .eq("store_id", accountRow.store_id as string)
+        .like("phone_digits", `%${phoneDigits.slice(-8)}`);
+      // Fail CLOSED — same rationale as findCustomerByPhone above.
+      if (candidatesErr) throw new TransientDbError(`findLeadByPhone: ${candidatesErr.message}`);
+      const match = (candidates ?? []).find((l) =>
+        phoneDigitsMatchBr(String(l.phone_digits ?? "").replace(/\D/g, ""), phoneDigits),
+      );
+      if (!match) return undefined;
+      return {
+        id: match.id as string,
+        sellerId: (match.seller_id as string | null) ?? null,
+        lossReason: (match.loss_reason as string | null) ?? null,
+        convertedToCustomerId: (match.converted_to_customer_id as string | null) ?? null,
+      };
+    }
+
+    // Reopen a previously-lost lead: clear the loss and restore the first stage
+    // (mirror of reopenLostLead v0.150). Rotation (re)assignment is the caller's
+    // job — it happens only when the PERSON answers (live inbound).
+    async function reopenLead(leadId: string): Promise<void> {
+      const firstStage = await getFirstPipelineStage();
+      const { error } = await admin
+        .from("leads")
+        .update({ loss_reason: null, loss_notes: null, stage: firstStage })
+        .eq("id", leadId);
+      if (error) throw new Error(`reopenLead: ${error.message}`);
+    }
+
+    // Low-level lead insert (mirror of createLead's shape, v0.150). origin is
+    // always 'whatsapp' here — the acervo migration script uses 'import'
+    // instead. sellerId is null on the echo path (owner-less until the person
+    // answers): this REQUIRES leads.seller_id to be nullable — see the report.
+    async function insertLead(input: {
+      phone: string;
+      name: string;
+      sellerId: string | null;
+      temperature: "morno" | "frio";
+    }): Promise<string> {
+      const firstStage = await getFirstPipelineStage();
+      const { data, error } = await admin
+        .from("leads")
+        .insert({
+          // leads.id is `text primary key` with no DB default — the caller
+          // must mint it, mirroring the app-level provider
+          // (src/providers/data/impl/supabase/leads.ts).
+          id: crypto.randomUUID(),
+          store_id: accountRow.store_id,
+          seller_id: input.sellerId,
+          name: input.name,
+          phone: input.phone,
+          stage: firstStage,
+          temperature: input.temperature,
+          origin: "whatsapp",
+          conversations: [],
+          tags: [],
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error(`insertLead: ${error.message}`);
+      return data.id as string;
+    }
+
+    // LIVE INBOUND resolution: reuse / reopen an existing lead — assigning the
+    // rotation owner the moment the person writes to us — or create a fresh warm
+    // lead. Resolution order mirrors resolveContact: customer (handled by the
+    // caller) → existing lead (reopened if lost) → brand-new lead.
+    async function resolveLeadForInbound(
+      phoneDigits: string,
+      fromPhone: string,
+      contactName: string | undefined,
+    ): Promise<{ kind: "customer" | "lead"; id: string }> {
+      const existing = await findLeadByPhone(phoneDigits);
+      if (existing?.convertedToCustomerId) {
+        // Converted lead (PR #357 item 4): its conversations were re-anchored
+        // to the customer by leads_reanchor_converted — resolving as a lead
+        // again would mint a fresh empty lead-anchored conversation and
+        // recreate the split (reachable when the linked customer's phone
+        // differs from the lead's). Follow the conversion pointer instead.
+        console.log(
+          JSON.stringify({
+            level: "info",
+            msg: "waha webhook: converted lead resolved as customer",
+            leadId: existing.id,
+            customerId: existing.convertedToCustomerId,
+            path: "inbound",
+          }),
+        );
+        return { kind: "customer", id: existing.convertedToCustomerId };
+      }
+      if (existing) {
+        if (existing.lossReason !== null) {
+          // Lost lead came back to life — clear the loss/restore the stage and
+          // (re)assign an owner via rotation now that the person answered.
+          await reopenLead(existing.id);
+          const sellerId = await assignRotationSeller();
+          await admin.from("leads").update({ seller_id: sellerId }).eq("id", existing.id);
+          console.log(
+            JSON.stringify({
+              level: "info",
+              msg: "waha webhook: lead reopened",
+              leadId: existing.id,
+              path: "inbound",
+            }),
+          );
+        } else if (existing.sellerId === null) {
+          // Acervo/import lead with no owner yet — assign one now it's live.
+          const sellerId = await assignRotationSeller();
+          await admin.from("leads").update({ seller_id: sellerId }).eq("id", existing.id);
+          console.log(
+            JSON.stringify({
+              level: "info",
+              msg: "waha webhook: lead matched",
+              leadId: existing.id,
+              path: "inbound",
+            }),
+          );
+        } else {
+          console.log(
+            JSON.stringify({
+              level: "info",
+              msg: "waha webhook: lead matched",
+              leadId: existing.id,
+              path: "inbound",
+            }),
+          );
+        }
+        return { kind: "lead", id: existing.id };
+      }
+      const sellerId = await assignRotationSeller();
+      const leadId = await insertLead({
+        phone: fromPhone,
+        name: contactName ?? fromPhone,
+        sellerId,
+        temperature: "morno",
+      });
+      console.log(
+        JSON.stringify({
+          level: "info",
+          msg: "waha webhook: lead created",
+          leadId,
+          path: "inbound",
+        }),
+      );
+      return { kind: "lead", id: leadId };
+    }
+
+    // OUTBOUND ECHO resolution (we messaged them from the phone): reuse an
+    // existing lead AS-IS — never reopen a lost one, never assign rotation
+    // (that happens only when the person answers, on the inbound path). If none
+    // exists, create a COLD, OWNER-LESS lead (no rotation): the team reached out
+    // but nobody has claimed the thread yet.
+    async function resolveLeadForEcho(
+      phoneDigits: string,
+      toPhone: string,
+      contactName: string | undefined,
+    ): Promise<{ kind: "customer" | "lead"; id: string }> {
+      const existing = await findLeadByPhone(phoneDigits);
+      if (existing?.convertedToCustomerId) {
+        // Converted lead — same conversion-pointer rule as the inbound
+        // resolver above.
+        console.log(
+          JSON.stringify({
+            level: "info",
+            msg: "waha webhook: converted lead resolved as customer",
+            leadId: existing.id,
+            customerId: existing.convertedToCustomerId,
+            path: "echo",
+          }),
+        );
+        return { kind: "customer", id: existing.convertedToCustomerId };
+      }
+      if (existing) {
+        console.log(
+          JSON.stringify({
+            level: "info",
+            msg: "waha webhook: lead matched",
+            leadId: existing.id,
+            path: "echo",
+          }),
+        );
+        return { kind: "lead", id: existing.id };
+      }
+      const leadId = await insertLead({
+        phone: toPhone,
+        name: contactName ?? toPhone,
+        sellerId: null,
+        temperature: "frio",
+      });
+      console.log(
+        JSON.stringify({
+          level: "info",
+          msg: "waha webhook: lead created",
+          leadId,
+          path: "echo",
+        }),
+      );
+      return { kind: "lead", id: leadId };
     }
 
     // Shared media download+upload — best-effort, never fails the caller (only
@@ -491,13 +804,14 @@ Deno.serve(async (req) => {
       // in the Atendimento thread. App-sent messages (via waha-send) echo back
       // too, so dedup by provider_message_id BEFORE any write: waha-send
       // stamps the same id WAHA later reports here as payload.id.
-      const { data: existingOutbound } = await admin
+      const { data: existingOutbound, error: echoDedupErr } = await admin
         .from("messages")
         .select("id")
         .eq("provider_message_id", parsed.providerMessageId)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (echoDedupErr) return transientDbFailure("echo dedup lookup", echoDedupErr);
       if (existingOutbound) {
         // Free signal: WAHA embeds the CURRENT ack level in every
         // message.any echo, not just in dedicated message.ack events —
@@ -566,14 +880,22 @@ Deno.serve(async (req) => {
       }
       const echoPhoneDigits = toPhone.replace(/\D/g, "");
 
-      let echoCustomerId = await findCustomerByPhone(echoPhoneDigits, {
+      // Resolution (Funnel Frente 3): a real customer keeps today's anchor; a
+      // forged @lid keeps the minimal pending_review customer (byte-for-byte,
+      // below); any other unknown number becomes a Lead instead of a customer
+      // ghost — echo variant (no rotation).
+      let echoAnchorKind: "customer" | "lead" = "customer";
+      let echoAnchorId: string;
+      const echoCustomerId = await findCustomerByPhone(echoPhoneDigits, {
         adoptCanonical: !toLidUnresolved,
       });
-      if (!echoCustomerId) {
-        // Same anchor-only contract as the inbound path: no seller_id (wallet
-        // owner) and tags:["pending_review"] — a human converts it manually.
-        // An unresolved lid must NEVER surface its digits as a name (spec §5
-        // risk 3) — same neutral pt-BR label as the inbound fallback.
+      if (echoCustomerId) {
+        echoAnchorId = echoCustomerId;
+      } else if (toLidUnresolved) {
+        // Forged @lid digits never become a lead: keep the minimal customer
+        // anchor. No seller_id (wallet owner), tags:["pending_review"] — a human
+        // converts it manually. An unresolved lid must NEVER surface its digits
+        // as a name (spec §5 risk 3) — same neutral pt-BR label as inbound.
         const { data: createdEchoCustomer, error: echoCustomerErr } = await admin
           .from("customers")
           .insert({
@@ -587,43 +909,89 @@ Deno.serve(async (req) => {
           .select("id")
           .single();
         if (echoCustomerErr) {
-          console.warn(
-            JSON.stringify({
-              level: "warn",
-              msg: "waha webhook: echo customer insert failed",
-              error: echoCustomerErr.message,
-            }),
-          );
-          return respond(json({ ok: true, ignored: "echo-customer-insert-failed" }, 200), {
-            outcome: "ignored",
-            errorMessage: echoCustomerErr.message,
-            requestPayload: envelope,
-          });
+          return transientDbFailure("echo customer insert", echoCustomerErr);
         }
-        echoCustomerId = createdEchoCustomer.id as string;
+        echoAnchorId = createdEchoCustomer.id as string;
+      } else {
+        // Unknown number → Lead (echo variant): reuse an existing lead as-is,
+        // else create a COLD owner-less lead. Seed a display name best-effort
+        // from the WhatsApp contact — one extra GET only on this miss path.
+        let contactName: string | undefined;
+        try {
+          const apiKey = await getApiKey();
+          if (apiKey) {
+            contactName = await getWahaContactName(apiKey, globalThis.fetch, {
+              baseUrl: wahaBaseUrl,
+              sessionName,
+              contactId: parsed.toLid ?? `${echoPhoneDigits}@c.us`,
+              timeoutMs: 5_000,
+            });
+          }
+        } catch {
+          /* name is decorative — never blocks the lead */
+        }
+        const echoResolved = await resolveLeadForEcho(echoPhoneDigits, toPhone, contactName);
+        echoAnchorId = echoResolved.id;
+        echoAnchorKind = echoResolved.kind;
       }
 
       // OPEN-ONLY lookup (excludes resolvida/arquivada): an echo is
       // business-sent and must NEVER reopen a closed conversation — it spawns
       // a fresh one instead, same rule as the reference `whatsapp-webhook`
       // pipeline (spec 2026-07-03 §1.5).
-      const { data: openEchoConversation } = await admin
-        .from("conversations")
-        .select("id")
-        .eq("customer_id", echoCustomerId)
-        .eq("whatsapp_account_id", accountRow.id as string)
-        .not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const echoAnchorColumn = echoAnchorKind === "customer" ? "customer_id" : "lead_id";
+      const echoAnchorValue = echoAnchorKind === "lead" ? String(echoAnchorId) : echoAnchorId;
+      const findOpenEchoConversation = () =>
+        admin
+          .from("conversations")
+          .select("id")
+          .eq(echoAnchorColumn, echoAnchorValue)
+          .eq("whatsapp_account_id", accountRow.id as string)
+          .not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+      const { data: openEchoConversation, error: echoLookupErr } = await findOpenEchoConversation();
+      if (echoLookupErr) return transientDbFailure("echo conversation lookup", echoLookupErr);
 
-      let echoConversationId: string;
-      if (!openEchoConversation) {
+      let echoConversationId: string | undefined = openEchoConversation
+        ? (openEchoConversation.id as string)
+        : undefined;
+
+      if (echoConversationId === undefined) {
+        // Continuity window (decision 2026-07-23, doc §7 item 3): append to
+        // the contact's most recent `resolvida` conversation on this account
+        // when it was closed less than N hours ago — WITHOUT reopening it
+        // (the customer's next inbound reopens that same thread through the
+        // normal inbound rule; `arquivada` is a deliberate discard and never
+        // participates). Governed per store by
+        // settings->echoContinuity.windowHours (default 24, 0 = off).
+        const windowHours = await getEchoContinuityWindowHours();
+        const continuityCutoff = echoContinuityCutoffIso(Date.now(), windowHours);
+        if (continuityCutoff) {
+          const { data: recentlyClosed, error: continuityErr } = await admin
+            .from("conversations")
+            .select("id")
+            .eq(echoAnchorColumn, echoAnchorValue)
+            .eq("whatsapp_account_id", accountRow.id as string)
+            .eq("status", "resolvida")
+            .gte("closed_at", continuityCutoff)
+            .order("closed_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (continuityErr) return transientDbFailure("echo continuity lookup", continuityErr);
+          if (recentlyClosed) echoConversationId = recentlyClosed.id as string;
+        }
+      }
+
+      if (echoConversationId === undefined) {
         const { data: createdEchoConversation, error: echoConvErr } = await admin
           .from("conversations")
           .insert({
             store_id: accountRow.store_id,
-            customer_id: echoCustomerId,
+            // Exactly one of customer_id / lead_id is set (app-level invariant).
+            customer_id: echoAnchorKind === "customer" ? echoAnchorId : null,
+            lead_id: echoAnchorKind === "lead" ? String(echoAnchorId) : null,
             whatsapp_account_id: accountRow.id,
             // UNASSIGNED (pool): the webhook cannot know which staff member
             // sent from the phone, so it never pins the chat — it lands
@@ -637,23 +1005,36 @@ Deno.serve(async (req) => {
           .select("id")
           .single();
         if (echoConvErr) {
-          console.warn(
-            JSON.stringify({
-              level: "warn",
-              msg: "waha webhook: echo conversation insert failed",
-              error: echoConvErr.message,
-            }),
-          );
-          return respond(json({ ok: true, ignored: "echo-conversation-insert-failed" }, 200), {
-            outcome: "ignored",
-            errorMessage: echoConvErr.message,
-            requestPayload: envelope,
-          });
+          if (echoConvErr.code === "23505") {
+            // Lost a concurrent-create race: the partial unique index
+            // (conversations_one_open_per_*_account) vetoed this INSERT, so
+            // the winner's row IS the open conversation now — reuse it.
+            const { data: raceWinner, error: raceErr } = await findOpenEchoConversation();
+            if (raceErr || !raceWinner) {
+              return transientDbFailure(
+                "echo race recovery",
+                raceErr ?? { message: "unique violation but no open conversation found" },
+              );
+            }
+            echoConversationId = raceWinner.id as string;
+          } else {
+            return transientDbFailure("echo conversation insert", echoConvErr);
+          }
+        } else {
+          echoConversationId = createdEchoConversation.id as string;
         }
-        echoConversationId = createdEchoConversation.id as string;
-      } else {
-        echoConversationId = openEchoConversation.id as string;
       }
+      if (echoConversationId === undefined) {
+        // Unreachable — every branch above either returned or assigned.
+        return transientDbFailure("echo conversation resolution", {
+          message: "no conversation id resolved",
+        });
+      }
+
+      // Quote resolution runs BEFORE the insert so the row lands complete — a
+      // follow-up UPDATE would race the Realtime event and make the bubble
+      // flicker from un-quoted to quoted.
+      const echoReplyTo = await resolveReplyRef(admin, echoConversationId, parsed.replyTo);
 
       const echoMessageId = crypto.randomUUID();
       const { error: echoMessageErr } = await admin.from("messages").insert({
@@ -666,24 +1047,23 @@ Deno.serve(async (req) => {
         text: parsed.text ?? parsed.mediaCaption ?? "",
         media_type: ["text", "unknown"].includes(parsed.contentType) ? null : parsed.contentType,
         media_filename: parsed.mediaFilename ?? null,
+        // See the inbound insert — same upstream-download-failure marker.
+        media_download_status:
+          ["image", "audio", "video", "document"].includes(parsed.contentType) && !parsed.mediaId
+            ? "failed"
+            : null,
         status: "sent",
         sent_at: parsed.timestamp,
         provider_message_id: parsed.providerMessageId,
         webhook_event_ids: [eventKey],
+        reply_to: echoReplyTo,
       });
       if (echoMessageErr) {
-        console.warn(
-          JSON.stringify({
-            level: "warn",
-            msg: "waha webhook: echo message insert failed",
-            error: echoMessageErr.message,
-          }),
-        );
-        return respond(json({ ok: true, ignored: "echo-message-insert-failed" }, 200), {
-          outcome: "ignored",
-          errorMessage: echoMessageErr.message,
-          requestPayload: envelope,
-        });
+        // 503 (not the old silent 200): the conversation may already exist but
+        // the message didn't land — a WAHA retry re-runs this event cleanly
+        // (markProcessed hasn't happened yet; the echo dedup + open lookup
+        // above make the retry idempotent).
+        return transientDbFailure("echo message insert", echoMessageErr);
       }
       // Mark processed only now that the message has actually landed — a retry
       // of this event while echoMessageErr was set will reprocess cleanly.
@@ -767,13 +1147,23 @@ Deno.serve(async (req) => {
     // ===== Customer resolution (Correction 1) ==================================
     // Adopt-canonical only when the wire number is a real pn — an unresolved
     // lid placeholder must never overwrite a stored phone.
-    let customerId = await findCustomerByPhone(phoneDigits, {
+    // Resolution (Funnel Frente 3): a real customer keeps today's pool-anchor
+    // behavior; a forged @lid keeps the minimal pending_review customer
+    // (byte-for-byte, below); any other unknown number becomes a Lead owned by
+    // the rotation pick — no more pending_review customer ghosts. Exactly one of
+    // anchorKind/anchorId identifies the contact for the conversation + message.
+    const foundCustomerId = await findCustomerByPhone(phoneDigits, {
       adoptCanonical: !lidUnresolved,
     });
-    if (!customerId) {
+    let anchorKind: "customer" | "lead" = "customer";
+    let anchorId: string;
+    if (foundCustomerId) {
+      anchorId = foundCustomerId;
+    } else {
       // Seed the display name from the WhatsApp contact (pushname) — best-effort,
-      // one extra GET only on the new-customer path. The lid id is the known-good
-      // identity when present (the contacts endpoint accepts @lid directly).
+      // one extra GET only on the miss path. Shared by the @lid customer anchor
+      // and the new-lead path below. The lid id is the known-good identity when
+      // present (the contacts endpoint accepts @lid directly).
       let contactName: string | undefined;
       try {
         const apiKey = await getApiKey();
@@ -789,60 +1179,84 @@ Deno.serve(async (req) => {
         /* name is decorative — never blocks the insert */
       }
 
-      // NO seller_id (wallet owner) — this anchors a pool conversation only,
-      // until a human manually converts it. tags:["pending_review"] is what the
-      // Customers list UI filters out by default.
-      const { data: createdCustomer, error: customerErr } = await admin
-        .from("customers")
-        .insert({
-          store_id: accountRow.store_id,
-          type: "B2C", // customers_type_check requires UPPERCASE 'B2C'
-          phone: fromPhone,
-          // Display label decision (spec §5 risk 3): an unresolved lid must NEVER
-          // surface its digits as a name — fall back to a pt-BR label instead.
-          full_name:
-            contactName ?? (lidUnresolved ? "Contato do WhatsApp (número oculto)" : fromPhone),
-          whatsapp_name: contactName ?? null,
-          status: "ativo",
-          tags: lidUnresolved ? ["pending_review", "lid_unresolved"] : ["pending_review"],
-        })
-        .select("id")
-        .single();
-      if (customerErr) {
-        console.warn(
-          JSON.stringify({
-            level: "warn",
-            msg: "waha webhook: customer insert failed",
-            error: customerErr.message,
-          }),
-        );
-        return respond(json({ ok: true, ignored: "customer-insert-failed" }, 200), {
-          outcome: "ignored",
-          errorMessage: customerErr.message,
-          requestPayload: envelope,
-        });
+      if (lidUnresolved) {
+        // Forged @lid digits never become a lead — keep the minimal customer
+        // anchor. NO seller_id (wallet owner): a pool conversation only, until a
+        // human manually converts it. tags:["pending_review"] is what the
+        // Customers list UI filters out by default.
+        const { data: createdCustomer, error: customerErr } = await admin
+          .from("customers")
+          .insert({
+            store_id: accountRow.store_id,
+            type: "B2C", // customers_type_check requires UPPERCASE 'B2C'
+            phone: fromPhone,
+            // Display label decision (spec §5 risk 3): an unresolved lid must NEVER
+            // surface its digits as a name — fall back to a pt-BR label instead.
+            full_name:
+              contactName ?? (lidUnresolved ? "Contato do WhatsApp (número oculto)" : fromPhone),
+            whatsapp_name: contactName ?? null,
+            status: "ativo",
+            tags: lidUnresolved ? ["pending_review", "lid_unresolved"] : ["pending_review"],
+          })
+          .select("id")
+          .single();
+        if (customerErr) {
+          return transientDbFailure("inbound customer insert", customerErr);
+        }
+        anchorId = createdCustomer.id as string;
+      } else {
+        // Unknown number → Lead (live inbound): resolve/reopen/create and assign
+        // the rotation owner at this moment (the person just wrote to us).
+        const inboundResolved = await resolveLeadForInbound(phoneDigits, fromPhone, contactName);
+        anchorId = inboundResolved.id;
+        anchorKind = inboundResolved.kind;
       }
-      customerId = createdCustomer.id as string;
     }
 
     // ===== Conversation resolution: reuse-or-reopen-or-create (Correction 2) ===
-    const { data: existingConversation } = await admin
-      .from("conversations")
-      .select("id, status, unread_count")
-      .eq("customer_id", customerId)
-      .eq("whatsapp_account_id", accountRow.id as string)
-      .order("last_message_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // Anchored by customer_id OR lead_id (exactly one), mirroring THIS file's
+    // local reuse-or-reopen semantics (not whatsapp-webhook's) so the reopen
+    // behavior below is preserved.
+    //
+    // OPEN-FIRST (2026-07-23): prefer the open conversation over the one with
+    // the newest message. Under the one-open-per-contact-per-account unique
+    // index, reopening a closed row while another is open would violate the
+    // index — and routing new traffic into the open thread is the correct
+    // semantics whenever both exist (e.g. leftovers of a pre-index race).
+    const anchorColumn = anchorKind === "customer" ? "customer_id" : "lead_id";
+    const anchorValue = anchorKind === "lead" ? String(anchorId) : anchorId;
+    const findConversationForInbound = (openOnly: boolean) => {
+      let query = admin
+        .from("conversations")
+        .select("id, status, unread_count")
+        .eq(anchorColumn, anchorValue)
+        .eq("whatsapp_account_id", accountRow.id as string);
+      if (openOnly) {
+        query = query.not("status", "in", `(${CLOSED_CONVERSATION_STATUSES.join(",")})`);
+      }
+      return query.order("last_message_at", { ascending: false }).limit(1).maybeSingle();
+    };
+    const { data: openConversation, error: openLookupErr } = await findConversationForInbound(true);
+    if (openLookupErr) return transientDbFailure("inbound conversation lookup", openLookupErr);
+    let existingConversation = openConversation;
+    if (!existingConversation) {
+      const { data: latestConversation, error: latestLookupErr } =
+        await findConversationForInbound(false);
+      if (latestLookupErr) {
+        return transientDbFailure("inbound conversation lookup (any)", latestLookupErr);
+      }
+      existingConversation = latestConversation;
+    }
 
     let conversationId: string;
-    let didReopen = false;
     if (!existingConversation) {
       const { data: createdConversation, error: convErr } = await admin
         .from("conversations")
         .insert({
           store_id: accountRow.store_id,
-          customer_id: customerId,
+          // Exactly one of customer_id / lead_id is set (app-level invariant).
+          customer_id: anchorKind === "customer" ? anchorId : null,
+          lead_id: anchorKind === "lead" ? String(anchorId) : null,
           whatsapp_account_id: accountRow.id,
           assigned_seller_id: null, // unassigned — lands in the pool/queue
           channel: "whatsapp",
@@ -854,71 +1268,104 @@ Deno.serve(async (req) => {
         .select("id")
         .single();
       if (convErr) {
-        console.warn(
-          JSON.stringify({
-            level: "warn",
-            msg: "waha webhook: conversation insert failed",
-            error: convErr.message,
-          }),
-        );
-        return respond(json({ ok: true, ignored: "conversation-insert-failed" }, 200), {
-          outcome: "ignored",
-          errorMessage: convErr.message,
-          requestPayload: envelope,
-        });
+        if (convErr.code === "23505") {
+          // Lost a concurrent-create race: the partial unique index vetoed
+          // this INSERT — the winner's row is the open conversation. Reuse it
+          // (the bump below folds this message into it).
+          const { data: raceWinner, error: raceErr } = await findConversationForInbound(true);
+          if (raceErr || !raceWinner) {
+            return transientDbFailure(
+              "inbound race recovery",
+              raceErr ?? { message: "unique violation but no open conversation found" },
+            );
+          }
+          conversationId = raceWinner.id as string;
+          existingConversation = raceWinner;
+        } else {
+          return transientDbFailure("inbound conversation insert", convErr);
+        }
+      } else {
+        conversationId = createdConversation.id as string;
       }
-      conversationId = createdConversation.id as string;
     } else {
       conversationId = existingConversation.id as string;
       if (CLOSED_CONVERSATION_STATUSES.includes(existingConversation.status as string)) {
-        await admin
+        // Reopen sets ONLY status/assignee — the last_message_at/unread bump
+        // moved to the single post-insert bump below, so a 503 after a
+        // successful reopen but failed message insert can't double-count
+        // unread on the WAHA redelivery.
+        const { error: reopenErr } = await admin
           .from("conversations")
-          .update({
-            status: "aguardando",
-            assigned_seller_id: null,
-            last_message_at: parsed.timestamp,
-            unread_count: ((existingConversation.unread_count as number | undefined) ?? 0) + 1,
-            ...(parsed.adReferral ? { ad_referral: parsed.adReferral } : {}),
-          })
+          .update({ status: "aguardando", assigned_seller_id: null })
           .eq("id", conversationId);
-        didReopen = true;
+        if (reopenErr && reopenErr.code === "23505") {
+          // A concurrent event opened another conversation between the lookup
+          // and this reopen — the unique index vetoed a second open row.
+          // Route the message into the open winner instead of reopening.
+          const { data: openWinner, error: openWinnerErr } = await findConversationForInbound(true);
+          if (openWinnerErr || !openWinner) {
+            return transientDbFailure(
+              "inbound reopen recovery",
+              openWinnerErr ?? { message: "unique violation but no open conversation found" },
+            );
+          }
+          conversationId = openWinner.id as string;
+          existingConversation = openWinner;
+        } else if (reopenErr) {
+          return transientDbFailure("inbound conversation reopen", reopenErr);
+        }
       }
     }
 
     // ===== Message insert (Correction 3) — NO media_url at insert time ========
+    // Quote resolution runs BEFORE the insert so the row lands complete (see
+    // the echo path above for why a follow-up UPDATE would be worse).
+    const inboundReplyTo = await resolveReplyRef(admin, conversationId, parsed.replyTo);
+
     const messageId = crypto.randomUUID();
     const { error: messageErr } = await admin.from("messages").insert({
       id: messageId,
       conversation_id: conversationId,
       direction: "in",
       author_type: "customer",
-      author_id: customerId,
+      // author_id is free text (no FK) — the resolved anchor id, customer OR
+      // lead (mirrors whatsapp-webhook's insertInboundMessage, author_type
+      // stays "customer" for both).
+      author_id: anchorId,
       provider: "waha",
       text: parsed.text ?? "",
       media_type: ["text", "unknown"].includes(parsed.contentType) ? null : parsed.contentType,
       media_filename: parsed.mediaFilename ?? null,
+      // A binary kind with no mediaId means WAHA's OWN download failed upstream
+      // (expired CDN link) — attachMedia, which normally writes this column, is
+      // skipped without a mediaId, so record the failure here instead of
+      // leaving the row indistinguishable from a pending download. Structured
+      // kinds (location/contact) legitimately carry no bytes and stay null.
+      media_download_status:
+        ["image", "audio", "video", "document"].includes(parsed.contentType) && !parsed.mediaId
+          ? "failed"
+          : null,
       status: "delivered",
       sent_at: parsed.timestamp,
       provider_message_id: parsed.providerMessageId,
       webhook_event_ids: [eventKey],
+      reply_to: inboundReplyTo,
     });
     if (messageErr) {
-      console.warn(
-        JSON.stringify({
-          level: "warn",
-          msg: "waha webhook: message insert failed",
-          error: messageErr.message,
-        }),
-      );
-    } else {
-      // Mark processed only now that the message has actually landed — a
-      // retry of this event while messageErr was set will reprocess cleanly.
-      await markProcessed();
+      // 503 (not the old log-and-continue-200): WAHA redelivers and the event
+      // reprocesses from scratch — markProcessed only runs after the row
+      // actually lands, so the retry is clean (no duplicate: this insert
+      // failed, nothing was written).
+      return transientDbFailure("inbound message insert", messageErr);
     }
+    // Mark processed only now that the message has actually landed — a retry
+    // of this event while messageErr was set will reprocess cleanly.
+    await markProcessed();
 
-    // Bump last_message_at/unread_count unless the reopen above already folded
-    // it in.
-    if (!didReopen && existingConversation) {
+    // Bump last_message_at/unread_count AFTER the message actually landed —
+    // exactly one increment per persisted message, in first delivery and in
+    // WAHA redeliveries alike (the reopen above no longer folds the bump).
+    if (existingConversation) {
       await admin
         .from("conversations")
         .update({
@@ -945,6 +1392,15 @@ Deno.serve(async (req) => {
     console.error(
       JSON.stringify({ level: "error", msg: "waha webhook processing failed", error: message }),
     );
+    if (err instanceof TransientDbError) {
+      // Fail closed: no idempotency mark ran, so WAHA's redelivery reprocesses
+      // the event cleanly instead of it failing open into a duplicate anchor.
+      return respond(json({ error: "transient-db-error" }, 503), {
+        outcome: "error",
+        errorMessage: message,
+        requestPayload: envelope,
+      });
+    }
     return respond(json({ status: "error-logged" }, 200), {
       outcome: "error",
       errorMessage: message,

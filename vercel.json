@@ -1,8 +1,23 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/atendimento", "destination": "/atendimento.html" },
+    { "source": "/atendimento/(.*)", "destination": "/atendimento.html" },
+    {
+      "source": "/((?!assets/|logos/|social/|version\\.json|CHANGELOG\\.md|manifest\\.webmanifest|atendimento\\.webmanifest|sw\\.js|favicon|apple-touch-icon|android-chrome|atendimento-).*)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/version.json",
+      "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }]
+    },
+    {
+      "source": "/(.*).webmanifest",
       "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }]
     }
   ]

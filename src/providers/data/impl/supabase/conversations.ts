@@ -69,6 +69,7 @@ interface ConversationRow {
   store_id: string;
   customer_id: string | null;
   lead_id: string | null;
+  contact_id: string | null;
   assigned_seller_id: string | null;
   channel: IConversation["channel"];
   whatsapp_account_id: string | null;
@@ -101,11 +102,15 @@ interface ConversationContactRow {
   phone: string | null;
   avatar_url: string | null;
   temperature: string | null;
+  /** Company the person speaks for. Absent until the contact-id migration runs. */
+  company_id?: string | null;
+  company_name?: string | null;
+  role?: string | null;
 }
 
 const TABLE = "conversations";
 const COLUMNS =
-  "id, store_id, customer_id, lead_id, assigned_seller_id, channel, whatsapp_account_id, status, is_sdr_active, tags, linked_order_id, last_message_at, unread_count, created_at, queued_at, ad_referral";
+  "id, store_id, customer_id, lead_id, contact_id, assigned_seller_id, channel, whatsapp_account_id, status, is_sdr_active, tags, linked_order_id, last_message_at, unread_count, created_at, queued_at, ad_referral";
 
 function rowToConversation(row: ConversationRow): IConversation {
   return {
@@ -113,6 +118,7 @@ function rowToConversation(row: ConversationRow): IConversation {
     storeId: row.store_id,
     customerId: row.customer_id ?? undefined,
     leadId: row.lead_id ?? undefined,
+    contactId: row.contact_id ?? undefined,
     assignedSellerId: row.assigned_seller_id ?? undefined,
     channel: row.channel,
     whatsappAccountId: row.whatsapp_account_id ?? undefined,
@@ -174,8 +180,13 @@ function buildSearchRpcParams(params: IListConversationsParams, page: number, pa
     // `p_search` has no SQL default (unlike the other params) — PostgREST can't
     // resolve the function overload if this key is omitted from the JSON body,
     // which happens whenever `params.search` is `undefined` (JSON.stringify drops
-    // undefined keys). Always send a string; each RPC's own length(trim(...))>0
-    // guard already treats an empty term as "no match" (0 rows).
+    // undefined keys). Always send a string.
+    //
+    // That guard is real as of migration 20260811150000 — it was NOT before, and
+    // this comment asserting it was the reason the 2026-08-11 timeout hunt first
+    // chased the wrong lead. An empty term used to match every row through the
+    // search arm; today `search_conversations` returns 0 rows for it. The
+    // caller-side check in `list` below stays as the first line of defence.
     p_search: params.search ?? "",
     p_store_id: params.storeId ?? null,
     // Search keeps the scalar `unassigned` param for non-Inbox callers. The
@@ -334,6 +345,7 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       : getSupabaseClient().from(TABLE).select(COLUMNS);
 
     if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+    if (params.ids && params.ids.length > 0) query = query.in("id", params.ids);
     if (params.assignedSellerId !== undefined)
       query = query.eq("assigned_seller_id", params.assignedSellerId);
     if (params.unassigned) query = query.is("assigned_seller_id", null);
@@ -415,6 +427,13 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       temperature: LEAD_TEMPERATURES.has(r.temperature as LeadTemperature)
         ? (r.temperature as LeadTemperature)
         : null,
+      // Optional-chained on purpose: the deployed RPC does not return these
+      // until its migration is applied, and reading a missing key must degrade
+      // to "no company" rather than throw. Merging the PR does not run the
+      // migration, so both shapes are live at the same time.
+      companyId: r.company_id ?? null,
+      companyName: r.company_name ?? null,
+      role: r.role ?? null,
     }));
   },
 
@@ -442,7 +461,22 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       .eq("id", id)
       .select(COLUMNS)
       .single();
-    if (error) throw new Error(`[supabase] conversations.update(${id}) failed: ${error.message}`);
+    if (error) {
+      if (
+        error.code === "23505" &&
+        patch.status !== undefined &&
+        !["resolvida", "arquivada"].includes(patch.status)
+      ) {
+        // Reopen vetoed by the one-open-per-contact-per-account unique index
+        // (migration 20260723165509): another conversation of this contact is
+        // already open on the same instance — surface a human message instead
+        // of the raw constraint error (undo toasts / status dropdown).
+        throw new Error(
+          "Este contato já tem outra conversa aberta nesta instância. Continue por ela — ou resolva-a antes de reabrir esta.",
+        );
+      }
+      throw new Error(`[supabase] conversations.update(${id}) failed: ${error.message}`);
+    }
     return rowToConversation(data as ConversationRow);
   },
 
@@ -540,6 +574,10 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       store_id: input.storeId,
       customer_id: input.customerId,
       lead_id: null,
+      // The INSERT does not write it. A contact may be attached moments later by
+      // the `contacts` trigger, but this locally-built row reflects what was
+      // actually written — claiming otherwise would be a lie the caller caches.
+      contact_id: null,
       assigned_seller_id: input.assignedSellerId,
       channel: "whatsapp",
       whatsapp_account_id: input.whatsappAccountId,
@@ -554,8 +592,36 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       ad_referral: null,
     };
     const { error } = await getSupabaseClient().from(TABLE).insert(row);
-    if (error)
+    if (error) {
+      if (error.code === "23505") {
+        // The one-open-conversation-per-contact-per-account unique index
+        // (migration 20260723165509) vetoed the INSERT: an open conversation
+        // already exists for this contact on this instance. Reuse it — the
+        // dialog then navigates into the existing thread instead of failing.
+        // RLS scopes this read: a seller without access to the open thread
+        // gets the pt-BR error below instead of a duplicate.
+        const { data: existing, error: recoveryError } = await getSupabaseClient()
+          .from(TABLE)
+          .select(COLUMNS)
+          .eq("customer_id", input.customerId)
+          .eq("whatsapp_account_id", input.whatsappAccountId)
+          .in("status", ["aguardando", "em_andamento", "aguardando_cliente"])
+          .order("last_message_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        // A transient failure here must read as retryable — not as the
+        // "no access" message below.
+        if (recoveryError)
+          throw new Error(
+            `[supabase] conversations.createOutbound recovery lookup failed: ${recoveryError.message}`,
+          );
+        if (existing) return rowToConversation(existing as ConversationRow);
+        throw new Error(
+          "Já existe uma conversa aberta para este contato nesta instância, mas você não tem acesso a ela.",
+        );
+      }
       throw new Error(`[supabase] conversations.createOutbound failed: ${error.message}`);
+    }
     return rowToConversation(row);
   },
 
@@ -635,6 +701,8 @@ export const supabaseConversationsProvider: IConversationsProvider = {
       store_id: input.storeId,
       customer_id: input.customerId ?? null,
       lead_id: input.leadId ?? null,
+      // Not written by the INSERT — see the note on `createOutbound`.
+      contact_id: null,
       assigned_seller_id: effective.selectedSellerId,
       channel: input.channel,
       whatsapp_account_id: input.whatsappAccountId ?? null,

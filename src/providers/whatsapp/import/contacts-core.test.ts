@@ -4,74 +4,102 @@ import { processContactsImport, type IContactsImportDb } from "./contacts-core";
 function makeDb(overrides: Partial<IContactsImportDb> = {}): IContactsImportDb {
   return {
     findCustomerByPhone: vi.fn(async () => null),
-    createPendingContact: vi.fn(async () => ({ id: "new" })),
+    findLeadByPhone: vi.fn(async () => null),
+    enrichCustomerName: vi.fn(async () => {}),
+    enrichLeadName: vi.fn(async () => {}),
     ...overrides,
   };
 }
 
 describe("processContactsImport", () => {
-  it("creates a customer for each new contact and counts existing ones", async () => {
+  it("enriches a matching customer's placeholder name and skips an unknown number", async () => {
     const db = makeDb({
       findCustomerByPhone: vi.fn(async (_store: string, digits: string) =>
-        digits === "5511888887777" ? { id: "existing" } : null,
+        digits === "5511888887777" ? { id: "cust-1", name: "+55 11 88888-7777" } : null,
       ),
     });
     const stats = await processContactsImport({
       storeId: "store-1",
       contacts: [
-        { phone: "+5554999998888", name: "Maria" },
-        { phone: "+5511888887777", name: "Joao" }, // already exists
-        { phone: "+5511777776666" }, // no name
+        { phone: "+5511888887777", name: "Joao" }, // matches, phone-like name → enrich
+        { phone: "+5511777776666", name: "Maria" }, // no match → skipped, no record created
       ],
       db,
     });
-    expect(stats).toEqual({ contactsFound: 3, customersCreated: 2, customersExisting: 1, failed: 0 });
-    expect(db.createPendingContact).toHaveBeenCalledTimes(2);
-    expect(db.createPendingContact).toHaveBeenCalledWith({
-      storeId: "store-1",
-      phone: "+5554999998888",
-      name: "Maria",
+    expect(stats).toEqual({
+      contactsFound: 2,
+      customersEnriched: 1,
+      leadsEnriched: 0,
+      alreadyComplete: 0,
+      skippedUnknown: 1,
+      failed: 0,
     });
-    expect(db.createPendingContact).toHaveBeenCalledWith({
-      storeId: "store-1",
-      phone: "+5511777776666",
-      name: undefined,
-    });
+    expect(db.enrichCustomerName).toHaveBeenCalledOnce();
+    expect(db.enrichCustomerName).toHaveBeenCalledWith("cust-1", "Joao");
   });
 
-  it("imported contacts carry no wallet owner — never assigns a seller", async () => {
-    const createPendingContact = vi.fn(async () => ({ id: "new" }));
-    const db = makeDb({ createPendingContact });
-    await processContactsImport({
+  it("enriches a matching lead only when no customer matches", async () => {
+    const db = makeDb({
+      findLeadByPhone: vi.fn(async () => ({ id: "lead-1", name: "+5554999998888" })),
+    });
+    const stats = await processContactsImport({
       storeId: "store-1",
-      contacts: [{ phone: "+5554999998888" }],
+      contacts: [{ phone: "+5554999998888", name: "Maria" }],
       db,
     });
-    // The import never passes a sellerId — the anchor's seller_id stays null
-    // (DB default), so the contact is unowned until a manual conversion.
-    expect(createPendingContact).toHaveBeenCalledWith({
-      storeId: "store-1",
-      phone: "+5554999998888",
-      name: undefined,
+    expect(stats.leadsEnriched).toBe(1);
+    expect(db.enrichLeadName).toHaveBeenCalledOnce();
+    expect(db.enrichLeadName).toHaveBeenCalledWith("lead-1", "Maria");
+  });
+
+  it("never creates a record — counts alreadyComplete when a match has nothing to improve", async () => {
+    const db = makeDb({
+      findCustomerByPhone: vi.fn(async () => ({ id: "cust-1", name: "Zé da Peça" })),
     });
-    expect(createPendingContact.mock.calls[0]?.[0]).not.toHaveProperty("sellerId");
+    const stats = await processContactsImport({
+      storeId: "store-1",
+      contacts: [{ phone: "+5511888887777", name: "Joao" }, { phone: "+5511777776666" }], // no name
+      db,
+    });
+    // Both matched the same fake customer: an already-real name is never
+    // overwritten, and no candidate name means nothing to compare.
+    expect(stats.customersEnriched).toBe(0);
+    expect(stats.alreadyComplete).toBe(2);
+    expect(db.enrichCustomerName).not.toHaveBeenCalled();
+  });
+
+  it("never swaps a placeholder for another placeholder — a phone-like candidate name is not usable", async () => {
+    const db = makeDb({
+      findCustomerByPhone: vi.fn(async () => ({ id: "cust-1", name: "+5511888887777" })),
+    });
+    const stats = await processContactsImport({
+      storeId: "store-1",
+      contacts: [{ phone: "+5511888887777", name: "+55 (11) 88888-7777" }], // candidate is phone-like too
+      db,
+    });
+    expect(stats.customersEnriched).toBe(0);
+    expect(stats.alreadyComplete).toBe(1);
+    expect(db.enrichCustomerName).not.toHaveBeenCalled();
   });
 
   it("counts a failed contact and keeps going (never aborts the run)", async () => {
     const db = makeDb({
-      createPendingContact: vi.fn(async (input: { phone: string }) => {
-        if (input.phone === "+5554999998888") throw new Error("db down");
-        return { id: "new" };
+      findCustomerByPhone: vi.fn(async (_store: string, digits: string) =>
+        digits === "5554999998888" ? { id: "cust-1", name: "+5554999998888" } : null,
+      ),
+      enrichCustomerName: vi.fn(async () => {
+        throw new Error("db down");
       }),
     });
     const warn = vi.fn();
     const stats = await processContactsImport({
       storeId: "store-1",
-      contacts: [{ phone: "+5554999998888" }, { phone: "+5511888887777" }],
+      contacts: [{ phone: "+5554999998888", name: "Maria" }, { phone: "+5511888887777" }],
       db,
       warn,
     });
-    expect(stats).toEqual({ contactsFound: 2, customersCreated: 1, customersExisting: 0, failed: 1 });
+    expect(stats.failed).toBe(1);
+    expect(stats.skippedUnknown).toBe(1); // the second contact matched nothing
     expect(warn).toHaveBeenCalledOnce();
   });
 });

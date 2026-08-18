@@ -1,11 +1,16 @@
 import type { IPart } from "@/shared/types";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
+import type { IPartDraft } from "../../utils/draft";
+import { PartCrossReferenceEditor } from "../form/PartCrossReferenceEditor";
 import { Section } from "./ApplicationsSection";
 
 const COPY = CATALOG_STRINGS.detail.crossReferences;
 
 export interface IPartCrossReferenceSectionProps {
   part: IPart;
+  editing?: boolean;
+  draft?: IPartDraft;
+  onDraftChange?: (patch: Partial<IPartDraft>) => void;
 }
 
 /**
@@ -13,7 +18,26 @@ export interface IPartCrossReferenceSectionProps {
  * of brand → part number. Complements `EquivalentsSection`, which links other
  * GALLO catalog parts.
  */
-export function PartCrossReferenceSection({ part }: IPartCrossReferenceSectionProps) {
+export function PartCrossReferenceSection({
+  part,
+  editing = false,
+  draft,
+  onDraftChange,
+}: IPartCrossReferenceSectionProps) {
+  if (editing && draft && onDraftChange) {
+    return (
+      <Section
+        title={CATALOG_STRINGS.detail.sections.crossReferences}
+        icon="mdi:tag-multiple-outline"
+      >
+        <PartCrossReferenceEditor
+          value={draft.crossReferences}
+          onChange={(next) => onDraftChange({ crossReferences: next })}
+        />
+      </Section>
+    );
+  }
+
   const refs = part.crossReferences ?? [];
 
   return (

@@ -1,5 +1,7 @@
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { extractFunctionError } from "./_functionError";
+import { fetchLargePage } from "./_pagination";
+import { FETCH_ALL_PAGE_SIZE } from "../../contracts/_shared";
 import {
   buildDefaultAiSettings,
   normalizeProviderModels,
@@ -217,15 +219,27 @@ export const supabaseAiProvider: IAiProvider = {
   },
 
   async listUsageEvents() {
-    const { data, error } = await getSupabaseClient()
-      .from("ai_usage_events")
-      .select(
-        "id, ts, source, feature, provider_id, model, input_tokens, output_tokens, cost_brl, latency_ms, status",
-      )
-      .order("ts", { ascending: false })
-      .limit(5000);
-    if (error) throw new Error(`[supabase] ai.listUsageEvents failed: ${error.message}`);
-    return (data as AiUsageEventRow[]).map(rowToUsageEvent);
+    // Feeds the budget-ceiling spend summary (getUsageSummary) — drained in
+    // ≤1000-row chunks because PostgREST caps any single request at 1000 rows
+    // (a lone .limit(5000) would silently undercount past 1000 events).
+    const { data } = await fetchLargePage<AiUsageEventRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await getSupabaseClient()
+          .from("ai_usage_events")
+          .select(
+            "id, ts, source, feature, provider_id, model, input_tokens, output_tokens, cost_brl, latency_ms, status",
+            { count: "exact" },
+          )
+          .order("ts", { ascending: false })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] ai.listUsageEvents failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as AiUsageEventRow[], count: count ?? 0 };
+      },
+      0,
+      FETCH_ALL_PAGE_SIZE,
+    );
+    return data.map(rowToUsageEvent);
   },
 
   async runPlayground(input: IAiPlaygroundInput): Promise<IAiPlaygroundResult> {

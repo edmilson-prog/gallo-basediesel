@@ -84,13 +84,13 @@ export function PortfolioBySellerTable({
                   <TableCell className="text-right tabular-nums">
                     {row.portfolioSize.toLocaleString("pt-BR")}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+                  <TableCell className="text-right tabular-nums text-severity-success">
                     {formatPercent(safePct(row.byStatus.ativo, row.portfolioSize))}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-amber-600 dark:text-amber-400">
+                  <TableCell className="text-right tabular-nums text-severity-warning">
                     {formatPercent(safePct(row.byStatus.dormente, row.portfolioSize))}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-red-600 dark:text-red-400">
+                  <TableCell className="text-right tabular-nums text-severity-critical">
                     {formatPercent(safePct(row.byStatus.perdido, row.portfolioSize))}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">

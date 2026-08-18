@@ -21,6 +21,7 @@ import {
   shouldStartRehydrate,
   type ListFetchIntent,
 } from "../engine/listFetchPolicy";
+import { markConversationReadInList } from "../engine/markRead";
 
 /** Conversations pulled per page from the provider. */
 export const PAGE_SIZE = 30;
@@ -271,7 +272,7 @@ export function useConversationsList(
             if (superseded()) return;
             const failure = err instanceof Error ? err : new Error(String(err));
             const hasItems = itemsRef.current.length > 0;
-            if (shouldRetryListFetch({ intent, hasItems, attempt })) {
+            if (shouldRetryListFetch({ intent, hasItems, attempt, error: failure })) {
               await new Promise((resolve) =>
                 window.setTimeout(resolve, INITIAL_LOAD_RETRY_DELAY_MS),
               );
@@ -513,9 +514,10 @@ export function useConversationsList(
   }, [fetchPage]);
 
   const markItemRead = useCallback((id: ID) => {
-    setItems((prev) =>
-      prev.map((c) => (c.id === id && c.unreadCount > 0 ? { ...c, unreadCount: 0 } : c)),
-    );
+    // Referentially stable when nothing matched — see markConversationReadInList.
+    // A bare `.map()` here looped the Inbox's read-reset effect for pinned rows
+    // outside the paginated window (2026-08-11).
+    setItems((prev) => markConversationReadInList(prev, id));
   }, []);
 
   return {

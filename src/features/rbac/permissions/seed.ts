@@ -39,13 +39,18 @@ const ROLE_LABELS: Record<RoleName, string> = {
  */
 const RESOURCE_LABELS: Record<ResourceName, string> = {
   customer: "Clientes",
+  // `contact` is a matrix resource absent from the legacy RolesPage table.
+  contact: "Contatos",
   vehicle: "Veículos",
   lead: "Leads",
+  funnel: "Funis",
   conversation: "Conversas",
   message: "Mensagens",
   part: "Catálogo",
   vehicleModel: "Modelos de veículo",
   modelKit: "Kits por modelo",
+  supplies: "Notas de entrada",
+  settings_supplies: "Notas fiscais",
   quote: "Orçamentos",
   order: "Pedidos",
   commission: "Comissões",
@@ -68,6 +73,7 @@ const RESOURCE_LABELS: Record<ResourceName, string> = {
   inventory: "Estoque",
   customer_service_analytics: "Análise de Atendimento",
   service_volume: "Volume de Atendimento",
+  nps: "NPS — Satisfação",
   insight: "Insights",
   storefront_admin: "Admin E-commerce",
   ecommerce_integration: "Integração E-commerce",
@@ -79,14 +85,26 @@ const RESOURCE_LABELS: Record<ResourceName, string> = {
   // Role administration & monitoring (PRD-211 Task 16).
   manage_roles: "Gerir papéis",
   monitor: "Monitoramento",
+  // Settings areas lifted out of hardcoded role allowlists — keep these labels
+  // in sync with 20260809130238_rbac_settings_resources.sql.
+  settings_users: "Usuários",
+  settings_whatsapp: "WhatsApp & Templates",
+  settings_api_keys: "Chaves & API",
+  settings_ai: "Inteligência artificial",
+  settings_sdr: "Agente SDR",
+  settings_automation: "Automações de atendimento",
+  settings_system: "Sistema & Sessão",
+  settings_nps: "NPS",
 };
 
 /** Editorial grouping of resources into UI areas (PRD-211). */
 const RESOURCE_GROUPS: Record<ResourceName, string> = {
   // Comercial
   customer: "Comercial",
+  contact: "Comercial",
   vehicle: "Comercial",
   lead: "Comercial",
+  funnel: "Comercial",
   quote: "Comercial",
   order: "Comercial",
   commission: "Comercial",
@@ -101,6 +119,7 @@ const RESOURCE_GROUPS: Record<ResourceName, string> = {
   media: "Atendimento",
   customer_service_analytics: "Atendimento",
   service_volume: "Atendimento",
+  nps: "Atendimento",
   asset_library: "Atendimento",
   quick_reply: "Atendimento",
   trackable_link: "Atendimento",
@@ -109,6 +128,8 @@ const RESOURCE_GROUPS: Record<ResourceName, string> = {
   part: "Catálogo",
   vehicleModel: "Catálogo",
   modelKit: "Catálogo",
+  supplies: "Suprimentos",
+  settings_supplies: "Configuração",
   // Financeiro
   dre: "Financeiro",
   expense: "Financeiro",
@@ -128,6 +149,14 @@ const RESOURCE_GROUPS: Record<ResourceName, string> = {
   role: "Configuração",
   manage_roles: "Configuração",
   monitor: "Configuração",
+  settings_users: "Configuração",
+  settings_whatsapp: "Configuração",
+  settings_api_keys: "Configuração",
+  settings_ai: "Configuração",
+  settings_sdr: "Configuração",
+  settings_automation: "Configuração",
+  settings_system: "Configuração",
+  settings_nps: "Configuração",
 };
 
 /**
@@ -164,6 +193,10 @@ export function buildResourceSeed(): IRbacResource[] {
     "Comercial",
     "Atendimento",
     "Catálogo",
+    // Suprimentos entre Catálogo e Financeiro: alimenta o custo do primeiro e
+    // as duplicatas do segundo. Grupo fora desta lista cai em indexOf() === -1
+    // e ordena ANTES de tudo.
+    "Suprimentos",
     "Financeiro",
     "E-commerce",
     "Gestão",

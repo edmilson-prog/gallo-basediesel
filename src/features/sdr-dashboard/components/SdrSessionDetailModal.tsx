@@ -165,12 +165,12 @@ export function SdrSessionDetailModal({
         </section>
 
         {ctx.escalation && (
-          <section className="rounded-md border border-amber-200/50 bg-amber-50/40 p-4 text-sm dark:border-amber-900/30 dark:bg-amber-500/5">
+          <section className="rounded-md border border-severity-warning/30 bg-severity-warning/5 p-4 text-sm">
             <div className="flex items-start gap-2">
               <Icon
                 icon="mdi:account-arrow-right-outline"
                 size={18}
-                className="mt-0.5 text-amber-600 dark:text-amber-300"
+                className="mt-0.5 text-severity-warning"
               />
               <div className="flex-1">
                 <p className="font-medium text-foreground">

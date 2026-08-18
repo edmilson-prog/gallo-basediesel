@@ -23,6 +23,12 @@ import { canReturnToQueue } from "../engine/assignmentGate";
 export interface IQuickActionsProps {
   conversation: IConversation;
   onMutated?: () => void;
+  /** Already pinned by this attendant. */
+  isPinned?: boolean;
+  /** False once the pin cap is reached — disables the pin button. */
+  canPin?: boolean;
+  /** Absent ⇒ the pin button is not rendered (e.g. profile with no seller). */
+  onTogglePin?: () => void;
 }
 
 function showUndoableToast(message: string, undo: () => Promise<void> | void) {
@@ -39,7 +45,13 @@ function showUndoableToast(message: string, undo: () => Promise<void> | void) {
   });
 }
 
-export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
+export function QuickActions({
+  conversation,
+  onMutated,
+  isPinned = false,
+  canPin = true,
+  onTogglePin,
+}: IQuickActionsProps) {
   const { currentUser } = useAuth();
   const conversationsProvider = useConversationsProvider();
   const sellersProvider = useSellersProvider();
@@ -143,6 +155,39 @@ export function QuickActions({ conversation, onMutated }: IQuickActionsProps) {
 
   return (
     <div className="flex items-center gap-0.5 rounded-md border border-border bg-card/95 p-0.5 shadow-sm backdrop-blur">
+      {onTogglePin && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {/* A disabled button fires no mouse events, and the Tooltip needs a
+                target that does — hence the wrapping span. */}
+            <span className="inline-flex">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                disabled={!isPinned && !canPin}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onTogglePin();
+                }}
+                aria-label={isPinned ? INBOX_STRINGS.pin.unfix : INBOX_STRINGS.pin.fix}
+              >
+                <Icon icon={isPinned ? "mdi:pin-off-outline" : "mdi:pin-outline"} size={14} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            {isPinned
+              ? INBOX_STRINGS.pin.unfix
+              : canPin
+                ? INBOX_STRINGS.pin.fix
+                : INBOX_STRINGS.pin.limitTooltip}
+          </TooltipContent>
+        </Tooltip>
+      )}
+
       {canSelfAssign && (
         <Tooltip>
           <TooltipTrigger asChild>

@@ -46,6 +46,11 @@ Funções reescritas para o resolver:
 | `whatsapp-send`       | credenciais por conta (`<ref>_ACCESS_TOKEN`, `<ref>_API_KEY`, ...) via `IEngineDeps.resolveSecret`                                 |
 | `whatsapp-webhook`    | idem + gates app-level (`WHATSAPP_META_APP_SECRET`, `WHATSAPP_META_VERIFY_TOKEN`, `<ref>_WEBHOOK_SECRET`, `EVOLUTION_ALLOWED_IPS`) |
 | `invite-seller-email` | `RESEND_API_KEY`, `RESEND_FROM`, `INVITE_REDIRECT_URL` (a ausência da chave mantém o modo inerte)                                  |
+| `fiscal-note-inbox`   | `FISCAL_INBOX_WORKER_SECRET` (portão do agendador) e `FISCAL_INBOX_CREDENTIAL` (acesso à caixa) — um resolver por request           |
+| `fiscal-note-sefaz`   | `SEFAZ_A1_CERTIFICATE`, por um cliente `service_role` próprio (o wrapper só aceita esse papel; a RLS segue no cliente do chamador)  |
+
+> A tabela é ilustrativa, não exaustiva — o resolver se espalhou por dezenas de
+> funções. A lista real sai de `grep -rn createSecretResolver supabase/functions/`.
 
 ## Catálogo da tela
 
@@ -56,12 +61,35 @@ grupos:
   `INVITE_REDIRECT_URL`.
 - **WhatsApp — Webhook (nível do app)** — `WHATSAPP_META_APP_SECRET`,
   `WHATSAPP_META_VERIFY_TOKEN`, `EVOLUTION_ALLOWED_IPS`.
+- **Provedores LLM** — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
+  `OPENROUTER_API_KEY`, `GOOGLE_AI_API_KEY`.
+- **Frete — Melhor Envio** — apps OAuth de produção e sandbox
+  (`MELHOR_ENVIO_CLIENT_ID`/`_CLIENT_SECRET`, `MELHOR_ENVIO_SANDBOX_*`) mais
+  `MELHOR_ENVIO_REDIRECT_URI` e `MELHOR_ENVIO_USER_AGENT`.
+- **Pagamentos — Mercado Pago** — `MERCADO_PAGO_ACCESS_TOKEN` e
+  `MERCADO_PAGO_PUBLIC_KEY` (produção), `MERCADO_PAGO_TEST_ACCESS_TOKEN` e
+  `MERCADO_PAGO_TEST_PUBLIC_KEY` (teste), `MERCADO_PAGO_WEBHOOK_SECRET`
+  (assinatura `x-signature`, vale para os dois ambientes).
+- **Notas fiscais de entrada (NF-e)** — `FISCAL_INBOX_CREDENTIAL` (acesso à
+  caixa monitorada) e `SEFAZ_A1_CERTIFICATE` (certificado A1 em base64). O
+  upload de XML, que é a origem padrão, não consome chave nenhuma.
 - **Uma seção por conta WhatsApp** com `credentials_ref` válido — sufixos
   exatamente como os engines resolvem: Meta `_ACCESS_TOKEN`/`_APP_SECRET`/
   `_VERIFY_TOKEN`; Evolution `_API_KEY`/`_WEBHOOK_SECRET`.
 
 Nomes obedecem `^[A-Z][A-Z0-9_]{2,64}$` (validado na tela, na função e no
-SQL). Provedores futuros (ex.: NF-e) ganham grupo novo no catálogo.
+SQL). Provedores futuros ganham grupo novo no catálogo.
+
+> ⚠️ **Mercado Pago — divergência consciente com o PRD-132B.** O PRD escreveu
+> as entradas do Vault como `mp_access_token_<storeId>` e
+> `mp_webhook_secret_<storeId>`. Esses nomes são **minúsculos** e, portanto,
+> reprovados pelo `SECRET_NAME_PATTERN` que a tela, a Edge Function e o wrapper
+> SQL aplicam — não haveria como gravá-los pela plataforma. O catálogo adota os
+> nomes em maiúsculas acima, **sem sufixo de loja** (uma conta MP para a
+> operação atual). Quando o épico multi-loja exigir credencial por loja, o
+> caminho é o mesmo já usado pelas contas WhatsApp: um prefixo por loja
+> validado contra o mesmo padrão. Cabe ao PRD-132B ser ajustado na
+> implementação do provider.
 
 ## O que NÃO mora aqui (por natureza)
 
@@ -71,6 +99,13 @@ SQL). Provedores futuros (ex.: NF-e) ganham grupo novo no catálogo.
   frontend, `VITE_DATA_SOURCE`): resolvidas em build-time.
 - **`SUPABASE_SERVICE_ROLE_KEY`**: é a credencial que protege o cofre — não
   pode morar dentro dele.
+- **Os `*_WORKER_SECRET`** (`NPS_`, `SDR_`, `PUSH_DISPATCH_`, `SCHEDULED_`,
+  `CONVERSATION_RESCUE_`, `FISCAL_INBOX_`): são o segredo compartilhado entre a
+  função e o **agendador** que a dispara, não credencial de provedor. As
+  funções os resolvem pelo resolver (Vault vence, se existir), mas eles ficam
+  **fora do catálogo** de propósito: pô-los na tela sugeriria que o Owner pode
+  girá-los por ali, e o agendador — que vive fora do app — ficaria para trás,
+  passando a receber 401. Gire os dois lados juntos, pelos env secrets.
 - **`SENTRY_DSN` das Edge Functions**: lido no módulo `_shared/sentry.ts` em
   load-time (sync); segue como secret de env. Documentado como exceção.
 

@@ -45,10 +45,10 @@ export function getCustomerDisplay(customer: ICustomer): ICustomerDisplay {
  * tokens so the look adapts across themes & modes.
  */
 export const STATUS_BADGE_CLASSES: Record<CustomerStatus, string> = {
-  ativo: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30",
-  dormente: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30",
-  recuperacao: "bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30",
-  perdido: "bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30",
+  ativo: "bg-severity-success/15 text-severity-success border border-severity-success/30",
+  dormente: "bg-severity-warning/15 text-severity-warning border border-severity-warning/30",
+  recuperacao: "bg-severity-info/15 text-severity-info border border-severity-info/30",
+  perdido: "bg-severity-critical/15 text-severity-critical border border-severity-critical/30",
 };
 
 /**
@@ -57,8 +57,8 @@ export const STATUS_BADGE_CLASSES: Record<CustomerStatus, string> = {
  * leaving the design system.
  */
 export const ABC_BADGE_CLASSES: Record<ABCClass, string> = {
-  A: "bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/40",
-  B: "bg-zinc-400/15 text-zinc-700 dark:text-zinc-300 border border-zinc-400/30",
+  A: "bg-severity-success/15 text-severity-success border border-severity-success/30",
+  B: "bg-severity-warning/15 text-severity-warning border border-severity-warning/30",
   C: "bg-muted text-muted-foreground border border-border",
 };
 

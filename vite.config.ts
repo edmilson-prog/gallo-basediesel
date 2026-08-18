@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
@@ -51,9 +52,54 @@ function versionManifestPlugin(): Plugin {
   };
 }
 
+/**
+ * Serves `atendimento.html` for /atendimento* in dev and preview, mirroring the
+ * rewrite `vercel.json` applies in production.
+ *
+ * Without it both local servers fall back to index.html, so the app boots with
+ * the SELLER's manifest — the exact divergence that let a manifest bug survive
+ * three rounds of local verification while the iPhone kept failing.
+ */
+function atendimentoDocumentPlugin(): Plugin {
+  const rewrite = (req: { url?: string }): void => {
+    const path = (req.url ?? "").split("?")[0] ?? "";
+    if (path === "/atendimento" || path.startsWith("/atendimento/")) {
+      req.url = "/atendimento.html";
+    }
+  };
+  return {
+    name: "gallo-atendimento-document",
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        rewrite(req);
+        next();
+      });
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        rewrite(req);
+        next();
+      });
+    },
+  };
+}
+
 // SPA estática — sem SSR. Gera `dist/` com `index.html` + assets,
 // pronto para a Vercel (ou qualquer host estático) servir como SPA.
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      // Two documents, one bundle. The atendimento PWA needs its own HTML
+      // because iOS ties a web app's identity to the manifest present when the
+      // document loads — swapping `link[rel=manifest]` from a script is never
+      // re-evaluated by WebKit, so a shared index.html always offered Safari
+      // the seller app. `vercel.json` routes /atendimento* to atendimento.html.
+      input: {
+        main: fileURLToPath(new URL("./index.html", import.meta.url)),
+        atendimento: fileURLToPath(new URL("./atendimento.html", import.meta.url)),
+      },
+    },
+  },
   define: {
     __GIT_BRANCH__: JSON.stringify(resolveGitBranch()),
     __APP_VERSION__: JSON.stringify(pkg.version),
@@ -68,6 +114,7 @@ export default defineConfig({
     tailwindcss(),
     tsconfigPaths(),
     versionManifestPlugin(),
+    atendimentoDocumentPlugin(),
   ],
   server: {
     // Bind to IPv4 loopback explicitly. With the default "localhost", Node on

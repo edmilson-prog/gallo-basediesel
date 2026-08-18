@@ -33,10 +33,10 @@ interface IKpiProps {
 function TrendBadge({ trend }: { trend: ITrendInfo }) {
   if (trend.direction === "flat" && trend.changePct === null) return null;
   const colorClass = trend.isImprovement
-    ? "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10"
+    ? "text-severity-success bg-severity-success/10"
     : trend.changePct === 0
       ? "text-muted-foreground bg-muted/60"
-      : "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-500/10";
+      : "text-severity-critical bg-severity-critical/10";
   const iconName =
     trend.direction === "up"
       ? "mdi:arrow-top-right"

@@ -17,7 +17,10 @@ export interface IImportStats {
   /** Any other non-individual JID suffix. */
   chatsSkippedOther: number;
   chatsFailed: number;
-  customersCreated: number;
+  /** New owner-less leads created (Funnel Frente 3) — imports never create customers. */
+  leadsCreated: number;
+  /** Existing leads reused as-is (never reopened, owner never touched). */
+  leadsReused: number;
   conversationsCreated: number;
   messagesImported: number;
   messagesSkipped: number;
@@ -77,7 +80,8 @@ export function emptyImportStats(): IImportStats {
     chatsSkippedLid: 0,
     chatsSkippedOther: 0,
     chatsFailed: 0,
-    customersCreated: 0,
+    leadsCreated: 0,
+    leadsReused: 0,
     conversationsCreated: 0,
     messagesImported: 0,
     messagesSkipped: 0,

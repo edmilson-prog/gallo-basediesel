@@ -22,9 +22,9 @@ export interface IABCCustomersTableProps {
 const DEFAULT_PAGE_SIZE = 25;
 
 const CLASS_BADGE: Record<ABCClass, string> = {
-  A: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  B: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  C: "bg-orange-500/10 text-orange-700 dark:text-orange-300",
+  A: "bg-severity-success/10 text-severity-success",
+  B: "bg-severity-warning/10 text-severity-warning",
+  C: "bg-severity-critical/10 text-severity-critical",
 };
 
 const MIGRATION_LABEL: Record<ICustomerABCWithMigration["migration"], string> = {
@@ -36,11 +36,11 @@ const MIGRATION_LABEL: Record<ICustomerABCWithMigration["migration"], string> = 
 };
 
 const MIGRATION_TONE: Record<ICustomerABCWithMigration["migration"], string> = {
-  subiu: "text-emerald-600 dark:text-emerald-300",
-  caiu: "text-red-600 dark:text-red-300",
+  subiu: "text-severity-success",
+  caiu: "text-severity-critical",
   manteve: "text-muted-foreground",
-  novo: "text-sky-600 dark:text-sky-300",
-  saiu: "text-amber-600 dark:text-amber-300",
+  novo: "text-severity-info",
+  saiu: "text-severity-warning",
 };
 
 export function ABCCustomersTable({

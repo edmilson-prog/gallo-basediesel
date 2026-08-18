@@ -107,9 +107,9 @@ export function AnalyticsAnswerCard({
         : "mdi:minus";
   const deltaClasses =
     deltaDirection === "up"
-      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+      ? "bg-severity-success/10 text-severity-success"
       : deltaDirection === "down"
-        ? "bg-red-500/10 text-red-600 dark:text-red-400"
+        ? "bg-severity-critical/10 text-severity-critical"
         : "bg-muted text-muted-foreground";
   const deltaPercentLabel = comparison
     ? `${comparison.deltaPercent > 0 ? "+" : ""}${formatPercent(comparison.deltaPercent)}`

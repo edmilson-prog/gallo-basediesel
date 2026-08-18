@@ -15,8 +15,14 @@ export interface IPartDetailHeaderProps {
   onEdit: () => void;
   onDuplicate: () => void;
   onToggleActive: () => void;
+  editing: boolean;
 }
 
+/**
+ * Action row from the design kit (`CatActionHeader`): a plain back link on the
+ * left, then the mode switch, a rule, and the record actions on the right. It
+ * sits inside the content column — deliberately not a full-bleed toolbar.
+ */
 export function PartDetailHeader({
   part,
   canEdit,
@@ -27,32 +33,48 @@ export function PartDetailHeader({
   onEdit,
   onDuplicate,
   onToggleActive,
+  editing,
 }: IPartDetailHeaderProps) {
-  return (
-    <div className="border-b border-border bg-card">
-      <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBack}
-            className="-ml-2 cursor-pointer text-xs"
-          >
-            <Icon icon="mdi:arrow-left" size={14} />
-            {CATALOG_STRINGS.detail.backToList}
-          </Button>
+  const hasActions = !editing && (canEdit || canToggle);
 
-          <div className="flex flex-wrap items-center gap-2">
-            <PartLayoutSwitcher value={layout} onChange={onLayoutChange} />
+  return (
+    <div className="flex flex-wrap items-center gap-3.5">
+      <button
+        type="button"
+        onClick={onBack}
+        disabled={editing}
+        className="flex cursor-pointer items-center gap-2.5 py-1 text-[15px] font-semibold text-foreground transition-colors hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50"
+      >
+        <Icon icon="mdi:arrow-left" size={18} />
+        {CATALOG_STRINGS.detail.backToList}
+      </button>
+
+      <div className="ml-auto flex flex-wrap items-center gap-2">
+        <PartLayoutSwitcher value={layout} onChange={onLayoutChange} disabled={editing} />
+
+        {hasActions && <span aria-hidden className="h-[26px] w-px bg-border" />}
+
+        {editing ? (
+          <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Icon icon="mdi:pencil-outline" size={14} />
+            {CATALOG_STRINGS.detail.actions.editing}
+          </span>
+        ) : (
+          <>
             {canEdit && (
-              <Button variant="outline" size="sm" className="cursor-pointer" onClick={onEdit}>
-                <Icon icon="mdi:pencil-outline" size={14} />
+              <Button variant="secondary" size="sm" className="cursor-pointer" onClick={onEdit}>
+                <Icon icon="mdi:pencil-outline" size={15} />
                 {CATALOG_STRINGS.detail.actions.edit}
               </Button>
             )}
             {canEdit && (
-              <Button variant="outline" size="sm" className="cursor-pointer" onClick={onDuplicate}>
-                <Icon icon="mdi:content-copy" size={14} />
+              <Button
+                variant="secondary"
+                size="sm"
+                className="cursor-pointer"
+                onClick={onDuplicate}
+              >
+                <Icon icon="mdi:content-copy" size={15} />
                 {CATALOG_STRINGS.detail.actions.duplicate}
               </Button>
             )}
@@ -63,17 +85,14 @@ export function PartDetailHeader({
                 className="cursor-pointer"
                 onClick={onToggleActive}
               >
-                <Icon
-                  icon={part.active ? "mdi:archive-outline" : "mdi:archive-arrow-up-outline"}
-                  size={14}
-                />
+                <Icon icon={part.active ? "mdi:power" : "mdi:restart"} size={15} />
                 {part.active
                   ? CATALOG_STRINGS.detail.actions.deactivate
                   : CATALOG_STRINGS.detail.actions.activate}
               </Button>
             )}
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

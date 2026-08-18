@@ -21,7 +21,7 @@ function validateAiSearch(raw: Record<string, unknown>): IAiSearch {
 export const Route = createFileRoute("/app/configuracoes/ia")({
   validateSearch: validateAiSearch,
   beforeLoad: ({ location }) => {
-    requireAuth(location.pathname, ["Owner"]);
+    requireAuth(location.pathname, undefined, { resource: "settings_ai", action: "edit" });
   },
   component: () => (
     <SettingsLayout>

@@ -136,7 +136,7 @@ export function IntegrationKeysPage() {
       )}
 
       {loadError && (
-        <div className="flex items-start gap-3 rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">
+        <div className="flex items-start gap-3 rounded-lg border border-severity-critical/40 bg-severity-critical/10 p-4 text-sm text-severity-critical">
           <Icon icon="mdi:alert-circle-outline" className="mt-0.5 size-4 shrink-0" />
           <p>{loadError}</p>
         </div>
@@ -246,7 +246,7 @@ function KeyRow({
             {configured ? (
               <Badge
                 variant="outline"
-                className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                className="border-severity-success/40 bg-severity-success/10 text-severity-success"
               >
                 <Icon icon="mdi:check-circle-outline" className="mr-1 size-3" />
                 Configurada

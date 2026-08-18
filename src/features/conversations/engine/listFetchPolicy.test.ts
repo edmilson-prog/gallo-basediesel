@@ -69,6 +69,25 @@ describe("shouldRetryListFetch", () => {
   it("does not retry an initial fetch once rows exist (that is a re-anchor, not a blank load)", () => {
     expect(shouldRetryListFetch({ intent: "initial", hasItems: true, attempt: 1 })).toBe(false);
   });
+
+  it("does not retry a statement timeout — the attempt that failed already cost 8s", () => {
+    const timeout = new Error(
+      "[supabase] conversations.list failed: canceling statement due to statement timeout",
+    );
+    expect(
+      shouldRetryListFetch({ intent: "initial", hasItems: false, attempt: 1, error: timeout }),
+    ).toBe(false);
+    expect(
+      shouldRetryListFetch({ intent: "refetch", hasItems: true, attempt: 1, error: timeout }),
+    ).toBe(false);
+  });
+
+  it("still retries an ordinary failure when the error is supplied", () => {
+    const blip = new Error("Failed to fetch");
+    expect(
+      shouldRetryListFetch({ intent: "initial", hasItems: false, attempt: 1, error: blip }),
+    ).toBe(true);
+  });
 });
 
 describe("isLoadMoreFailure", () => {

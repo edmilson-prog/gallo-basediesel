@@ -510,6 +510,57 @@ servePost(async (req, ctx) => {
             });
             continue;
           }
+          // PR #357: the one-open-per-contact-per-account unique index vetoes
+          // repointing a SECOND open row onto the real customer — archive the
+          // ghost's colliding open threads first (same protocol as the
+          // leads_reanchor_converted trigger; traffic already flows to the
+          // real customer's thread, and the history migrates anyway).
+          const { data: ghostOpen, error: ghostOpenErr } = await admin
+            .from("conversations")
+            .select("id, whatsapp_account_id")
+            .eq("customer_id", cust.id)
+            .not("status", "in", "(resolvida,arquivada)")
+            .not("whatsapp_account_id", "is", null);
+          if (ghostOpenErr) {
+            failures += 1;
+            entries.push({
+              customerId: cust.id,
+              action: "merge-failed",
+              step: "conversations-collision-scan",
+              error: ghostOpenErr.message,
+            });
+            continue;
+          }
+          if ((ghostOpen ?? []).length > 0) {
+            const { data: realOpen } = await admin
+              .from("conversations")
+              .select("whatsapp_account_id")
+              .eq("customer_id", realId)
+              .not("status", "in", "(resolvida,arquivada)")
+              .not("whatsapp_account_id", "is", null);
+            const realAccounts = new Set(
+              (realOpen ?? []).map((r) => r.whatsapp_account_id as string),
+            );
+            const colliding = (ghostOpen ?? [])
+              .filter((g) => realAccounts.has(g.whatsapp_account_id as string))
+              .map((g) => g.id as string);
+            if (colliding.length > 0) {
+              const { error: archiveErr } = await admin
+                .from("conversations")
+                .update({ status: "arquivada", assigned_seller_id: null, is_sdr_active: false })
+                .in("id", colliding);
+              if (archiveErr) {
+                failures += 1;
+                entries.push({
+                  customerId: cust.id,
+                  action: "merge-failed",
+                  step: "conversations-collision-archive",
+                  error: archiveErr.message,
+                });
+                continue;
+              }
+            }
+          }
           const { error: convErr } = await admin
             .from("conversations")
             .update({ customer_id: realId })

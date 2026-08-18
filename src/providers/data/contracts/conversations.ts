@@ -14,6 +14,12 @@ export type ConversationsOrderBy = "lastMessageAt" | "abcClass";
 
 export interface IListConversationsParams extends IPaginationParams {
   storeId?: ID;
+  /**
+   * Restrict the result to these ids (the Inbox's pinned-conversations block).
+   * ALWAYS a short list — at most the pinned cap (20). Never use it to paginate
+   * a large set: it would become a huge PostgREST URL.
+   */
+  ids?: ID[];
   assignedSellerId?: ID;
   /** Filter by a specific status, or by a set of allowed statuses. */
   status?: IConversation["status"] | IConversation["status"][];

@@ -1,7 +1,18 @@
-import type { ID, ILead, ILeadStage, LeadOrigin, LeadTemperature, Money } from "@/shared/types";
+import type {
+  ICustomerAddress,
+  ID,
+  ILead,
+  ILeadNote,
+  ILeadStage,
+  LeadNextActionKind,
+  LeadOrigin,
+  LeadTemperature,
+  Money,
+} from "@/shared/types";
 import type { IListLeadsParams, ILeadsProvider } from "../../contracts/leads";
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { fetchLargePage } from "./_pagination";
 import { buildDigitSearchCandidates } from "@/shared/utils/digitSearch";
 
 /**
@@ -20,15 +31,21 @@ import { buildDigitSearchCandidates } from "@/shared/utils/digitSearch";
 interface LeadRow {
   id: string;
   store_id: string;
-  seller_id: string;
+  seller_id: string | null;
   name: string;
   phone: string;
   email: string | null;
+  avatar_url: string | null;
   stage: ILeadStage;
   temperature: LeadTemperature;
   origin: LeadOrigin;
   estimated_value: number | null;
   next_action_at: string | null;
+  /** Absent from the row until migration 20260808120000 is applied. */
+  next_action_kind?: LeadNextActionKind | null;
+  /** Both absent until migration 20260814170000 is applied. */
+  document?: string | null;
+  address?: ICustomerAddress | null;
   loss_reason: string | null;
   loss_notes: string | null;
   converted_to_customer_id: string | null;
@@ -40,9 +57,76 @@ interface LeadRow {
 
 const TABLE = "leads";
 const COLUMNS =
-  "id, store_id, seller_id, name, phone, email, stage, temperature, origin, estimated_value, " +
-  "next_action_at, loss_reason, loss_notes, converted_to_customer_id, conversations, tags, " +
-  "created_at, updated_at";
+  "id, store_id, seller_id, name, phone, email, avatar_url, stage, temperature, origin, " +
+  "estimated_value, next_action_at, loss_reason, loss_notes, converted_to_customer_id, " +
+  "conversations, tags, created_at, updated_at";
+
+/**
+ * Columns that arrive with a migration, and in this project merging the PR does
+ * NOT apply the migration. Naming one in a `select` before it exists answers
+ * 42703 and takes the whole screen down with it, so they are requested
+ * separately and the module demotes itself on the first refusal — for the rest
+ * of the session, and only for the call sites that need them.
+ *
+ *  - `next_action_kind` — migration 20260808120000 (applied in prod 08/08/2026).
+ *  - `document` / `address` — migration 20260814170000, which feeds the
+ *    conversion checklist of the Atendimento panel.
+ *
+ * The list and the board never read any of them, which is why they stay on the
+ * fixed set above: the one query that must not break is the one loading a
+ * thousand rows.
+ */
+const OPTIONAL_COLUMNS = ["next_action_kind", "document", "address"] as const;
+type OptionalColumn = (typeof OPTIONAL_COLUMNS)[number];
+
+const columnAvailable: Record<OptionalColumn, boolean> = {
+  next_action_kind: true,
+  document: true,
+  address: true,
+};
+
+/** Column list for the lead DETAIL, the only reader of the optional columns. */
+function detailColumns(): string {
+  const extra = OPTIONAL_COLUMNS.filter((c) => columnAvailable[c]);
+  return extra.length > 0 ? `${COLUMNS}, ${extra.join(", ")}` : COLUMNS;
+}
+
+/**
+ * True — and demotes the module — only for "column does not exist". Every other
+ * failure has to surface: swallowing them here would turn a permission error
+ * into a silently field-less lead.
+ *
+ * PostgREST names a single column per 42703 even when several are missing, so
+ * callers retry in a loop rather than once: a database with neither migration
+ * applied needs one demotion per column before the read gets through.
+ */
+function demoteMissingOptionalColumn(error: { code?: string; message?: string } | null): boolean {
+  if (!error || error.code !== "42703") return false;
+  const message = error.message ?? "";
+  for (const column of OPTIONAL_COLUMNS) {
+    if (columnAvailable[column] && message.includes(column)) {
+      columnAvailable[column] = false;
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Runs `attempt`, demoting one optional column per 42703 and retrying, until it
+ * succeeds or names nothing we can drop. Bounded by the column count: each pass
+ * either demotes a column that was still enabled or stops.
+ */
+async function withColumnProbe<T extends { error: { code?: string; message?: string } | null }>(
+  attempt: () => PromiseLike<T>,
+): Promise<T> {
+  let result = await attempt();
+  for (let i = 0; i < OPTIONAL_COLUMNS.length; i++) {
+    if (!demoteMissingOptionalColumn(result.error)) break;
+    result = await attempt();
+  }
+  return result;
+}
 
 function rowToLead(row: LeadRow): ILead {
   return {
@@ -52,11 +136,17 @@ function rowToLead(row: LeadRow): ILead {
     name: row.name,
     phone: row.phone,
     email: row.email ?? undefined,
+    document: row.document ?? undefined,
+    address: row.address ?? undefined,
+    // avatar_url is written server-side (webhook / Frente B migration) and
+    // read-only in the app: leadPatchToRow/createInputToRow never send it.
+    avatarUrl: row.avatar_url ?? undefined,
     stage: row.stage,
     temperature: row.temperature,
     origin: row.origin,
     estimatedValue: row.estimated_value ?? undefined,
     nextActionAt: row.next_action_at ?? undefined,
+    nextActionKind: row.next_action_kind ?? undefined,
     lossReason: row.loss_reason ?? undefined,
     lossNotes: row.loss_notes ?? undefined,
     convertedToCustomerId: row.converted_to_customer_id ?? undefined,
@@ -68,18 +158,35 @@ function rowToLead(row: LeadRow): ILead {
 }
 
 /** Maps a camelCase patch to snake_case columns. `id`/`storeId`/`createdAt` are
- *  immutable and never written; `updatedAt` is set by the caller. */
-function leadPatchToRow(patch: Partial<ILead>): Record<string, unknown> {
+ *  immutable and never written; `updatedAt` is set by the caller.
+ *
+ *  `email`/`estimatedValue`/`nextActionAt` are the inline-editable optional
+ *  fields (see `buildLeadPatch`, which emits `{ field: undefined }` to mean
+ *  "clear this field"). For those three, presence of the key in the patch —
+ *  not just a defined value — decides whether the column is written, and an
+ *  `undefined` value coalesces to `null` so a clear actually clears the row
+ *  instead of silently no-oping. The other optional columns below are never
+ *  cleared via this flow, so they keep the plain `!== undefined` guard.
+ */
+export function leadPatchToRow(patch: Partial<ILead>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
   if (patch.sellerId !== undefined) row.seller_id = patch.sellerId;
   if (patch.name !== undefined) row.name = patch.name;
   if (patch.phone !== undefined) row.phone = patch.phone;
-  if (patch.email !== undefined) row.email = patch.email;
+  if ("email" in patch) row.email = patch.email ?? null;
+  // Dropped while the column is missing, for the same reason as the kind below:
+  // a write that also carries the name still applies it instead of failing whole.
+  if ("document" in patch && columnAvailable.document) row.document = patch.document ?? null;
+  if ("address" in patch && columnAvailable.address) row.address = patch.address ?? null;
   if (patch.stage !== undefined) row.stage = patch.stage;
   if (patch.temperature !== undefined) row.temperature = patch.temperature;
   if (patch.origin !== undefined) row.origin = patch.origin;
-  if (patch.estimatedValue !== undefined) row.estimated_value = patch.estimatedValue;
-  if (patch.nextActionAt !== undefined) row.next_action_at = patch.nextActionAt;
+  if ("estimatedValue" in patch) row.estimated_value = patch.estimatedValue ?? null;
+  if ("nextActionAt" in patch) row.next_action_at = patch.nextActionAt ?? null;
+  // Dropped entirely while the column is missing, so a write that carries the
+  // kind still applies its date instead of failing whole.
+  if ("nextActionKind" in patch && columnAvailable.next_action_kind)
+    row.next_action_kind = patch.nextActionKind ?? null;
   if (patch.lossReason !== undefined) row.loss_reason = patch.lossReason;
   if (patch.lossNotes !== undefined) row.loss_notes = patch.lossNotes;
   if (patch.convertedToCustomerId !== undefined)
@@ -102,6 +209,10 @@ function createInputToRow(
     name: input.name,
     phone: input.phone,
     email: input.email ?? null,
+    // Same availability guard as the patch: naming a column the database does
+    // not have yet turns a lead creation into a 42703.
+    ...(columnAvailable.document ? { document: input.document ?? null } : {}),
+    ...(columnAvailable.address ? { address: input.address ?? null } : {}),
     stage: input.stage,
     temperature: input.temperature,
     origin: input.origin,
@@ -113,6 +224,19 @@ function createInputToRow(
     conversations: [],
     tags: input.tags,
   };
+}
+
+interface LeadNoteRow {
+  id: string;
+  lead_id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+}
+const NOTES_TABLE = "lead_notes";
+const NOTE_COLUMNS = "id, lead_id, author_id, content, created_at";
+function rowToLeadNote(row: LeadNoteRow): ILeadNote {
+  return { id: row.id, authorId: row.author_id, content: row.content, createdAt: row.created_at };
 }
 
 /**
@@ -133,44 +257,109 @@ export function buildLeadSearchOr(search: string): string | null {
 
 export const supabaseLeadsProvider: ILeadsProvider = {
   async list(params: IListLeadsParams = {}): Promise<IPaginatedResult<ILead>> {
-    let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
-
-    if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
-    if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
-    if (params.stageId !== undefined) query = query.eq("stage->>id", params.stageId);
-    if (params.temperature !== undefined) query = query.eq("temperature", params.temperature);
-    if (params.search) {
-      const orExpr = buildLeadSearchOr(params.search);
-      if (orExpr) query = query.or(orExpr);
-    }
+    const buildQuery = () => {
+      // Funnel scope is expressed as an INNER join on the membership table —
+      // only leads that HAVE an entry in that funnel survive. `lead_id, funnel_id`
+      // carries a unique index (see 20260723120000_lead_funnels_schema.sql), so
+      // this never fans a lead out into duplicate rows or corrupts `count: "exact"`.
+      const hasFunnelScope = params.funnelId !== undefined;
+      let query = getSupabaseClient()
+        .from(TABLE)
+        .select(
+          hasFunnelScope ? `${COLUMNS}, lead_funnel_entries!inner(funnel_id, stage_id)` : COLUMNS,
+          { count: "exact" },
+        );
+      if (params.storeId !== undefined) query = query.eq("store_id", params.storeId);
+      if (params.sellerId !== undefined) query = query.eq("seller_id", params.sellerId);
+      // The legacy embedded pipeline stage (`stage->>id`) — independent of
+      // `funnelId`/`funnelStageId` below, which address a different id
+      // namespace (`lead_funnel_entries.stage_id`). Both can apply at once.
+      if (params.stageId !== undefined) query = query.eq("stage->>id", params.stageId);
+      if (params.temperature !== undefined) query = query.eq("temperature", params.temperature);
+      if (params.excludeLost) query = query.is("loss_reason", null);
+      if (params.search) {
+        const orExpr = buildLeadSearchOr(params.search);
+        if (orExpr) query = query.or(orExpr);
+      }
+      if (params.funnelId !== undefined) {
+        query = query.eq("lead_funnel_entries.funnel_id", params.funnelId);
+        if (params.funnelStageId !== undefined)
+          query = query.eq("lead_funnel_entries.stage_id", params.funnelStageId);
+      }
+      return query;
+    };
 
     const page = Math.max(1, Math.floor(params.page ?? 1));
-    const pageSize = Math.max(1, Math.min(1000, Math.floor(params.pageSize ?? 20)));
+    const pageSize = Math.max(1, Math.min(50_000, Math.floor(params.pageSize ?? 20)));
     const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
 
-    const { data, error, count } = await query
-      .order("updated_at", { ascending: false })
-      .range(from, to);
-
-    if (error) throw new Error(`[supabase] leads.list failed: ${error.message}`);
+    const { data, total } = await fetchLargePage<LeadRow>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await buildQuery()
+          .order("updated_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] leads.list failed: ${error.message}`);
+        return { data: (data ?? []) as unknown as LeadRow[], count: count ?? 0 };
+      },
+      from,
+      pageSize,
+    );
 
     return {
-      data: (data as unknown as LeadRow[]).map(rowToLead),
-      total: count ?? 0,
+      data: data.map(rowToLead),
+      total,
       page,
       pageSize,
     };
   },
 
   async get(id: ID): Promise<ILead> {
-    const { data, error } = await getSupabaseClient()
-      .from(TABLE)
-      .select(COLUMNS)
-      .eq("id", id)
-      .single();
+    // The session's first detail read is what discovers whether the migrations
+    // have run. `detailColumns()` is re-evaluated inside the closure, so each
+    // retry goes out already demoted.
+    const { data, error } = await withColumnProbe(() =>
+      getSupabaseClient().from(TABLE).select(detailColumns()).eq("id", id).single(),
+    );
     if (error) throw new Error(`[supabase] leads.get(${id}) failed: ${error.message}`);
     return rowToLead(data as unknown as LeadRow);
+  },
+
+  async getViaConversation(conversationId: ID): Promise<ILead | null> {
+    // SECURITY DEFINER RPC gated by can_access_conversation: returns the
+    // conversation's lead (0/1 row) bypassing the per-owner leads RLS that
+    // hides an OWNERLESS lead from non-staff — WITHOUT touching the global
+    // leads policy. Mirror of customers.getViaConversation.
+    const { data, error } = await getSupabaseClient()
+      .rpc("lead_via_conversation", { conv: conversationId })
+      .maybeSingle();
+    if (error)
+      throw new Error(
+        `[supabase] leads.getViaConversation(${conversationId}) failed: ${error.message}`,
+      );
+    if (!data) return null;
+    return rowToLead(data as unknown as LeadRow);
+  },
+
+  async listNotes(leadId: ID): Promise<ILeadNote[]> {
+    const { data, error } = await getSupabaseClient()
+      .from(NOTES_TABLE)
+      .select(NOTE_COLUMNS)
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(`[supabase] leads.listNotes(${leadId}) failed: ${error.message}`);
+    return (data as LeadNoteRow[]).map(rowToLeadNote);
+  },
+
+  async addNote(leadId: ID, content: string, authorId: ID): Promise<ILeadNote> {
+    const id: ID = crypto.randomUUID();
+    const { data, error } = await getSupabaseClient()
+      .from(NOTES_TABLE)
+      .insert({ id, lead_id: leadId, author_id: authorId, content })
+      .select(NOTE_COLUMNS)
+      .single();
+    if (error) throw new Error(`[supabase] leads.addNote(${leadId}) failed: ${error.message}`);
+    return rowToLeadNote(data as LeadNoteRow);
   },
 
   async create(
@@ -187,14 +376,32 @@ export const supabaseLeadsProvider: ILeadsProvider = {
   },
 
   async update(id: ID, patch: Partial<ILead>): Promise<ILead> {
-    const { data, error } = await getSupabaseClient()
-      .from(TABLE)
-      .update({ ...leadPatchToRow(patch), updated_at: new Date().toISOString() })
-      .eq("id", id)
-      .select(COLUMNS)
-      .single();
+    // Same demotion as `get`: both the patch and the returning column list are
+    // rebuilt by the closure, so the retry writes what the database does have
+    // rather than losing the whole edit.
+    const { data, error } = await withColumnProbe(() =>
+      getSupabaseClient()
+        .from(TABLE)
+        .update({ ...leadPatchToRow(patch), updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select(detailColumns())
+        .single(),
+    );
     if (error) throw new Error(`[supabase] leads.update(${id}) failed: ${error.message}`);
     return rowToLead(data as unknown as LeadRow);
+  },
+
+  async markConverted(
+    leadId: ID,
+    args: { stage: ILeadStage; customerId: ID },
+  ): Promise<void> {
+    const { error } = await getSupabaseClient().rpc("convert_lead_mark", {
+      p_lead_id: leadId,
+      p_customer_id: args.customerId,
+      p_stage: args.stage,
+    });
+    if (error)
+      throw new Error(`[supabase] leads.markConverted(${leadId}) failed: ${error.message}`);
   },
 
   async delete(id: ID): Promise<void> {
