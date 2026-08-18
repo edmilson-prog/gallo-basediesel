@@ -8,11 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { ISeller } from "@/shared/types";
 import { useCurrentStore } from "@/features/multistore";
-import { useDepartmentsProvider, useSellersProvider } from "@/providers/data";
+import { useDepartmentsProvider, useRolesProvider, useSellersProvider } from "@/providers/data";
 import { AUTH_SOURCE } from "@/features/auth/authSource";
 import { useAuth } from "@/features/auth/useAuth";
-import { mapDbRoleToRoleName } from "@/features/auth/roleMap";
 import { useStorePresence } from "@/features/shell/hooks/useStorePresence";
+import { effectiveRoleLabel, resolveEffectiveRoleId } from "../engine/effectiveRole";
 import { SectionHeader } from "../components/SectionHeader";
 import { listSellerAccessInfo, type ISellerAccessInfo } from "../api/sellerAccess";
 import { CreateAccessDialog } from "../components/CreateAccessDialog";
@@ -71,6 +71,7 @@ export function UsersPage() {
   const storeId = currentStoreId ?? "00000000-0000-0000-0000-000000000001";
   const provider = useSellersProvider();
   const departmentsProvider = useDepartmentsProvider();
+  const rolesProvider = useRolesProvider();
   const [inviteFor, setInviteFor] = useState<ISeller | null>(null);
   const [resetFor, setResetFor] = useState<ISeller | null>(null);
   const [mfaResetFor, setMfaResetFor] = useState<ISeller | null>(null);
@@ -98,6 +99,18 @@ export function UsersPage() {
     queryKey: ["departments", storeId],
     queryFn: () => departmentsProvider.list({ storeId }),
   });
+
+  // Role catalog for the effective-role badge (custom role names live there).
+  // Same key as ChangeRoleDialog, so the two screens share one cached fetch.
+  const rolesQuery = useQuery({
+    queryKey: ["rbac", "roles"],
+    queryFn: () => rolesProvider.list(),
+    enabled: SUPABASE_AUTH,
+  });
+  const roleNameById = new Map((rolesQuery.data ?? []).map((r) => [r.id, r.name] as const));
+  // While either query is in flight the badge would show the business type and
+  // then swap to the effective role — a skeleton avoids the text flicker.
+  const roleBadgeLoading = SUPABASE_AUTH && (accessQuery.isLoading || rolesQuery.isLoading);
 
   const sellers = sellersQuery.data;
   const accessInfo = accessQuery.data ?? new Map<string, ISellerAccessInfo>();
@@ -148,6 +161,7 @@ export function UsersPage() {
               const isSelf = currentUser?.sellerId === s.id;
               const isOnline = presence ? presence.has(s.id) : s.availability !== "offline";
               const accessLabel = lastAccessLabel(accessInfo.get(s.id), SUPABASE_AUTH, isOnline);
+              const roleLabel = effectiveRoleLabel(accessInfo.get(s.id), roleNameById);
               const departmentName = s.departmentId
                 ? departmentNameById.get(s.departmentId)
                 : undefined;
@@ -187,6 +201,9 @@ export function UsersPage() {
                       <p className="flex items-center gap-1 text-[11px] text-muted-foreground/80">
                         <Icon icon="mdi:office-building-outline" size={12} />
                         {departmentName ?? "Sem departamento"}
+                        {/* With the badge now showing the platform role, the
+                            business type moves here to stay at-a-glance. */}
+                        {roleLabel && <span>· {ROLE_LABEL[s.type]}</span>}
                       </p>
                       {accessLabel && (
                         <p className="text-[11px] text-muted-foreground/80">{accessLabel}</p>
@@ -194,10 +211,21 @@ export function UsersPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{ROLE_LABEL[s.type]}</Badge>
-                    {SUPABASE_AUTH && accessRole === "manager" && (
-                      <Badge variant="outline" className="border-primary/40 text-primary">
-                        Gestor
+                    {/* Effective platform role (incl. custom role names); a
+                        seller without platform access has no role, so the badge
+                        falls back to the business type. Owner/Gestor keep the
+                        primary emphasis the old dedicated badge had. */}
+                    {roleBadgeLoading ? (
+                      <Skeleton className="h-5 w-24" />
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          (accessRole === "owner" || accessRole === "manager") &&
+                            "border-primary/40 text-primary",
+                        )}
+                      >
+                        {roleLabel ?? ROLE_LABEL[s.type]}
                       </Badge>
                     )}
                     <Button
@@ -370,11 +398,7 @@ export function UsersPage() {
 
       {roleFor &&
         (() => {
-          const info = accessInfo.get(roleFor.id);
-          // Effective role id: the custom override if pinned, else the system
-          // role id (=== RoleName) derived from the base role.
-          const currentRoleId =
-            info?.roleId ?? mapDbRoleToRoleName(info?.role ?? "seller_internal");
+          const currentRoleId = resolveEffectiveRoleId(accessInfo.get(roleFor.id));
           return (
             <ChangeRoleDialog
               seller={roleFor}
