@@ -91,8 +91,14 @@ export const suppliersApi = {
 
   async update(id: ID, patch: IUpdateSupplierPatch): Promise<ISupplier> {
     const index = suppliers.findIndex((s) => s.id === id);
-    if (index < 0) throw new Error(`Fornecedor ${id} não encontrado.`);
-    const updated: ISupplier = { ...suppliers[index], ...patch, updatedAt: NOW() };
+    // `noUncheckedIndexedAccess` can't narrow a fresh `suppliers[index]`
+    // expression from an `index < 0` check on a SEPARATE variable — reading
+    // it into `existing` first and guarding THAT (same idiom `get()` above
+    // already uses via `.find()`) narrows it to `ISupplier` for the rest of
+    // this function.
+    const existing = suppliers[index];
+    if (!existing) throw new Error(`Fornecedor ${id} não encontrado.`);
+    const updated: ISupplier = { ...existing, ...patch, updatedAt: NOW() };
     suppliers = suppliers.map((s, i) => (i === index ? updated : s));
     return { ...updated };
   },

@@ -69,14 +69,19 @@ create unique index if not exists suppliers_store_document_key
 -- non-staff seller reads nothing. Supplier carries payment terms and, once
 -- `payable` lands, purchase amounts — that is cost data.
 --
--- `is_staff()` alone is NOT enough here: it resolves to `current_app_role()
--- in ('owner','manager')` and excludes 'financeiro'. The RBAC seed below
--- (part 3) grants Financeiro view/create/edit on this resource — that is the
--- decision taken with the owner ("Quem enxerga: Owner, Gestor, Financeiro",
--- see the spec) — so a policy gated on `is_staff()` alone would leave a
--- Financeiro user with the menu item and the RBAC grant but every query
--- returning zero rows. Same idiom already used for `audit_logs_select` in
+-- `is_staff()` alone is NOT enough for select/insert/update: it resolves to
+-- `current_app_role() in ('owner','manager')` and excludes 'financeiro'. The
+-- RBAC seed below (part 3) grants Financeiro view/create/edit on this
+-- resource — that is the decision taken with the owner ("Quem enxerga:
+-- Owner, Gestor, Financeiro", see the spec) — so a policy gated on
+-- `is_staff()` alone would leave a Financeiro user with the menu item and
+-- the RBAC grant but every query returning zero rows. Same idiom already
+-- used for `audit_logs_select` in
 -- 20260609163912_rls_fase2_43_tighten_audit_transfers_media.sql:11.
+--
+-- `delete` is the ONE exception — see its own comment below: the RBAC seed
+-- grants `delete` to Owner alone, so `suppliers_delete` does NOT get the
+-- `is_staff()`-or-financeiro treatment the other three do.
 alter table public.suppliers enable row level security;
 
 drop policy if exists suppliers_select on public.suppliers;
@@ -104,11 +109,20 @@ create policy suppliers_update on public.suppliers for update to authenticated
     and (public.is_staff() or public.current_app_role() = 'financeiro')
   );
 
+-- Deliberately TIGHTER than select/insert/update above: the RBAC seed
+-- (part 3, below) grants `delete` on `supplier` to Owner ONLY — Gestor and
+-- Financeiro get view/create/edit, no delete. A policy admitting
+-- `is_staff()` here would over-grant Gestor (`is_staff()` is true for both
+-- owner and manager); admitting the financeiro branch used by the other
+-- three policies would over-grant Financeiro. Either lets a role delete
+-- through the API what the RBAC matrix says it cannot — RLS is the actual
+-- enforcement point, so it has to match the seed's grant exactly, not
+-- just be "at least as permissive" as the read/write policies beside it.
 drop policy if exists suppliers_delete on public.suppliers;
 create policy suppliers_delete on public.suppliers for delete to authenticated
   using (
     store_id = public.current_store_id()
-    and (public.is_staff() or public.current_app_role() = 'financeiro')
+    and public.current_app_role() = 'owner'
   );
 
 ------------------------------------------------------------------ 3. RBAC seed
@@ -179,25 +193,25 @@ with cleaned as (
     -- rather than chasing a zero-impact difference; would need attention if
     -- a future import ever introduces either.
     --
-    -- A THIRD gap, not inert: `key` also does not strip trailing legal-form
+    -- A THIRD gap existed here — `key` did not strip trailing legal-form
     -- suffixes (ltda|me|epp|eireli|s a|sa|s/a) the way normalizeSupplierName()
     -- does when building the join key `stats()`/`statsMany()` use at runtime
-    -- (src/providers/data/impl/supabase/suppliers.ts `joinKey()`). Measured
-    -- 2026-08-17 against production `parts.supplier`: unlike the two gaps
-    -- above, this one already collides today. "Auto Vans Pecas Eireli ME"
-    -- (4 peças) and "AUTO VANS PECAS LTDA" (1 peça) are distinct `key`s here
-    -- — so this backfill creates two separate `suppliers` rows for them —
-    -- but normalizeSupplierName() strips " Eireli"+" ME" off one and " Ltda"
-    -- off the other and both land on the identical engine key
-    -- "auto vans pecas". Once this migration is applied, `stats()` /
-    -- `statsMany()` will therefore attribute ALL 5 of those parts to BOTH
-    -- resulting supplier rows — `linkedParts` and `purchasesLast12Months`
-    -- double-counted on the KPI strip for what is almost certainly one real
-    -- supplier under two legal-form spellings. Left unfixed here on purpose:
-    -- whether to strip suffixes in `key` too (merging them into one row) or
-    -- leave both rows and let the list's own merge workflow handle it is a
-    -- product call for the owner, not a syntax fix to slip into this
-    -- migration silently — flagged in the PR instead.
+    -- (src/providers/data/impl/supabase/suppliers.ts `joinKey()`). Unlike the
+    -- two gaps above, this one was NOT inert: measured against production
+    -- `parts.supplier`, "Auto Vans Pecas Eireli ME" (4 peças) and "AUTO VANS
+    -- PECAS LTDA" (1 peça) got distinct `key`s here — so this backfill would
+    -- have created two separate `suppliers` rows for one real supplier —
+    -- while normalizeSupplierName() collapses both onto the identical engine
+    -- key "auto vans pecas", which would have made `stats()`/`statsMany()`
+    -- double-count `linkedParts` and `purchasesLast12Months` across both rows
+    -- on the KPI strip. FIXED below: the `deduped` CTE (further down) strips
+    -- the same suffixes off `key` before grouping, so this backfill now
+    -- produces exactly one row for that pair, same as the engine would at
+    -- runtime. The suffix strip is deliberately applied to the DEDUPE KEY
+    -- ONLY, never to `name` (the display name, built above from `raw`) — the
+    -- spec's decision is that the join key folds legal-form spelling
+    -- differences but the name shown on screen keeps "Ltda"/"ME", since
+    -- that's the company's actual registered name.
     regexp_replace(
       translate(
         lower(replace(btrim(p.supplier), '&amp;', '&')),
@@ -243,8 +257,41 @@ canonical as (
     case
       when key in ('ufi', 'ufi filters') then 'ufi filters'
       else key
-    end as dedupe_key
+    end as pre_suffix_key
   from filtered
+),
+deduped as (
+  select
+    store_id,
+    name,
+    -- Strips trailing legal-form suffixes (ltda|me|epp|eireli|s a|sa|s/a)
+    -- off the dedupe key, mirroring normalizeSupplierName()'s suffix strip
+    -- — see the header comment above `key` for why (a measured, real
+    -- production collision, not a hypothetical one). Applied 4 times, not
+    -- once: the pattern anchors on `$`, so a single application removes AT
+    -- MOST one trailing suffix word, and a real name can carry more than
+    -- one ("… Eireli ME" needs two passes to fully strip). This mirrors
+    -- the TS engine's `while (suffix.test(out))` loop, which has no fixed
+    -- bound; 4 passes covers every case measured in production (max
+    -- observed: 2) with headroom.
+    --
+    -- Applied to `pre_suffix_key` (→ `dedupe_key`) only, never to `name`:
+    -- the display name keeps its legal-form suffix on purpose (see header
+    -- comment) — only the grouping key folds the spelling difference away.
+    regexp_replace(
+      regexp_replace(
+        regexp_replace(
+          regexp_replace(
+            pre_suffix_key,
+            '\s+(ltda|me|epp|eireli|s a|sa|s/a)$', ''
+          ),
+          '\s+(ltda|me|epp|eireli|s a|sa|s/a)$', ''
+        ),
+        '\s+(ltda|me|epp|eireli|s a|sa|s/a)$', ''
+      ),
+      '\s+(ltda|me|epp|eireli|s a|sa|s/a)$', ''
+    ) as dedupe_key
+  from canonical
 )
 insert into public.suppliers (id, store_id, name, category, source, supplied_items)
 select
@@ -254,6 +301,6 @@ select
   'parts',
   'catalog_backfill',
   '{}'::text[]
-from canonical
+from deduped
 group by dedupe_key, store_id
 on conflict (id) do nothing;
