@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { MockWhatsAppProvider } from "../mock/MockWhatsAppProvider";
 import type { IWhatsAppProvider } from "../IWhatsAppProvider";
 import { processWebhookEvent, type IAccountRecord, type IWebhookDb } from "./core";
+import type { IAdTouchInput } from "./adTouch";
 
 const ACCOUNT: IAccountRecord = {
   id: "acc-1",
@@ -50,6 +51,8 @@ interface IFakeState {
   audits: Array<Record<string, unknown>>;
   bumps: string[];
   adReferrals: Array<{ conversationId: string; adReferral: unknown }>;
+  adTouches: IAdTouchInput[];
+  failAdTouch?: boolean;
   reopens: Array<{ conversationId: string; lastMessageAt: string }>;
   touches: Array<{ conversationId: string; lastMessageAt: string }>;
   mediaSet: Array<{ messageId: string; mediaUrl: string | null; status: string }>;
@@ -185,6 +188,10 @@ function makeFakeDb(state: IFakeState, opts?: { knownOutboundId?: string }): IWe
     setConversationAdReferral: async (conversationId, adReferral) => {
       state.adReferrals.push({ conversationId, adReferral });
     },
+    recordAdTouch: async (input) => {
+      if (state.failAdTouch) throw new Error("record_ad_touch boom");
+      state.adTouches.push(input);
+    },
     reopenConversation: async (conversationId, lastMessageAt) => {
       state.reopens.push({ conversationId, lastMessageAt });
       const conversation = state.conversations.find((c) => c.id === conversationId);
@@ -233,6 +240,7 @@ function emptyState(): IFakeState {
     audits: [],
     bumps: [],
     adReferrals: [],
+    adTouches: [],
     reopens: [],
     touches: [],
     mediaSet: [],
@@ -1414,5 +1422,77 @@ describe("processWebhookEvent — ad referral attribution", () => {
     const state = emptyState();
     await run(state, evolutionTextEvent());
     expect(state.adReferrals).toEqual([]);
+  });
+
+  it("records an ad touch when the referral carries a source id", async () => {
+    const state = emptyState();
+    const result = await run(state, {
+      event: "messages.upsert",
+      instance: "gallo-matriz",
+      sender: "5555911111111@s.whatsapp.net",
+      data: {
+        key: { id: "ADMSG2", remoteJid: "5555988887777@s.whatsapp.net", fromMe: false },
+        message: {
+          extendedTextMessage: {
+            text: "Vim do anúncio",
+            contextInfo: {
+              externalAdReplyInfo: { title: "Filtro UFI", sourceId: "120238998853430275" },
+            },
+          },
+        },
+        messageTimestamp: 1765400000,
+      },
+    });
+    expect(state.adTouches).toHaveLength(1);
+    expect(state.adTouches[0]).toMatchObject({
+      conversationId: result.conversationId,
+      referral: { sourceId: "120238998853430275", headline: "Filtro UFI" },
+    });
+  });
+
+  it("does not record a touch when the referral has no source id", async () => {
+    const state = emptyState();
+    await run(state, {
+      event: "messages.upsert",
+      instance: "gallo-matriz",
+      sender: "5555911111111@s.whatsapp.net",
+      data: {
+        key: { id: "ADMSG3", remoteJid: "5555988887777@s.whatsapp.net", fromMe: false },
+        message: {
+          extendedTextMessage: {
+            text: "Vim do anúncio",
+            contextInfo: { externalAdReplyInfo: { title: "Sem id" } },
+          },
+        },
+        messageTimestamp: 1765400000,
+      },
+    });
+    expect(state.adReferrals).toHaveLength(1);
+    expect(state.adTouches).toEqual([]);
+  });
+
+  it("keeps the message when recording the touch fails", async () => {
+    const state = emptyState();
+    state.failAdTouch = true;
+    const result = await run(state, {
+      event: "messages.upsert",
+      instance: "gallo-matriz",
+      sender: "5555911111111@s.whatsapp.net",
+      data: {
+        key: { id: "ADMSG4", remoteJid: "5555988887777@s.whatsapp.net", fromMe: false },
+        message: {
+          extendedTextMessage: {
+            text: "Vim do anúncio",
+            contextInfo: {
+              externalAdReplyInfo: { title: "Filtro UFI", sourceId: "120238998853430275" },
+            },
+          },
+        },
+        messageTimestamp: 1765400000,
+      },
+    });
+    expect(result.outcome).toBe("message-created");
+    expect(state.messages).toHaveLength(1);
+    expect(state.adTouches).toEqual([]);
   });
 });
