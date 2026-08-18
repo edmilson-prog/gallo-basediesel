@@ -247,6 +247,7 @@ export type {
   CommissionStatus,
   CommissionGoalBonusType,
 } from "./commercial";
+export { FREE_ITEM_PART_ID } from "./commercial";
 
 // Distribution / routing (PRD-013)
 export type {
