@@ -29,6 +29,8 @@ export interface INoteItemDrawerProps {
   supplierName: string;
   onClose: () => void;
   onConfirm: (patch: IUpdateFiscalNoteItemPatch) => void;
+  /** Grava as escolhas sem marcar o item como conferido. */
+  onSaveDraft: (patch: IUpdateFiscalNoteItemPatch) => void;
   isSaving: boolean;
 }
 
@@ -40,6 +42,7 @@ export function NoteItemDrawer({
   supplierName,
   onClose,
   onConfirm,
+  onSaveDraft,
   isSaving,
 }: INoteItemDrawerProps) {
   const s = FISCAL_NOTES_STRINGS.review.drawer;
@@ -74,8 +77,8 @@ export function NoteItemDrawer({
     (mode === "direto" || Number(factor) > 0) &&
     (mode !== "frac" || Boolean(fractionTarget));
 
-  function save() {
-    onConfirm({
+  function buildPatch(): IUpdateFiscalNoteItemPatch {
+    return {
       linkMode: linkKind === "novo" ? "novo" : item.linkMode === "pend" ? "auto" : item.linkMode,
       partId: linkKind === "sku" ? partId : undefined,
       newPartDraft:
@@ -84,7 +87,7 @@ export function NoteItemDrawer({
       conversionFactor: mode === "direto" ? null : Number(factor),
       conversionUnit: mode === "direto" ? undefined : unit,
       conversionTargetPartId: mode === "frac" ? fractionTarget : undefined,
-    });
+    };
   }
 
   const segment = (active: boolean, label: string, onClick: () => void, key: string) => (
@@ -332,14 +335,27 @@ export function NoteItemDrawer({
           )}
         </div>
 
-        <div className="mt-5 flex gap-2 pb-2">
-          <Button variant="outline" onClick={onClose} disabled={isSaving}>
-            {s.cancel}
-          </Button>
-          <Button className="flex-1" disabled={!valid || isSaving} onClick={save}>
-            <Icon icon="mdi:check" size={15} aria-hidden />
-            {linkKind === "novo" ? s.confirmNew : s.confirm}
-          </Button>
+        <div className="mt-5 flex flex-col gap-2 pb-2">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose} disabled={isSaving}>
+              {s.cancel}
+            </Button>
+            {/* Habilitado mesmo com a escolha incompleta — guardar o meio do
+                caminho é justamente o que este botão existe para fazer. */}
+            <Button variant="outline" disabled={isSaving} onClick={() => onSaveDraft(buildPatch())}>
+              <Icon icon="mdi:content-save-outline" size={15} aria-hidden />
+              {s.saveDraft}
+            </Button>
+            <Button
+              className="flex-1"
+              disabled={!valid || isSaving}
+              onClick={() => onConfirm(buildPatch())}
+            >
+              <Icon icon="mdi:check" size={15} aria-hidden />
+              {linkKind === "novo" ? s.confirmNew : s.confirm}
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">{s.saveDraftHint}</p>
         </div>
       </SheetContent>
     </Sheet>

@@ -29,6 +29,7 @@ export function FiscalNotesListPage() {
   const filters: Array<{ key: Filter; label: string }> = [
     { key: "all", label: s.list.filterAll },
     { key: "conferencia", label: s.list.filterConferencia },
+    { key: "rascunho", label: s.list.filterRascunho },
     { key: "lancada", label: s.list.filterLancada },
   ];
 

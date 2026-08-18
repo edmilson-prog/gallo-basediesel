@@ -112,10 +112,11 @@ describe("mockFiscalNotesProvider", () => {
     expect((await mockFiscalNotesProvider.list({ status: "lancada" })).total).toBe(0);
   });
 
-  it("cancels a note without deleting it", async () => {
+  it("removes a note entirely, freeing the access key", async () => {
     const note = await seedNote();
-    expect((await mockFiscalNotesProvider.cancel(note.id)).status).toBe("cancelada");
-    expect(await mockFiscalNotesProvider.get(note.id)).toBeTruthy();
+    await mockFiscalNotesProvider.remove(note.id);
+    await expect(mockFiscalNotesProvider.get(note.id)).rejects.toThrow(/não encontrada/i);
+    expect(await mockFiscalNotesProvider.findByAccessKey(KEY)).toBeNull();
   });
 });
 

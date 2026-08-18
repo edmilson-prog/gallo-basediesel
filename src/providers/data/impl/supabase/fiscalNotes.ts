@@ -188,6 +188,22 @@ async function hydrate(noteId: ID): Promise<[IFiscalNoteItem[], IFiscalNoteDupli
   ];
 }
 
+/** Troca de estado entre `rascunho` e `conferencia`. `neq` barra nota lançada. */
+async function setStatus(id: ID, status: IFiscalNote["status"]): Promise<IFiscalNote> {
+  const { data, error } = await getSupabaseClient()
+    .from(TABLE)
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .neq("status", "lancada")
+    .select(COLUMNS)
+    .single();
+  if (error)
+    throw new Error(`[supabase] fiscalNotes status→${status}(${id}) failed: ${error.message}`);
+  const row = data as unknown as FiscalNoteRow;
+  const [items, duplicates] = await hydrate(row.id);
+  return rowToNote(row, items, duplicates);
+}
+
 export const supabaseFiscalNotesProvider: IFiscalNotesProvider = {
   async list(params: IListFiscalNotesParams = {}): Promise<IPaginatedResult<IFiscalNote>> {
     const page = params.page ?? 1;
@@ -328,18 +344,48 @@ export const supabaseFiscalNotesProvider: IFiscalNotesProvider = {
     return rowToItem(data as unknown as FiscalNoteItemRow);
   },
 
-  async cancel(id: ID): Promise<IFiscalNote> {
-    const { data, error } = await getSupabaseClient()
+  async markDraft(id: ID): Promise<IFiscalNote> {
+    return setStatus(id, "rascunho");
+  },
+
+  async resumeFromDraft(id: ID): Promise<IFiscalNote> {
+    return setStatus(id, "conferencia");
+  },
+
+  async remove(id: ID): Promise<void> {
+    const client = getSupabaseClient();
+
+    // Lê antes de apagar: precisamos do xml_path, e depois não há mais o que ler.
+    const { data, error: readError } = await client
       .from(TABLE)
-      .update({ status: "cancelada", updated_at: new Date().toISOString() })
+      .select("status, xml_path")
       .eq("id", id)
-      .neq("status", "lancada")
-      .select(COLUMNS)
-      .single();
-    if (error) throw new Error(`[supabase] fiscalNotes.cancel(${id}) failed: ${error.message}`);
-    const row = data as unknown as FiscalNoteRow;
-    const [items, duplicates] = await hydrate(row.id);
-    return rowToNote(row, items, duplicates);
+      .maybeSingle();
+    if (readError)
+      throw new Error(`[supabase] fiscalNotes.remove(${id}) failed: ${readError.message}`);
+    if (!data) return;
+
+    const row = data as unknown as Pick<FiscalNoteRow, "status" | "xml_path">;
+    if (row.status === "lancada") {
+      throw new Error(
+        `[supabase] fiscalNotes.remove(${id}): nota lançada se estorna, não se apaga`,
+      );
+    }
+
+    // Itens e duplicatas somem por ON DELETE CASCADE.
+    const { error } = await client.from(TABLE).delete().eq("id", id).neq("status", "lancada");
+    if (error) throw new Error(`[supabase] fiscalNotes.remove(${id}) failed: ${error.message}`);
+
+    // O XML depois da linha: se a remoção do arquivo falhar, o pior caso é um
+    // órfão no bucket — melhor que uma nota sem XML apontando para o nada.
+    if (row.xml_path) {
+      const { error: storageError } = await client.storage
+        .from("fiscal-xml")
+        .remove([row.xml_path]);
+      if (storageError && import.meta.env.DEV) {
+        console.warn("[fiscal-notes] XML órfão no bucket:", row.xml_path, storageError.message);
+      }
+    }
   },
 
   // `ctx` é ignorado nos dois métodos abaixo: o Postgres já tem o catálogo, e

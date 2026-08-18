@@ -4,6 +4,16 @@ import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { ID } from "@/shared/types";
 import { NoteItemDrawer } from "../components/review/NoteItemDrawer";
 import { NoteItemsTable } from "../components/review/NoteItemsTable";
@@ -28,13 +38,16 @@ export function FiscalNoteReviewPage({ noteId }: IFiscalNoteReviewPageProps = {}
   const navigate = useNavigate();
   const { currentStoreId } = useCurrentStore();
   const [openItemId, setOpenItemId] = useState<ID | null>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const s = FISCAL_NOTES_STRINGS.review;
 
   // Todas as notas com item, para o seletor e para o fallback de seleção.
   const { notes: allNotes, isLoading: listLoading } = useFiscalNotesList({
     storeId: currentStoreId,
   });
-  const selectable = allNotes.filter((n) => n.status !== "cancelada");
+  // Rascunho entra no seletor: estacionar uma nota não pode escondê-la de quem
+  // quer retomá-la.
+  const selectable = allNotes;
   const effectiveId =
     noteId ?? selectable.find((n) => n.status === "conferencia")?.id ?? selectable[0]?.id;
 
@@ -92,6 +105,7 @@ export function FiscalNoteReviewPage({ noteId }: IFiscalNoteReviewPageProps = {}
   }
 
   const posted = note.status === "lancada";
+  const isDraft = note.status === "rascunho";
   const pending = note.items.filter((item) => !item.confirmed).length;
   const done = note.items.length - pending;
   const openItem = openItemId ? note.items.find((item) => item.id === openItemId) : undefined;
@@ -195,6 +209,18 @@ export function FiscalNoteReviewPage({ noteId }: IFiscalNoteReviewPageProps = {}
           </div>
         )}
 
+        {isDraft && (
+          <div className="mb-4 flex items-start gap-3 rounded-xl border border-severity-info/40 bg-severity-info/10 px-4 py-3">
+            <Icon
+              icon="mdi:content-save-outline"
+              size={20}
+              className="mt-0.5 shrink-0 text-severity-info"
+              aria-hidden
+            />
+            <p className="text-[12.5px] text-muted-foreground">{s.draftBanner}</p>
+          </div>
+        )}
+
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <section>
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -293,14 +319,72 @@ export function FiscalNoteReviewPage({ noteId }: IFiscalNoteReviewPageProps = {}
                 {s.reverseCta}
               </Button>
             ) : (
-              <Button size="lg" disabled={!validation.ok || isMutating} onClick={handlePost}>
-                <Icon icon="mdi:warehouse" size={16} aria-hidden />
-                {validation.ok ? s.postCta : s.postBlocked(validation.blockers.length)}
-              </Button>
+              <>
+                {!isDraft && (
+                  <Button size="lg" disabled={!validation.ok || isMutating} onClick={handlePost}>
+                    <Icon icon="mdi:warehouse" size={16} aria-hidden />
+                    {validation.ok ? s.postCta : s.postBlocked(validation.blockers.length)}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  disabled={isMutating}
+                  onClick={async () => {
+                    if (isDraft) {
+                      await review.resumeFromDraft();
+                      toast.success(s.resumeDone);
+                    } else {
+                      await review.markDraft();
+                      toast.success(s.draftDone);
+                    }
+                  }}
+                >
+                  <Icon
+                    icon={isDraft ? "mdi:play-outline" : "mdi:content-save-outline"}
+                    size={16}
+                    aria-hidden
+                  />
+                  {isDraft ? s.resumeCta : s.draftCta}
+                </Button>
+                <Button
+                  variant="ghost"
+                  disabled={isMutating}
+                  className="text-severity-critical hover:bg-severity-critical/10 hover:text-severity-critical"
+                  onClick={() => setConfirmDiscard(true)}
+                >
+                  <Icon icon="mdi:trash-can-outline" size={16} aria-hidden />
+                  {s.discardCta}
+                </Button>
+              </>
             )}
           </aside>
         </div>
       </div>
+
+      <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{s.discardTitle.replace("{num}", note.number)}</AlertDialogTitle>
+            <AlertDialogDescription>{s.discardBody}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isMutating}>{s.discardCancel}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isMutating}
+              className="bg-severity-critical text-white hover:bg-severity-critical/90"
+              onClick={async () => {
+                const num = note.number;
+                await review.remove();
+                setConfirmDiscard(false);
+                toast.success(s.discardDone(num));
+                void navigate({ to: "/app/suprimentos/notas" });
+              }}
+            >
+              {s.discardConfirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {openItem && !posted && (
         <NoteItemDrawer
@@ -313,6 +397,10 @@ export function FiscalNoteReviewPage({ noteId }: IFiscalNoteReviewPageProps = {}
           onClose={() => setOpenItemId(null)}
           onConfirm={async (patch) => {
             await review.confirmItem(openItem.id, patch);
+            setOpenItemId(null);
+          }}
+          onSaveDraft={async (patch) => {
+            await review.saveItemDraft(openItem.id, patch);
             setOpenItemId(null);
           }}
         />

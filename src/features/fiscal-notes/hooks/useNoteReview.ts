@@ -100,6 +100,50 @@ export function useNoteReview(noteId: ID | undefined) {
     confirmItem: (itemId: ID, patch: IUpdateFiscalNoteItemPatch) =>
       run(() => notesProvider.updateItem(itemId, { ...patch, confirmed: true })),
 
+    /**
+     * Grava o que já foi decidido SEM confirmar. É o que permite parar no meio
+     * — achar o produto e não saber o fator ainda — sem perder o raciocínio.
+     */
+    saveItemDraft: (itemId: ID, patch: IUpdateFiscalNoteItemPatch) =>
+      run(() => notesProvider.updateItem(itemId, { ...patch, confirmed: false })),
+
+    markDraft: () =>
+      run(async () => {
+        if (!note) throw new Error("nota não carregada");
+        return notesProvider.markDraft(note.id);
+      }),
+
+    resumeFromDraft: () =>
+      run(async () => {
+        if (!note) throw new Error("nota não carregada");
+        return notesProvider.resumeFromDraft(note.id);
+      }),
+
+    /**
+     * Apaga a nota e libera a chave. A auditoria é gravada ANTES: depois não há
+     * mais nota para ler, e sem isto o descarte não deixaria rastro nenhum.
+     */
+    remove: () =>
+      run(async () => {
+        if (!note) throw new Error("nota não carregada");
+        await recordAuditLog({
+          actorId: note.postedBy ?? "system",
+          action: "fiscal_note.delete",
+          resource: "supplies",
+          resourceId: note.id,
+          storeId: note.storeId,
+          before: {
+            number: note.number,
+            series: note.series,
+            accessKey: note.accessKey,
+            total: note.total,
+            items: note.items.length,
+            status: note.status,
+          },
+        });
+        await notesProvider.remove(note.id);
+      }),
+
     /** Resolve em lote só o que veio vinculado pelo código do fornecedor. */
     confirmLinked: () =>
       run(async () => {

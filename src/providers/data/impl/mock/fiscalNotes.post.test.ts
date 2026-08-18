@@ -82,10 +82,52 @@ describe("mockFiscalNotesProvider.post", () => {
     ).rejects.toThrow(/imutável/i);
   });
 
-  it("nota lançada não pode ser cancelada — corrigir é estornar", async () => {
+  it("nota lançada não pode ser apagada — corrigir é estornar", async () => {
     const note = await seed();
     await mockFiscalNotesProvider.post(note.id, { parts });
-    await expect(mockFiscalNotesProvider.cancel(note.id)).rejects.toThrow(/estorna/i);
+    await expect(mockFiscalNotesProvider.remove(note.id)).rejects.toThrow(/estorna/i);
+  });
+
+  it("apagar libera a chave: o mesmo XML entra de novo", async () => {
+    const note = await seed();
+    await mockFiscalNotesProvider.remove(note.id);
+    expect(await mockFiscalNotesProvider.findByAccessKey(KEY)).toBeNull();
+    // A prova real do que o dono pediu: reimportar o mesmo arquivo.
+    const again = await seed();
+    expect(again.accessKey).toBe(KEY);
+    expect(again.id).not.toBe(note.id);
+  });
+
+  it("estacionar como rascunho tira da fila sem perder nada", async () => {
+    const note = await seed(false);
+    const draft = await mockFiscalNotesProvider.markDraft(note.id);
+    expect(draft.status).toBe("rascunho");
+    expect(draft.items).toHaveLength(1);
+    expect((await mockFiscalNotesProvider.list({ status: "conferencia" })).total).toBe(0);
+    expect((await mockFiscalNotesProvider.list({ status: "rascunho" })).total).toBe(1);
+  });
+
+  it("rascunho ainda aceita edição de item — é para isso que ele serve", async () => {
+    const note = await seed(false);
+    await mockFiscalNotesProvider.markDraft(note.id);
+    const item = await mockFiscalNotesProvider.updateItem(note.items[0]!.id, {
+      partId: "p-fs",
+      confirmed: false,
+    });
+    expect(item.partId).toBe("p-fs");
+    expect(item.confirmed).toBe(false);
+  });
+
+  it("retomar devolve o rascunho para a fila", async () => {
+    const note = await seed(false);
+    await mockFiscalNotesProvider.markDraft(note.id);
+    expect((await mockFiscalNotesProvider.resumeFromDraft(note.id)).status).toBe("conferencia");
+  });
+
+  it("nota lançada não vira rascunho", async () => {
+    const note = await seed();
+    await mockFiscalNotesProvider.post(note.id, { parts });
+    await expect(mockFiscalNotesProvider.markDraft(note.id)).rejects.toThrow(/imutável/i);
   });
 
   it("o estorno devolve a nota para conferência e limpa o carimbo", async () => {
