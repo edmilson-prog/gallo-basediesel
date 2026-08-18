@@ -2,13 +2,6 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ID, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useSellersProvider } from "@/providers/data";
 import { STATUS_META, CHANNEL_META } from "@/features/conversations/utils/conversationDisplay";
@@ -26,11 +19,6 @@ import { ATTENDANCE_HISTORY_STRINGS as S } from "../i18n/pt-BR";
 
 export interface IAttendanceHistoryPanelProps {
   customerId: ID;
-  /** When provided, the panel renders as a toggleable side sheet (conversation
-   *  rail). When omitted, it renders inline as plain content (customer fiche
-   *  "Histórico" tab — mirrors the "Mídias" tab pattern). */
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -39,11 +27,7 @@ export interface IAttendanceHistoryPanelProps {
  * conversation (most-recent expanded), a connected rail of transitions
  * inside, and a one-line collapsed summary.
  */
-export function AttendanceHistoryPanel({
-  customerId,
-  open,
-  onOpenChange,
-}: IAttendanceHistoryPanelProps) {
+export function AttendanceHistoryPanel({ customerId }: IAttendanceHistoryPanelProps) {
   const { data, isLoading, isError } = useCustomerActivity(customerId);
   const sellersProvider = useSellersProvider();
   const sellersQuery = useQuery({
@@ -60,7 +44,7 @@ export function AttendanceHistoryPanel({
 
   const timelines = useMemo(() => buildAttendanceTimeline(data ?? []), [data]);
 
-  const body = (
+  return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
       {isLoading && <p className="p-2 text-sm text-muted-foreground">{S.loading}</p>}
       {isError && <p className="p-2 text-sm text-destructive">{S.error}</p>}
@@ -77,22 +61,6 @@ export function AttendanceHistoryPanel({
       ))}
     </div>
   );
-
-  if (onOpenChange) {
-    return (
-      <Sheet open={open ?? false} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
-          <SheetHeader className="border-b border-border px-4 py-3">
-            <SheetTitle className="text-sm font-semibold">{S.panelTitle}</SheetTitle>
-            <SheetDescription className="sr-only">{S.panelDescription}</SheetDescription>
-          </SheetHeader>
-          {body}
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  return body;
 }
 
 function ConversationTimelineCard({
