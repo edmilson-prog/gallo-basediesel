@@ -547,6 +547,18 @@ function makeDb(admin: SupabaseClient, traceId: string): IWebhookDb {
         .eq("id", conversationId);
       if (error) throw new Error(`setConversationAdReferral: ${error.message}`);
     },
+    async recordAdTouch(input) {
+      // The RPC resolves store/contact/lead/customer from the conversation and
+      // dedupes on its own unique indexes, so a redelivered event is a no-op.
+      const { error } = await admin.rpc("record_ad_touch", {
+        p_conversation_id: input.conversationId,
+        p_message_id: input.messageId,
+        p_occurred_at: input.occurredAt,
+        p_referral: input.referral,
+        p_origin: "webhook",
+      });
+      if (error) throw new Error(`recordAdTouch: ${error.message}`);
+    },
     async reopenConversation(conversationId, lastMessageAt) {
       // Reopen a closed conversation on customer inbound: back to the queue
       // (status='aguardando'), unassigned (previous owner loses the closed
