@@ -88,25 +88,25 @@ drop policy if exists suppliers_select on public.suppliers;
 create policy suppliers_select on public.suppliers for select to authenticated
   using (
     store_id = public.current_store_id()
-    and (public.is_staff() or public.current_app_role() = 'financeiro')
+    and ((select public.is_staff()) or (select public.current_app_role()) = 'financeiro')
   );
 
 drop policy if exists suppliers_insert on public.suppliers;
 create policy suppliers_insert on public.suppliers for insert to authenticated
   with check (
     store_id = public.current_store_id()
-    and (public.is_staff() or public.current_app_role() = 'financeiro')
+    and ((select public.is_staff()) or (select public.current_app_role()) = 'financeiro')
   );
 
 drop policy if exists suppliers_update on public.suppliers;
 create policy suppliers_update on public.suppliers for update to authenticated
   using (
     store_id = public.current_store_id()
-    and (public.is_staff() or public.current_app_role() = 'financeiro')
+    and ((select public.is_staff()) or (select public.current_app_role()) = 'financeiro')
   )
   with check (
     store_id = public.current_store_id()
-    and (public.is_staff() or public.current_app_role() = 'financeiro')
+    and ((select public.is_staff()) or (select public.current_app_role()) = 'financeiro')
   );
 
 -- Deliberately TIGHTER than select/insert/update above: the RBAC seed
@@ -122,7 +122,7 @@ drop policy if exists suppliers_delete on public.suppliers;
 create policy suppliers_delete on public.suppliers for delete to authenticated
   using (
     store_id = public.current_store_id()
-    and public.current_app_role() = 'owner'
+    and (select public.current_app_role()) = 'owner'
   );
 
 ------------------------------------------------------------------ 3. RBAC seed

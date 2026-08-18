@@ -8,6 +8,7 @@ import type {
 import type { IPaginatedResult } from "../../contracts/_shared";
 import { FETCH_ALL_PAGE_SIZE } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { chunk } from "@/shared/utils/chunk";
 import {
   normalizeSupplierName,
   SUPPLIER_NAME_ALIASES,
@@ -80,6 +81,13 @@ const COLUMNS =
   "id, store_id, name, trade_name, document, category, payment_terms, lead_time_days, " +
   "contact_name, contact_phone, preferred_payment_method, supplied_items, status, " +
   "registry_status, registry_activity, city, state, source, notes, created_at, updated_at";
+
+/** Cap on ids per `.in("id", …)` in `statsMany`, same idiom and value as
+ *  `messages.ts`'s `ANALYTICS_IN_CHUNK_SIZE` — keeps the request-line length
+ *  well under the edge's URL limit (~39 chars/id encoded → 120 ids ≈ 4.7 KB).
+ *  The supplier list is already ~124 rows on day one, over a single-request
+ *  `.in()` on first load, not just "will break as data grows". */
+const SUPPLIERS_IN_CHUNK_SIZE = 120;
 
 function rowToSupplier(row: SupplierRow): ISupplier {
   return {
@@ -357,10 +365,12 @@ export const supabaseSuppliersProvider: ISuppliersProvider = {
 
   /**
    * Batched `stats`. For a 126-supplier list this issues exactly:
-   *   1 request  — suppliers whose id is in `ids` (`.in("id", ids)`)
+   *   ~2 requests — suppliers whose id is in `ids`, chunked by
+   *                 `SUPPLIERS_IN_CHUNK_SIZE` (120) so the `.in("id", …)`
+   *                 request-line never overflows the edge's URL limit
    *   ~5 requests — one paginated pass over the store's ~4.005 `parts`
    *                 rows (1000-row PostgREST chunks via `fetchLargePage`)
-   * = ~6 requests total and one catalog scan, versus the previous
+   * = ~7 requests total and one catalog scan, versus the previous
    * `Promise.all(ids.map(stats))`, which cost 2 requests and a full
    * (truncated) catalog scan PER supplier — ~252 requests and ~126.000 part
    * rows read for the same 126 suppliers.
@@ -374,9 +384,24 @@ export const supabaseSuppliersProvider: ISuppliersProvider = {
     const result = new Map<ID, ISupplierStats>();
     if (ids.length === 0) return result;
 
-    const { data, error } = await getSupabaseClient().from(TABLE).select(COLUMNS).in("id", ids);
-    if (error) throw new Error(`[supabase] suppliers.statsMany failed: ${error.message}`);
-    const suppliers = (data as unknown as SupplierRow[]).map(rowToSupplier);
+    // Chunked the same way messages.ts's conversation-id `.in()` is (see
+    // `messages.ts:265-275`): dedup first so chunks are provably disjoint by
+    // id (a duplicate straddling a chunk boundary would otherwise fetch that
+    // supplier twice — harmless here since `rowToSupplier` is idempotent and
+    // the result is a `Map` keyed by id, but there's no reason to do the
+    // redundant work).
+    const idBatches = chunk([...new Set(ids)], SUPPLIERS_IN_CHUNK_SIZE);
+    const batchRows = await Promise.all(
+      idBatches.map(async (batch) => {
+        const { data, error } = await getSupabaseClient()
+          .from(TABLE)
+          .select(COLUMNS)
+          .in("id", batch);
+        if (error) throw new Error(`[supabase] suppliers.statsMany failed: ${error.message}`);
+        return (data as unknown as SupplierRow[]).map(rowToSupplier);
+      }),
+    );
+    const suppliers = batchRows.flat();
 
     const byStore = new Map<ID, ISupplier[]>();
     for (const supplier of suppliers) {
