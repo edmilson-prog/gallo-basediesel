@@ -4,6 +4,21 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.181.0] — Counterpart · 2026-08-17
+
+**Controle de fornecedor não existia no sistema. Quem vende cada peça era um texto solto no cadastro da peça — sem CNPJ, sem telefone, sem histórico de compra — e cento e vinte e cinco fornecedores diferentes viviam escondidos assim em 4.005 peças do catálogo. Esta versão dá a eles um cadastro de verdade: uma tela de Fornecedores nova, um grupo FINANCEIRO na barra lateral que junta o que já existia espalhado dentro de Gestão, e um cadastro que começa pelo CNPJ — a Receita Federal preenche o resto sozinha. O que a tela ainda não mostra é dinheiro: quanto está em aberto, o que vence essa semana e o prazo médio de pagamento dependem de um contas a pagar que ainda não foi construído, e a tela diz isso com todas as letras em vez de fingir um R$ 0,00.**
+
+### Added
+
+- **Grupo FINANCEIRO na barra lateral** — nasce entre Comercial e SDR, abrindo com Fornecedores; Fluxo de Caixa, Despesas, Comissões e DRE Gerencial saem de Gestão e passam a viver aqui. As URLs dos quatro itens movidos não mudaram.
+- **Tela de Fornecedores** (`/app/financeiro/fornecedores`) — lista com faixa de cinco indicadores, filtro por categoria, ordenação, a busca padrão do sistema e colunas redimensionáveis; um cartão lateral mostra o que se compra de cada fornecedor e suas últimas notas de entrada; uma ficha completa em gaveta traz o histórico de compras mês a mês.
+- **Cadastro de fornecedor CNPJ-primeiro** — a consulta à Receita Federal preenche razão social, telefone e cidade sozinha, e uma guarda impede cadastrar o mesmo CNPJ duas vezes.
+- **Fornecedor como entidade real** — tabela `suppliers` com RLS, recurso RBAC `supplier` (Owner, Gestor e Financeiro) e uma carga inicial de 125 fornecedores recuperados dos nomes que já estavam soltos, sem cadastro próprio, no campo de fornecedor do catálogo de peças.
+
+### Changed
+
+- **Gestão passa a concentrar só o analítico comercial** — Fluxo de Caixa, Despesas, Comissões e DRE Gerencial mudaram de grupo na barra lateral (agora em Financeiro); o financeiro ganhou espaço próprio na navegação.
+
 ## [0.178.0] — Lifeline · 2026-08-13
 
 **O NPS deixou de ser uma tela para ler e virou uma tela para trabalhar. A nota continua no mesmo lugar, mas agora divide espaço com cinco abas: todas as respostas com filtro por motivo, uma fila de clientes insatisfeitos com prazo de retorno, as regras de envio, os parâmetros de leitura e um mapa de onde a nota aparece no resto do sistema. Nota de 0 a 6 abre uma tratativa com prazo de 24 horas para o primeiro contato — e no dia em que a pesquisa for ligada o histórico inteiro entra na fila, não apenas as respostas novas. A ficha do cliente também mudou de cara nesta versão, e ganhou um segundo formato de cabeçalho que dá para experimentar e comparar.**
