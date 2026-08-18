@@ -74,7 +74,7 @@ export function RescueBroadcastClaim() {
         <Button
           variant="outline"
           size="sm"
-          className="border-amber-500/40 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/60 dark:text-amber-200"
+          className="border-severity-warning/40 bg-severity-warning/10 text-severity-warning hover:bg-severity-warning/20"
           onClick={() => setShowAll(true)}
         >
           Mostrar mais {hiddenCount} conversa{hiddenCount > 1 ? "s" : ""}

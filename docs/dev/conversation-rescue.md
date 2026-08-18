@@ -179,8 +179,8 @@ explícita):
 | `src/features/access/engine/workSchedule.ts` | `supabase/functions/_shared/access/workSchedule.ts` |
 | `src/features/admin-settings/utils/accessRecipients.ts` | `supabase/functions/_shared/access/accessRecipients.ts` |
 
-Rodar com `bun run scripts/sync-conversation-rescue-shared.ts` (imprime `synced 5 files →
-supabase/functions/_shared/{conversation-rescue,access}/` — 3 engines + 2 arquivos avulsos).
+Rodar com `bun run scripts/sync-conversation-rescue-shared.ts` (imprime `synced 7 files →
+supabase/functions/_shared/{conversation-rescue,access}/` — 5 engines + 2 arquivos avulsos).
 
 > ⚠️ **Regra dura:** qualquer mudança em `src/features/conversation-rescue/engine/*`,
 > `src/features/access/engine/workSchedule.ts` ou
@@ -423,6 +423,41 @@ Segunda rodada (achados da revisão adversarial multi-lente do próprio fix, 202
 - **Sonda de schema no teste RLS** — o caso P0006 se auto-pula enquanto a migration
   `20260718210000` não estiver aplicada no banco-alvo do CI (mesma convenção dos blocos irmãos),
   senão o PR nasceria com o gate vermelho por definição.
+
+Terceira rodada (revisão do PR parado, 2026-08-18 — o PR ficou 31 dias aberto):
+
+- **Época de espera na re-validação** — `awaiting_reply_since` é um RELÓGIO, não um flag: o
+  trigger o limpa quando o vendedor responde e o re-carimba quando o cliente escreve de novo.
+  Testar só `!== null` não distinguia "o cliente original ainda espera" de "o ausente já
+  respondeu e chegou pergunta NOVA". Como forçar é irreversível, a linha velha revalidada
+  contra uma espera fresca arrancava a conversa de quem tinha acabado de responder. Agora
+  `isSameWaitEpoch(awaiting_reply_since, broadcast_at)` (engine puro, testado, espelhado)
+  guarda os dois pontos de re-validação: a fase 1 aposenta a linha stale e a pré-força cancela
+  em vez de reatribuir. Fail-closed: data ilegível cancela, nunca força.
+- **Tetos por tick** — `MAX_BROADCASTS_PER_TICK = 10` e `MAX_FORCED_ASSIGNMENTS_PER_TICK = 5`
+  (`engine/tickLimits.ts`), a mesma disciplina do `MAX_ACTIVATIONS_PER_TICK` do SDR backstop,
+  criado depois de um incidente de disparo em massa estruturalmente idêntico. Antes, o único
+  freio ao religar era a janela máxima: **33 conversas** teriam saído num único tick, medido
+  contra produção. O cron roda 1×/min, então tique com teto não perde trabalho — espalha por
+  minutos e deixa espaço humano para o kill-switch. Forçar é mais conservador que transmitir
+  de propósito (5 < 10): o caminho voluntário tem que ter a chance de vir primeiro.
+- **Janela máxima empurrada para o SQL** — `.gte("awaiting_reply_since", cutoff)` + `.order()`
+  por espera mais antiga + `.limit()`. Antes o corte só existia dentro de `determineAbsence`,
+  isto é, DEPOIS de um `SELECT` em `sellers` por conversa: a maioria das candidatas era lida
+  só para ser descartada uma ida-e-volta depois. A ordenação também torna um tique com teto
+  justo (FIFO) em vez de arbitrário.
+- **Vendedor inativo não gera resgate** — a fase 2 lia o dono ausente sem filtrar `active`,
+  enquanto `resolveEligiblePool` só roteia para ativos. A carteira de um desativado era fonte
+  permanente de candidatas para alguém que nunca vai responder (medido: 3 de 10 vendedores
+  inativos, com 84 conversas atribuídas).
+- **Mais dois caminhos de erro fail-safe** — o `SELECT` que comanda a fase 1 e o do cooldown
+  não checavam `error`: o primeiro virava `return 0` (pulando o kill-switch por um tique
+  inteiro), o segundo tornava o cooldown inerte e reabria o loop de re-broadcast, ambos em
+  silêncio. E `data: null` sem erro no fetch de lojas passa a ser tão inconclusivo quanto um
+  erro — um `Set` vazio é truthy e classificaria toda oferta viva como `store_disabled`.
+- **Probe do teste RLS alinhado aos irmãos** — `to_regprocedure(...) is null` antes do
+  `pg_get_functiondef`, senão a sonda levanta erro duro num banco onde a função ainda não
+  existe (os cinco blocos irmãos que o comentário diz copiar já usavam esse padrão).
 
 ## Rollout
 

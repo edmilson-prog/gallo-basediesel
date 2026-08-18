@@ -1581,8 +1581,9 @@ declare
   v_account uuid;
   v_rescue uuid;
 begin
-  if pg_get_functiondef('public.claim_conversation_rescue(uuid)'::regprocedure)
-       not like '%P0006%' then
+  if to_regprocedure('public.claim_conversation_rescue(uuid)') is null
+     or pg_get_functiondef('public.claim_conversation_rescue(uuid)'::regprocedure)
+          not like '%P0006%' then
     raise notice 'conversation-rescue self-claim: migration 20260718210000 not applied — skipping';
     perform set_config('rls_regression.rescue_self_id', '', false);
     return;

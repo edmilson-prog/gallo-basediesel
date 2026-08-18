@@ -35,6 +35,11 @@ import {
   RESCUE_REBROADCAST_COOLDOWN_MINUTES,
   type IRescueCooldownEntry,
 } from "../_shared/conversation-rescue/engine/rescueCooldown.ts";
+import { isSameWaitEpoch } from "../_shared/conversation-rescue/engine/waitEpoch.ts";
+import {
+  MAX_BROADCASTS_PER_TICK,
+  MAX_FORCED_ASSIGNMENTS_PER_TICK,
+} from "../_shared/conversation-rescue/engine/tickLimits.ts";
 
 const WORKER_SECRET_NAME = "CONVERSATION_RESCUE_WORKER_SECRET";
 
@@ -132,11 +137,19 @@ async function cancelResolvedRescues(
   now: Date,
   ctx: RequestContext,
 ): Promise<number> {
-  const { data: broadcasting } = await admin
+  const { data: broadcasting, error: broadcastingError } = await admin
     .from("conversation_rescues")
-    .select("id, conversation_id, store_id, absent_seller_id")
+    .select("id, conversation_id, store_id, absent_seller_id, broadcast_at")
     .eq("status", "broadcasting");
   let cancelled = 0;
+  if (broadcastingError) {
+    // A read blip must not read as "nothing to cancel" — that silently skips
+    // the kill-switch for a whole tick. Log and retry next tick.
+    ctx.log.error("conversation-rescue-tick broadcasting fetch failed", {
+      error: broadcastingError.message,
+    });
+    return 0;
+  }
   if (!broadcasting || broadcasting.length === 0) return 0;
 
   // Kill-switch (review 2026-07-18): disabling the store toggle must retire
@@ -155,7 +168,9 @@ async function cancelResolvedRescues(
       error: storesError.message,
     });
   }
-  const enabledStoreIds = storesError
+  // `null` data without an error is just as inconclusive as an error: an empty
+  // Set is truthy and would classify every live broadcast as store_disabled.
+  const enabledStoreIds = storesError || !storeRows
     ? null
     : new Set(
         ((storeRows ?? []) as Array<{ id: string; settings: Record<string, unknown> | null }>)
@@ -191,6 +206,7 @@ async function cancelResolvedRescues(
     conversation_id: string;
     store_id: string;
     absent_seller_id: string;
+    broadcast_at: string;
   }>) {
     if (enabledStoreIds && !enabledStoreIds.has(rescue.store_id)) {
       if (await cancel(rescue.id, "store_disabled")) cancelled++;
@@ -220,6 +236,11 @@ async function cancelResolvedRescues(
       !!c &&
       c.assigned_seller_id === rescue.absent_seller_id &&
       c.awaiting_reply_since !== null &&
+      // Same wait EPOCH the broadcast was created for. The absent seller may
+      // have replied (trigger clears the clock) and the client written again
+      // — a non-null field alone would read that brand-new wait as "still the
+      // same one" and keep a stale row alive for resolveTimeouts to force.
+      isSameWaitEpoch(c.awaiting_reply_since, rescue.broadcast_at) &&
       ["aguardando", "em_andamento", "aguardando_cliente"].includes(c.status);
     if (stillValid) continue;
 
@@ -266,7 +287,7 @@ async function broadcastNewRescues(
     const cooldownFetchCutoff = new Date(
       now.getTime() - RESCUE_REBROADCAST_COOLDOWN_MINUTES * 60_000,
     ).toISOString();
-    const { data: recentResolved } = await admin
+    const { data: recentResolved, error: cooldownError } = await admin
       .from("conversation_rescues")
       .select("conversation_id, claimed_at, forced_at, created_at")
       .eq("store_id", store.id)
@@ -274,6 +295,15 @@ async function broadcastNewRescues(
       .or(
         `claimed_at.gte.${cooldownFetchCutoff},forced_at.gte.${cooldownFetchCutoff},created_at.gte.${cooldownFetchCutoff}`,
       );
+    if (cooldownError) {
+      // Without this list the cooldown silently suppresses nothing and the
+      // re-broadcast loop reopens. Skip the store; the next tick retries.
+      ctx.log.error("conversation-rescue-tick cooldown fetch failed", {
+        storeId: store.id,
+        error: cooldownError.message,
+      });
+      continue;
+    }
     const resolvedByConversation = new Map<string, IRescueCooldownEntry[]>();
     for (const row of (recentResolved ?? []) as Array<{
       conversation_id: string;
@@ -286,16 +316,33 @@ async function broadcastNewRescues(
       resolvedByConversation.set(row.conversation_id, list);
     }
 
+    // Push the max-wait window into SQL. It used to be applied only inside
+    // determineAbsence, i.e. AFTER a per-conversation `sellers` read — most
+    // candidates were fetched just to be discarded one round-trip later.
+    const waitWindowCutoff = new Date(
+      now.getTime() - maxClientWaitHours * 3_600_000,
+    ).toISOString();
     const { data: convData } = await admin
       .from("conversations")
       .select("id, store_id, whatsapp_account_id, assigned_seller_id, awaiting_reply_since, customer_id, lead_id")
       .eq("store_id", store.id)
       .not("assigned_seller_id", "is", null)
       .not("awaiting_reply_since", "is", null)
-      .in("status", ["aguardando", "em_andamento", "aguardando_cliente"]);
+      .gte("awaiting_reply_since", waitWindowCutoff)
+      .in("status", ["aguardando", "em_andamento", "aguardando_cliente"])
+      // Oldest wait first, so a capped tick is fair instead of arbitrary.
+      .order("awaiting_reply_since", { ascending: true })
+      .limit(MAX_BROADCASTS_PER_TICK * 20);
     const conversations = (convData ?? []) as IConversationRow[];
 
     for (const conv of conversations) {
+      if (created >= MAX_BROADCASTS_PER_TICK) {
+        ctx.log.info("conversation-rescue-tick broadcast cap reached", {
+          storeId: store.id,
+          cap: MAX_BROADCASTS_PER_TICK,
+        });
+        break;
+      }
       if (alreadyBroadcasting.has(conv.id)) continue;
       if (!conv.whatsapp_account_id) continue;
       if (
@@ -315,7 +362,10 @@ async function broadcastNewRescues(
         .eq("id", conv.assigned_seller_id)
         .maybeSingle();
       const seller = sellerData as ISellerRow | null;
-      if (!seller) continue;
+      // Symmetry with resolveEligiblePool, which only ever routes to
+      // `active` sellers: a deactivated owner's book would otherwise be a
+      // permanent candidate source for someone who can never reply.
+      if (!seller || seller.active === false) continue;
 
       const scheduleSource = {
         workSchedule: (seller.work_schedule ?? []) as never,
@@ -419,6 +469,13 @@ async function resolveTimeouts(
       absent_seller_id: string;
       broadcast_at: string;
     }>) {
+      if (forced >= MAX_FORCED_ASSIGNMENTS_PER_TICK) {
+        ctx.log.info("conversation-rescue-tick force cap reached", {
+          storeId: store.id,
+          cap: MAX_FORCED_ASSIGNMENTS_PER_TICK,
+        });
+        break;
+      }
       if (!rescue.whatsapp_account_id) continue;
 
       // Re-validate BEFORE forcing (review 2026-07-18): the row was qualified
@@ -453,6 +510,11 @@ async function resolveTimeouts(
         !!conv &&
         conv.assigned_seller_id === rescue.absent_seller_id &&
         conv.awaiting_reply_since !== null &&
+        // Must be the SAME wait this row was broadcast for. Forcing is the
+        // irreversible step: if the absent seller replied and the client wrote
+        // again, a non-null clock alone would hand the conversation to someone
+        // else seconds after the original owner answered.
+        isSameWaitEpoch(conv.awaiting_reply_since, rescue.broadcast_at) &&
         ["aguardando", "em_andamento", "aguardando_cliente"].includes(conv.status);
       if (stillQualifies) {
         const { data: sellerRow, error: sellerFetchError } = await admin
