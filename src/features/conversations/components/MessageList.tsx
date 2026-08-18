@@ -5,13 +5,14 @@ import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { getActiveDataSource, useSellersProvider } from "@/providers/data";
-import { buildThreadRows } from "../utils/dayGroups";
+import { buildThreadRows, prependAdReferralRow } from "../utils/dayGroups";
 import { useConversationNotes } from "../hooks/useConversationNotes";
 import {
   filterNotes,
   DEFAULT_NOTES_CONSULT,
   type NotesConsultMode,
 } from "../engine/notesConsult";
+import { AdReferralChatItem } from "./AdReferralChatItem";
 import { NoteChatItem } from "./notes/NoteChatItem";
 import { NotesConsultBar } from "./notes/NotesConsultBar";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
@@ -73,9 +74,13 @@ export function MessageList({
   const isFiltering = consultState.query.trim() !== "" || consultState.scope !== "all";
 
   const rows = useMemo(() => {
+    // "Only notes" isolates the notes on purpose — the ad card is not one.
     if (consultOpen && consultMode === "only") return buildThreadRows([], matched);
-    return buildThreadRows(messages, notesState.notes);
-  }, [consultOpen, consultMode, matched, messages, notesState.notes]);
+    return prependAdReferralRow(
+      buildThreadRows(messages, notesState.notes),
+      conversation.adReferral,
+    );
+  }, [consultOpen, consultMode, matched, messages, notesState.notes, conversation.adReferral]);
 
   // Scroll-to-bottom on first load and whenever a new message arrives
   // while the user is already pinned at the bottom.
@@ -288,6 +293,9 @@ export function MessageList({
                 </span>
               </div>
             );
+          }
+          if (row.kind === "adReferral") {
+            return <AdReferralChatItem key={row.id} view={row.view} />;
           }
           if (row.kind === "note") {
             return (
