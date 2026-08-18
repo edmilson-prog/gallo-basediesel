@@ -40,6 +40,7 @@ describe("buildIntegrationKeyCatalog", () => {
       "llm-providers",
       "melhor-envio",
       "mercado-pago",
+      "fiscal-notes",
     ]);
 
     const resend = groups[0];
@@ -104,6 +105,31 @@ describe("buildIntegrationKeyCatalog", () => {
     ]);
   });
 
+  it("inclui o grupo NF-e com as credenciais das origens automáticas", () => {
+    const groups = buildIntegrationKeyCatalog([]);
+    const fiscal = groups.find((group) => group.id === "fiscal-notes");
+    expect(fiscal).toBeDefined();
+    expect(fiscal!.keys.map((key) => key.name)).toEqual([
+      "FISCAL_INBOX_CREDENTIAL",
+      "SEFAZ_A1_CERTIFICATE",
+    ]);
+    // Credencial de caixa e certificado A1 são material sensível: nenhum dos
+    // dois é config de exibição.
+    expect(fiscal!.keys.every((key) => key.kind === "secret")).toBe(true);
+  });
+
+  it("não expõe o segredo do agendador da NF-e — worker secret é infra, não chave de integração", () => {
+    // Os seis worker secrets do projeto (NPS, SDR, push, scheduled, rescue e
+    // este) vivem nos env secrets da Edge Function, ao lado do agendador que os
+    // envia. Colocar um deles na tela sugeriria que o Owner deve girá-lo por
+    // ali, e o agendador ficaria para trás.
+    const names = buildIntegrationKeyCatalog([]).flatMap((group) =>
+      group.keys.map((key) => key.name),
+    );
+    expect(names).not.toContain("FISCAL_INBOX_WORKER_SECRET");
+    expect(names.some((name) => name.endsWith("_WORKER_SECRET"))).toBe(false);
+  });
+
   it("derives Meta account keys from credentials_ref (engine convention)", () => {
     const groups = buildIntegrationKeyCatalog([META_ACCOUNT]);
     const accountGroup = groups.find((group) => group.id === "account-wa-meta-1");
@@ -135,6 +161,7 @@ describe("buildIntegrationKeyCatalog", () => {
       "llm-providers",
       "melhor-envio",
       "mercado-pago",
+      "fiscal-notes",
     ]);
   });
 
