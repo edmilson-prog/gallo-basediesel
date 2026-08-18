@@ -181,6 +181,7 @@ import { Route as AppAgendaTriagemRouteImport } from './routes/app.agenda.triage
 import { Route as LojaContaPedidosIndexRouteImport } from './routes/loja.conta.pedidos.index'
 import { Route as LojaContaOrcamentosIndexRouteImport } from './routes/loja.conta.orcamentos.index'
 import { Route as AtendimentoConversaIdIndexRouteImport } from './routes/atendimento.conversa.$id.index'
+import { Route as AppSuprimentosEntradaIndexRouteImport } from './routes/app.suprimentos.entrada.index'
 import { Route as AppGestaoRankingIndexRouteImport } from './routes/app.gestao.ranking.index'
 import { Route as AppGestaoMetasIndexRouteImport } from './routes/app.gestao.metas.index'
 import { Route as AppGestaoIndicadoresIndexRouteImport } from './routes/app.gestao.indicadores.index'
@@ -1112,6 +1113,12 @@ const AtendimentoConversaIdIndexRoute =
     path: '/',
     getParentRoute: () => AtendimentoConversaIdRoute,
   } as any)
+const AppSuprimentosEntradaIndexRoute =
+  AppSuprimentosEntradaIndexRouteImport.update({
+    id: '/entrada/',
+    path: '/entrada/',
+    getParentRoute: () => AppSuprimentosRoute,
+  } as any)
 const AppGestaoRankingIndexRoute = AppGestaoRankingIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -1548,6 +1555,7 @@ export interface FileRoutesByFullPath {
   '/app/gestao/indicadores/': typeof AppGestaoIndicadoresIndexRoute
   '/app/gestao/metas/': typeof AppGestaoMetasIndexRoute
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
+  '/app/suprimentos/entrada/': typeof AppSuprimentosEntradaIndexRoute
   '/atendimento/conversa/$id/': typeof AtendimentoConversaIdIndexRoute
   '/loja/conta/orcamentos/': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos/': typeof LojaContaPedidosIndexRoute
@@ -1735,6 +1743,7 @@ export interface FileRoutesByTo {
   '/app/gestao/indicadores': typeof AppGestaoIndicadoresIndexRoute
   '/app/gestao/metas': typeof AppGestaoMetasIndexRoute
   '/app/gestao/ranking': typeof AppGestaoRankingIndexRoute
+  '/app/suprimentos/entrada': typeof AppSuprimentosEntradaIndexRoute
   '/atendimento/conversa/$id': typeof AtendimentoConversaIdIndexRoute
   '/loja/conta/orcamentos': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos': typeof LojaContaPedidosIndexRoute
@@ -1950,6 +1959,7 @@ export interface FileRoutesById {
   '/app/gestao/indicadores/': typeof AppGestaoIndicadoresIndexRoute
   '/app/gestao/metas/': typeof AppGestaoMetasIndexRoute
   '/app/gestao/ranking/': typeof AppGestaoRankingIndexRoute
+  '/app/suprimentos/entrada/': typeof AppSuprimentosEntradaIndexRoute
   '/atendimento/conversa/$id/': typeof AtendimentoConversaIdIndexRoute
   '/loja/conta/orcamentos/': typeof LojaContaOrcamentosIndexRoute
   '/loja/conta/pedidos/': typeof LojaContaPedidosIndexRoute
@@ -2166,6 +2176,7 @@ export interface FileRouteTypes {
     | '/app/gestao/indicadores/'
     | '/app/gestao/metas/'
     | '/app/gestao/ranking/'
+    | '/app/suprimentos/entrada/'
     | '/atendimento/conversa/$id/'
     | '/loja/conta/orcamentos/'
     | '/loja/conta/pedidos/'
@@ -2353,6 +2364,7 @@ export interface FileRouteTypes {
     | '/app/gestao/indicadores'
     | '/app/gestao/metas'
     | '/app/gestao/ranking'
+    | '/app/suprimentos/entrada'
     | '/atendimento/conversa/$id'
     | '/loja/conta/orcamentos'
     | '/loja/conta/pedidos'
@@ -2567,6 +2579,7 @@ export interface FileRouteTypes {
     | '/app/gestao/indicadores/'
     | '/app/gestao/metas/'
     | '/app/gestao/ranking/'
+    | '/app/suprimentos/entrada/'
     | '/atendimento/conversa/$id/'
     | '/loja/conta/orcamentos/'
     | '/loja/conta/pedidos/'
@@ -3794,6 +3807,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AtendimentoConversaIdIndexRouteImport
       parentRoute: typeof AtendimentoConversaIdRoute
     }
+    '/app/suprimentos/entrada/': {
+      id: '/app/suprimentos/entrada/'
+      path: '/entrada'
+      fullPath: '/app/suprimentos/entrada/'
+      preLoaderRoute: typeof AppSuprimentosEntradaIndexRouteImport
+      parentRoute: typeof AppSuprimentosRoute
+    }
     '/app/gestao/ranking/': {
       id: '/app/gestao/ranking/'
       path: '/'
@@ -4217,6 +4237,7 @@ interface AppSuprimentosRouteChildren {
   AppSuprimentosImportarRoute: typeof AppSuprimentosImportarRoute
   AppSuprimentosNotasRoute: typeof AppSuprimentosNotasRoute
   AppSuprimentosEntradaIdRoute: typeof AppSuprimentosEntradaIdRoute
+  AppSuprimentosEntradaIndexRoute: typeof AppSuprimentosEntradaIndexRoute
 }
 
 const AppSuprimentosRouteChildren: AppSuprimentosRouteChildren = {
@@ -4224,6 +4245,7 @@ const AppSuprimentosRouteChildren: AppSuprimentosRouteChildren = {
   AppSuprimentosImportarRoute: AppSuprimentosImportarRoute,
   AppSuprimentosNotasRoute: AppSuprimentosNotasRoute,
   AppSuprimentosEntradaIdRoute: AppSuprimentosEntradaIdRoute,
+  AppSuprimentosEntradaIndexRoute: AppSuprimentosEntradaIndexRoute,
 }
 
 const AppSuprimentosRouteWithChildren = AppSuprimentosRoute._addFileChildren(

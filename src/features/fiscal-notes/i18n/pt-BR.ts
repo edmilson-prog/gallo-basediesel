@@ -106,6 +106,9 @@ export const FISCAL_NOTES_STRINGS = {
     reverseKeepsCost:
       "O estorno devolve o saldo, mas não reverte o custo médio: média ponderada não tem inversa exata.",
     notFound: "Nota não encontrada",
+    selectLabel: "Escolher nota para conferir",
+    emptyTitle: "Nenhuma nota para conferir",
+    emptyDescription: "Importe um XML — a nota entra aqui pronta para a conferência.",
     defineConversion: "definir conversão",
     withAllocation: "c/ rateio",
     blockers: {

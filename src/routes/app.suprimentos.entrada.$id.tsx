@@ -5,5 +5,10 @@ import { FiscalNoteReviewPage } from "@/features/fiscal-notes/pages/FiscalNoteRe
 export const Route = createFileRoute("/app/suprimentos/entrada/$id")({
   beforeLoad: ({ location }) =>
     requireAuth(location.pathname, undefined, { resource: "supplies", action: "view" }),
-  component: FiscalNoteReviewPage,
+  component: RouteComponent,
 });
+
+function RouteComponent() {
+  const { id } = Route.useParams();
+  return <FiscalNoteReviewPage noteId={id} />;
+}

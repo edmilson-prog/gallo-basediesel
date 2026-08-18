@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
@@ -8,20 +8,62 @@ import type { ID } from "@/shared/types";
 import { NoteItemDrawer } from "../components/review/NoteItemDrawer";
 import { NoteItemsTable } from "../components/review/NoteItemsTable";
 import { autoConfirmable } from "../engine/postEffects";
+import { useFiscalNotesList } from "../hooks/useFiscalNotesList";
 import { useNoteReview } from "../hooks/useNoteReview";
+import { useCurrentStore } from "@/features/multistore";
 import { FISCAL_NOTES_STRINGS } from "../i18n/pt-BR";
 
 const brl = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export function FiscalNoteReviewPage() {
-  const { id } = useParams({ from: "/app/suprimentos/entrada/$id" });
+export interface IFiscalNoteReviewPageProps {
+  /**
+   * Nota a conferir. Sem ela a tela vira destino de menu e escolhe sozinha a
+   * primeira em conferência — é assim que o kit desenha a Entrada de nota.
+   */
+  noteId?: ID;
+}
+
+export function FiscalNoteReviewPage({ noteId }: IFiscalNoteReviewPageProps = {}) {
   const navigate = useNavigate();
+  const { currentStoreId } = useCurrentStore();
   const [openItemId, setOpenItemId] = useState<ID | null>(null);
-  const review = useNoteReview(id);
   const s = FISCAL_NOTES_STRINGS.review;
 
-  const { note, parts, partsById, validation, isLoading, isError, isMutating } = review;
+  // Todas as notas com item, para o seletor e para o fallback de seleção.
+  const { notes: allNotes, isLoading: listLoading } = useFiscalNotesList({
+    storeId: currentStoreId,
+  });
+  const selectable = allNotes.filter((n) => n.status !== "cancelada");
+  const effectiveId =
+    noteId ?? selectable.find((n) => n.status === "conferencia")?.id ?? selectable[0]?.id;
+
+  const review = useNoteReview(effectiveId);
+
+  const { note, parts, partsById, validation, isError, isMutating } = review;
+  const isLoading = listLoading || (effectiveId !== undefined && review.isLoading);
+
+  // Nenhuma nota na loja: estado vazio próprio, com o caminho de saída.
+  if (!isLoading && selectable.length === 0) {
+    return (
+      <div className="grid h-full place-items-center gap-3 p-8 text-center">
+        <Icon
+          icon="mdi:clipboard-check-outline"
+          size={30}
+          className="text-muted-foreground"
+          aria-hidden
+        />
+        <p className="font-display text-lg font-extrabold uppercase text-foreground">
+          {s.emptyTitle}
+        </p>
+        <p className="max-w-sm text-sm text-muted-foreground">{s.emptyDescription}</p>
+        <Button size="sm" onClick={() => void navigate({ to: "/app/suprimentos/importar" })}>
+          <Icon icon="mdi:file-upload-outline" size={15} aria-hidden />
+          {FISCAL_NOTES_STRINGS.list.importCta}
+        </Button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -82,10 +124,32 @@ export function FiscalNoteReviewPage() {
           </div>
           <div className="min-w-0">
             <h1 className="font-display text-xl font-extrabold uppercase leading-none tracking-[0.01em] text-foreground">
-              NF {note.number} · série {note.series}
+              {s.title}
             </h1>
             <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">{note.accessKey}</p>
           </div>
+
+          {/* Seletor do kit: a tela troca de nota sem voltar para a lista. */}
+          <label className="sr-only" htmlFor="nf-note-select">
+            {s.selectLabel}
+          </label>
+          <select
+            id="nf-note-select"
+            value={note.id}
+            onChange={(e) =>
+              void navigate({
+                to: "/app/suprimentos/entrada/$id",
+                params: { id: e.target.value },
+              })
+            }
+            className="h-9 max-w-[340px] flex-1 rounded-md border border-input bg-background px-2 text-sm font-medium text-foreground"
+          >
+            {selectable.map((option) => (
+              <option key={option.id} value={option.id}>
+                NF {option.number} · {FISCAL_NOTES_STRINGS.status[option.status]}
+              </option>
+            ))}
+          </select>
           <Badge
             variant="outline"
             className={

@@ -146,10 +146,11 @@ describe("grupo SUPRIMENTOS (PRD-216)", () => {
     return group;
   }
 
-  it("traz as três telas de Suprimentos, nesta ordem", () => {
+  it("traz as QUATRO telas do kit, nesta ordem", () => {
     expect(suprimentos().items.map((i) => i.label)).toEqual([
       "Notas de entrada",
       "Importar XML",
+      "Entrada de nota",
       "Análise IA",
     ]);
   });
