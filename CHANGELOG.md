@@ -4,6 +4,40 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.181.0] — Tally · 2026-08-17
+
+**A nota que chega junto com a mercadoria nunca passava por aqui. Ela era digitada no DINTEC e a plataforma não ficava sabendo de nada: o custo da peça não acompanhava a compra, o saldo não subia, e o cérebro comercial calculava margem em cima de um custo que podia ser de meses atrás. Agora o arquivo da nota entra na plataforma, o fornecedor é reconhecido pelo CNPJ — ou cadastrado na hora com os dados do próprio arquivo —, e cada item é conferido contra o catálogo antes de mexer em qualquer coisa. Importar não lança: a nota entra e espera. Quem lança é uma pessoa, depois de conferir item a item. E o que a conferência ensina fica guardado, então a segunda nota do mesmo fornecedor já chega quase pronta.**
+
+### Added
+
+- **Suprimentos, um grupo novo no menu** — quatro telas: as notas de entrada, a importação do arquivo, a conferência e a análise. Aparece para quem administra a loja e para o financeiro; some para quem vende, porque custo de compra e margem de fornecedor não são do time comercial.
+- **Importar a nota soltando o arquivo na tela** — arraste o XML da nota e pronto. O sistema confere se o arquivo é mesmo uma nota fiscal, valida o número de 44 dígitos e recusa na hora um arquivo que não seja — em vez de aceitar e dar problema depois.
+- **O mesmo arquivo não entra duas vezes** — se aquela nota já foi importada, a tela avisa e não cria uma cópia.
+- **Fornecedor reconhecido pelo CNPJ, ou criado na hora** — quando o CNPJ já está cadastrado, a nota se liga a ele sozinha. Quando não está, o cadastro nasce do próprio arquivo, com razão social, CNPJ, inscrição estadual e endereço. Contato e categoria ficam em branco de propósito: não vêm no arquivo, e um cadastro honestamente incompleto vale mais que um preenchido com invenção.
+- **Cada item da nota já chega com uma sugestão de qual peça é** — quando o código do fornecedor já foi usado antes, o vínculo vem pronto. Quando não, o sistema procura pelo código de barras, pela classificação fiscal e pela descrição, e mostra **por que** achou aquilo, escrito. Item que não casa com nada fica pendente para uma pessoa resolver — nunca é vinculado no chute.
+- **Conferência item a item** — a tela mostra o item exatamente como veio no arquivo e pede três decisões: a qual peça do catálogo ele corresponde, quantas unidades de estoque cada embalagem contém, e se a compra em volume vira fração na venda. Enquanto houver item pendente, o botão de lançar fica travado, dizendo quantas pendências faltam.
+- **A caixa vira unidade, o balde vira litro** — a nota vem em caixa com 12, em balde de 20 litros, em tambor; o estoque é em unidade, em litro, em pote. Você informa quantas unidades cabem, e a tela mostra na hora o que vai entrar: "16 CX → 192 UN".
+- **O custo mostrado já inclui frete e IPI** — rateados por valor entre os itens da nota. É esse o custo que vai para a margem, nunca o valor unitário impresso na nota, que ignora o que se pagou de frete.
+- **Prévia do efeito antes de lançar** — cada item mostra quanto entra no estoque, quanto custa a unidade com o rateio, e quanto isso move o custo médio da peça, para cima ou para baixo, em porcentagem.
+- **"Confirmar vinculados" resolve em lote** — os itens que vieram vinculados pelo código do fornecedor são confirmados de uma vez. Sugestão do sistema nunca entra no lote: essa precisa de aceite.
+- **Lançar a entrada move o estoque de verdade** — o saldo sobe com a quantidade já convertida, o custo médio é recalculado ponderando com o que já havia na prateleira, e peças novas nascem no catálogo com a classificação fiscal e o custo daquela nota.
+- **O que a conferência ensina fica guardado** — o código daquele fornecedor passa a apontar para a peça certa, e a conversão de embalagem fica salva. Na próxima nota do mesmo fornecedor, tudo isso já vem aplicado.
+- **A entrada aparece na movimentação de estoque** — cada item lançado vira uma entrada de compra na tela de Movimentação, com o número da nota, ao lado das saídas de venda que já apareciam ali.
+- **Nota lançada é imutável, e o estorno desfaz** — para corrigir, estorna: o saldo volta e a nota retorna para conferência. O custo médio não é revertido, porque média ponderada não tem volta exata — reconstruir daria um número errado com cara de certo.
+- **Salvar como rascunho, no item e na nota** — achou a peça mas não sabe ainda quantas unidades vêm na caixa? Salve o rascunho e volte depois: o que você já decidiu fica guardado, e o item continua pendente. A nota inteira também pode ser estacionada como rascunho, saindo da fila de conferência sem perder nada.
+- **Descartar uma nota** — nota importada por engano pode ser apagada, e isso libera o arquivo para ser importado de novo do zero. A tela avisa antes, e a exclusão fica registrada na auditoria.
+- **Análise da nota, em cartões** — preço acima do histórico de compra daquela peça, com a série das últimas compras desenhada; classificação fiscal diferente da cadastrada; embalagem que sai mais barata em outro formato; cadastro de fornecedor incompleto; sugestão de fracionar o que está parado. Cada cartão diz o que viu e a partir de quê.
+- **A análise diz também o que ela nunca faz** — não lança nota sem conferência humana, não muda custo sem aceite, não cria vínculo definitivo antes da primeira confirmação. Está escrito na própria tela.
+- **Configuração das origens da nota** — quatro caminhos para o arquivo chegar: soltar na tela, enviar para o servidor, caixa de e-mail monitorada e consulta direta à Receita pelo número da nota. Os dois primeiros funcionam agora; os dois últimos aparecem travados, dizendo exatamente o que falta para ligar.
+
+### Changed
+
+- **A tela de Movimentação de estoque passou a mostrar entradas** — até aqui ela só registrava as saídas por venda e as devoluções. Agora as entradas de compra aparecem junto, com o número da nota que as originou.
+
+### Security
+
+- **O arquivo da nota fica guardado em área privada** — a nota traz CNPJ, endereço e preço de custo do fornecedor. O arquivo só é acessível a quem tem permissão, e cada loja alcança apenas os seus.
+
 ## [0.180.1] — Jig · 2026-08-17
 
 **Dois consertos. No aplicativo de conversas do celular, entrar numa conversa deixava a tela lá no alto do histórico — era preciso rolar várias vezes até alcançar a última mensagem; agora toda conversa abre direto na mensagem mais recente. E uma atualização do sistema podia deixar o site quebrado por até quatro horas para quem estava com ele aberto na hora da troca, sem que o botão "Atualizar agora" resolvesse.**
