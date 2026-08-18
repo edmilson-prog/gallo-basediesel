@@ -251,6 +251,27 @@ export function buildIntegrationKeyCatalog(accounts: AccountForCatalog[]): IInte
         },
       ],
     },
+    {
+      id: "fiscal-notes",
+      title: "Notas fiscais de entrada (NF-e)",
+      description:
+        "Credenciais das origens automáticas. Upload de XML não usa chave — estas valem para a caixa de e-mail monitorada e para a consulta à SEFAZ.",
+      icon: "mdi:file-document-outline",
+      keys: [
+        {
+          name: "FISCAL_INBOX_CREDENTIAL",
+          label: "Credencial da caixa de e-mail",
+          kind: "secret",
+          help: "Acesso da caixa que recebe os XML dos fornecedores. Sem ela a origem de e-mail responde desligada.",
+        },
+        {
+          name: "SEFAZ_A1_CERTIFICATE",
+          label: "Certificado digital A1 (SEFAZ)",
+          kind: "secret",
+          help: "Certificado da empresa em base64. Sem ele a SEFAZ recusa a conexão.",
+        },
+      ],
+    },
   ];
 
   for (const account of accounts) {

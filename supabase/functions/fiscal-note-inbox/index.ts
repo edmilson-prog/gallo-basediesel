@@ -13,10 +13,14 @@ import { createSecretResolver } from "../_shared/secrets.ts";
 import { verifyWorkerSecret } from "../_shared/workerAuth.ts";
 
 const WORKER_SECRET_NAME = "FISCAL_INBOX_WORKER_SECRET";
+const INBOX_CREDENTIAL_NAME = "FISCAL_INBOX_CREDENTIAL";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  // x-worker-secret é o portão desta função — precisa ser declarado aqui, ou o
+  // preflight derruba qualquer chamada cross-origin antes do handler rodar.
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-worker-secret",
 };
 
 function json(body: unknown, status = 200): Response {
@@ -34,10 +38,14 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", serviceKey);
 
+  // Um resolver por request: o cache é por instância, então a credencial lida
+  // mais abaixo não paga uma segunda ida ao Vault.
+  const resolveSecret = createSecretResolver(supabase);
+
   // Esta função roda com service_role — ela ignora RLS. Sem este portão,
   // qualquer usuário autenticado poderia dispará-la. Mesmo padrão do
   // nps-scheduler: segredo no Vault, comparado em tempo constante.
-  const expected = await createSecretResolver(supabase)(WORKER_SECRET_NAME);
+  const expected = await resolveSecret(WORKER_SECRET_NAME);
   const provided = req.headers.get("x-worker-secret") ?? "";
   if (!verifyWorkerSecret(provided, expected)) {
     return json({ error: "unauthorized" }, 401);
@@ -59,16 +67,17 @@ Deno.serve(async (req) => {
     );
   }
 
-  // O segredo vive no Vault, resolvido pela função integration-secrets. Sem
-  // ele não há como abrir a caixa — e não adianta tentar.
-  const credential = Deno.env.get("FISCAL_INBOX_CREDENTIAL");
+  // Vault primeiro, env como reserva — cadastrar em Configurações →
+  // Integrações → Chaves & API passa a valer sem redeploy. Sem a credencial
+  // não há como abrir a caixa, e não adianta tentar.
+  const credential = await resolveSecret(INBOX_CREDENTIAL_NAME);
   if (!credential) {
     return json(
       {
         error: "source_disabled",
         reason: "email_credentials_missing",
         message:
-          "A origem está ligada mas a credencial da caixa não está no Vault. Cadastre FISCAL_INBOX_CREDENTIAL antes de agendar esta função.",
+          "A origem está ligada mas a credencial da caixa não está cadastrada. Configure FISCAL_INBOX_CREDENTIAL em Configurações → Integrações → Chaves & API antes de agendar esta função.",
         stores: settings.map((s) => s.store_id),
       },
       503,
