@@ -1,5 +1,29 @@
 import { describe, it, expect } from "vitest";
+import { conversationActivityApi } from "@/mocks";
+import type { IConversationActivityEvent } from "@/shared/types";
 import { mockActivityProvider } from "./activity";
+
+/** Minimal, fully-specified event builder so each test only overrides what it cares about. */
+function makeEvent(overrides: Partial<IConversationActivityEvent>): IConversationActivityEvent {
+  return {
+    id: crypto.randomUUID(),
+    conversationId: "conv-default",
+    customerId: "cust-default",
+    storeId: "store-1",
+    type: "status",
+    fromStatus: null,
+    toStatus: null,
+    fromSellerId: null,
+    toSellerId: null,
+    actorId: null,
+    actorKind: "system",
+    createdAt: new Date(0).toISOString(),
+    conversationChannel: "whatsapp",
+    conversationStatus: "aguardando",
+    conversationCreatedAt: new Date(0).toISOString(),
+    ...overrides,
+  };
+}
 
 describe("mockActivityProvider.getCustomerTimeline", () => {
   it("returns a well-formed payload for an unknown customer", async () => {
@@ -7,5 +31,101 @@ describe("mockActivityProvider.getCustomerTimeline", () => {
     expect(payload.customerId).toBe("does-not-exist");
     expect(payload.conversations).toEqual([]);
     expect(typeof payload.generatedAt).toBe("string");
+  });
+
+  it("groups an interleaved flat feed into one entry per conversation, each holding only its own events", async () => {
+    const customerId = "cust-interleave";
+    const a1 = makeEvent({
+      conversationId: "conv-a",
+      customerId,
+      type: "created",
+      toSellerId: "seller-a",
+      createdAt: "2026-01-01T00:00:01.000Z",
+    });
+    const b1 = makeEvent({
+      conversationId: "conv-b",
+      customerId,
+      type: "created",
+      toSellerId: "seller-b",
+      createdAt: "2026-01-01T00:00:02.000Z",
+    });
+    const a2 = makeEvent({
+      conversationId: "conv-a",
+      customerId,
+      type: "status",
+      toStatus: "resolvida",
+      createdAt: "2026-01-01T00:00:03.000Z",
+    });
+    const b2 = makeEvent({
+      conversationId: "conv-b",
+      customerId,
+      type: "status",
+      toStatus: "resolvida",
+      createdAt: "2026-01-01T00:00:04.000Z",
+    });
+    // Create out of chronological order to prove grouping doesn't depend on insertion order.
+    await conversationActivityApi.create(b1);
+    await conversationActivityApi.create(a1);
+    await conversationActivityApi.create(b2);
+    await conversationActivityApi.create(a2);
+
+    const payload = await mockActivityProvider.getCustomerTimeline(customerId);
+
+    expect(payload.conversations).toHaveLength(2);
+    const conv = (id: string) => payload.conversations.find((c) => c.id === id);
+    expect(conv("conv-a")?.events.map((e) => e.id)).toEqual([a1.id, a2.id]);
+    expect(conv("conv-b")?.events.map((e) => e.id)).toEqual([b1.id, b2.id]);
+  });
+
+  it("reports the assignment's seller, not a later collaborator, as assignedSellerId", async () => {
+    const customerId = "cust-participant";
+    const created = makeEvent({
+      conversationId: "conv-p",
+      customerId,
+      type: "created",
+      toSellerId: "seller-owner",
+      createdAt: "2026-01-02T00:00:01.000Z",
+    });
+    const participantAdd = makeEvent({
+      conversationId: "conv-p",
+      customerId,
+      type: "participant_add",
+      toSellerId: "seller-collaborator",
+      createdAt: "2026-01-02T00:00:02.000Z",
+    });
+    await conversationActivityApi.create(created);
+    await conversationActivityApi.create(participantAdd);
+
+    const payload = await mockActivityProvider.getCustomerTimeline(customerId);
+
+    expect(payload.conversations).toHaveLength(1);
+    expect(payload.conversations[0]!.assignedSellerId).toBe("seller-owner");
+  });
+
+  it("reports the latest status, not the status at conversation creation", async () => {
+    const customerId = "cust-status-change";
+    const created = makeEvent({
+      conversationId: "conv-s",
+      customerId,
+      type: "created",
+      conversationStatus: "aguardando",
+      createdAt: "2026-01-03T00:00:01.000Z",
+    });
+    const statusChange = makeEvent({
+      conversationId: "conv-s",
+      customerId,
+      type: "status",
+      fromStatus: "aguardando",
+      toStatus: "resolvida",
+      conversationStatus: "resolvida",
+      createdAt: "2026-01-03T00:00:02.000Z",
+    });
+    await conversationActivityApi.create(created);
+    await conversationActivityApi.create(statusChange);
+
+    const payload = await mockActivityProvider.getCustomerTimeline(customerId);
+
+    expect(payload.conversations).toHaveLength(1);
+    expect(payload.conversations[0]!.status).toBe("resolvida");
   });
 });
