@@ -3,20 +3,13 @@ import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import type { QuoteDensity } from "../../../types/editor";
 import { parseDecimalBR } from "../../../utils/numberInput";
+import {
+  FREE_ITEM_KINDS,
+  applyFreeItemKind,
+  isFreeItemKindActive,
+} from "../../../utils/freeItemKind";
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
-/**
- * Shortcuts for the usual off-catalog lines. Picking one writes the label into
- * the description — the quote line carries it in the name the customer reads,
- * so nothing is lost when the quote is reopened.
- */
-export const FREE_ITEM_KINDS: ReadonlyArray<{ id: string; label: string; icon: string }> = [
-  { id: "servico", label: "Serviço", icon: "mdi:wrench-outline" },
-  { id: "mao", label: "Mão de obra", icon: "mdi:account-hard-hat-outline" },
-  { id: "taxa", label: "Taxa", icon: "mdi:receipt-text-outline" },
-  { id: "peca", label: "Peça sob encomenda", icon: "mdi:package-variant-closed" },
-];
 
 export interface IFreeItemDraft {
   name: string;
@@ -143,12 +136,12 @@ export function FreeItemDraftRow({
           Tipo
         </span>
         {FREE_ITEM_KINDS.map((kind) => {
-          const active = draft.name.trim() === kind.label;
+          const active = isFreeItemKindActive(draft.name, kind.label);
           return (
             <button
               key={kind.id}
               type="button"
-              onClick={() => onDraft({ ...draft, name: kind.label })}
+              onClick={() => onDraft({ ...draft, name: applyFreeItemKind(draft.name, kind.label) })}
               aria-pressed={active}
               className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors motion-reduce:transition-none ${
                 active
