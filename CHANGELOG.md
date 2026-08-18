@@ -4,6 +4,18 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.182.1] — Chevron · 2026-08-18
+
+**Duas das quatro formas de a nota fiscal chegar sozinha na plataforma — a caixa de e-mail monitorada e a consulta à Receita — dependem de uma credencial cadastrada. Só que não havia onde cadastrá-la: a tela de Chaves & API não listava nenhuma das duas. Pior, quando a origem era ligada sem a credencial, a mensagem de erro mandava cadastrar num lugar que o sistema nem chegava a consultar — quem seguisse a instrução ficaria rodando em círculo. Agora as duas aparecem na tela, e o sistema lê exatamente de onde você cadastrou.**
+
+### Fixed
+
+- **As credenciais da nota fiscal ganharam lugar na tela** — Configurações → Integrações → Chaves & API passou a ter o grupo **Notas fiscais de entrada (NF-e)**, com a credencial da caixa de e-mail e o certificado digital da empresa. Antes não existia caminho nenhum para cadastrá-las pela plataforma.
+- **A mensagem de erro aponta o lugar certo** — ao ligar uma dessas origens sem a credencial, o aviso agora diz em que tela cadastrar, em vez de apontar para um lugar que não era consultado.
+- **Trocar a credencial passa a valer na hora** — sem precisar de nenhuma intervenção técnica, como já acontece com as demais chaves da plataforma.
+
+> Importar a nota soltando o arquivo na tela, que é a forma usada no dia a dia, nunca dependeu de credencial e segue funcionando igual. A caixa de e-mail e a consulta à Receita continuam aguardando a construção da leitura em si.
+
 ## [0.182.0] — Chevron · 2026-08-18
 
 **Na lista de usuários, a etiqueta ao lado de cada pessoa mostrava o tipo de vendedor — "Vendedor interno", "Vendedor externo" — como se fosse o papel na plataforma. Gestor ganhava uma segunda etiqueta fixa, e quem tinha papel de SDR, Financeiro ou um papel personalizado não aparecia como tal em lugar nenhum da lista. Agora a etiqueta diz o papel de verdade — inclusive o nome do papel personalizado, quando houver — e o tipo de vendedor continua visível, ao lado do departamento.**
