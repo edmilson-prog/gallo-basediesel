@@ -1,15 +1,18 @@
 // src/features/quotes/utils/quoteItemOps.ts
 import type { ID, IPart, IQuoteItem } from "@/shared/types";
+import { FREE_ITEM_PART_ID } from "@/shared/types";
 import { round2 } from "./quoteTotals";
 
-/** Sentinel partId used for free (off-catalog) items. */
-export const FREE_ITEM_PART_ID = "avulso";
+/** Sentinel partId used for free (off-catalog) items — owned by the domain
+ *  types, re-exported here for the editor modules that already import it. */
+export { FREE_ITEM_PART_ID };
 
 /** Build a quote item from a catalog part. */
 export function buildItemFromPart(part: IPart, quantity = 1): IQuoteItem {
   const qty = Math.max(1, Math.floor(quantity) || 1);
   return {
-    id: `qi-${crypto.randomUUID()}`,
+    // Plain uuid: `quote_items.id` is a uuid column, a prefixed id never lands.
+    id: crypto.randomUUID(),
     partId: part.id,
     partSku: part.sku,
     partName: part.name,
@@ -29,7 +32,7 @@ export function buildFreeItem(input: {
   const qty = Math.max(1, Math.floor(input.quantity ?? 1) || 1);
   const price = Math.max(0, input.unitPrice || 0);
   return {
-    id: `qi-${crypto.randomUUID()}`,
+    id: crypto.randomUUID(),
     partId: FREE_ITEM_PART_ID,
     partSku: "—",
     partName: input.name.trim() || "Item avulso",

@@ -11,6 +11,7 @@ import type {
 } from "@/shared/types";
 import type { IListQuotesParams, IQuotesProvider } from "../../contracts/quotes";
 import type { IPaginatedResult } from "../../contracts/_shared";
+import { FREE_ITEM_PART_ID } from "@/shared/types";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { fetchLargePage } from "./_pagination";
 
@@ -28,6 +29,11 @@ import { fetchLargePage } from "./_pagination";
  * touches scalar/jsonb columns on the parent row. Replacing the item set is a
  * larger operation (delete + reinsert children) handled by higher-level
  * orchestration when PRD-031 lands its Supabase write path.
+ *
+ * Line ids are minted by the database (`uuid default gen_random_uuid()`) and
+ * never taken from the caller: the editor mints its own client-side ids to key
+ * the React list, and a duplicated quote arrives carrying the ids of the rows
+ * it was copied from — writing either one breaks the insert.
  *
  * Reads work today under the temporary permissive RLS; the mutations
  * (create/update/delete) require the write policies that land with PRD-103.
@@ -70,7 +76,8 @@ interface QuoteRow {
 interface QuoteItemRow {
   id: string;
   quote_id: string;
-  part_id: string;
+  /** NULL for a free (off-catalog) line — the column is a FK to `parts`. */
+  part_id: string | null;
   part_sku: string;
   part_name: string;
   quantity: number;
@@ -90,10 +97,10 @@ const COLUMNS =
 const ITEM_COLUMNS =
   "id, quote_id, part_id, part_sku, part_name, quantity, unit_price, discount, total";
 
-function rowToQuoteItem(row: QuoteItemRow): IQuoteItem {
+export function rowToQuoteItem(row: QuoteItemRow): IQuoteItem {
   return {
     id: row.id,
-    partId: row.part_id,
+    partId: row.part_id ?? FREE_ITEM_PART_ID,
     partSku: row.part_sku,
     partName: row.part_name,
     quantity: row.quantity,
@@ -140,12 +147,15 @@ function rowToQuote(row: QuoteRow, items: IQuoteItem[] = []): IQuote {
   };
 }
 
-/** Builds an item insert row from an {@link IQuoteItem}, parented to `quoteId`. */
-function itemToRow(item: IQuoteItem, quoteId: string): Record<string, unknown> {
+/**
+ * Builds an item insert row from an {@link IQuoteItem}, parented to `quoteId`.
+ * The `id` is left to the database default — see the module doc. A free line
+ * carries the `avulso` sentinel, which is not a part: it is stored as NULL.
+ */
+export function quoteItemToRow(item: IQuoteItem, quoteId: string): Record<string, unknown> {
   return {
-    id: item.id,
     quote_id: quoteId,
-    part_id: item.partId,
+    part_id: item.partId === FREE_ITEM_PART_ID ? null : item.partId,
     part_sku: item.partSku,
     part_name: item.partName,
     quantity: item.quantity,
@@ -344,9 +354,14 @@ export const supabaseQuotesProvider: IQuotesProvider = {
     if (input.items.length > 0) {
       const { error: itemsError } = await client
         .from(ITEMS_TABLE)
-        .insert(input.items.map((item) => itemToRow(item, id)));
-      if (itemsError)
+        .insert(input.items.map((item) => quoteItemToRow(item, id)));
+      if (itemsError) {
+        // PostgREST has no transaction across the two inserts: drop the parent
+        // so a failed save leaves no itemless quote behind (it would show up on
+        // the list as a phantom draft nobody asked for).
+        await client.from(TABLE).delete().eq("id", id);
         throw new Error(`[supabase] quotes.create (items) failed: ${itemsError.message}`);
+      }
     }
 
     const items = await listItems(id);
