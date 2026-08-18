@@ -17,7 +17,10 @@ const INBOX_CREDENTIAL_NAME = "FISCAL_INBOX_CREDENTIAL";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  // x-worker-secret é o portão desta função — precisa ser declarado aqui, ou o
+  // preflight derruba qualquer chamada cross-origin antes do handler rodar.
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-worker-secret",
 };
 
 function json(body: unknown, status = 200): Response {
