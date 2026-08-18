@@ -4,6 +4,17 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.182.0] — Chevron · 2026-08-18
+
+**Na lista de usuários, a etiqueta ao lado de cada pessoa mostrava o tipo de vendedor — "Vendedor interno", "Vendedor externo" — como se fosse o papel na plataforma. Gestor ganhava uma segunda etiqueta fixa, e quem tinha papel de SDR, Financeiro ou um papel personalizado não aparecia como tal em lugar nenhum da lista. Agora a etiqueta diz o papel de verdade — inclusive o nome do papel personalizado, quando houver — e o tipo de vendedor continua visível, ao lado do departamento.**
+
+### Changed
+
+- **A etiqueta da lista de usuários mostra o papel, não o tipo** — "Owner", "Gestor", "Vendedor", "SDR", "Financeiro" ou o nome do papel personalizado atribuído à pessoa. Quem ainda não tem acesso à plataforma segue mostrando o tipo de vendedor, que é a única informação que existe nesse caso.
+- **O tipo de vendedor mudou de lugar, não sumiu** — "Vendedor interno", "Vendedor externo" e "Representante" aparecem agora na linha de baixo, junto do departamento.
+- **Dono e Gestor continuam destacados** — a etiqueta deles mantém a cor de destaque que o selo "Gestor" tinha antes.
+- **Sem troca de texto durante o carregamento** — enquanto a lista busca papéis e acessos, a etiqueta mostra um espaço reservado em vez de exibir um valor e trocá-lo em seguida.
+
 ## [0.181.0] — Tally · 2026-08-17
 
 **A nota que chega junto com a mercadoria nunca passava por aqui. Ela era digitada no DINTEC e a plataforma não ficava sabendo de nada: o custo da peça não acompanhava a compra, o saldo não subia, e o cérebro comercial calculava margem em cima de um custo que podia ser de meses atrás. Agora o arquivo da nota entra na plataforma, o fornecedor é reconhecido pelo CNPJ — ou cadastrado na hora com os dados do próprio arquivo —, e cada item é conferido contra o catálogo antes de mexer em qualquer coisa. Importar não lança: a nota entra e espera. Quem lança é uma pessoa, depois de conferir item a item. E o que a conferência ensina fica guardado, então a segunda nota do mesmo fornecedor já chega quase pronta.**
