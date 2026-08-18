@@ -254,7 +254,7 @@ Uma PR por fase. Migration e deploy **sempre** com OK explícito do dono — mer
 
 ### Fase 1 — Modelo de dados e captura ao vivo
 
-Migration (`ads`, `ad_touches`, índices, RLS); `recordAdTouch` no contrato `db` e a chamada em `core.ts`; providers mock e supabase; `scripts/sync-whatsapp-shared.ts`; testes do engine de montagem do toque.
+Migration (`ads`, `ad_touches`, índices, RLS, RPC `record_ad_touch`); `recordAdTouch` no contrato `db` e a chamada em `core.ts`; `scripts/sync-whatsapp-shared.ts`; testes da função de montagem do toque. **Sem provider em `src/providers/data/`**: nada lê `ad_touches` nesta fase, e contrato sem consumidor é código morto — entra na Fase 3, junto da primeira superfície que consome.
 **Gate:** `bun run test` + `bun run build`; migration aplicada via MCP **e** exportada para `supabase/migrations/` no mesmo PR; Edge Functions de WhatsApp redeployadas; smoke — mandar mensagem por um anúncio real e ver uma linha em `ad_touches`.
 
 ### Fase 2 — Propagação e backfill
@@ -264,7 +264,7 @@ Migration (`ads`, `ad_touches`, índices, RLS); `recordAdTouch` no contrato `db`
 
 ### Fase 3 — Superfícies do atendimento
 
-S1 (rodapé do cartão) e S2 (bloco na ficha).
+Provider `adTouches` (mock + supabase) no barrel `@/providers/data`; S1 (rodapé do cartão) e S2 (bloco na ficha).
 **Gate:** testes do engine; smoke com conversa de múltiplos toques e com conversa de um só.
 
 ### Fase 4 — Tela de funil
