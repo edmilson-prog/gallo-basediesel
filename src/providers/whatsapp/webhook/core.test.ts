@@ -1444,8 +1444,19 @@ describe("processWebhookEvent — ad referral attribution", () => {
       },
     });
     expect(state.adTouches).toHaveLength(1);
+    // Pin the whole payload, not just the ids: occurredAt and messageId are the
+    // TS→SQL boundary the RPC signature depends on (a uuid column and a
+    // timestamptz), and leaving them unasserted is how a type mismatch slipped
+    // through review once already.
+    expect(state.messages).toHaveLength(1);
+    const insertedMessageId = state.messages[0].id as string | undefined;
+    expect(insertedMessageId).toBeTruthy();
     expect(state.adTouches[0]).toMatchObject({
       conversationId: result.conversationId,
+      messageId: insertedMessageId,
+      // messageTimestamp is seconds; the parser must hand the RPC a UTC ISO
+      // string, not the raw epoch and not a local-offset one.
+      occurredAt: "2025-12-10T20:53:20.000Z",
       referral: { sourceId: "120238998853430275", headline: "Filtro UFI" },
     });
   });
