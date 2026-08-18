@@ -28,6 +28,10 @@ interface ISuppliersFiltersBarProps {
   onSortChange: (sort: ISuppliersSort) => void;
   canCreate: boolean;
   onCreate: () => void;
+  /** The list failed to load — `suppliers` is `[]` for that reason, not
+   *  because every category is empty, so the chip counts are hidden rather
+   *  than showing a fabricated "0". */
+  hasError?: boolean;
 }
 
 export function SuppliersFiltersBar({
@@ -40,6 +44,7 @@ export function SuppliersFiltersBar({
   onSortChange,
   canCreate,
   onCreate,
+  hasError = false,
 }: ISuppliersFiltersBarProps) {
   const countFor = (key: SupplierCategory | "all") =>
     key === "all" ? suppliers.length : suppliers.filter((s) => s.category === key).length;
@@ -61,7 +66,7 @@ export function SuppliersFiltersBar({
             )}
           >
             {COPY.categories[key === "all" ? "all" : key]}
-            <span className="ml-1.5 text-muted-foreground">{countFor(key)}</span>
+            {!hasError && <span className="ml-1.5 text-muted-foreground">{countFor(key)}</span>}
           </button>
         );
       })}

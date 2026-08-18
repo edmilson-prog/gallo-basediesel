@@ -112,6 +112,22 @@ export const suppliersApi = {
     };
   },
 
+  /** Same zeros as `stats`, batched — the mock has no history to bucket. */
+  async statsMany(ids: ID[]): Promise<Map<ID, ISupplierStats>> {
+    return new Map(
+      ids.map((id) => [
+        id,
+        {
+          supplierId: id,
+          linkedParts: 0,
+          purchasesLast12Months: 0,
+          lastEntries: [],
+          monthlyPurchases: Array.from({ length: 12 }, () => 0),
+        },
+      ]),
+    );
+  },
+
   /** Test-only: restores the seeded set. */
   __resetForTests() {
     suppliers = SEED_SUPPLIERS.map((s) => ({ ...s, suppliedItems: [...s.suppliedItems] }));

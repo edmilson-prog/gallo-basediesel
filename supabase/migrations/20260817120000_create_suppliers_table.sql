@@ -68,24 +68,48 @@ create unique index if not exists suppliers_store_document_key
 -- Mirrors expenses (20260609003351_rls_slice2_financial_staff_only.sql): a
 -- non-staff seller reads nothing. Supplier carries payment terms and, once
 -- `payable` lands, purchase amounts — that is cost data.
+--
+-- `is_staff()` alone is NOT enough here: it resolves to `current_app_role()
+-- in ('owner','manager')` and excludes 'financeiro'. The RBAC seed below
+-- (part 3) grants Financeiro view/create/edit on this resource — that is the
+-- decision taken with the owner ("Quem enxerga: Owner, Gestor, Financeiro",
+-- see the spec) — so a policy gated on `is_staff()` alone would leave a
+-- Financeiro user with the menu item and the RBAC grant but every query
+-- returning zero rows. Same idiom already used for `audit_logs_select` in
+-- 20260609163912_rls_fase2_43_tighten_audit_transfers_media.sql:11.
 alter table public.suppliers enable row level security;
 
 drop policy if exists suppliers_select on public.suppliers;
 create policy suppliers_select on public.suppliers for select to authenticated
-  using (store_id = public.current_store_id() and public.is_staff());
+  using (
+    store_id = public.current_store_id()
+    and (public.is_staff() or public.current_app_role() = 'financeiro')
+  );
 
 drop policy if exists suppliers_insert on public.suppliers;
 create policy suppliers_insert on public.suppliers for insert to authenticated
-  with check (store_id = public.current_store_id() and public.is_staff());
+  with check (
+    store_id = public.current_store_id()
+    and (public.is_staff() or public.current_app_role() = 'financeiro')
+  );
 
 drop policy if exists suppliers_update on public.suppliers;
 create policy suppliers_update on public.suppliers for update to authenticated
-  using (store_id = public.current_store_id() and public.is_staff())
-  with check (store_id = public.current_store_id() and public.is_staff());
+  using (
+    store_id = public.current_store_id()
+    and (public.is_staff() or public.current_app_role() = 'financeiro')
+  )
+  with check (
+    store_id = public.current_store_id()
+    and (public.is_staff() or public.current_app_role() = 'financeiro')
+  );
 
 drop policy if exists suppliers_delete on public.suppliers;
 create policy suppliers_delete on public.suppliers for delete to authenticated
-  using (store_id = public.current_store_id() and public.is_staff());
+  using (
+    store_id = public.current_store_id()
+    and (public.is_staff() or public.current_app_role() = 'financeiro')
+  );
 
 ------------------------------------------------------------------ 3. RBAC seed
 -- Grants agreed with the owner: Owner, Gestor and Financeiro. Vendedor stays
@@ -154,6 +178,26 @@ with cleaned as (
     -- (still 125 either way), so both gaps are currently inert. Left as-is
     -- rather than chasing a zero-impact difference; would need attention if
     -- a future import ever introduces either.
+    --
+    -- A THIRD gap, not inert: `key` also does not strip trailing legal-form
+    -- suffixes (ltda|me|epp|eireli|s a|sa|s/a) the way normalizeSupplierName()
+    -- does when building the join key `stats()`/`statsMany()` use at runtime
+    -- (src/providers/data/impl/supabase/suppliers.ts `joinKey()`). Measured
+    -- 2026-08-17 against production `parts.supplier`: unlike the two gaps
+    -- above, this one already collides today. "Auto Vans Pecas Eireli ME"
+    -- (4 peças) and "AUTO VANS PECAS LTDA" (1 peça) are distinct `key`s here
+    -- — so this backfill creates two separate `suppliers` rows for them —
+    -- but normalizeSupplierName() strips " Eireli"+" ME" off one and " Ltda"
+    -- off the other and both land on the identical engine key
+    -- "auto vans pecas". Once this migration is applied, `stats()` /
+    -- `statsMany()` will therefore attribute ALL 5 of those parts to BOTH
+    -- resulting supplier rows — `linkedParts` and `purchasesLast12Months`
+    -- double-counted on the KPI strip for what is almost certainly one real
+    -- supplier under two legal-form spellings. Left unfixed here on purpose:
+    -- whether to strip suffixes in `key` too (merging them into one row) or
+    -- leave both rows and let the list's own merge workflow handle it is a
+    -- product call for the owner, not a syntax fix to slip into this
+    -- migration silently — flagged in the PR instead.
     regexp_replace(
       translate(
         lower(replace(btrim(p.supplier), '&amp;', '&')),

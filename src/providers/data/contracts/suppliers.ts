@@ -54,5 +54,18 @@ export interface ISuppliersProvider {
   update(id: ID, patch: IUpdateSupplierPatch): Promise<ISupplier>;
   /** Soft removal — flips `status` to `inactive`; history is never deleted. */
   archive(id: ID): Promise<ISupplier>;
+  /** Single-supplier stats — the "Ficha completa" drawer's own fetch. */
   stats(id: ID): Promise<ISupplierStats>;
+  /**
+   * Batched `stats` for a whole visible list. NOT sugar for
+   * `Promise.all(ids.map(stats))` — the Supabase impl makes exactly ONE
+   * paginated pass over the store's `parts` regardless of `ids.length`,
+   * bucketing rows by normalized supplier name and assembling each
+   * supplier's stats from its bucket. Callers with more than one supplier
+   * on screen (the list's KPI strip / `parts`+`purchases` columns) MUST use
+   * this instead of looping `stats()` — see
+   * `src/providers/data/impl/supabase/suppliers.ts` for why looping it
+   * costs 2 requests and a full catalog scan PER supplier.
+   */
+  statsMany(ids: ID[]): Promise<Map<ID, ISupplierStats>>;
 }

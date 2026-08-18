@@ -40,5 +40,11 @@ export function useSuppliersList(filters: ISuppliersListFilters) {
     return haystack.includes(needle);
   });
 
-  return { all, visible, isLoading: query.isLoading, error: query.error };
+  return {
+    all,
+    visible,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  };
 }

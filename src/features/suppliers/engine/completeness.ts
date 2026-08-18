@@ -46,9 +46,17 @@ function isFilled(supplier: ISupplier, field: SupplierMissingField): boolean {
     case "paymentTerms":
       return Boolean(supplier.paymentTerms?.trim());
     case "leadTimeDays":
-      return typeof supplier.leadTimeDays === "number" && supplier.leadTimeDays > 0;
+      // `typeof === "number"` alone distinguishes ABSENT (`undefined`, not
+      // filled) from an explicit `0` (a legitimate lead time — same-day
+      // delivery — that the migration's `>= 0` check allows and the rail
+      // already renders as "0 dias" instead of hiding). A trailing `> 0`
+      // would treat that explicit zero as missing again.
+      return typeof supplier.leadTimeDays === "number";
     case "contact":
-      return Boolean(supplier.contactName?.trim() ?? supplier.contactPhone?.trim());
+      // `||`, not `??`: a cleared contact name can be stored as `""`, which
+      // must fall through to the phone like an absent name does — same
+      // convention `SuppliersTable`'s `terms`/`contact` cells already use.
+      return Boolean(supplier.contactName?.trim() || supplier.contactPhone?.trim());
     case "suppliedItems":
       return supplier.suppliedItems.length > 0;
   }

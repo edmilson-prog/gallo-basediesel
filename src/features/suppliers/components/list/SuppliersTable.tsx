@@ -1,5 +1,6 @@
 import type { ID, ISupplier, ISupplierStats } from "@/shared/types";
 import { Icon } from "@/components/Icon";
+import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useResizableColumns } from "@/shared/hooks/useResizableColumns";
@@ -54,6 +55,10 @@ interface ISuppliersTableProps {
   suppliers: ISupplier[];
   statsIndex: Map<ID, ISupplierStats> | null;
   isLoading: boolean;
+  /** The list fetch itself failed (missing table, RLS denial, timeout…) — an
+   *  empty `suppliers` array here means "couldn't load", not "none exist". */
+  loadError?: boolean;
+  onRetry?: () => void;
   selectedId: ID | null;
   onSelect: (id: ID) => void;
   visibleColumns: Set<OptionalColumn>;
@@ -69,6 +74,8 @@ export function SuppliersTable({
   suppliers,
   statsIndex,
   isLoading,
+  loadError = false,
+  onRetry,
   selectedId,
   onSelect,
   visibleColumns,
@@ -273,7 +280,21 @@ export function SuppliersTable({
             );
           })}
 
-      {!isLoading && suppliers.length === 0 && (
+      {!isLoading && suppliers.length === 0 && loadError && (
+        <div className="flex flex-col items-center gap-2 px-4 py-16 text-center">
+          <Icon icon="mdi:cloud-alert-outline" size={26} className="text-destructive" />
+          <p className="text-sm font-medium text-destructive">{COPY.error.title}</p>
+          <p className="max-w-sm text-xs text-muted-foreground">{COPY.error.description}</p>
+          {onRetry && (
+            <Button variant="outline" size="sm" className="mt-2" onClick={onRetry}>
+              <Icon icon="mdi:refresh" size={14} />
+              {COPY.error.retry}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {!isLoading && suppliers.length === 0 && !loadError && (
         <div className="px-4 py-16 text-center">
           <p className="text-sm text-foreground">{COPY.empty.list}</p>
           <p className="mt-1 text-xs text-muted-foreground">{COPY.empty.listHint}</p>

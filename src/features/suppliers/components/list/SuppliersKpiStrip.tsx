@@ -11,12 +11,17 @@ interface ISuppliersKpiStripProps {
   statsIndex: Map<ID, ISupplierStats> | null;
   /** Clicking "Com CNPJ" filters the list down to the ones still missing it. */
   onFilterMissingDocument: () => void;
+  /** The list fetch failed — `suppliers` is `[]` because nothing loaded, not
+   *  because there are zero suppliers. Every cell that would otherwise read
+   *  the count off `suppliers` falls back to "—" instead of a fabricated 0. */
+  hasError?: boolean;
 }
 
 export function SuppliersKpiStrip({
   suppliers,
   statsIndex,
   onFilterMissingDocument,
+  hasError = false,
 }: ISuppliersKpiStripProps) {
   const active = suppliers.length;
   const withDocument = suppliers.filter((s) => Boolean(s.document)).length;
@@ -41,14 +46,14 @@ export function SuppliersKpiStrip({
     accent?: boolean;
     onClick?: () => void;
   }> = [
-    { label: COPY.active, value: String(active), icon: "mdi:domain" },
+    { label: COPY.active, value: hasError ? "—" : String(active), icon: "mdi:domain" },
     {
       label: COPY.withDocument,
-      value: `${withDocument}/${active}`,
-      sub: withDocument < active ? COPY.withDocumentHint : undefined,
+      value: hasError ? "—" : `${withDocument}/${active}`,
+      sub: !hasError && withDocument < active ? COPY.withDocumentHint : undefined,
       icon: "mdi:card-account-details-outline",
-      accent: withDocument < active,
-      onClick: withDocument < active ? onFilterMissingDocument : undefined,
+      accent: !hasError && withDocument < active,
+      onClick: !hasError && withDocument < active ? onFilterMissingDocument : undefined,
     },
     {
       label: COPY.linkedParts,

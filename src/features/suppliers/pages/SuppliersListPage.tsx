@@ -163,6 +163,7 @@ export function SuppliersListPage() {
                 suppliers={list.all}
                 statsIndex={statsIndex}
                 onFilterMissingDocument={() => setMissingDocumentOnly((v) => !v)}
+                hasError={Boolean(list.error)}
               />
 
               <SuppliersFiltersBar
@@ -178,6 +179,7 @@ export function SuppliersListPage() {
                   setEditingSupplier(null);
                   setFormOpen(true);
                 }}
+                hasError={Boolean(list.error)}
               />
             </div>
           </div>
@@ -196,6 +198,8 @@ export function SuppliersListPage() {
               suppliers={tableRows}
               statsIndex={statsIndex}
               isLoading={list.isLoading}
+              loadError={Boolean(list.error)}
+              onRetry={list.refetch}
               selectedId={selectedId}
               onSelect={setSelectedId}
               visibleColumns={visibleColumns}

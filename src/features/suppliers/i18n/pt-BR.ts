@@ -68,6 +68,14 @@ export const SUPPLIERS_STRINGS = {
     payables:
       "O contas a pagar ainda não existe no sistema. Quando existir, os títulos deste fornecedor aparecem aqui.",
   },
+  /** Shown instead of `empty.*` when the fetch itself failed — a missing
+   *  table, an RLS denial or a timeout must never read as "no suppliers". */
+  error: {
+    title: "Não foi possível carregar os fornecedores.",
+    description:
+      "A causa mais provável hoje é o cadastro ainda não existir no banco. Tente novamente em instantes; se persistir, avise o suporte.",
+    retry: "Tentar novamente",
+  },
   complete: "Cadastro completo",
   newBadge: "novo",
   chart: {

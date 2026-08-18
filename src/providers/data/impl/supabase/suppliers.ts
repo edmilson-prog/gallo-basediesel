@@ -6,20 +6,32 @@ import type {
   IUpdateSupplierPatch,
 } from "../../contracts/suppliers";
 import type { IPaginatedResult } from "../../contracts/_shared";
+import { FETCH_ALL_PAGE_SIZE } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import {
   normalizeSupplierName,
   SUPPLIER_NAME_ALIASES,
 } from "@/features/suppliers/engine/supplierName";
+import { fetchLargePage } from "./_pagination";
 
 /**
  * Supabase implementation of {@link ISuppliersProvider}.
  *
- * `stats` is the interesting half. There is no `supplier_id` on `parts` yet, so
- * the join key is the NORMALIZED NAME: we read the catalog's `supplier` and
- * `suppliers` (jsonb entry history) columns and match in memory. That is why
- * `stats` is a separate call and not folded into `get` — it costs a catalog
- * scan and only the rail and the drawer want it.
+ * `stats`/`statsMany` are the interesting half. There is no `supplier_id` on
+ * `parts` yet, so the join key is the NORMALIZED NAME: we read the catalog's
+ * `supplier` and `suppliers` (jsonb entry history) columns and match in
+ * memory. That is why they are separate calls, not folded into `get`/`list`
+ * — they cost a catalog scan and only the rail, the drawer and the list's
+ * KPI strip/optional columns want them.
+ *
+ * Both paginate the `parts` read with {@link fetchLargePage} instead of a
+ * bare `.select()`: PostgREST caps any single request at `db-max-rows` (1000
+ * rows), and the catalog has 4.005 parts — an unpaginated read silently
+ * truncates to an arbitrary ~25% slice, which is exactly wrong for numbers
+ * rendered as confident totals. `statsMany` additionally makes this ONE pass
+ * shared across every id in the batch (bucketed by normalized name), instead
+ * of one pass per supplier — see its own comment below for the request-count
+ * story.
  */
 
 interface SupplierRow {
@@ -134,6 +146,94 @@ function patchToRow(patch: IUpdateSupplierPatch): Record<string, unknown> {
 function joinKey(raw: string): string {
   const key = normalizeSupplierName(raw);
   return SUPPLIER_NAME_ALIASES[key] ? normalizeSupplierName(SUPPLIER_NAME_ALIASES[key]) : key;
+}
+
+/**
+ * Turns one supplier's bucket of matched `parts` rows into its
+ * {@link ISupplierStats}. Pure — shared by `stats` (one supplier) and
+ * `statsMany` (a whole batch) so the two can never drift.
+ */
+function statsFromParts(supplierId: ID, key: string, parts: PartRow[]): ISupplierStats {
+  const entries: ISupplierEntry[] = [];
+  for (const part of parts) {
+    for (const raw of part.suppliers ?? []) {
+      // A part's entry list can name a different supplier than the part's
+      // own `supplier` column — trust the entry's own name when present.
+      if (raw.name && joinKey(raw.name) !== key) continue;
+      entries.push({
+        invoiceNumber: raw.invoiceNumber,
+        invoiceDate: raw.invoiceDate,
+        cost: raw.cost ?? 0,
+        quantity: raw.quantity ?? 0,
+        partId: part.id,
+        partName: part.name,
+      });
+    }
+  }
+
+  entries.sort((a, b) => (b.invoiceDate ?? "").localeCompare(a.invoiceDate ?? ""));
+
+  const now = new Date();
+  const monthly = Array.from({ length: 12 }, () => 0);
+  let total = 0;
+  for (const entry of entries) {
+    if (!entry.invoiceDate) continue;
+    const when = new Date(entry.invoiceDate);
+    const monthsAgo =
+      (now.getFullYear() - when.getFullYear()) * 12 + (now.getMonth() - when.getMonth());
+    if (monthsAgo < 0 || monthsAgo > 11) continue;
+    const amount = entry.cost * (entry.quantity || 1);
+    // `noUncheckedIndexedAccess` types `monthly[idx]` as `number | undefined`
+    // even though `Array.from({ length: 12 }, () => 0)` guarantees every
+    // index is populated — `?? 0` satisfies the checker without changing
+    // behavior.
+    const idx = 11 - monthsAgo;
+    monthly[idx] = (monthly[idx] ?? 0) + amount;
+    total += amount;
+  }
+
+  return {
+    supplierId,
+    linkedParts: parts.length,
+    purchasesLast12Months: total,
+    lastEntries: entries.slice(0, 8),
+    monthlyPurchases: monthly,
+  };
+}
+
+/**
+ * One paginated pass over every `parts` row of `storeId`, bucketed by the
+ * normalized join key of `parts.supplier`. Parts with no supplier text are
+ * dropped (they cannot belong to any bucket).
+ */
+async function fetchPartsBySupplierKey(storeId: ID): Promise<Map<string, PartRow[]>> {
+  const buildQuery = () =>
+    getSupabaseClient()
+      .from(PARTS_TABLE)
+      .select("id, name, supplier, suppliers", { count: "exact" })
+      .eq("store_id", storeId);
+
+  const { data } = await fetchLargePage<PartRow>(
+    async (rangeFrom, rangeTo) => {
+      const { data, error, count } = await buildQuery()
+        .order("id", { ascending: true })
+        .range(rangeFrom, rangeTo);
+      if (error) throw new Error(`[supabase] suppliers.stats scan failed: ${error.message}`);
+      return { data: (data ?? []) as unknown as PartRow[], count: count ?? 0 };
+    },
+    0,
+    FETCH_ALL_PAGE_SIZE,
+  );
+
+  const buckets = new Map<string, PartRow[]>();
+  for (const part of data) {
+    if (!part.supplier) continue;
+    const key = joinKey(part.supplier);
+    const bucket = buckets.get(key);
+    if (bucket) bucket.push(part);
+    else buckets.set(key, [part]);
+  }
+  return buckets;
 }
 
 /** Builds the PostgREST `.or()` expression for a free-text supplier search, or
@@ -251,55 +351,48 @@ export const supabaseSuppliersProvider: ISuppliersProvider = {
   async stats(id: ID): Promise<ISupplierStats> {
     const supplier = await supabaseSuppliersProvider.get(id);
     const key = joinKey(supplier.name);
+    const buckets = await fetchPartsBySupplierKey(supplier.storeId);
+    return statsFromParts(id, key, buckets.get(key) ?? []);
+  },
 
-    const { data, error } = await getSupabaseClient()
-      .from(PARTS_TABLE)
-      .select("id, name, supplier, suppliers")
-      .eq("store_id", supplier.storeId);
-    if (error) throw new Error(`[supabase] suppliers.stats(${id}) failed: ${error.message}`);
+  /**
+   * Batched `stats`. For a 126-supplier list this issues exactly:
+   *   1 request  — suppliers whose id is in `ids` (`.in("id", ids)`)
+   *   ~5 requests — one paginated pass over the store's ~4.005 `parts`
+   *                 rows (1000-row PostgREST chunks via `fetchLargePage`)
+   * = ~6 requests total and one catalog scan, versus the previous
+   * `Promise.all(ids.map(stats))`, which cost 2 requests and a full
+   * (truncated) catalog scan PER supplier — ~252 requests and ~126.000 part
+   * rows read for the same 126 suppliers.
+   *
+   * Suppliers are grouped by `storeId` so a mixed-store `ids` array (not how
+   * any current caller uses this — `useSuppliersStatsIndex` always passes
+   * ids from one store's list — but not ruled out by the signature either)
+   * still gets one scan per distinct store rather than a wrong shared scan.
+   */
+  async statsMany(ids: ID[]): Promise<Map<ID, ISupplierStats>> {
+    const result = new Map<ID, ISupplierStats>();
+    if (ids.length === 0) return result;
 
-    const parts = (data ?? []) as unknown as PartRow[];
-    const mine = parts.filter((p) => p.supplier && joinKey(p.supplier) === key);
+    const { data, error } = await getSupabaseClient().from(TABLE).select(COLUMNS).in("id", ids);
+    if (error) throw new Error(`[supabase] suppliers.statsMany failed: ${error.message}`);
+    const suppliers = (data as unknown as SupplierRow[]).map(rowToSupplier);
 
-    const entries: ISupplierEntry[] = [];
-    for (const part of mine) {
-      for (const raw of part.suppliers ?? []) {
-        // A part's entry list can name a different supplier than the part's
-        // own `supplier` column — trust the entry's own name when present.
-        if (raw.name && joinKey(raw.name) !== key) continue;
-        entries.push({
-          invoiceNumber: raw.invoiceNumber,
-          invoiceDate: raw.invoiceDate,
-          cost: raw.cost ?? 0,
-          quantity: raw.quantity ?? 0,
-          partId: part.id,
-          partName: part.name,
-        });
+    const byStore = new Map<ID, ISupplier[]>();
+    for (const supplier of suppliers) {
+      const bucket = byStore.get(supplier.storeId);
+      if (bucket) bucket.push(supplier);
+      else byStore.set(supplier.storeId, [supplier]);
+    }
+
+    for (const [storeId, storeSuppliers] of byStore) {
+      const buckets = await fetchPartsBySupplierKey(storeId);
+      for (const supplier of storeSuppliers) {
+        const key = joinKey(supplier.name);
+        result.set(supplier.id, statsFromParts(supplier.id, key, buckets.get(key) ?? []));
       }
     }
 
-    entries.sort((a, b) => (b.invoiceDate ?? "").localeCompare(a.invoiceDate ?? ""));
-
-    const now = new Date();
-    const monthly = Array.from({ length: 12 }, () => 0);
-    let total = 0;
-    for (const entry of entries) {
-      if (!entry.invoiceDate) continue;
-      const when = new Date(entry.invoiceDate);
-      const monthsAgo =
-        (now.getFullYear() - when.getFullYear()) * 12 + (now.getMonth() - when.getMonth());
-      if (monthsAgo < 0 || monthsAgo > 11) continue;
-      const amount = entry.cost * (entry.quantity || 1);
-      monthly[11 - monthsAgo] += amount;
-      total += amount;
-    }
-
-    return {
-      supplierId: id,
-      linkedParts: mine.length,
-      purchasesLast12Months: total,
-      lastEntries: entries.slice(0, 8),
-      monthlyPurchases: monthly,
-    };
+    return result;
   },
 };

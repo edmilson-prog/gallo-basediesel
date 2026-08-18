@@ -8,4 +8,5 @@ export const mockSuppliersProvider: ISuppliersProvider = {
   update: (id, patch) => suppliersApi.update(id, patch),
   archive: (id) => suppliersApi.archive(id),
   stats: (id) => suppliersApi.stats(id),
+  statsMany: (ids) => suppliersApi.statsMany(ids),
 };

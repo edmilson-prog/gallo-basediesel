@@ -56,6 +56,26 @@ describe("supplierCompleteness", () => {
     expect(result.missing).not.toContain("contact");
   });
 
+  it("falls back to phone when the contact name was cleared to an empty string", () => {
+    // Regression: `??` does not fall through on `""`, only on
+    // null/undefined, so a cleared name used to mask a real phone and read
+    // as "sem contato" even though the supplier has one.
+    const result = supplierCompleteness(make({ contactName: "", contactPhone: "5433218800" }));
+    expect(result.missing).not.toContain("contact");
+  });
+
+  it("counts an explicit leadTimeDays of 0 as filled, not missing", () => {
+    // Regression: `> 0` treated a legitimate same-day lead time (the
+    // migration allows `>= 0`, e.g. the seeded `sup-cresol`) as absent.
+    const result = supplierCompleteness(make({ leadTimeDays: 0 }));
+    expect(result.missing).not.toContain("leadTimeDays");
+  });
+
+  it("still counts an absent leadTimeDays as missing", () => {
+    const result = supplierCompleteness(make({ leadTimeDays: undefined }));
+    expect(result.missing).toContain("leadTimeDays");
+  });
+
   it("does not count an empty suppliedItems array as filled", () => {
     const result = supplierCompleteness(make({ suppliedItems: [] }));
     expect(result.missing).toContain("suppliedItems");
