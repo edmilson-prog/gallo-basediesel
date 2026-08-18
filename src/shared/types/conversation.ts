@@ -541,3 +541,45 @@ export interface IConversationRescue {
   cancelledReason?: string;
   createdAt: ISO8601;
 }
+
+/** One note attached to a conversation, as returned by get_customer_timeline. */
+export interface ICustomerTimelineNote {
+  id: ID;
+  at: string;
+  authorId: ID | null;
+  body: string;
+}
+
+/** A quote or order anchored to a conversation. */
+export interface ICustomerTimelineDeal {
+  id: ID;
+  at: string;
+  total: number;
+  status?: string;
+}
+
+/** One conversation with everything the timeline needs to render it. */
+export interface ICustomerTimelineConversation {
+  id: ID;
+  channel: ConversationChannel;
+  status: ConversationStatus;
+  createdAt: string;
+  closedAt: string | null;
+  assignedSellerId: ID | null;
+  /** Born before the trigger existed — its beginning was never recorded. */
+  preRegistro: boolean;
+  messageCount: number;
+  lastMessageAt: string | null;
+  lastMessagePreview: string;
+  events: IConversationActivityEvent[];
+  notes: ICustomerTimelineNote[];
+  quotes: ICustomerTimelineDeal[];
+  orders: ICustomerTimelineDeal[];
+}
+
+/** Full payload of get_customer_timeline. */
+export interface ICustomerTimelinePayload {
+  customerId: ID;
+  generatedAt: string;
+  conversations: ICustomerTimelineConversation[];
+}
