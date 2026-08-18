@@ -1449,7 +1449,7 @@ describe("processWebhookEvent — ad referral attribution", () => {
     // timestamptz), and leaving them unasserted is how a type mismatch slipped
     // through review once already.
     expect(state.messages).toHaveLength(1);
-    const insertedMessageId = state.messages[0].id as string | undefined;
+    const insertedMessageId = state.messages[0]?.id as string | undefined;
     expect(insertedMessageId).toBeTruthy();
     expect(state.adTouches[0]).toMatchObject({
       conversationId: result.conversationId,
