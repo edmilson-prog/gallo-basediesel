@@ -120,6 +120,10 @@ export function QuoteEditor() {
   const [customer, setCustomer] = useState<ICustomer | null>(null);
   const [items, setItems] = useState<IQuoteItem[]>([]);
   const [appliedKitIds, setAppliedKitIds] = useState<ID[]>([]);
+  // Lines that came from a kit, for the `kit` tag on the row. Editor state
+  // only: `quote_items` has explicit columns and no place to persist it, so
+  // the tag lives as long as the quote is being built.
+  const [kitItemIds, setKitItemIds] = useState<Set<ID>>(() => new Set());
   // `undefined` = sheet closed; `null` = open on the first kit; an id = that kit.
   const [openKitId, setOpenKitId] = useState<ID | null | undefined>(undefined);
   const [highlightId, setHighlightId] = useState<ID | null>(null);
@@ -351,16 +355,20 @@ export function QuoteEditor() {
   ) => {
     const prevItems = items;
     const prevAppliedKitIds = appliedKitIds;
+    const prevKitItemIds = kitItemIds;
 
     let next = items;
     let lastId: ID | null = null;
+    const touched: ID[] = [];
     for (const { part, quantity } of selection) {
       const result = addOrIncrementItem(next, part, quantity);
       next = result.items;
       lastId = result.affectedId;
+      touched.push(result.affectedId);
     }
     setItems(next);
     setHighlightId(lastId);
+    setKitItemIds((prev) => new Set([...prev, ...touched]));
 
     setAppliedKitIds((prev) => (prev.includes(kit.id) ? prev : [...prev, kit.id]));
 
@@ -372,6 +380,7 @@ export function QuoteEditor() {
           onClick: () => {
             setItems(prevItems);
             setAppliedKitIds(prevAppliedKitIds);
+            setKitItemIds(prevKitItemIds);
             setSuggestionDismissed(false);
           },
         },
@@ -648,6 +657,7 @@ export function QuoteEditor() {
             onPatch={handleItemPatch}
             onRemove={handleRemoveItem}
             onSwapEquivalent={handleSwapEquivalent}
+            kitItemIds={kitItemIds}
             highlightId={highlightId}
             partsById={partsById}
             allParts={allParts}
