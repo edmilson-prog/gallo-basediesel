@@ -29,9 +29,10 @@ const shortDate = (iso: string) => {
 export interface IFiscalNotesTableProps {
   notes: IFiscalNote[];
   scrollRef?: (el: HTMLDivElement | null) => void;
+  onOpen: (note: IFiscalNote) => void;
 }
 
-export function FiscalNotesTable({ notes, scrollRef }: IFiscalNotesTableProps) {
+export function FiscalNotesTable({ notes, scrollRef, onOpen }: IFiscalNotesTableProps) {
   const { widths, totalWidth, startResize } = useResizableColumns<ColumnId>(
     COLUMNS,
     "gallo-fiscal-notes-column-widths",
@@ -72,7 +73,11 @@ export function FiscalNotesTable({ notes, scrollRef }: IFiscalNotesTableProps) {
             const pending = note.items.filter((item) => !item.confirmed).length;
             const isReview = note.status === "conferencia";
             return (
-              <tr key={note.id} className="border-b border-border">
+              <tr
+                key={note.id}
+                onClick={() => onOpen(note)}
+                className="cursor-pointer border-b border-border transition-colors hover:bg-muted/40 motion-reduce:transition-none"
+              >
                 <td className="px-3 py-2">
                   <p className="truncate text-[13px] font-medium text-foreground">
                     NF {note.number} · série {note.series}

@@ -3,8 +3,13 @@ import type {
   ICreateFiscalNoteInput,
   IFiscalNotesProvider,
   IListFiscalNotesParams,
+  IPostContext,
   IUpdateFiscalNoteItemPatch,
 } from "../../contracts/fiscalNotes";
+import {
+  computePostEffects,
+  validateForPosting,
+} from "@/features/fiscal-notes/engine/postEffects";
 import type { IPaginatedResult } from "../../contracts/_shared";
 
 /**
@@ -98,6 +103,55 @@ export const mockFiscalNotesProvider: IFiscalNotesProvider = {
     const updated: IFiscalNote = {
       ...current,
       status: "cancelada",
+      updatedAt: new Date().toISOString(),
+    };
+    notes = notes.map((n) => (n.id === id ? updated : n));
+    return updated;
+  },
+
+  async post(id: ID, ctx: IPostContext): Promise<IFiscalNote> {
+    const current = notes.find((n) => n.id === id);
+    if (!current) throw new Error(`[mock] fiscalNotes.post(${id}): nota não encontrada`);
+    if (current.status === "lancada") {
+      throw new Error(`[mock] fiscalNotes.post(${id}): nota já lançada — corrigir é estornar`);
+    }
+
+    // Mesma validação que a RPC repete em SQL: item pendente, fator ausente ou
+    // fracionamento sem destino barram o lançamento nas duas fontes.
+    const validation = validateForPosting(current);
+    if (!validation.ok) {
+      throw new Error(
+        `[mock] fiscalNotes.post(${id}): nota com ${validation.blockers.length} item(ns) por conferir`,
+      );
+    }
+
+    // Calculado para o mock refletir o mesmo efeito da RPC. O catálogo em
+    // memória é do chamador — aplicar aqui acoplaria as fatias do provider.
+    computePostEffects(current, new Map(ctx.parts.map((part) => [part.id, part])));
+
+    const now = new Date().toISOString();
+    const updated: IFiscalNote = {
+      ...current,
+      status: "lancada",
+      postedAt: now,
+      postedBy: "mock-seller",
+      updatedAt: now,
+    };
+    notes = notes.map((n) => (n.id === id ? updated : n));
+    return updated;
+  },
+
+  async reverse(id: ID, _ctx: IPostContext): Promise<IFiscalNote> {
+    const current = notes.find((n) => n.id === id);
+    if (!current) throw new Error(`[mock] fiscalNotes.reverse(${id}): nota não encontrada`);
+    if (current.status !== "lancada") {
+      throw new Error(`[mock] fiscalNotes.reverse(${id}): só nota lançada pode ser estornada`);
+    }
+
+    const { postedAt: _postedAt, postedBy: _postedBy, ...rest } = current;
+    const updated: IFiscalNote = {
+      ...rest,
+      status: "conferencia",
       updatedAt: new Date().toISOString(),
     };
     notes = notes.map((n) => (n.id === id ? updated : n));

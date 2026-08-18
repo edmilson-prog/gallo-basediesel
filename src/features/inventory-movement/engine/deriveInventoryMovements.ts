@@ -1,8 +1,14 @@
-import type { IInventoryMovement, IOrder, IPart } from "@/shared/types";
+import type { IFiscalNote, IInventoryMovement, IOrder, IPart } from "@/shared/types";
+import { computeItemEffect } from "@/features/fiscal-notes/engine/postEffects";
 
 export interface IDeriveMovementsContext {
   orders: IOrder[];
   parts: IPart[];
+  /**
+   * Notas fiscais de entrada LANÇADAS (PRD-216 RF-102). Opcional para não
+   * quebrar quem já chamava com pedidos apenas.
+   */
+  fiscalNotes?: IFiscalNote[];
 }
 
 /**
@@ -28,8 +34,7 @@ export function deriveInventoryMovements(ctx: IDeriveMovementsContext): IInvento
       ? (order.returnedAt ?? order.paidAt ?? order.updatedAt)
       : (order.paidAt ?? order.updatedAt ?? order.createdAt);
 
-    for (let i = 0; i < order.items.length; i += 1) {
-      const item = order.items[i];
+    for (const item of order.items) {
       const part = partsById.get(item.partId);
       const partOem = pickPrimaryOemCode(part);
 
@@ -47,6 +52,36 @@ export function deriveInventoryMovements(ctx: IDeriveMovementsContext): IInvento
         performedAt: baseTimestamp,
         storeId: order.storeId,
         notes: isReturned ? order.returnReason : undefined,
+      });
+    }
+  }
+
+  // Segunda fonte do ledger: nota fiscal lançada (PRD-216 RF-102). O tipo
+  // `entrada_compra` e o campo `invoiceNumber` estavam reservados desde o
+  // PRD-052 — é aqui que saem do limbo, sem tabela nova.
+  for (const note of ctx.fiscalNotes ?? []) {
+    if (note.status !== "lancada") continue;
+
+    for (const item of note.items) {
+      const targetId = item.conversionMode === "frac" ? item.conversionTargetPartId : item.partId;
+      if (!targetId) continue;
+
+      const target = partsById.get(targetId);
+      const effect = computeItemEffect(item, note, target);
+      if (effect.stockQuantity === null || effect.stockQuantity === 0) continue;
+
+      out.push({
+        id: `mov-nf-${note.id}-${item.id}`,
+        type: "entrada_compra",
+        partId: targetId,
+        partName: target?.name ?? item.description,
+        partOemCode: pickPrimaryOemCode(target),
+        // Entrada sempre positiva.
+        quantity: effect.stockQuantity,
+        invoiceNumber: note.number,
+        performedBy: note.postedBy ?? "system",
+        performedAt: note.postedAt ?? note.updatedAt,
+        storeId: note.storeId,
       });
     }
   }

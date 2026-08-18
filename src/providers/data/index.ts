@@ -108,6 +108,7 @@ export type {
   IListFiscalNotesParams,
   ICreateFiscalNoteInput,
   IUpdateFiscalNoteItemPatch,
+  IPostContext,
   IMediaStorageProvider,
   IMediaUploadInput,
   IListMediaParams,

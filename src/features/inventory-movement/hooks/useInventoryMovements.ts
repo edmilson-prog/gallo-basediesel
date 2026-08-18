@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ID, IInventoryMovement, IOrder, IPart, MovementType } from "@/shared/types";
-import { FETCH_ALL_PAGE_SIZE, useOrdersProvider, usePartsProvider } from "@/providers/data";
+import {
+  FETCH_ALL_PAGE_SIZE,
+  useFiscalNotesProvider,
+  useOrdersProvider,
+  usePartsProvider,
+} from "@/providers/data";
 import { deriveInventoryMovements } from "../engine";
 import type { MovementPeriod } from "./useInventoryMovementsFilters";
 
@@ -54,6 +59,8 @@ export function useInventoryMovements(
 
   const storeScope: ID[] = filters.storeId === "all" ? accessibleStoreIds : [filters.storeId];
 
+  const fiscalNotesProvider = useFiscalNotesProvider();
+
   const ordersQuery = useQuery({
     queryKey: ["inventory-movement", "orders", storeScope.join(",")] as const,
     queryFn: async () => {
@@ -88,13 +95,34 @@ export function useInventoryMovements(
     enabled: storeScope.length > 0,
   });
 
+  // Segunda fonte do ledger (PRD-216 RF-102): notas lançadas viram
+  // `entrada_compra`. Só as lançadas — nota em conferência não move estoque.
+  const fiscalNotesQuery = useQuery({
+    queryKey: ["inventory-movement", "fiscal-notes", storeScope.join(",")] as const,
+    queryFn: async () => {
+      const results = await Promise.all(
+        storeScope.map((sid) =>
+          fiscalNotesProvider.list({
+            storeId: sid,
+            status: "lancada",
+            pageSize: PAGE_SIZE_PROVIDER,
+          }),
+        ),
+      );
+      return results.flatMap((r) => r.data);
+    },
+    staleTime: STALE_MS,
+    enabled: storeScope.length > 0,
+  });
+
   const all = useMemo<IInventoryMovement[]>(() => {
     if (!ordersQuery.data) return [];
     return deriveInventoryMovements({
       orders: ordersQuery.data,
       parts: partsQuery.data?.data ?? [],
+      fiscalNotes: fiscalNotesQuery.data ?? [],
     });
-  }, [ordersQuery.data, partsQuery.data]);
+  }, [ordersQuery.data, partsQuery.data, fiscalNotesQuery.data]);
 
   const filtered = useMemo<IInventoryMovement[]>(() => {
     const sinceIso = computeSinceIso(filters.period);

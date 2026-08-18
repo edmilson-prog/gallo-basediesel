@@ -3,6 +3,7 @@ import type {
   ICreateFiscalNoteInput,
   IFiscalNotesProvider,
   IListFiscalNotesParams,
+  IPostContext,
   IUpdateFiscalNoteItemPatch,
 } from "../../contracts/fiscalNotes";
 import type { IPaginatedResult } from "../../contracts/_shared";
@@ -336,6 +337,28 @@ export const supabaseFiscalNotesProvider: IFiscalNotesProvider = {
       .select(COLUMNS)
       .single();
     if (error) throw new Error(`[supabase] fiscalNotes.cancel(${id}) failed: ${error.message}`);
+    const row = data as unknown as FiscalNoteRow;
+    const [items, duplicates] = await hydrate(row.id);
+    return rowToNote(row, items, duplicates);
+  },
+
+  // `ctx` é ignorado nos dois métodos abaixo: o Postgres já tem o catálogo, e
+  // a RPC lê saldo e custo médio com `for update` dentro da própria transação.
+  async post(id: ID, _ctx: IPostContext): Promise<IFiscalNote> {
+    const { data, error } = await getSupabaseClient().rpc("post_fiscal_note", {
+      p_note_id: id,
+    });
+    if (error) throw new Error(`[supabase] fiscalNotes.post(${id}) failed: ${error.message}`);
+    const row = data as unknown as FiscalNoteRow;
+    const [items, duplicates] = await hydrate(row.id);
+    return rowToNote(row, items, duplicates);
+  },
+
+  async reverse(id: ID, _ctx: IPostContext): Promise<IFiscalNote> {
+    const { data, error } = await getSupabaseClient().rpc("reverse_fiscal_note", {
+      p_note_id: id,
+    });
+    if (error) throw new Error(`[supabase] fiscalNotes.reverse(${id}) failed: ${error.message}`);
     const row = data as unknown as FiscalNoteRow;
     const [items, duplicates] = await hydrate(row.id);
     return rowToNote(row, items, duplicates);

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import { useCurrentStore } from "@/features/multistore";
@@ -12,6 +13,7 @@ export function FiscalNotesImportPage() {
   const { currentStoreId, isHydrating } = useCurrentStore();
   const { importFile, isImporting } = useImportNfe(currentStoreId);
   const [queue, setQueue] = useState<IImportQueueEntry[]>([]);
+  const navigate = useNavigate();
   const s = FISCAL_NOTES_STRINGS;
 
   function patch(id: string, next: Partial<IImportQueueEntry>) {
@@ -29,6 +31,7 @@ export function FiscalNotesImportPage() {
         const outcome = await importFile(file);
         patch(id, {
           state: "done",
+          noteId: outcome.note.id,
           noteNumber: outcome.note.number,
           supplierName: outcome.supplierName,
           supplierCreated: outcome.supplierCreated,
@@ -68,7 +71,13 @@ export function FiscalNotesImportPage() {
                 {s.import.queueTitle}
               </h2>
               {queue.map((entry) => (
-                <ImportQueueItem key={entry.id} entry={entry} />
+                <ImportQueueItem
+                  key={entry.id}
+                  entry={entry}
+                  onReview={(noteId) =>
+                    void navigate({ to: "/app/suprimentos/entrada/$id", params: { id: noteId } })
+                  }
+                />
               ))}
             </section>
           )}
