@@ -19,10 +19,18 @@ export const mockActivityProvider: IActivityProvider = {
       generatedAt: new Date(0).toISOString(),
       conversations: [...byConversation.entries()].map(([id, list]) => {
         const last = list[list.length - 1]!;
-        // `created`/`assignment` are the only event types where `toSellerId` names the
-        // conversation's OWNER — `participant_add`/`participant_remove` reuse the field
-        // for the collaborator being added/removed, so they must be excluded here.
-        const ownerEvents = list.filter((e) => e.type === "created" || e.type === "assignment");
+        // The owner filter must be "not a participant event", NOT "is an assignment event".
+        // The SQL trigger (conversation_activity_capture) types an event `status` whenever
+        // the status changed, even if the seller ALSO changed in the same UPDATE — and
+        // taking over a conversation typically changes both at once. In production this
+        // means most real ownership changes are typed `status`, not `assignment` (measured:
+        // 1,478 `status` events carry a toSellerId vs. only 143 `assignment` events). So the
+        // owner-bearing event can be `created`, `assignment`, `status`, or `reopen` — the only
+        // types that never name the owner are `participant_add`/`participant_remove`, which
+        // reuse `toSellerId` for the collaborator being added/removed.
+        const ownerEvents = list.filter(
+          (e) => e.type !== "participant_add" && e.type !== "participant_remove" && e.toSellerId,
+        );
         const lastOwnerEvent = ownerEvents[ownerEvents.length - 1];
 
         return {
