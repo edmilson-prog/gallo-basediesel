@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   FETCH_ALL_PAGE_SIZE,
+  useAiProvider,
   useFiscalNotesProvider,
   usePartsProvider,
   useSuppliersProvider,
@@ -9,6 +10,7 @@ import {
 import type { ID, IFiscalNote } from "@/shared/types";
 import { NfeParseError, parseNfe } from "../engine/nfeParser";
 import { buildNoteFromNfe, supplierDraftFromEmitter } from "../engine/importNote";
+import { suggestPartLinkWithLlm } from "../api/suggestPartLink";
 import type { IMatchCandidate } from "../engine/itemMatcher";
 import { FISCAL_NOTES_STRINGS } from "../i18n/pt-BR";
 
@@ -41,6 +43,7 @@ export function useImportNfe(storeId: ID | null) {
   const notes = useFiscalNotesProvider();
   const suppliers = useSuppliersProvider();
   const parts = usePartsProvider();
+  const ai = useAiProvider();
   const queryClient = useQueryClient();
   const [isImporting, setIsImporting] = useState(false);
 
@@ -84,18 +87,47 @@ export function useImportNfe(storeId: ID | null) {
         ean: part.gtin,
       }));
 
-      const note = await notes.create(
-        buildNoteFromNfe({
-          nfe: parsed,
-          storeId,
-          supplierId: supplier.id,
-          origin: "upload",
-          candidates,
-          // Vazio nesta fase: o mapa cProd → SKU só passa a ser gravado no
-          // lançamento, que é da Fase 3.
-          mappedCodes: {},
-        }),
-      );
+      const draft = buildNoteFromNfe({
+        nfe: parsed,
+        storeId,
+        supplierId: supplier.id,
+        origin: "upload",
+        candidates,
+        // Vazio nesta fase: o mapa cProd → SKU só passa a ser gravado no
+        // lançamento, que é da Fase 3.
+        mappedCodes: {},
+      });
+
+      // RS-02: só o que a cascata determinística deixou em `pend` vai ao
+      // modelo. IA desligada ou sem chave no Vault devolve false, e o item
+      // segue pendente — a feature degrada, não quebra.
+      if (draft.items.some((item) => item.linkMode === "pend")) {
+        let llmEnabled = false;
+        try {
+          llmEnabled = await ai.isAiFeatureEnabled("part_identification");
+        } catch {
+          llmEnabled = false;
+        }
+
+        if (llmEnabled) {
+          for (const item of draft.items) {
+            if (item.linkMode !== "pend") continue;
+            const suggestion = await suggestPartLinkWithLlm({
+              supplierCode: item.supplierCode,
+              description: item.description,
+              ncm: item.ncm,
+              candidates,
+            });
+            if (!suggestion?.partId) continue;
+            item.linkMode = "ia";
+            item.partId = suggestion.partId;
+            item.aiConfidence = suggestion.confidence ?? undefined;
+            item.aiEvidence = suggestion.evidence ?? undefined;
+          }
+        }
+      }
+
+      const note = await notes.create(draft);
 
       await queryClient.invalidateQueries({ queryKey: ["fiscal-notes"] });
 

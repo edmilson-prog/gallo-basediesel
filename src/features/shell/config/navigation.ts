@@ -166,6 +166,12 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         to: ROUTES.APP_SUPRIMENTOS_IMPORTAR,
         permission: { resource: "supplies" },
       },
+      {
+        label: "Análise IA",
+        icon: "mdi:auto-fix",
+        to: ROUTES.APP_SUPRIMENTOS_ANALISE,
+        permission: { resource: "supplies" },
+      },
     ],
   },
   {

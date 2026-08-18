@@ -187,6 +187,12 @@ export const SETTINGS_GROUPS: ISettingsGroup[] = [
         permission: { resource: "settings_nps", action: "view" },
       },
       {
+        label: "Notas fiscais",
+        icon: "mdi:file-document-arrow-right-outline",
+        to: "/app/configuracoes/notas-fiscais",
+        permission: { resource: "settings_supplies", action: "view" },
+      },
+      {
         label: "Sons de notificação",
         icon: "mdi:music-note-outline",
         to: "/app/configuracoes/sons",

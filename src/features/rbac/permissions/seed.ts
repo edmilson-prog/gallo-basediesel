@@ -50,6 +50,7 @@ const RESOURCE_LABELS: Record<ResourceName, string> = {
   vehicleModel: "Modelos de veículo",
   modelKit: "Kits por modelo",
   supplies: "Notas de entrada",
+  settings_supplies: "Notas fiscais",
   quote: "Orçamentos",
   order: "Pedidos",
   commission: "Comissões",
@@ -128,6 +129,7 @@ const RESOURCE_GROUPS: Record<ResourceName, string> = {
   vehicleModel: "Catálogo",
   modelKit: "Catálogo",
   supplies: "Suprimentos",
+  settings_supplies: "Configuração",
   // Financeiro
   dre: "Financeiro",
   expense: "Financeiro",

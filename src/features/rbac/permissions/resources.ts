@@ -79,6 +79,8 @@ export const RESOURCES = [
   // Suprimentos (PRD-216 "Tally") — notas fiscais de entrada: importação,
   // conferência e lançamento. Governa o grupo SUPRIMENTOS inteiro na sidebar.
   "supplies",
+  // Tela de configuração das origens de ingestão de XML (PRD-216 Fase 4).
+  "settings_supplies",
 ] as const;
 
 export type ResourceName = (typeof RESOURCES)[number];

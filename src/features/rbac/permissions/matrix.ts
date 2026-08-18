@@ -89,6 +89,7 @@ const OWNER_ENTRIES: ScopedActions[] = [
   p("settings_automation", ["view", "edit"], "all"),
   p("settings_system", ["view", "edit"], "all"),
   p("settings_nps", ["view", "edit"], "all"),
+  p("settings_supplies", ["view", "edit"], "all"),
 ];
 
 const GESTOR_ENTRIES: ScopedActions[] = [
@@ -157,6 +158,9 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   // Read-only: the Gestor sees how the NPS survey is tuned, but only the Owner
   // changes triggers, cooldown and the mass-dispatch backstops.
   p("settings_nps", ["view"], "store"),
+  // Vê como está, mas não liga origem: e-mail e SEFAZ mexem em credencial e
+  // certificado, decisão do dono.
+  p("settings_supplies", ["view"], "store"),
   // Not granted (Owner-only today): settings_api_keys, settings_ai, settings_system.
 ];
 

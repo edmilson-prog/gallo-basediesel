@@ -8,3 +8,4 @@ export * from "./itemMatcher";
 export * from "./analysis";
 export * from "./importNote";
 export * from "./postEffects";
+export * from "./analysisInput";
