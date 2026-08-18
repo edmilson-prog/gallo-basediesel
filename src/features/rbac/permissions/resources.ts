@@ -76,6 +76,9 @@ export const RESOURCES = [
   // NPS survey configuration: triggers, anti-fatigue windows and the two
   // mass-dispatch backstops.
   "settings_nps",
+  // Suprimentos (PRD-216 "Tally") — notas fiscais de entrada: importação,
+  // conferência e lançamento. Governa o grupo SUPRIMENTOS inteiro na sidebar.
+  "supplies",
 ] as const;
 
 export type ResourceName = (typeof RESOURCES)[number];

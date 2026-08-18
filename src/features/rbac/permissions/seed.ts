@@ -49,6 +49,7 @@ const RESOURCE_LABELS: Record<ResourceName, string> = {
   part: "Catálogo",
   vehicleModel: "Modelos de veículo",
   modelKit: "Kits por modelo",
+  supplies: "Notas de entrada",
   quote: "Orçamentos",
   order: "Pedidos",
   commission: "Comissões",
@@ -126,6 +127,7 @@ const RESOURCE_GROUPS: Record<ResourceName, string> = {
   part: "Catálogo",
   vehicleModel: "Catálogo",
   modelKit: "Catálogo",
+  supplies: "Suprimentos",
   // Financeiro
   dre: "Financeiro",
   expense: "Financeiro",
@@ -189,6 +191,10 @@ export function buildResourceSeed(): IRbacResource[] {
     "Comercial",
     "Atendimento",
     "Catálogo",
+    // Suprimentos entre Catálogo e Financeiro: alimenta o custo do primeiro e
+    // as duplicatas do segundo. Grupo fora desta lista cai em indexOf() === -1
+    // e ordena ANTES de tudo.
+    "Suprimentos",
     "Financeiro",
     "E-commerce",
     "Gestão",

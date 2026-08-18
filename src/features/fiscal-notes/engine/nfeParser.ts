@@ -118,7 +118,9 @@ export function parseNfe(xml: string): IParsedNfe {
 
   // Aceita tanto o XML autorizado (<nfeProc>) quanto a NF-e solta (<NFe>).
   const inf =
-    child(root, "nfeProc", "NFe", "infNFe") ?? child(root, "NFe", "infNFe") ?? child(root, "infNFe");
+    child(root, "nfeProc", "NFe", "infNFe") ??
+    child(root, "NFe", "infNFe") ??
+    child(root, "infNFe");
   if (!inf) throw new NfeParseError("XML não é uma NF-e — bloco <infNFe> não encontrado.");
 
   const accessKey = (inf.attrs.Id ?? "").replace(/^NFe/i, "").replace(/\D/g, "");
