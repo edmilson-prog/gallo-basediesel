@@ -10,7 +10,7 @@ export interface ISuppliersListFilters {
   category: string | "all";
 }
 
-/** Accent-insensitive fold, mirroring `fold()` in `src/mocks/api/suppliers.ts`. */
+/** Accent-insensitive fold for the client-side search filter below. */
 function fold(value: string): string {
   return value
     .normalize("NFD")
@@ -34,6 +34,11 @@ export function useSuppliersList(filters: ISuppliersListFilters) {
   });
 
   const all: ISupplier[] = query.data?.data ?? [];
+  // `list()` requests `count: "exact"` from PostgREST, so `total` is the real
+  // row count even past PostgREST's 1.000-row cap on `data` — unlike
+  // `all.length`, which silently truncates once the active set crosses that
+  // size. KPIs that state a headline count must read `total`, not the array.
+  const total = query.data?.total ?? all.length;
   const visible = all.filter((s) => {
     // Normalized the same way `SuppliersTable`/`SuppliersFiltersBar` display
     // and count categories: an XML-imported supplier's `category` is `null`
@@ -52,6 +57,7 @@ export function useSuppliersList(filters: ISuppliersListFilters) {
   return {
     all,
     visible,
+    total,
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,

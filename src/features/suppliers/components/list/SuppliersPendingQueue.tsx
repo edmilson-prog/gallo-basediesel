@@ -98,7 +98,10 @@ export function SuppliersPendingQueue({
           scrollbox would hide exactly what this queue exists to show — the
           size of the gap between registered suppliers and loose catalog
           names. */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div
+        id="suppliers-pending-queue-list"
+        className="overflow-hidden rounded-xl border border-border bg-card"
+      >
         {visibleItems.map((pending) => (
           <div
             key={pending.key}
@@ -136,6 +139,8 @@ export function SuppliersPendingQueue({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          aria-controls="suppliers-pending-queue-list"
           className="mt-2 text-xs font-semibold text-primary hover:underline"
         >
           {expanded ? COPY.showLess : COPY.viewAll(items.length)}

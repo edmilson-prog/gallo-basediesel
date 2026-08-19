@@ -8,6 +8,14 @@ const COPY = SUPPLIERS_STRINGS.kpis;
 
 interface ISuppliersKpiStripProps {
   suppliers: ISupplier[];
+  /**
+   * The real row count from `list()`'s `count: "exact"` — not
+   * `suppliers.length`. PostgREST caps `.range()` responses at 1.000 rows,
+   * so once the active set passes that size the array silently truncates
+   * while this count stays accurate. This is what "Fornecedores ativos"
+   * must render.
+   */
+  totalActive: number;
   statsIndex: Map<ID, ISupplierStats> | null;
   /**
    * `null` while the pending-queue fetch hasn't resolved (still loading, or
@@ -30,12 +38,12 @@ interface ISuppliersKpiStripProps {
 
 export function SuppliersKpiStrip({
   suppliers,
+  totalActive,
   statsIndex,
   pendingCount,
   onFocusPending,
   hasError = false,
 }: ISuppliersKpiStripProps) {
-  const active = suppliers.length;
   const linkedParts = statsIndex
     ? Array.from(statsIndex.values()).reduce((sum, s) => sum + s.linkedParts, 0)
     : null;
@@ -59,7 +67,7 @@ export function SuppliersKpiStrip({
     accent?: boolean;
     onClick?: () => void;
   }> = [
-    { label: COPY.active, value: hasError ? "—" : String(active), icon: "mdi:domain" },
+    { label: COPY.active, value: hasError ? "—" : String(totalActive), icon: "mdi:domain" },
     {
       label: COPY.pending,
       value: pendingCount === null ? "—" : String(pendingCount),

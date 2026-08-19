@@ -20,10 +20,13 @@ interface ISupplierRailProps {
 
 /**
  * Identity + metrics rail for the selected supplier row. `stats` is `null`
- * both while `useSuppliersStatsIndex` is loading and when the supplier
- * legitimately has no stats row — either way the KPIs read "—", never a
- * fabricated zero. The "Em aberto" metric from the design kit is absent on
- * purpose: it needs the `payable` entity, which does not exist yet.
+ * while `useSuppliersStatsIndex` is still loading, and also while its batch
+ * query is disabled because neither the "parts" nor the "purchases" column
+ * is visible — it does not mean the supplier has no stats. The 2×2 metrics
+ * read "—" for either case; the "Últimas entradas" section below instead
+ * distinguishes loading from empty, same three-way split as `SupplierSheet`.
+ * The "Em aberto" metric from the design kit is absent on purpose: it needs
+ * the `payable` entity, which does not exist yet.
  */
 export function SupplierRail({
   supplier,
@@ -128,7 +131,9 @@ export function SupplierRail({
           {COPY.rail.lastEntries}
         </h3>
         <div className="p-4">
-          {stats?.lastEntries.length ? (
+          {stats === null ? (
+            <p className="text-xs text-muted-foreground">{COPY.sheet.statsLoading}</p>
+          ) : stats.lastEntries.length ? (
             <ul className="grid">
               {stats.lastEntries.slice(0, 4).map((entry, index) => (
                 <li

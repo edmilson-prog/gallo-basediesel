@@ -226,6 +226,7 @@ export function SuppliersListPage() {
             <div className="mt-4">
               <SuppliersKpiStrip
                 suppliers={list.all}
+                totalActive={list.total}
                 statsIndex={statsIndex}
                 pendingCount={pending ? pending.length : null}
                 onFocusPending={focusPendingQueue}

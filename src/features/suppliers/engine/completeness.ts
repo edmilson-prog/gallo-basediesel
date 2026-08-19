@@ -1,10 +1,11 @@
 import type { ISupplier } from "@/shared/types";
 
 /**
- * The list is an enrichment queue: the ~126 suppliers backfilled from the
- * catalog arrive with a name and nothing else. The `Cadastro` column shows what
- * is MISSING rather than an empty cell, and clicking it opens the form on that
- * field — same move the catalog list made for parts.
+ * A registered supplier — one with a `cnpj`, whether it arrived via NF-e
+ * import or the CNPJ-first form — can still be missing every optional
+ * profile field below. The `Cadastro` column shows what is MISSING rather
+ * than an empty cell, and clicking it opens the form on that field — same
+ * move the catalog list made for parts.
  */
 
 export type SupplierMissingField = "paymentTerms" | "leadTimeDays" | "contact" | "suppliedItems";
