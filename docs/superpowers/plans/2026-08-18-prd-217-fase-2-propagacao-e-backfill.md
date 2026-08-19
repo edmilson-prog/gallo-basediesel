@@ -1016,20 +1016,27 @@ update public.ads a
 
 ⚠️ **Corrigido em 19/08, depois de rodar.** A primeira versão deste passo usava `greatest(t.last_occ, a.last_seen_at)` no `last_seen_at` e filtrava só por `t.first_occ < a.first_seen_at` — a intenção era não regredir um valor legitimamente mais novo. Só que num anúncio **criado pelo próprio backfill** o `last_seen_at` já nasce com a data de hoje, então o `greatest` **preservava justamente o valor errado**: dois dos cinco anúncios ficaram marcando 19/08 com clique único de 18/07 e 24/07 — um mês de mentira. Todo clique observado tem um toque (o descartado por `on conflict do nothing` é duplicata de um que já está lá), então `max(occurred_at)` **é** o último clique real: sem `greatest`.
 
-Conferência depois de rodar — as três têm de dar zero:
+Conferência depois de rodar — as quatro têm de dar zero:
 
 ```sql
 select
   (select count(*) from public.ads a
-     join (select ad_id, min(occurred_at) f, max(occurred_at) l
-             from public.ad_touches group by ad_id) t on t.ad_id = a.id
-    where a.first_seen_at <> t.f or a.last_seen_at <> t.l) as datas_divergentes,
+     join (select ad_id, min(occurred_at) f from public.ad_touches group by ad_id) t on t.ad_id = a.id
+    where a.first_seen_at <> t.f) as first_seen_errado,
+  (select count(*) from public.ads a
+     join (select ad_id, max(occurred_at) l from public.ad_touches group by ad_id) t on t.ad_id = a.id
+    where a.last_seen_at < t.l) as last_seen_atrasado,
+  (select count(*) from public.ads a
+     join (select ad_id, max(occurred_at) l from public.ad_touches group by ad_id) t on t.ad_id = a.id
+    where a.last_seen_at > t.l + interval '1 hour') as last_seen_adiantado_demais,
   (select count(*) from public.ads a
      where not exists (select 1 from public.ad_touches t where t.ad_id = a.id)) as anuncio_sem_toque,
   (select count(*) from public.conversations c
      where c.ad_referral is not null
        and not exists (select 1 from public.ad_touches t where t.conversation_id = c.id)) as orfas_restantes;
 ```
+
+⚠️ **Por que `last_seen_at` não é igualdade exata.** `record_ad_touch` grava `last_seen_at = now()` — o instante em que o webhook processou a mensagem — enquanto `occurred_at` é o carimbo do clique no provedor. Num anúncio em veiculação a diferença é de **1 a 3 segundos**, medido em 19/08. Igualdade exata acusa divergência em todo anúncio ativo e manda quem confere caçar fantasma. O que importa é: `last_seen_at` nunca **atrás** do último toque, e nunca mais de uma hora **à frente** — esse segundo limite é o que pega o artefato de anúncio criado pelo backfill, que nasce com a data de hoje.
 
 - [ ] **Step 6 (GATED): fechar o gate da Fase 2**
 
