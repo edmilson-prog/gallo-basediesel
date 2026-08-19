@@ -50,6 +50,7 @@ import { QuoteSendBar } from "./summary/QuoteSendBar";
 import { QuotePreviewDialog } from "./preview/QuotePreviewDialog";
 import { QuoteSendDialog, type IQuoteSendChannels } from "./send/QuoteSendDialog";
 import { buildQuoteWhatsAppText } from "../../engine/quoteMessage";
+import type { IImportSelection } from "../../engine/quoteImport";
 import { useSendQuoteWhatsApp } from "../../hooks/useSendQuoteWhatsApp";
 import { sendQuoteEmail } from "../../api/sendQuoteEmail";
 import { useAccessibleConnectedAccounts } from "@/features/conversations/hooks/useAccessibleConnectedAccounts";
@@ -356,6 +357,39 @@ export function QuoteEditor() {
     setItems((prev) => [...prev, item]);
     setHighlightId(item.id);
   };
+  /**
+   * Everything the seller confirmed in Importar, added in one step so a single
+   * Desfazer undoes the whole list — a twelve-line paste is one decision, not
+   * twelve.
+   */
+  const handleImport = (selection: IImportSelection) => {
+    const count = selection.catalog.length + selection.free.length;
+    if (count === 0) return;
+    const prevItems = items;
+
+    let next = items;
+    let lastId: ID | null = null;
+    for (const { partId, quantity } of selection.catalog) {
+      const part = partsById.get(partId);
+      if (!part) continue;
+      const result = addOrIncrementItem(next, part, quantity);
+      next = result.items;
+      lastId = result.affectedId;
+    }
+    for (const free of selection.free) {
+      const item = buildFreeItem(free);
+      next = [...next, item];
+      lastId = item.id;
+    }
+
+    setItems(next);
+    setHighlightId(lastId);
+    toast.success(
+      `${count} ${count === 1 ? "item adicionado" : "itens adicionados"} da importação.`,
+      { action: { label: "Desfazer", onClick: () => setItems(prevItems) } },
+    );
+  };
+
   const handleSwapEquivalent = (itemId: ID, equivalent: IPart) => {
     const result = swapItemPart(items, itemId, equivalent);
     setItems(result.items);
@@ -780,6 +814,7 @@ export function QuoteEditor() {
             inQuoteQtyByPart={inQuoteQtyByPart}
             onAddPart={handleAddPart}
             onAddFreeItem={handleAddFreeItem}
+            onImport={handleImport}
             rankedKits={rankedKits}
             kitsLoading={modelKitsQuery.isLoading}
             onApplyKit={handleApplyKit}

@@ -10,7 +10,9 @@ import {
 
 const STORAGE_KEY = "gallo-quote-editor-prefs";
 const LAYOUTS: QuoteLayout[] = ["twoCol", "full", "footerBar"];
-const ADD_MODES: QuoteAddMode[] = ["continuous", "catalog", "quick"];
+// "quick" existiu até o modo Importar substituí-lo; um valor antigo no
+// localStorage não está aqui e cai no default, que é o que se quer.
+const ADD_MODES: QuoteAddMode[] = ["continuous", "catalog", "import"];
 const DENSITIES: QuoteDensity[] = ["comfortable", "compact"];
 
 function readPrefs(): IQuoteEditorPrefs {

@@ -3,7 +3,7 @@
 export type QuoteLayout = "twoCol" | "full" | "footerBar";
 
 /** Item-adding interaction mode. */
-export type QuoteAddMode = "continuous" | "catalog" | "quick";
+export type QuoteAddMode = "continuous" | "catalog" | "import";
 
 /** Table row density of the quote editor. */
 export type QuoteDensity = "comfortable" | "compact";
@@ -55,7 +55,7 @@ export const QUOTE_ADD_MODE_OPTIONS: ReadonlyArray<{
 }> = [
   { value: "continuous", label: "Contínuo", icon: "mdi:playlist-plus" },
   { value: "catalog", label: "Catálogo", icon: "mdi:view-grid-plus-outline" },
-  { value: "quick", label: "Rápido", icon: "mdi:keyboard-outline" },
+  { value: "import", label: "Importar", icon: "lucide:sparkles" },
 ];
 
 export const QUOTE_DENSITY_OPTIONS: ReadonlyArray<{
