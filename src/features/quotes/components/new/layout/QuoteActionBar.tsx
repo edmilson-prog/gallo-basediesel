@@ -16,6 +16,8 @@ export interface IQuoteActionBarProps {
   needsApproval: boolean;
   onSaveDraft: () => void;
   onSaveSend: () => void;
+  /** Opens the customer-facing preview of the quote. */
+  onPreview: () => void;
   /** ISO timestamp of the last autosave, shown as "salvo às HH:MM". */
   savedAt?: string | null;
 }
@@ -36,6 +38,7 @@ export function QuoteActionBar({
   needsApproval,
   onSaveDraft,
   onSaveSend,
+  onPreview,
   savedAt,
 }: IQuoteActionBarProps) {
   return (
@@ -49,18 +52,24 @@ export function QuoteActionBar({
         Voltar
       </button>
       <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
-      <h1 className="shrink-0 text-lg font-semibold text-foreground">Novo orçamento</h1>
+      <h1 className="shrink-0 font-display text-[21px] font-extrabold uppercase leading-none tracking-[0.02em] text-foreground">
+        Novo orçamento
+      </h1>
       <span className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         Rascunho
       </span>
       {savedAt && (
-        <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
+        <span className="inline-flex shrink-0 items-center gap-1 font-semicond text-[11.5px] text-muted-foreground">
           <Icon icon="mdi:check-all" size={13} />
           salvo às {timeFormatter.format(new Date(savedAt))}
         </span>
       )}
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        <Button variant="ghost" size="sm" onClick={onPreview}>
+          <Icon icon="mdi:eye-outline" size={16} />
+          Pré-visualizar
+        </Button>
         <DisplayMenu
           layout={layout}
           onLayoutChange={onLayoutChange}

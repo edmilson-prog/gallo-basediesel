@@ -18,7 +18,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "sync:fiscal": "bun run scripts/sync-fiscal-shared.ts"
+    "sync:fiscal": "bun run scripts/sync-fiscal-shared.ts",
+    "fn:deploy": "supabase functions deploy --project-ref njizaasajkdqptlxddqn"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -255,7 +255,7 @@ function Totals(props: IQuoteSummaryPanelProps) {
         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Total
         </span>
-        <span className="text-3xl font-bold leading-none tabular-nums text-foreground">
+        <span className="font-display text-[34px] font-extrabold leading-[0.88] tabular-nums text-foreground">
           {moneyFormatter.format(props.total)}
         </span>
       </div>
@@ -353,7 +353,7 @@ export function QuoteSummaryPanel(props: IQuoteSummaryPanelProps) {
             <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">
               Total
             </span>
-            <span className="text-2xl font-bold tabular-nums text-foreground">
+            <span className="font-display text-[30px] font-extrabold leading-[0.9] tabular-nums text-foreground">
               {moneyFormatter.format(props.total)}
             </span>
           </div>

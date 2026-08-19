@@ -113,7 +113,7 @@ export function FreeItemDraftRow({
         <span className="text-right text-xs text-muted-foreground">—</span>
 
         <span
-          className={`text-right text-[15px] font-semibold tabular-nums ${
+          className={`text-right font-display text-base font-extrabold tabular-nums ${
             valid ? "text-foreground" : "text-muted-foreground"
           }`}
         >
@@ -155,7 +155,7 @@ export function FreeItemDraftRow({
           );
         })}
         <span className="ml-auto flex items-center gap-2">
-          <span className="text-[11px] text-muted-foreground">
+          <span className="font-semicond text-[11.5px] text-muted-foreground">
             {valid ? "Enter adiciona · Esc cancela" : "descrição e preço são obrigatórios"}
           </span>
           <Button type="button" size="sm" disabled={!valid} onClick={onCommit}>

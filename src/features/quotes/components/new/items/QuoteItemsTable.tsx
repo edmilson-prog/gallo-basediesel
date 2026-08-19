@@ -156,7 +156,7 @@ export function QuoteItemsTable({
                           </span>
                         )}
                       </p>
-                      <p className="truncate text-[11px] text-muted-foreground">
+                      <p className="truncate font-semicond text-[11.5px] text-muted-foreground">
                         {isFree ? (
                           <>sem cadastro</>
                         ) : part ? (
@@ -258,11 +258,11 @@ export function QuoteItemsTable({
                     </div>
 
                     <div className="text-right">
-                      <p className="text-[15px] font-semibold leading-tight tabular-nums text-foreground">
+                      <p className="font-display text-base font-extrabold leading-tight tabular-nums text-foreground">
                         {moneyFormatter.format(it.total)}
                       </p>
                       {it.discount > 0 && (
-                        <p className="text-[11px] tabular-nums text-muted-foreground line-through">
+                        <p className="font-semicond text-[11px] tabular-nums text-muted-foreground line-through">
                           {moneyFormatter.format(gross)}
                         </p>
                       )}
@@ -316,7 +316,9 @@ export function QuoteItemsTable({
                 >
                   <Icon icon="mdi:plus" size={14} />
                   Adicionar item
-                  <kbd className="rounded border border-border px-1.5 text-[11px]">/</kbd>
+                  <kbd className="rounded border border-border px-1.5 font-semicond text-[11px]">
+                    /
+                  </kbd>
                 </button>
                 <button
                   type="button"
@@ -333,7 +335,7 @@ export function QuoteItemsTable({
               <span className="col-span-4 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Subtotal dos itens
               </span>
-              <span className="text-right text-base font-semibold tabular-nums text-foreground">
+              <span className="text-right font-display text-[17px] font-extrabold tabular-nums text-foreground">
                 {moneyFormatter.format(subtotal)}
               </span>
             </div>
