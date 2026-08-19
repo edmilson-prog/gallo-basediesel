@@ -16,6 +16,8 @@ export interface IQuoteActionBarProps {
   needsApproval: boolean;
   onSaveDraft: () => void;
   onSaveSend: () => void;
+  /** Opens the customer-facing preview of the quote. */
+  onPreview: () => void;
   /** ISO timestamp of the last autosave, shown as "salvo às HH:MM". */
   savedAt?: string | null;
 }
@@ -36,6 +38,7 @@ export function QuoteActionBar({
   needsApproval,
   onSaveDraft,
   onSaveSend,
+  onPreview,
   savedAt,
 }: IQuoteActionBarProps) {
   return (
@@ -63,6 +66,10 @@ export function QuoteActionBar({
       )}
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        <Button variant="ghost" size="sm" onClick={onPreview}>
+          <Icon icon="mdi:eye-outline" size={16} />
+          Pré-visualizar
+        </Button>
         <DisplayMenu
           layout={layout}
           onLayoutChange={onLayoutChange}

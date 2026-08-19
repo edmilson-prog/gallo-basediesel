@@ -47,6 +47,7 @@ import { QuoteSummaryPanel } from "./summary/QuoteSummaryPanel";
 import { QuoteConditions } from "./summary/QuoteConditions";
 import { QuoteNotes } from "./summary/QuoteNotes";
 import { QuoteSendBar } from "./summary/QuoteSendBar";
+import { QuotePreviewDialog } from "./preview/QuotePreviewDialog";
 
 function addDays(d: Date, days: number): Date {
   const out = new Date(d);
@@ -66,7 +67,7 @@ export function QuoteEditor() {
   };
   const queryClient = useQueryClient();
   const { currentUser } = useAuth();
-  const { currentStoreId } = useCurrentStore();
+  const { currentStore, currentStoreId } = useCurrentStore();
   const role = useCurrentRole();
   const provider = useQuotesProvider();
   const vehiclesProvider = useVehiclesProvider();
@@ -144,6 +145,7 @@ export function QuoteEditor() {
   );
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const draftInput = useMemo(
     () => ({
@@ -464,6 +466,66 @@ export function QuoteEditor() {
   };
 
   // --- Save ---
+  /** The create payload for the current editor state, under a given number. */
+  const buildQuoteInput = (status: IQuote["status"], number: string) => ({
+    storeId,
+    number,
+    // Mutually exclusive by contract (IQuote): one of the two, never both.
+    ...(customer ? { customerId: customer.id } : { leadId: leadRecipient?.id }),
+    sellerId: currentUser?.sellerId ?? "system",
+    items,
+    subtotal: totals.subtotal,
+    discount: totals.discount,
+    discountReason: needsJustification ? discountReason : undefined,
+    shipping: totals.shipping,
+    total: totals.total,
+    paymentCondition: composePaymentCondition(paymentMethod, paymentTerms),
+    paymentMethod,
+    paymentTerms,
+    deliveryAddress: customer?.address ?? leadRecipient?.address,
+    ...(shippingSnapshot ? { shippingQuote: shippingSnapshot } : {}),
+    validUntil: new Date(`${validUntil}T23:59:59`).toISOString(),
+    status,
+    origin: "vendedor" as const,
+    division: "parts" as const,
+    requiresApproval: needsJustification,
+    notes: notes.trim() ? notes.trim() : undefined,
+    ...(appliedKitIds.length > 0 ? { appliedKitIds } : {}),
+  });
+
+  /**
+   * Save this quote and open a copy of it, mirroring the ficha's "Duplicar":
+   * both are drafts, the copy carries its own number. Two quotes come out of
+   * one click, which is the point — the original is what was just built, the
+   * copy is the next one, and the toast names both.
+   */
+  const handleDuplicate = async () => {
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
+    try {
+      const all = await provider.list({ pageSize: 1000 });
+      const number = generateQuoteNumber(all.data, storeId);
+      const original = await provider.create(buildQuoteInput("rascunho", number));
+      const copyNumber = generateQuoteNumber([...all.data, original], storeId);
+      const copy = await provider.create(buildQuoteInput("rascunho", copyNumber));
+      auditLog({
+        action: "quote_duplicate",
+        resource: "quote",
+        resourceId: copy.id,
+        after: { sourceQuoteId: original.id, number: copy.number },
+      });
+      await queryClient.invalidateQueries({ queryKey: ["quotes-list"] });
+      toast.success(`Rascunho #${original.number} salvo e duplicado em #${copy.number}.`);
+      clearDraft();
+      void navigate({ to: "/app/orcamentos/$id", params: { id: copy.id } });
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao duplicar o orçamento. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSave = async (sendNow: boolean) => {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
@@ -471,31 +533,7 @@ export function QuoteEditor() {
       const all = await provider.list({ pageSize: 1000 });
       const number = generateQuoteNumber(all.data, storeId);
       const status: IQuote["status"] = sendNow && !needsJustification ? "enviado" : "rascunho";
-      const created = await provider.create({
-        storeId,
-        number,
-        // Mutually exclusive by contract (IQuote): one of the two, never both.
-        ...(customer ? { customerId: customer.id } : { leadId: leadRecipient?.id }),
-        sellerId: currentUser?.sellerId ?? "system",
-        items,
-        subtotal: totals.subtotal,
-        discount: totals.discount,
-        discountReason: needsJustification ? discountReason : undefined,
-        shipping: totals.shipping,
-        total: totals.total,
-        paymentCondition: composePaymentCondition(paymentMethod, paymentTerms),
-        paymentMethod,
-        paymentTerms,
-        deliveryAddress: customer?.address ?? leadRecipient?.address,
-        ...(shippingSnapshot ? { shippingQuote: shippingSnapshot } : {}),
-        validUntil: new Date(`${validUntil}T23:59:59`).toISOString(),
-        status,
-        origin: "vendedor",
-        division: "parts",
-        requiresApproval: needsJustification,
-        notes: notes.trim() ? notes.trim() : undefined,
-        ...(appliedKitIds.length > 0 ? { appliedKitIds } : {}),
-      });
+      const created = await provider.create(buildQuoteInput(status, number));
       auditLog({
         action: "quote_create",
         resource: "quote",
@@ -580,6 +618,7 @@ export function QuoteEditor() {
         needsApproval={needsJustification}
         onSaveDraft={() => void handleSave(false)}
         onSaveSend={() => void handleSave(true)}
+        onPreview={() => setPreviewOpen(true)}
         savedAt={savedAt}
       />
 
@@ -691,6 +730,7 @@ export function QuoteEditor() {
               needsApproval={needsJustification}
               blocker={blocker}
               onSaveSend={() => void handleSave(true)}
+              onDuplicate={() => void handleDuplicate()}
             />
           </aside>
         )}
@@ -701,6 +741,23 @@ export function QuoteEditor() {
           <QuoteSummaryPanel {...summaryProps} variant="bar" />
         </div>
       )}
+
+      <QuotePreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        store={currentStore}
+        customer={customer}
+        lead={leadRecipient}
+        items={items}
+        subtotal={totals.subtotal}
+        discount={totals.discount}
+        shipping={totals.shipping}
+        total={totals.total}
+        paymentMethod={paymentMethod}
+        paymentTerms={paymentTerms}
+        validUntil={validUntil}
+        sellerName={currentUser?.displayName}
+      />
     </div>
   );
 }

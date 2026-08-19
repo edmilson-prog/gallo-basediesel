@@ -472,3 +472,26 @@ html [data-sonner-toast][data-type="info"] {
     display: none; /* Chrome / Safari / Opera */
   }
 }
+
+/* -------- Impressão --------------------------------------------------- */
+/* A pré-visualização do orçamento É o documento impresso: ao imprimir, tudo
+   some menos ela, e o navegador cuida do "salvar como PDF". */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #quote-preview-print,
+  #quote-preview-print * {
+    visibility: visible;
+  }
+
+  #quote-preview-print {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    border: 0;
+    padding: 0;
+    background: transparent;
+  }
+}
