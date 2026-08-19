@@ -13,13 +13,12 @@ import {
   ABC_KEYS,
   RECENCY_BUCKETS,
   STATUS_KEYS,
-  VEHICLE_BRANDS,
   type AbcKey,
   type ICustomersListFilters,
   type PositivationFilter,
-  type VehicleBrandName,
 } from "../../utils/listFilters";
 import type { INumericRange, RecencyBucket } from "@/providers/data";
+import { useVehicleBrandOptions } from "@/features/vehicles/hooks/useVehicleBrandOptions";
 
 const STATUS_LABELS: Record<CustomerStatus, string> = {
   ativo: "Ativo",
@@ -68,6 +67,7 @@ export function CustomersFiltersBar({
   className,
 }: ICustomersFiltersBarProps) {
   const activeCount = useMemo(() => countActive(filters), [filters]);
+  const { brands: brandOptions } = useVehicleBrandOptions();
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -174,11 +174,12 @@ export function CustomersFiltersBar({
           icon="mdi:truck"
           description="Filtrar por marca de veículo presente na frota do cliente"
           selected={filters.vehicleBrands}
+          searchable
           options={[
             { value: "any", label: "Qualquer veículo" },
-            ...VEHICLE_BRANDS.map((b) => ({ value: b, label: b })),
+            ...brandOptions.map((b) => ({ value: b, label: b })),
           ]}
-          onChange={(next) => patch({ vehicleBrands: next as (VehicleBrandName | "any")[] })}
+          onChange={(next) => patch({ vehicleBrands: next })}
         />
 
         <Tooltip>

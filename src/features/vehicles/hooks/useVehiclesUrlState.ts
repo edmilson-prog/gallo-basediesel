@@ -9,11 +9,9 @@ import {
   DEFAULT_SORT,
   EMPTY_FILTERS,
   PAGE_SIZES,
-  VEHICLE_BRANDS,
   type IVehiclesListFilters,
   type IVehiclesListSort,
   type PageSize,
-  type VehicleBrand,
 } from "../utils/listFilters";
 
 export interface IVehiclesListSearch {
@@ -52,7 +50,6 @@ const VALID_ORDER_DIR = new Set<VehiclesOrderDir>(["asc", "desc"]);
 
 const LIST_SEARCH_STORAGE_KEY = "gallo-vehicles-list-search";
 const VALID_STATUS = new Set<VehicleCadastroStatus>(CADASTRO_STATUS_KEYS);
-const VALID_BRANDS = new Set<string>(VEHICLE_BRANDS);
 
 function numberOrUndefined(v: unknown): number | undefined {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -101,8 +98,15 @@ function joinCsv(values: string[] | undefined): string | undefined {
   return values.join(",");
 }
 
-function parseBrands(raw: string | undefined): VehicleBrand[] {
-  return splitCsv(raw).filter((s): s is VehicleBrand => VALID_BRANDS.has(s));
+/**
+ * Brands are NOT validated against a closed list. The `brand` column is free
+ * text fed by imports, so a whitelist here would silently discard a valid
+ * `?brands=Volkswagen` deep link — which is exactly what it used to do for
+ * ~48% of the fleet. Unknown values simply match nothing downstream
+ * (`.in("brand", …)`), which is the honest outcome.
+ */
+function parseBrands(raw: string | undefined): string[] {
+  return splitCsv(raw);
 }
 
 function parseStatuses(raw: string | undefined): VehicleCadastroStatus[] {

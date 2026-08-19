@@ -1,8 +1,7 @@
 import type { ID, IVehicle, VehicleCadastroStatus } from "@/shared/types";
 import type { IListVehiclesParams, VehiclesOrderBy, VehiclesOrderDir } from "@/providers/data";
 
-export const VEHICLE_BRANDS = ["Volvo", "Scania", "Mercedes-Benz", "Ford", "Iveco"] as const;
-export type VehicleBrand = (typeof VEHICLE_BRANDS)[number];
+export { UNKNOWN_VEHICLE_BRAND, VEHICLE_BRANDS, type VehicleBrand } from "./vehicleBrands";
 
 export const CADASTRO_STATUS_KEYS: VehicleCadastroStatus[] = ["aprovado", "pendente", "rejeitado"];
 

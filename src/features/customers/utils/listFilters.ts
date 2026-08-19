@@ -1,10 +1,6 @@
 import type { CustomerStatus, ICustomer, ID } from "@/shared/types";
 import type { IListCustomersParams, INumericRange, RecencyBucket } from "@/providers/data";
 
-/** Vehicle brands selectable in the filter dropdown. */
-export const VEHICLE_BRANDS = ["Volvo", "Scania", "Mercedes-Benz", "Ford", "Iveco"] as const;
-export type VehicleBrandName = (typeof VEHICLE_BRANDS)[number];
-
 /** ABC keys, including "none" for unclassified. */
 export const ABC_KEYS = ["A", "B", "C", "none"] as const;
 export type AbcKey = (typeof ABC_KEYS)[number];
@@ -43,7 +39,13 @@ export interface ICustomersListFilters {
   recencyCustom?: { minDays?: number; maxDays?: number };
   ticketRange?: INumericRange;
   ltvRange?: INumericRange;
-  vehicleBrands: (VehicleBrandName | "any")[];
+  /**
+   * Vehicle brands present in the customer's fleet. Free text, not a closed
+   * union: the options are derived from the `vehicles` table (see
+   * `useVehicleBrandOptions`), so a brand added by a future import filters
+   * without a code change. `"any"` is the sentinel for "owns any vehicle".
+   */
+  vehicleBrands: string[];
   storeIds: ID[];
   /** Positivation status this month (PRD-044). "all" = no filter. */
   positivation: PositivationFilter;

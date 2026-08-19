@@ -35,7 +35,7 @@ import { useCurrentRole } from "@/features/rbac/hooks/useCurrentRole";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { VEHICLE_STRINGS } from "../i18n/pt-BR";
-import { VEHICLE_BRANDS } from "../utils/listFilters";
+import { useVehicleBrandOptions } from "../hooks/useVehicleBrandOptions";
 
 const COPY = VEHICLE_STRINGS.newModal;
 
@@ -68,6 +68,7 @@ export function NewVehicleModal({
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerListOpen, setCustomerListOpen] = useState(false);
   const [brand, setBrand] = useState("Volvo");
+  const { brands: brandOptions } = useVehicleBrandOptions();
   const [model, setModel] = useState("");
   const [year, setYear] = useState<number>(CURRENT_YEAR);
   const [engine, setEngine] = useState("");
@@ -281,12 +282,11 @@ export function NewVehicleModal({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {VEHICLE_BRANDS.map((b) => (
+                    {brandOptions.map((b) => (
                       <SelectItem key={b} value={b}>
                         {b}
                       </SelectItem>
                     ))}
-                    <SelectItem value="Outro">Outro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

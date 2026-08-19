@@ -11,10 +11,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   CADASTRO_STATUS_KEYS,
-  VEHICLE_BRANDS,
   countActiveFilters,
   type IVehiclesListFilters,
 } from "../../utils/listFilters";
+import { useVehicleBrandOptions } from "../../hooks/useVehicleBrandOptions";
 import { STATUS_LABEL } from "../../utils/vehicleDisplay";
 import { VEHICLE_STRINGS } from "../../i18n/pt-BR";
 
@@ -46,6 +46,7 @@ export function VehiclesFiltersBar({
   // "Pendentes" now lives in the header's queue chips, alongside the two other
   // enrichment backlogs it belongs with — see VehiclesQueueChips.
   const activeCount = countActiveFilters(filters);
+  const { brands: brandOptions } = useVehicleBrandOptions();
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -55,7 +56,8 @@ export function VehiclesFiltersBar({
           icon="mdi:car-info"
           description="Filtrar por marca do veículo"
           selected={filters.brands}
-          options={VEHICLE_BRANDS.map((b) => ({ value: b, label: b }))}
+          options={brandOptions.map((b) => ({ value: b, label: b }))}
+          searchable
           onChange={(next) => patch({ brands: next })}
         />
 

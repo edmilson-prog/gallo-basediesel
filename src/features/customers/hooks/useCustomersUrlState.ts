@@ -11,14 +11,12 @@ import {
   PAGE_SIZES,
   RECENCY_BUCKETS,
   STATUS_KEYS,
-  VEHICLE_BRANDS,
   type AbcKey,
   type CustomersOrderBy,
   type CustomersOrderDir,
   type ICustomersListFilters,
   type ICustomersListSort,
   type PageSize,
-  type VehicleBrandName,
 } from "../utils/listFilters";
 
 export interface ICustomersListSearch {
@@ -74,7 +72,6 @@ const PERSIST_EXCLUDE_KEYS = ["selected"] as const;
 const VALID_STATUS = new Set<CustomerStatus>(STATUS_KEYS);
 const VALID_ABC = new Set<AbcKey>(ABC_KEYS);
 const VALID_RECENCY = new Set<RecencyBucket>(RECENCY_BUCKETS);
-const VALID_BRANDS = new Set<string>([...VEHICLE_BRANDS, "any"]);
 
 /**
  * Permissive validator for `/app/clientes` URL search params. Unknown values
@@ -139,8 +136,13 @@ function parseAbc(raw: string | undefined): AbcKey[] {
 function parseRecency(raw: string | undefined): RecencyBucket[] {
   return splitCsv(raw).filter((s): s is RecencyBucket => VALID_RECENCY.has(s as RecencyBucket));
 }
-function parseBrands(raw: string | undefined): (VehicleBrandName | "any")[] {
-  return splitCsv(raw).filter((s): s is VehicleBrandName | "any" => VALID_BRANDS.has(s));
+/**
+ * Brands are NOT validated against a closed list — the `brand` column is free
+ * text fed by imports, so a whitelist would silently discard a valid
+ * `?brands=Volkswagen` deep link. Unknown values simply match no customer.
+ */
+function parseBrands(raw: string | undefined): string[] {
+  return splitCsv(raw);
 }
 
 function readFilters(search: ICustomersListSearch): ICustomersListFilters {

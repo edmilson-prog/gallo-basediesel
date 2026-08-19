@@ -204,6 +204,17 @@ export const vehiclesApi = {
     return runApi("vehiclesApi", "listByCustomer", () => selectVehiclesByCustomer(customerId));
   },
 
+  async listBrands(): Promise<string[]> {
+    return runApi("vehiclesApi", "listBrands", () => {
+      const seen = new Set<string>();
+      for (const vehicle of selectAllVehicles()) {
+        const brand = vehicle.brand?.trim();
+        if (brand) seen.add(brand);
+      }
+      return [...seen];
+    });
+  },
+
   async create(input: Omit<IVehicle, "id" | "createdAt" | "serviceHistory">): Promise<IVehicle> {
     return runApi("vehiclesApi", "create", () => {
       const vehicle: IVehicle = {

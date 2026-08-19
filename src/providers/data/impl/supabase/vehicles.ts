@@ -4,7 +4,7 @@ import type {
   IListVehiclesParams,
   IVehiclesProvider,
 } from "../../contracts/vehicles";
-import type { IPaginatedResult } from "../../contracts/_shared";
+import { FETCH_ALL_PAGE_SIZE, type IPaginatedResult } from "../../contracts/_shared";
 import { getSupabaseClient } from "@/shared/lib/supabase";
 import { fetchLargePage } from "./_pagination";
 
@@ -185,6 +185,36 @@ export const supabaseVehiclesProvider: IVehiclesProvider = {
     if (error)
       throw new Error(`[supabase] vehicles.listByCustomer(${customerId}) failed: ${error.message}`);
     return (data as VehicleRow[]).map(rowToVehicle);
+  },
+
+  async listBrands(): Promise<string[]> {
+    // PostgREST has no DISTINCT, so this scans the `brand` column and dedupes
+    // client-side. It MUST go through `fetchLargePage`: a single request caps
+    // at 1000 rows, and the table is already past that — a lone `.select()`
+    // would silently drop whichever brands live in the tail (the rarest ones,
+    // which are exactly the ones the old hard-coded list already hid).
+    // Ordering by (brand, id) keeps the range chunks a stable total order.
+    const { data } = await fetchLargePage<{ brand: string | null }>(
+      async (rangeFrom, rangeTo) => {
+        const { data, error, count } = await getSupabaseClient()
+          .from(TABLE)
+          .select("brand", { count: "exact" })
+          .order("brand", { ascending: true })
+          .order("id", { ascending: true })
+          .range(rangeFrom, rangeTo);
+        if (error) throw new Error(`[supabase] vehicles.listBrands failed: ${error.message}`);
+        return { data: (data ?? []) as { brand: string | null }[], count: count ?? 0 };
+      },
+      0,
+      FETCH_ALL_PAGE_SIZE,
+    );
+
+    const seen = new Set<string>();
+    for (const row of data) {
+      const brand = row.brand?.trim();
+      if (brand) seen.add(brand);
+    }
+    return [...seen];
   },
 
   async create(input: Omit<IVehicle, "id" | "createdAt" | "serviceHistory">): Promise<IVehicle> {
