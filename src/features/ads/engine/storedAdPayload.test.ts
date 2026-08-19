@@ -79,7 +79,7 @@ describe("adReferralFromStoredNode", () => {
     const nodeWithNumericSourceId = {
       title: "Filtro UFI: original de fábrica para sua caminhonete ou van diesel",
       body: "CATALISADORES COM FILTRO ORIGINAL E ENVIO PARA TODO O BRASIL!",
-      // Value only exercises the wrong type (number, not string) — magnitude/precision don't matter here.
+      // O valor só exercita o tipo errado (número, não string) — magnitude e precisão não importam aqui.
       sourceID: 120238998853430,
       sourceType: "ad",
     };

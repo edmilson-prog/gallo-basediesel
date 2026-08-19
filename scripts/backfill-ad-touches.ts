@@ -19,7 +19,13 @@
 //   POSIX:      AD_BACKFILL_CONFIRM_WRITE=yes bun run scripts/backfill-ad-touches.ts
 //   PowerShell: $env:AD_BACKFILL_CONFIRM_WRITE="yes"; bun run scripts/backfill-ad-touches.ts
 //
-// Flags: --from ISO  --to ISO  --window-hours N  --phase delivery|conversation|all
+// Flags: --window-hours N  --phase delivery|conversation|all
+//        --from ISO  --to ISO  (SÓ com --phase delivery)
+// --from/--to recortam só a passada precisa; com --phase all a aproximada
+// carimbaria data aproximada, de forma irreversível, em tudo que ficou fora da
+// janela. Por isso a combinação `--phase all --from/--to` é BLOQUEADA: para a
+// janela recortada use --phase delivery; para o backfill completo, --phase all
+// sem --from/--to.
 // --phase conversation sozinho pode duplicar toques (nenhum índice de dedupe
 // colapsa o par precisa+aproximada) — exige AD_BACKFILL_ALLOW_CONVERSATION_ONLY=yes.
 //
@@ -55,6 +61,13 @@ const SCRATCHPAD = join(ROOT, "scratchpad");
 const STORE_MATRIZ = "00000000-0000-0000-0000-000000000001";
 const AUDIT_ACTOR = "622d1d2c-0223-4133-91cd-0264c1fc29aa"; // Edmilson (operador)
 
+// Timestamp único da execução: nomeia o relatório e carimba o cabeçalho, para
+// que uma simulação posterior não sobrescreva o relatório do run real (que é o
+// artefato do gate). Dois-pontos são ilegais em nome de arquivo no Windows.
+const RUN_STARTED_AT = new Date().toISOString();
+const RUN_SLUG = RUN_STARTED_AT.replace(/[:.]/g, "-");
+const REPORT_FILENAME = `ad-touches-backfill-report-${RUN_SLUG}.md`;
+
 // PostgREST devolve no máximo 1.000 linhas por resposta, mesmo com a service
 // role key — é teto do servidor, não da chave. A passada aproximada já está em
 // 969 linhas hoje (2026-08-18) e cresce a cada conversa nova por anúncio: sem
@@ -66,7 +79,14 @@ const PAGE_SIZE = 500;
 
 function flag(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
-  return i >= 0 ? process.argv[i + 1] : undefined;
+  if (i < 0) return undefined;
+  const value = process.argv[i + 1];
+  // Flag presente mas sem valor (último token, ou seguida de outra flag) cairia
+  // no default em silêncio — `--window-hours` sozinho viraria 24. Falha alto.
+  if (value === undefined || value.startsWith("--")) {
+    throw new Error(`--${name} precisa de um valor.`);
+  }
+  return value;
 }
 
 const WINDOW_HOURS = Number(flag("window-hours") ?? 24);
@@ -85,7 +105,7 @@ if (!["all", "delivery", "conversation"].includes(PHASE)) {
 if (PHASE === "conversation" && process.env.AD_BACKFILL_ALLOW_CONVERSATION_ONLY !== "yes") {
   throw new Error(
     "Passada aproximada isolada pode duplicar toques (ver comentário acima do parse de --phase). " +
-      "Rode --phase all (ordem correta: precisa → aproximada) ou, se tiver certeza de que a passada " +
+      "Rode --phase all sem --from/--to (ordem correta: precisa → aproximada) ou, se tiver certeza de que a passada " +
       "precisa já cobriu esta janela, confirme com AD_BACKFILL_ALLOW_CONVERSATION_ONLY=yes.",
   );
 }
@@ -115,6 +135,21 @@ if (FROM_FLAG !== undefined && TO_FLAG !== undefined && new Date(FROM_FLAG) >= n
 // mesmo ruído que a validação acima já existe para evitar.
 if (FROM_FLAG !== undefined && TO_FLAG === undefined && new Date(FROM_FLAG) >= new Date()) {
   throw new Error("--from precisa ser anterior a agora (--to não informado usa o padrão 'agora').");
+}
+// --from/--to recortam SÓ a passada precisa. A aproximada varre todas as
+// órfãs, sem recorte — então `--phase all --from X` mediria a janela com data
+// real e carimbaria TODO o resto com data aproximada, de forma irreversível:
+// o log é append-only, e um `--phase all` completo depois ainda insere o toque
+// preciso por cima (occurred_at diferente ⇒ o índice único não colapsa),
+// deixando dois toques para o mesmo clique. Quem quer a janela recortada quer
+// a passada precisa sozinha, e para isso existe --phase delivery.
+if (PHASE === "all" && (FROM_FLAG !== undefined || TO_FLAG !== undefined)) {
+  throw new Error(
+    "--from/--to recortam só a passada precisa; com --phase all a aproximada varreria todas as " +
+      "órfãs e carimbaria data aproximada em conversas que a precisa ainda não mediu (irreversível). " +
+      "Para a janela recortada rode `--phase delivery --from ... --to ...`; " +
+      "para o backfill completo rode `--phase all` sem --from/--to.",
+  );
 }
 
 // ===== Row shapes ============================================================
@@ -304,6 +339,15 @@ async function fetchAllOrphanConversations(): Promise<OrphanRow[]> {
   // sido aplicados a esta chamada de RPC.
   let previousFirstKey: string | null = null;
   for (;;) {
+    // O PostgREST aplica este .order() POR FORA da função (ele envolve a RPC
+    // numa subconsulta e ordena o resultado), então o `order by c.created_at`
+    // de dentro de ad_backfill_orphan_conversations é código morto para este
+    // chamador: a passada aproximada processa em ordem de uuid, não cronológica.
+    // Consequência aceita pela RN-02: como record_ad_touch faz upsert de `ads`
+    // com coalesce, quem "vence" o texto do criativo passa a ser arbitrário
+    // (o primeiro uuid a chegar), não o toque mais antigo. A ordenação por
+    // conversation_id não é opcional — é a chave única que a sentinela de
+    // paginação abaixo precisa para detectar que o offset não avançou.
     const { data, error } = await sb
       .rpc("ad_backfill_orphan_conversations")
       .order("conversation_id", { ascending: true })
@@ -370,7 +414,11 @@ async function runConversationPass(
 
 async function countTable(table: string): Promise<number> {
   const { count, error } = await sb.from(table).select("id", { count: "exact", head: true });
-  if (error) throw error;
+  // PostgrestError é objeto simples, NÃO instância de Error: propagado cru, os
+  // dois catches de main() caem no ramo String(err) e imprimem "[object Object]",
+  // perdendo a mensagem inteira (observado ao exercitar o catch novo das
+  // contagens "antes"). Embrulhar aqui faz o texto chegar ao operador.
+  if (error) throw new Error(`Contagem de ${table} falhou: ${error.message}`);
   return count ?? 0;
 }
 
@@ -385,11 +433,28 @@ async function main(): Promise<void> {
     `\nBackfill de toques de anúncio — modo ${DRY_RUN ? "SIMULAÇÃO (nada é gravado)" : "ESCRITA REAL"}\n`,
   );
 
-  const before = {
-    touches: await countTable("ad_touches"),
-    ads: await countTable("ads"),
-    orphanConversations: await countOrphanConversations(),
-  };
+  // Diferente das contagens "depois", estas ficam FORA do try/catch das
+  // passadas por decisão de projeto: sem elas não há linha de base, e nenhuma
+  // escrita foi tentada ainda — abortar aqui é limpo. O try abaixo só troca a
+  // mensagem: rodar sem a migration da Fase 2 aplicada morre em
+  // countOrphanConversations() com o "Could not find the function" cru do
+  // PostgREST, que neste repo já enganou gente (404 em RPC ≠ função ausente).
+  let before: { touches: number; ads: number; orphanConversations: number };
+  try {
+    before = {
+      touches: await countTable("ad_touches"),
+      ads: await countTable("ads"),
+      orphanConversations: await countOrphanConversations(),
+    };
+  } catch (err) {
+    throw new Error(
+      `${err instanceof Error ? err.message : String(err)}\n\n` +
+        `Dica: "Could not find the function" aqui quase sempre significa que a migration ` +
+        `supabase/migrations/20260819000000_ad_provenance_phase2.sql ainda NÃO foi aplicada ` +
+        `neste banco — no PostgREST uma função ausente chega como 404, não como erro de SQL.`,
+      { cause: err },
+    );
+  }
   console.log(
     `Antes: ${before.touches} toques, ${before.ads} anúncios, ` +
       `${before.orphanConversations} conversas com anúncio e sem toque.\n`,
@@ -505,12 +570,18 @@ async function main(): Promise<void> {
           ``,
         ]
       : [];
+  // Em simulação recordTouch incrementa `inserted` sem consultar nada — uma
+  // simulação rodada DEPOIS de um run real diria "toques novos: ~1.000" quando
+  // o verdadeiro seria ~0. O contador fica como está; o rótulo é que muda.
+  const insertedLabel = DRY_RUN
+    ? "toques que seriam tentados (não desconta os que já existem)"
+    : "toques novos";
   const md = [
     ...interruptedSection,
     ...afterErrorSection,
     `# Backfill de toques de anúncio (PRD-217 Fase 2)`,
     ``,
-    `Execução: ${new Date().toISOString()} — modo **${DRY_RUN ? "simulação" : "escrita real"}**`,
+    `Execução: ${RUN_STARTED_AT} — modo **${DRY_RUN ? "simulação" : "escrita real"}**`,
     ``,
     `| Contagem | Antes | Depois |`,
     `|---|---:|---:|`,
@@ -521,7 +592,7 @@ async function main(): Promise<void> {
     `## Passada precisa (\`backfill_delivery\`)`,
     ``,
     `- mensagens varridas: ${delivery.scanned}`,
-    `- toques novos: ${delivery.inserted}`,
+    `- ${insertedLabel}: ${delivery.inserted}`,
     `- já existiam: ${delivery.alreadyThere}`,
     `- nó ilegível / sem sourceId: ${delivery.unparseable}`,
     `- falhas: ${delivery.failed}`,
@@ -532,7 +603,7 @@ async function main(): Promise<void> {
     ``,
     ...dryRunProjectionNote,
     `- conversas varridas: ${conversation.scanned}`,
-    `- toques novos: ${conversation.inserted}`,
+    `- ${insertedLabel}: ${conversation.inserted}`,
     `- já existiam: ${conversation.alreadyThere}`,
     `- \`ad_referral\` sem sourceId: ${conversation.unparseable}`,
     `- falhas: ${conversation.failed}`,
@@ -547,7 +618,7 @@ async function main(): Promise<void> {
   let reportWritten = false;
   try {
     mkdirSync(SCRATCHPAD, { recursive: true });
-    writeFileSync(join(SCRATCHPAD, "ad-touches-backfill-report.md"), md + "\n", "utf8");
+    writeFileSync(join(SCRATCHPAD, REPORT_FILENAME), md + "\n", "utf8");
     reportWritten = true;
   } catch (err) {
     console.error(
@@ -556,7 +627,7 @@ async function main(): Promise<void> {
     );
   }
   if (reportWritten) {
-    console.log(`\nRelatório: scratchpad/ad-touches-backfill-report.md`);
+    console.log(`\nRelatório: scratchpad/${REPORT_FILENAME}`);
   }
 
   if (DRY_RUN) {
@@ -592,6 +663,11 @@ async function main(): Promise<void> {
         interruption_reason: runError instanceof Error ? runError.message : (runError ?? null),
         after_read_failed: Boolean(afterError),
         after_read_error: afterError instanceof Error ? afterError.message : (afterError ?? null),
+        // QUAIS conversas falharam só vivia no stdout e no relatório em
+        // scratchpad/ (gitignored, local). Vai também para o audit, truncado
+        // para não estourar a linha quando a falha for sistêmica.
+        failures: failures.slice(0, 50),
+        failures_total: failures.length,
       },
     },
   ];
@@ -608,12 +684,24 @@ async function main(): Promise<void> {
     throw auditErr;
   }
 
+  // O gate de ZERO órfãs só faz sentido depois das DUAS passadas: com --phase
+  // delivery (o caminho oficial da janela recortada) ou --phase conversation, a
+  // sobra é esperada, não é falha — condicionar evita que o caminho oficial
+  // sempre termine com exitCode 1.
   if (after.orphanConversations > 0) {
-    console.warn(
-      `\n⚠️ Ainda restam ${after.orphanConversations} conversas com anúncio e sem toque — ` +
-        `o gate da Fase 2 pede ZERO. Investigue antes de fechar.`,
-    );
-    process.exitCode = 1;
+    if (PHASE === "all") {
+      console.warn(
+        `\n⚠️ Ainda restam ${after.orphanConversations} conversas com anúncio e sem toque — ` +
+          `o gate da Fase 2 pede ZERO. Investigue antes de fechar.`,
+      );
+      process.exitCode = 1;
+    } else {
+      console.log(
+        `\nℹ️ Restam ${after.orphanConversations} conversas com anúncio e sem toque — esperado, ` +
+          `esta execução rodou só a passada ${PHASE === "delivery" ? "precisa" : "aproximada"}. ` +
+          `O gate de ZERO só vale para --phase all.`,
+      );
+    }
   }
   if (failures.length) {
     console.warn(`\n⚠️ ${failures.length} falhas — o script é idempotente, pode rodar de novo.`);

@@ -69,6 +69,14 @@ begin
 end;
 $function$;
 
+-- The Phase 1 comment on ad_touches called the table "Immutable", which the
+-- update above makes inaccurate: the table is append-only, and customer_id is
+-- the one column that is written after insert — stamped exactly once, at lead
+-- conversion, and never overwritten (RN-05, enforced by the
+-- `customer_id is null` predicate above).
+comment on table public.ad_touches is
+  'One row per ad click that turned into a message. Append-only: rows are never deleted, and the only post-insert write is customer_id, stamped exactly once at lead conversion by convert_lead_mark and never overwritten (PRD-217 RN-05). origin distinguishes live capture from reconstruction: backfill_conversation rows carry an APPROXIMATE occurred_at (the conversation date), so any time series must say so (PRD-217 RN-06).';
+
 -- ── Backfill, precise source ────────────────────────────────────────────────
 -- webhook_deliveries stores the raw WAHA payload since 19/07/2026. Each
 -- externalAdReply node carries a base64 thumbnail (~2.8 KB) that nobody reads:
@@ -168,6 +176,10 @@ as $$
      and not exists (
        select 1 from public.ad_touches t where t.conversation_id = c.id
      )
+   -- Only a stable default for other consumers: the sole caller today
+   -- (scripts/backfill-ad-touches.ts) re-sorts by conversation_id in PostgREST,
+   -- which wraps this function and orders the result from the outside — so this
+   -- ordering never reaches that caller.
    order by c.created_at;
 $$;
 
