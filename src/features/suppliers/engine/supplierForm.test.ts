@@ -260,3 +260,54 @@ describe("supplierDocumentPatchValue", () => {
     expect(supplierDocumentPatchValue(DOC_A)).toBe(DOC_A);
   });
 });
+
+describe("canSaveSupplier — create mode", () => {
+  // The Tally's `suppliers.cnpj` column is `NOT NULL`: unlike edit (where a
+  // supplier already has a row), cadastro must not submit without a fully
+  // resolved CNPJ. These cases are additive — the ones above, none of them
+  // passing `mode`, cover the unchanged default ("edit") behavior.
+
+  it("blocks with no document at all — the opposite of the edit-mode default", () => {
+    expect(canSaveSupplier({ name: "Fornecedor", docState: "idle", mode: "create" })).toBe(false);
+  });
+
+  it("blocks while the document is still incomplete", () => {
+    expect(canSaveSupplier({ name: "Fornecedor", docState: "typing", mode: "create" })).toBe(false);
+  });
+
+  it("blocks while a lookup is in flight", () => {
+    expect(canSaveSupplier({ name: "Fornecedor", docState: "loading", mode: "create" })).toBe(
+      false,
+    );
+  });
+
+  it("blocks a duplicate CNPJ", () => {
+    expect(canSaveSupplier({ name: "Fornecedor", docState: "duplicate", mode: "create" })).toBe(
+      false,
+    );
+  });
+
+  it("blocks an invalid CNPJ", () => {
+    expect(canSaveSupplier({ name: "Fornecedor", docState: "invalid", mode: "create" })).toBe(
+      false,
+    );
+  });
+
+  it("allows once the Receita lookup succeeds", () => {
+    expect(canSaveSupplier({ name: "Fornecedor", docState: "done", mode: "create" })).toBe(true);
+  });
+
+  it("allows when the Receita is unreachable — an outage must never block a cadastro", () => {
+    expect(canSaveSupplier({ name: "Fornecedor", docState: "error", mode: "create" })).toBe(true);
+  });
+
+  it("allows when the CNPJ is valid but simply not on file at the Receita", () => {
+    expect(canSaveSupplier({ name: "Fornecedor", docState: "notfound", mode: "create" })).toBe(
+      true,
+    );
+  });
+
+  it("still blocks a short name, same as edit mode", () => {
+    expect(canSaveSupplier({ name: "AB", docState: "done", mode: "create" })).toBe(false);
+  });
+});

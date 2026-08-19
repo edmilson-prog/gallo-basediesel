@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { ID, IPendingSupplier } from "@/shared/types";
+import type { ID, IPendingSupplier, ISupplier } from "@/shared/types";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
 import { ScrollProgressBar } from "@/features/shell/components/ScrollProgressBar";
 import { useSuppliersProvider } from "@/providers/data";
@@ -15,6 +15,7 @@ import { SuppliersTable } from "../components/list/SuppliersTable";
 import { SupplierRail } from "../components/list/SupplierRail";
 import { SuppliersPendingQueue } from "../components/list/SuppliersPendingQueue";
 import { SupplierSheet } from "../components/detail/SupplierSheet";
+import { SupplierFormDialog } from "../components/detail/SupplierFormDialog";
 import {
   OPTIONAL_COLUMNS,
   readVisibleOptional,
@@ -31,11 +32,20 @@ const COPY = SUPPLIERS_STRINGS;
  *  only to bring on screen. */
 const PENDING_QUEUE_ANCHOR_ID = "suppliers-pending-queue";
 
-/**
- * The CNPJ-first form dialog (Task 7) is not built here — the rail's edit
- * button and the sheet's "Editar cadastro" take callbacks that this page
- * passes as no-ops for now.
- */
+/** What the CNPJ-first form dialog is currently open for — kept separate
+ *  from `formOpen` so closing and reopening for a DIFFERENT target (e.g.
+ *  "Cadastrar" on a second pending row right after the first) always
+ *  re-triggers the dialog's own reset effect via the `open` transition,
+ *  regardless of whether `supplier`/`initialCorporateName` happen to differ
+ *  from the previous target. */
+interface ISupplierFormTarget {
+  /** `null` means cadastro. */
+  supplier: ISupplier | null;
+  /** Only meaningful when `supplier` is `null` — prefills "Razão social"
+   *  from the pending queue's row. */
+  initialCorporateName?: string;
+}
+
 export function SuppliersListPage() {
   const canCreate = usePermission("supplier", "create");
   const canEdit = usePermission("supplier", "edit");
@@ -50,6 +60,29 @@ export function SuppliersListPage() {
 
   // --- Gaveta "Ficha completa" ---
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // --- Diálogo de cadastro/edição, CNPJ primeiro ---
+  const [formOpen, setFormOpen] = useState(false);
+  const [formTarget, setFormTarget] = useState<ISupplierFormTarget>({ supplier: null });
+
+  const openCreateForm = useCallback(() => {
+    setFormTarget({ supplier: null });
+    setFormOpen(true);
+  }, []);
+
+  const openEditForm = useCallback((target: ISupplier) => {
+    setFormTarget({ supplier: target });
+    setFormOpen(true);
+  }, []);
+
+  // O gesto central da fila: o nome já é conhecido, só falta o CNPJ — o
+  // diálogo abre em modo cadastro com a razão social preenchida (o foco no
+  // campo de CNPJ já é o comportamento padrão de `useSupplierDocumentField`
+  // a cada abertura, então não precisa de sinalização extra aqui).
+  const handleRegisterPending = useCallback((pending: IPendingSupplier) => {
+    setFormTarget({ supplier: null, initialCorporateName: pending.displayName });
+    setFormOpen(true);
+  }, []);
 
   // --- Colunas visíveis (persistidas) ---
   const [visibleColumns, setVisibleColumns] = useState<Set<OptionalColumn>>(
@@ -173,10 +206,6 @@ export function SuppliersListPage() {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
-  // Task 7 liga isto ao `SupplierFormDialog`, aberto com a razão social
-  // preenchida a partir do nome pendente. Nenhum diálogo existe ainda.
-  const handleRegisterPending = useCallback((_pending: IPendingSupplier) => {}, []);
-
   return (
     // Viewport-relative height (not `h-full`): a percentage height needs a
     // definite-height ancestor to resolve, and this route renders the page
@@ -212,9 +241,7 @@ export function SuppliersListPage() {
                 sort={sort}
                 onSortChange={setSort}
                 canCreate={canCreate}
-                onCreate={() => {
-                  // Task 7 liga isto ao `SupplierFormDialog`.
-                }}
+                onCreate={openCreateForm}
                 hasError={Boolean(list.error)}
               />
             </div>
@@ -256,9 +283,7 @@ export function SuppliersListPage() {
               stats={selectedStats}
               canEdit={canEdit}
               onOpenSheet={() => setSheetOpen(true)}
-              onEdit={() => {
-                // Task 7 liga isto ao `SupplierFormDialog`.
-              }}
+              onEdit={() => selectedSupplier && openEditForm(selectedSupplier)}
             />
           </div>
         </div>
@@ -290,8 +315,23 @@ export function SuppliersListPage() {
         canEdit={canEdit}
         onClose={() => setSheetOpen(false)}
         onEdit={() => {
-          // Task 7 liga isto ao `SupplierFormDialog` (fecha a gaveta e abre
-          // o diálogo no mesmo fornecedor).
+          setSheetOpen(false);
+          if (selectedSupplier) openEditForm(selectedSupplier);
+        }}
+      />
+
+      <SupplierFormDialog
+        open={formOpen}
+        supplier={formTarget.supplier}
+        initialCorporateName={formTarget.initialCorporateName}
+        onClose={() => setFormOpen(false)}
+        onSaved={(saved) => {
+          setFormOpen(false);
+          // A ficha lateral e a gaveta passam a refletir o fornecedor recém
+          // salvo — sem isto, cadastrar a partir da fila deixaria a seleção
+          // atual (potencialmente outro fornecedor) intocada, e o usuário
+          // não veria o resultado do próprio "Cadastrar" que acabou de clicar.
+          setSelectedId(saved.id);
         }}
       />
     </div>

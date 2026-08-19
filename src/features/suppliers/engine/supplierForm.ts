@@ -44,9 +44,32 @@ export function resolveSupplierDocState(input: ISupplierDocInput): SupplierDocSt
   return "loading";
 }
 
-export function canSaveSupplier(input: { name: string; docState: SupplierDocState }): boolean {
+/**
+ * States that a 14-digit CNPJ has passed its checksum and cleared the
+ * duplicate guard — i.e. a lookup outcome the caller can actually submit.
+ * `notfound`/`error` belong here on purpose: the Receita being unreachable,
+ * or simply not having the CNPJ on file, must never block a legitimate
+ * cadastro — only a checksum failure or a confirmed duplicate does that. See
+ * `canSaveSupplier`'s "create" branch.
+ */
+const RESOLVED_DOC_STATES: SupplierDocState[] = ["done", "notfound", "error"];
+
+export function canSaveSupplier(input: {
+  name: string;
+  docState: SupplierDocState;
+  /**
+   * `"edit"` (default) preserves the original behavior: a supplier record
+   * already has a row, so an absent/partial document blocks nothing — only
+   * `supplierDocumentPatchValue`'s three-way split decides what happens to
+   * the stored column. `"create"` additionally requires a fully resolved
+   * CNPJ, because the Tally's `suppliers.cnpj` column is `NOT NULL`.
+   */
+  mode?: "create" | "edit";
+}): boolean {
   if (input.name.trim().length < 3) return false;
-  return !["loading", "duplicate", "invalid"].includes(input.docState);
+  if (["loading", "duplicate", "invalid"].includes(input.docState)) return false;
+  if ((input.mode ?? "edit") === "create") return RESOLVED_DOC_STATES.includes(input.docState);
+  return true;
 }
 
 export interface ISupplierDocLookupState {

@@ -166,6 +166,8 @@ export const SUPPLIERS_STRINGS = {
     readyHintCreate: "Entra na lista como fornecedor novo, sem histórico.",
     readyHintEdit: "As alterações atualizam o cadastro existente.",
     incompleteHint: "Informe o CNPJ ou a razão social.",
+    // Cadastro exige os dois — a tabela recusa fornecedor sem CNPJ.
+    incompleteHintCreate: "Informe o CNPJ e a razão social.",
     cancel: "Cancelar",
     submit: "Salvar fornecedor",
     submitting: "Salvando…",

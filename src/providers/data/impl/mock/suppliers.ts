@@ -197,7 +197,15 @@ export const mockSuppliersProvider: ISuppliersProvider = {
     const current = store.find((s) => s.id === id);
     if (!current) throw new Error(`[mock] suppliers.update(${id}): fornecedor não encontrado`);
     const { id: _ignoredId, createdAt: _ignoredCreatedAt, ...safe } = patch;
-    const updated: ISupplier = { ...current, ...safe, updatedAt: new Date().toISOString() };
+    // An explicit `key: undefined` (e.g. `SupplierFormDialog`'s CNPJ field
+    // mid-retype, via `supplierDocumentPatchValue`) must leave the column
+    // untouched, not null it out — object spread copies an `undefined`-valued
+    // OWN key same as any other, so a naive `{...current, ...safe}` would
+    // silently erase it. Filtering those keys first mirrors the Supabase
+    // impl's `supplierToRow`, which only ever writes a column when
+    // `patch[key] !== undefined`.
+    const defined = Object.fromEntries(Object.entries(safe).filter(([, v]) => v !== undefined));
+    const updated: ISupplier = { ...current, ...defined, updatedAt: new Date().toISOString() };
     store = store.map((s) => (s.id === id ? updated : s));
     return updated;
   },
