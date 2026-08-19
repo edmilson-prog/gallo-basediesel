@@ -118,6 +118,8 @@ interface CustomerNoteRow {
 
 const TABLE = "customers";
 const NOTES_TABLE = "customer_notes";
+/** Sentinel accepted by `vehicleBrands` meaning "owns any vehicle, any brand". */
+const VEHICLE_BRAND_ANY = "any";
 const COLUMNS =
   "id, store_id, type, email, phone, whatsapp_status, address, seller_id, status, tags, first_purchase_at, " +
   "last_purchase_at, converted_from_lead_id, converted_from_lead_at, converted_by_seller_id, " +
@@ -339,8 +341,27 @@ export function buildCustomerSearchOr(search: string): string | null {
 
 export const supabaseCustomersProvider: ICustomersProvider = {
   async list(params: IListCustomersParams = {}): Promise<IPaginatedResult<ICustomer>> {
+    // Vehicle-brand filter (frota). A customer carries no brand of its own —
+    // the relation is `vehicles.customer_id -> customers.id` — so the filter is
+    // resolved server-side through an inner join on the embedded `vehicles`,
+    // mirroring how `vehicles.list` scopes by store/seller via `customers!inner`.
+    // No customer-id list is ever materialized client-side: that path caps at
+    // 1000 rows and risks URL overflow on the resulting `.in()`.
+    // PostgREST embeds a to-many relation as one nested array per parent row, so
+    // a customer owning three Volvos is still a single row and counts once under
+    // `count: "exact"`. The join is added only when the filter is on — without
+    // it the plain projection keeps listing customers that own no vehicle.
+    const vehicleBrands = params.vehicleBrands ?? [];
+    const joinVehicles = vehicleBrands.length > 0;
+    // The `"any"` sentinel means "owns any vehicle, whatever the brand": it keeps
+    // the join and drops the brand predicate, and wins over brands selected
+    // alongside it — same precedence the mock layer applies.
+    const brandsToMatch = vehicleBrands.includes(VEHICLE_BRAND_ANY) ? [] : vehicleBrands;
+
     const buildQuery = () => {
-      let query = getSupabaseClient().from(TABLE).select(COLUMNS, { count: "exact" });
+      let query = getSupabaseClient()
+        .from(TABLE)
+        .select(joinVehicles ? `${COLUMNS}, vehicles!inner(id)` : COLUMNS, { count: "exact" });
 
       if (params.storeIds && params.storeIds.length > 0) {
         query = query.in("store_id", params.storeIds);
@@ -365,6 +386,10 @@ export const supabaseCustomersProvider: ICustomersProvider = {
       if (params.unassignedOnly) query = query.is("seller_id", null);
 
       if (params.hasB2BPortal) query = query.eq("has_b2b_portal", true);
+
+      // Filters on an embedded relation are addressed by the relation name, and
+      // only narrow the top-level rows because the embed is `!inner`.
+      if (brandsToMatch.length > 0) query = query.in("vehicles.brand", brandsToMatch);
 
       // Hide imported `pending_review` contacts (array overlap, negated): drop any
       // row whose tags intersect excludeTags. Server-side so count/pagination match.

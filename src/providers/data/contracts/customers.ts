@@ -127,7 +127,12 @@ export interface IListCustomersParams extends IPaginationParams {
   recencyCustom?: { minDays?: number; maxDays?: number };
   ticketRange?: INumericRange;
   ltvRange?: INumericRange;
-  /** Brand strings (e.g. "Volvo", "Scania"). Empty array means no filter. */
+  /**
+   * Brand strings of the customer's fleet (e.g. "Volvo", "Scania"), OR
+   * semantics — the customer must own at least one vehicle of any listed brand.
+   * Empty array means no filter. The `"any"` sentinel means "owns any vehicle,
+   * whatever the brand" and wins over brands selected alongside it.
+   */
   vehicleBrands?: string[];
   /** Restrict to customers that have at least one vehicle of any of these brands. */
   hasAnyVehicle?: boolean;
