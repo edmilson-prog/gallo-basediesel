@@ -90,6 +90,23 @@ if (PHASE === "conversation" && process.env.AD_BACKFILL_ALLOW_CONVERSATION_ONLY 
   );
 }
 
+// Validados aqui — antes de qualquer I/O, junto das outras flags — para que um
+// erro de digitação (ex.: --from ontem) aborte sem tocar em nada. Se essa
+// checagem morasse dentro do try de main() (como estava), o catch de lá
+// registraria a falha como interrupção e gravaria uma linha em audit_logs sem
+// nenhuma escrita real ter sido tentada.
+const FROM_FLAG = flag("from");
+const TO_FLAG = flag("to");
+if (FROM_FLAG !== undefined && Number.isNaN(new Date(FROM_FLAG).getTime())) {
+  throw new Error(`--from inválido: "${FROM_FLAG}" não é uma data ISO.`);
+}
+if (TO_FLAG !== undefined && Number.isNaN(new Date(TO_FLAG).getTime())) {
+  throw new Error(`--to inválido: "${TO_FLAG}" não é uma data ISO.`);
+}
+if (FROM_FLAG !== undefined && TO_FLAG !== undefined && new Date(FROM_FLAG) >= new Date(TO_FLAG)) {
+  throw new Error("--from precisa ser anterior a --to.");
+}
+
 // ===== Row shapes ============================================================
 
 interface DeliveryRow {
@@ -189,6 +206,14 @@ async function runDeliveryPass(
     // histórico e não muda enquanto lemos, então .range() em cima da RPC é
     // seguro aqui (diferente da passada B — ver comentário lá).
     let offset = 0;
+    // Sentinela: não há precedente neste repo de .rpc() paginada (os fetchAll
+    // da casa só paginam .from().select()), e essa combinação nunca foi
+    // exercitada contra este deployment. Se limit/offset não forem aplicados
+    // a esta chamada de RPC, a página não avança e o for(;;) abaixo seria
+    // ilimitado, martelando produção com as mesmas linhas. message_id é PK
+    // com ordem total, então duas páginas não-vazias consecutivas só têm a
+    // mesma primeira chave se a paginação não tiver avançado de fato.
+    let previousFirstKey: string | null = null;
     for (;;) {
       const { data, error } = await sb
         .rpc("ad_backfill_delivery_window", {
@@ -205,6 +230,15 @@ async function runDeliveryPass(
       }
 
       const rows = (data ?? []) as DeliveryRow[];
+      if (rows.length > 0 && rows[0].message_id === previousFirstKey) {
+        throw new Error(
+          `Janela ${windowFrom.toISOString()} → ${windowTo.toISOString()} (offset ${offset}): a paginação não ` +
+            `avançou — a página nova veio com a mesma primeira linha (message_id=${rows[0].message_id}) da ` +
+            `anterior. limit/offset aparentemente não foram aplicados a esta chamada de RPC; abortando para ` +
+            `não reprocessar as mesmas linhas indefinidamente.`,
+        );
+      }
+      if (rows.length > 0) previousFirstKey = rows[0].message_id;
       counters.scanned += rows.length;
 
       for (const row of rows) {
@@ -249,6 +283,12 @@ async function runDeliveryPass(
 async function fetchAllOrphanConversations(): Promise<OrphanRow[]> {
   const rows: OrphanRow[] = [];
   let offset = 0;
+  // Sentinela: mesma razão da passada A (ver comentário lá) — sem precedente
+  // de .rpc() paginada neste repo, nunca exercitado contra este deployment.
+  // conversation_id é PK com ordem total, então duas páginas não-vazias
+  // consecutivas só repetem a primeira chave se limit/offset não tiverem
+  // sido aplicados a esta chamada de RPC.
+  let previousFirstKey: string | null = null;
   for (;;) {
     const { data, error } = await sb
       .rpc("ad_backfill_orphan_conversations")
@@ -258,6 +298,15 @@ async function fetchAllOrphanConversations(): Promise<OrphanRow[]> {
       throw new Error(`Fonte aproximada falhou ao paginar (offset ${offset}): ${error.message}`);
     }
     const page = (data ?? []) as OrphanRow[];
+    if (page.length > 0 && page[0].conversation_id === previousFirstKey) {
+      throw new Error(
+        `Fonte aproximada (offset ${offset}): a paginação não avançou — a página nova veio com a mesma ` +
+          `primeira linha (conversation_id=${page[0].conversation_id}) da anterior. limit/offset ` +
+          `aparentemente não foram aplicados a esta chamada de RPC; abortando para não reprocessar as ` +
+          `mesmas linhas indefinidamente.`,
+      );
+    }
+    if (page.length > 0) previousFirstKey = page[0].conversation_id;
     rows.push(...page);
     if (page.length < PAGE_SIZE) break;
     offset += PAGE_SIZE;
@@ -352,10 +401,16 @@ async function main(): Promise<void> {
         .limit(1);
       if (boundsErr) throw boundsErr;
 
-      const from = new Date(flag("from") ?? bounds?.[0]?.created_at ?? new Date().toISOString());
-      const to = new Date(flag("to") ?? new Date().toISOString());
+      // FROM_FLAG/TO_FLAG, quando informados, já foram validados como data ISO
+      // antes de qualquer I/O (ver comentário junto do parse de --phase). Esta
+      // checagem aqui é só para o padrão resolvido via I/O (bounds da tabela,
+      // ou "agora" para --to) — ex.: banco vazio, sem nenhuma webhook_delivery.
+      const from = new Date(FROM_FLAG ?? bounds?.[0]?.created_at ?? new Date().toISOString());
+      const to = new Date(TO_FLAG ?? new Date().toISOString());
       if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from >= to) {
-        throw new Error("--from/--to inválidos: precisam ser ISO e --from anterior a --to.");
+        throw new Error(
+          "--from/--to inválidos após resolver o padrão de webhook_deliveries: precisam ser ISO e --from anterior a --to.",
+        );
       }
 
       console.log(
@@ -377,14 +432,33 @@ async function main(): Promise<void> {
     console.error(`\n✖ Execução interrompida: ${message}\n`);
   }
 
-  const after = {
-    touches: await countTable("ad_touches"),
-    ads: await countTable("ads"),
-    orphanConversations: await countOrphanConversations(),
-  };
+  // Espelha o try/catch das duas passadas acima (mesmo raciocínio do I2): a
+  // conferência final reexecuta countOrphanConversations() — que pagina
+  // conversations com anti-join em ad_touches — sob a MESMA carga que pode ter
+  // acabado de derrubar uma janela com statement_timeout. Sem este try/catch,
+  // essa consulta lançaria FORA de qualquer guarda, matando o processo depois
+  // de toques já commitados em produção, sem relatório e sem audit_logs — a
+  // exata lacuna que o I2 existia para fechar, com o mesmo gatilho.
+  let afterError: unknown = null;
+  let after = { touches: -1, ads: -1, orphanConversations: -1 };
+  try {
+    after = {
+      touches: await countTable("ad_touches"),
+      ads: await countTable("ads"),
+      orphanConversations: await countOrphanConversations(),
+    };
+  } catch (err) {
+    afterError = err;
+    console.error(
+      `\n✖ Conferência final (contagens "depois") falhou: ` +
+        `${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    // Sem a conferência final não dá para afirmar que o gate passou — mesmo
+    // que as passadas acima tenham terminado limpas.
+    process.exitCode = 1;
+  }
 
   // ----- Relatório -----------------------------------------------------------
-  mkdirSync(SCRATCHPAD, { recursive: true });
   const interruptedSection = runError
     ? [
         `## ⚠️ Execução interrompida`,
@@ -392,6 +466,17 @@ async function main(): Promise<void> {
         `Os números abaixo são **parciais** — a execução abortou antes de terminar.`,
         ``,
         `Erro: ${runError instanceof Error ? runError.message : String(runError)}`,
+        ``,
+      ]
+    : [];
+  const afterErrorSection = afterError
+    ? [
+        `## ⚠️ Conferência final não pôde ser lida`,
+        ``,
+        `As contagens "Depois" na tabela abaixo estão como \`-1\` — a leitura de conferência ` +
+          `(ad_touches, ads, conversas órfãs) falhou depois das passadas.`,
+        ``,
+        `Erro: ${afterError instanceof Error ? afterError.message : String(afterError)}`,
         ``,
       ]
     : [];
@@ -406,6 +491,7 @@ async function main(): Promise<void> {
       : [];
   const md = [
     ...interruptedSection,
+    ...afterErrorSection,
     `# Backfill de toques de anúncio (PRD-217 Fase 2)`,
     ``,
     `Execução: ${new Date().toISOString()} — modo **${DRY_RUN ? "simulação" : "escrita real"}**`,
@@ -437,9 +523,25 @@ async function main(): Promise<void> {
     ``,
     ...(failures.length ? [`## Falhas`, ``, ...failures.map((f) => `- ${f}`), ``] : []),
   ].join("\n");
-  writeFileSync(join(SCRATCHPAD, "ad-touches-backfill-report.md"), md + "\n", "utf8");
   console.log(md);
-  console.log(`\nRelatório: scratchpad/ad-touches-backfill-report.md`);
+  // mkdirSync/writeFileSync num try/catch próprio: uma falha de disco (sem
+  // espaço, permissão, etc.) não pode impedir a linha de audit_logs logo
+  // abaixo — o console.log acima já garante que o relatório apareceu no
+  // terminal mesmo que a gravação em arquivo falhe. Loga e SEGUE.
+  let reportWritten = false;
+  try {
+    mkdirSync(SCRATCHPAD, { recursive: true });
+    writeFileSync(join(SCRATCHPAD, "ad-touches-backfill-report.md"), md + "\n", "utf8");
+    reportWritten = true;
+  } catch (err) {
+    console.error(
+      `\n✖ Falha ao gravar o relatório em disco (seguindo mesmo assim, para não perder o audit_logs): ` +
+        `${err instanceof Error ? err.message : String(err)}\n`,
+    );
+  }
+  if (reportWritten) {
+    console.log(`\nRelatório: scratchpad/ad-touches-backfill-report.md`);
+  }
 
   if (DRY_RUN) {
     console.log("\nSimulação: nada foi gravado. Para valer, use AD_BACKFILL_CONFIRM_WRITE=yes.");
@@ -472,6 +574,8 @@ async function main(): Promise<void> {
         window_hours: WINDOW_HOURS,
         interrupted: Boolean(runError),
         interruption_reason: runError instanceof Error ? runError.message : (runError ?? null),
+        after_read_failed: Boolean(afterError),
+        after_read_error: afterError instanceof Error ? afterError.message : (afterError ?? null),
       },
     },
   ];
