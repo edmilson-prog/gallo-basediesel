@@ -8,8 +8,9 @@ import type {
   ICustomerTimelineDeal,
 } from "@/shared/types";
 import { cn } from "@/lib/utils";
+import { Icon } from "@/components/Icon";
 import { useSellersProvider } from "@/providers/data";
-import { STATUS_META } from "@/features/conversations/utils/conversationDisplay";
+import { STATUS_META, CHANNEL_META } from "@/features/conversations/utils/conversationDisplay";
 import { CONVERSATION_STRINGS } from "@/features/conversations/i18n/pt-BR";
 import { formatRelativeTime } from "@/features/conversations/utils/formatRelativeTime";
 import { useCustomerTimeline } from "../hooks/useCustomerTimeline";
@@ -19,7 +20,8 @@ import {
   type ITimelineCard,
   type ITimelineCardItem,
 } from "../engine/customerTimeline";
-import { describeEvent } from "../utils/eventDescription";
+import { formatDuration } from "../utils/formatDuration";
+import { actorLabel, describeEvent } from "../utils/eventDescription";
 import { ATTENDANCE_HISTORY_STRINGS as S } from "../i18n/pt-BR";
 
 export interface IAttendanceHistoryPanelProps {
@@ -38,20 +40,9 @@ function isDealSource(source: unknown): source is ICustomerTimelineDeal {
   return typeof source === "object" && source !== null && "total" in source;
 }
 
-/**
- * Label for one folded-timeline item. Notes render their own body; lifecycle
- * events reuse `describeEvent` (the single source of truth for event
- * labels — it already accounts for `status` events that also carry a
- * `toSellerId`); deals render their monetary value.
- */
-function describeItem(item: ITimelineCardItem, sellersById: Map<ID, ISeller>): string {
-  if (item.kind === "nota") {
-    return (item.source as ICustomerTimelineNote).body;
-  }
-  if (isDealSource(item.source)) {
-    return S.dealLabel(item.source.total);
-  }
-  return describeEvent(item.source as IConversationActivityEvent, sellersById);
+/** A lifecycle event is told apart from a deal by shape: it carries `type`, never `total`. */
+function isEventSource(source: unknown): source is IConversationActivityEvent {
+  return typeof source === "object" && source !== null && "type" in source;
 }
 
 /**
@@ -154,6 +145,16 @@ function TimelineCard({
   onToggle: () => void;
   sellersById: Map<ID, ISeller>;
 }) {
+  const channelMeta = CHANNEL_META[card.channel];
+  // The trail (item rail) is hidden either while folded by the user or while
+  // `collapsed` forces it shut (rule 3) — in both cases show the compact
+  // count+duration summary instead, same information the old hybrid layout
+  // gave on a folded card.
+  const trailVisible = !card.collapsed && open;
+  const duration = formatDuration(
+    card.summary.durationMs ?? Date.now() - Date.parse(card.createdAt),
+  );
+
   return (
     <div className="rounded-md border border-border bg-card" data-testid="attendance-history-card">
       <button
@@ -161,7 +162,10 @@ function TimelineCard({
         onClick={onToggle}
         className="flex w-full items-center gap-2 px-2.5 py-2 text-left"
       >
-        <span className="text-sm font-medium">{formatRelativeTime(card.createdAt)}</span>
+        <span className="flex items-center gap-1.5 text-sm font-medium">
+          <Icon icon={channelMeta.icon} size={14} className="shrink-0 text-muted-foreground" />
+          {formatRelativeTime(card.createdAt)}
+        </span>
         <span className="flex-1" />
         <span
           className={cn(
@@ -171,40 +175,85 @@ function TimelineCard({
         >
           {CONVERSATION_STRINGS.statusLabel[card.status]}
         </span>
+        <Icon
+          icon={open ? "mdi:chevron-up" : "mdi:chevron-down"}
+          size={14}
+          className="shrink-0 text-muted-foreground"
+        />
       </button>
 
       {card.preRegistro && (
         <p className="px-2.5 pb-1.5 text-[10px] text-severity-warning">{S.preRegistroWarning}</p>
       )}
 
-      {!card.collapsed && open && (
+      {!trailVisible && (
+        <p className="px-2.5 pb-2 text-[11px] text-muted-foreground">
+          {S.cardSummary(card.summary.itemCount, duration)}
+        </p>
+      )}
+
+      {trailVisible && (
         <div className="border-l border-border/60 px-2.5 pb-2.5 pl-4">
           {card.items.length === 0 ? (
             <p className="py-1 text-[11px] text-muted-foreground">{S.emptyFilter}</p>
           ) : (
             card.items.map((item) => (
-              <div key={item.id} className="flex gap-2 py-1" data-testid="attendance-history-node">
-                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                <div className="text-[11px]">
-                  {item.kind === "conversa" ? (
-                    <>
-                      <strong>{S.messageCount(item.messageCount ?? 0)}</strong>
-                      {item.preview ? (
-                        <span className="block text-muted-foreground">{item.preview}</span>
-                      ) : null}
-                    </>
-                  ) : (
-                    <span>{describeItem(item, sellersById)}</span>
-                  )}
-                  <span className="block text-[10px] text-muted-foreground">
-                    {formatRelativeTime(item.at)}
-                  </span>
-                </div>
-              </div>
+              <TimelineItemRow key={item.id} item={item} sellersById={sellersById} />
             ))
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function TimelineItemRow({
+  item,
+  sellersById,
+}: {
+  item: ITimelineCardItem;
+  sellersById: Map<ID, ISeller>;
+}) {
+  return (
+    <div className="flex gap-2 py-1" data-testid="attendance-history-node">
+      <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+      <div className="text-[11px]">
+        {item.kind === "conversa" && (
+          <>
+            <strong>{S.messageCount(item.messageCount ?? 0)}</strong>
+            {item.preview ? (
+              <span className="block text-muted-foreground">{item.preview}</span>
+            ) : null}
+          </>
+        )}
+        {item.kind === "nota" && <span>{(item.source as ICustomerTimelineNote).body}</span>}
+        {item.kind === "historico" && isEventSource(item.source) && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span
+              className={cn(
+                "font-medium",
+                actorLabel(item.source, sellersById).isSystem
+                  ? "text-severity-success"
+                  : "text-foreground",
+              )}
+            >
+              {actorLabel(item.source, sellersById).label}
+            </span>
+            <span className="text-muted-foreground">{describeEvent(item.source, sellersById)}</span>
+            {item.source.type === "reopen" && (
+              <span className="rounded-full bg-severity-warning/15 px-1.5 py-0.5 text-[10px] font-medium text-severity-warning">
+                {S.reopenTag}
+              </span>
+            )}
+          </div>
+        )}
+        {item.kind === "historico" && isDealSource(item.source) && (
+          <span>{S.dealLabel(item.source.total)}</span>
+        )}
+        <span className="block text-[10px] text-muted-foreground">
+          {formatRelativeTime(item.at)}
+        </span>
+      </div>
     </div>
   );
 }

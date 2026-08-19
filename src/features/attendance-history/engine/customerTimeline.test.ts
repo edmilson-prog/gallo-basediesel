@@ -97,4 +97,21 @@ describe("buildCustomerTimeline", () => {
   it("survives an empty payload", () => {
     expect(buildCustomerTimeline(payload([]), "tudo")).toEqual([]);
   });
+
+  it("orders cards newest-first regardless of the input order", () => {
+    const older = conversation({
+      id: "c-older",
+      createdAt: "2026-08-10T09:00:00Z",
+      closedAt: "2026-08-10T10:00:00Z",
+    });
+    const newer = conversation({
+      id: "c-newer",
+      createdAt: "2026-08-15T09:00:00Z",
+      closedAt: "2026-08-15T10:00:00Z",
+    });
+    // Passed in ascending (oldest-first) order — the provider/RPC order is
+    // not guaranteed, so the engine must sort regardless of input order.
+    const cards = buildCustomerTimeline(payload([older, newer]), "tudo");
+    expect(cards.map((c) => c.conversationId)).toEqual(["c-newer", "c-older"]);
+  });
 });

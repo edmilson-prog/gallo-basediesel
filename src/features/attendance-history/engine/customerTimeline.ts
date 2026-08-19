@@ -85,7 +85,7 @@ export function buildCustomerTimeline(
   payload: ICustomerTimelinePayload,
   filter: TimelineFilter,
 ): ITimelineCard[] {
-  return payload.conversations.map((conversation) => {
+  const cards = payload.conversations.map((conversation) => {
     const all = itemsOf(conversation);
     // Rule: the filter narrows the contents, never the card list.
     const items = filter === "tudo" ? all : all.filter((item) => item.kind === filter);
@@ -108,4 +108,10 @@ export function buildCustomerTimeline(
       },
     };
   });
+
+  // Newest conversation first — deterministic regardless of what order the
+  // provider/RPC handed the conversations in (the mock groups by Map
+  // insertion order; the RPC orders `created_at desc`; neither is guaranteed
+  // here, so the engine — not any one provider — owns the sort).
+  return cards.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
