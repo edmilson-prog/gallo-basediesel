@@ -4,6 +4,32 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.186.0] — Dispatch · 2026-08-19
+
+**O orçamento agora sai da tela e chega ao cliente. Ao salvar, uma janela pergunta por onde enviar — WhatsApp, e-mail ou os dois —, mostra para qual número e para qual endereço, e traz uma mensagem pronta que você pode reescrever; o que sai pelo WhatsApp cai na conversa do cliente, no Atendimento, como qualquer outra mensagem. Antes de enviar dá para ver o orçamento exatamente como o cliente recebe, e imprimir ou salvar em PDF por ali mesmo. E a lista que o cliente mandou não precisa mais ser digitada peça por peça: cole a mensagem como ela chegou e a tela mostra o que entendeu de cada linha — código reconhecido, peça provável, opções para escolher ou nada encontrado — para você conferir antes de qualquer coisa entrar no orçamento.**
+
+### Added
+
+- **Enviar o orçamento por WhatsApp e por e-mail**, de dentro do próprio orçamento. Cada canal mostra o destino, os dois podem ir juntos, e um canal que falhar não impede o outro nem o salvamento.
+- **Mensagem de acompanhamento** já escrita com o nome do cliente, o valor e a validade — editável a cada envio. Ela encabeça o WhatsApp e abre o e-mail.
+- **Modo Importar** — cole a lista do cliente como ela chegou (mensagem, e-mail ou planilha) ou envie um arquivo de texto, CSV ou XML. Cada linha aparece com o que foi entendido ao lado do texto original, com quantidade, preço e subtotal; linhas ambíguas oferecem as peças candidatas para escolher, e o que não existe no catálogo entra como item avulso informando um preço. **Nada entra no orçamento sem a sua confirmação**, e um único "Desfazer" remove a lista inteira.
+- **Pré-visualizar** — o orçamento como o cliente recebe, em papel branco, com os dados da loja, as condições de pagamento e a validade. Custo, margem e notas internas ficam de fora. Dá para imprimir ou salvar em PDF na mesma tela.
+- **Duplicar** — salva este orçamento e abre uma cópia dele, pronta para o próximo cliente.
+- **Cadastrar cliente sem sair do orçamento** — o cadastro rápido abre ali mesmo e o cliente criado já entra selecionado.
+
+### Changed
+
+- **Tipografia da marca nos números e títulos** do orçamento — total, subtotais e preços ganharam o mesmo peso visual do resto da identidade.
+- **Painel de equivalentes agora diz quanto a troca custa ou economiza**, além do código de origem e da marca — a comparação deixou de ser de cabeça.
+- **Peças que vieram de um kit ficam marcadas na linha**, enquanto o orçamento está sendo montado.
+- **O modo "Rápido" deu lugar ao Importar.** Colar `código; quantidade`, uma peça por linha, continua funcionando exatamente como antes — agora com a tela de conferência antes de adicionar.
+
+### Fixed
+
+- **A janela de envio cortava o botão principal** e mostrava uma barra de rolagem horizontal em telas menores.
+
+> O envio por e-mail depende do serviço de e-mail configurado em Configurações → Integrações & Chaves. A identificação de peças por nome, no Importar, usa a área de IA — com ela desligada, a importação ainda reconhece sozinha os códigos exatos.
+
 ## [0.185.0] — Counterpart · 2026-08-19
 
 **O fornecedor que a nota fiscal cadastra sozinho, desde ontem, ganha agora uma tela própria. Um grupo FINANCEIRO aparece no menu, entre Suprimentos e SDR, e abre em Fornecedores — reunindo ali também Fluxo de Caixa, Despesas, Comissões e DRE Gerencial, que só trocaram de prateleira: os links continuam os mesmos de sempre. Cadastrar um fornecedor novo começa pelo CNPJ: a Receita Federal preenche sozinha a razão social, o telefone e a cidade, o sistema barra cadastrar o mesmo CNPJ duas vezes, e nunca trava o cadastro só porque a Receita está fora do ar. Abaixo da tabela, uma fila mostra os nomes de fornecedor que já existem soltos no catálogo — cerca de 124, nenhum com CNPJ — e por isso nenhum deles virou cadastro: a fila só aponta o trabalho que falta, com um botão que abre o formulário já com o nome preenchido, e cada linha some assim que o cadastro correspondente existir.**
