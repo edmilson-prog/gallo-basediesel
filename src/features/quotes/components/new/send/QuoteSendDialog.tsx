@@ -119,7 +119,7 @@ export function QuoteSendDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Salvar e enviar</DialogTitle>
           <DialogDescription>
@@ -127,8 +127,8 @@ export function QuoteSendDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3.5">
-          <div>
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <div className="min-w-0">
             <Label className="text-[10px] uppercase tracking-wider">Enviar por</Label>
             <div className="mt-1.5 flex flex-col gap-1.5">
               <div
@@ -194,7 +194,7 @@ export function QuoteSendDialog({
                     defaultEmail ? "nome@empresa.com.br" : "sem e-mail cadastrado — digite um"
                   }
                   aria-label="E-mail do destinatário"
-                  className="h-7 flex-1 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+                  className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
                 />
               </div>
               {email && emailTo.trim().length > 0 && !emailValid && (
@@ -221,7 +221,7 @@ export function QuoteSendDialog({
             <span className="min-w-0 flex-1 truncate text-xs text-foreground">
               Orçamento{customer ? ` — ${getCustomerName(customer)}` : ""}
             </span>
-            <span className="font-semicond text-[11.5px] text-muted-foreground">
+            <span className="hidden shrink-0 font-semicond text-[11.5px] text-muted-foreground sm:inline">
               vai no corpo da mensagem
             </span>
             <Button type="button" variant="ghost" size="sm" onClick={onPreview}>
@@ -231,17 +231,20 @@ export function QuoteSendDialog({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3">
-          <span className="text-xs text-muted-foreground">
-            Total <b className="tabular-nums text-foreground">{moneyFormatter.format(total)}</b>
-          </span>
-          <span className="font-semicond text-[11px] text-muted-foreground">
-            o número do orçamento é gerado ao salvar
-          </span>
-          <div className="ml-auto flex items-center gap-2">
+        <div className="flex min-w-0 flex-col gap-2 border-t border-border pt-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="text-xs text-muted-foreground">
+              Total <b className="tabular-nums text-foreground">{moneyFormatter.format(total)}</b>
+            </span>
+            <span className="font-semicond text-[11px] text-muted-foreground">
+              o número do orçamento é gerado ao salvar
+            </span>
+          </div>
+          <div className="flex min-w-0 justify-end gap-2">
             <Button
               type="button"
               variant="outline"
+              className="shrink-0"
               disabled={submitting}
               onClick={() => onOpenChange(false)}
             >
@@ -249,6 +252,7 @@ export function QuoteSendDialog({
             </Button>
             <Button
               type="button"
+              className="min-w-0"
               disabled={blocked}
               onClick={() =>
                 onConfirm({
@@ -271,8 +275,10 @@ export function QuoteSendDialog({
                 </>
               ) : (
                 <>
-                  <Icon icon="mdi:send-outline" size={16} />
-                  Salvar e enviar{chosen.length > 0 ? ` (${chosen.join(" + ")})` : ""}
+                  <Icon icon="mdi:send-outline" size={16} className="shrink-0" />
+                  <span className="truncate">
+                    Salvar e enviar{chosen.length > 0 ? ` (${chosen.join(" + ")})` : ""}
+                  </span>
                 </>
               )}
             </Button>
