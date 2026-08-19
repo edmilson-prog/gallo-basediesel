@@ -20,4 +20,17 @@ export const ATTENDANCE_HISTORY_STRINGS = {
     `${n} evento${n === 1 ? "" : "s"} · ${duration} · encerrada · sem dono`,
   summaryNoOwner: (n: number, duration: string) =>
     `${n} evento${n === 1 ? "" : "s"} · ${duration} · sem atendente`,
+  filters: {
+    all: "Tudo",
+    conversation: "Conversas",
+    note: "Notas",
+    history: "Histórico",
+  },
+  emptyFilter: "Nada registrado neste filtro.",
+  preRegistroWarning: "Anterior ao registro — só a abertura",
+  messageCount: (n: number) => `${n} ${n === 1 ? "mensagem" : "mensagens"}`,
+  cardSummary: (n: number, duration: string) =>
+    `${n} ${n === 1 ? "evento" : "eventos"} · ${duration}`,
+  dealLabel: (total: number) =>
+    `Negócio no valor de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(total)}`,
 } as const;
