@@ -30,11 +30,29 @@ as $$
         )
       )
   ),
+  -- Per-conversation gate. `allowed` alone is NOT enough here: it unlocks on
+  -- "can access ANY of this customer's conversations", which was safe while the
+  -- payload carried lifecycle metadata only (get_customer_activity). This
+  -- function returns 120-char message previews, note bodies and deal totals, so
+  -- a caller unlocked by that third branch would read content from sibling
+  -- conversations living on WhatsApp instances can_access_conversation
+  -- deliberately gates them out of (measured: 103 of 475 customers span more
+  -- than one whatsapp_account_id, 258 conversations).
+  --
+  -- Staff and carteira owner are unchanged — they already see everything.
+  -- Only the third branch narrows, from customer-wide to per-conversation.
+  -- Cost is negligible: no customer has more than 7 conversations.
   conv as (
     select c.*
     from public.conversations c
+    join public.customers cu on cu.id = c.customer_id
     where c.customer_id = p_customer_id
       and exists (select 1 from allowed)
+      and (
+        public.is_staff()
+        or cu.seller_id = public.current_seller_id()
+        or public.can_access_conversation(c.id)
+      )
   ),
   msg as (
     select m.conversation_id,
