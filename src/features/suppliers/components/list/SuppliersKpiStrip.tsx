@@ -105,7 +105,11 @@ export function SuppliersKpiStrip({
             <span
               className={cn(
                 "mt-1 block text-2xl font-bold leading-none",
-                cell.accent ? "text-severity-warning" : "text-foreground",
+                // `severity-info`, not `warning`: a pending row is not an
+                // error state, it is work waiting — same tone the queue's
+                // own rows use (`SuppliersPendingQueue`), so the KPI and the
+                // section it points at read as one concept, not two.
+                cell.accent ? "text-severity-info" : "text-foreground",
               )}
             >
               {cell.value}

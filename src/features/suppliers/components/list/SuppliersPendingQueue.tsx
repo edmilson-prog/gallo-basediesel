@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { IPendingSupplier } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SUPPLIERS_STRINGS } from "../../i18n/pt-BR";
 
 const COPY = SUPPLIERS_STRINGS.pendingQueue;
+
+/** Rows shown before the "Ver todos" control — a sample, not a cap: the
+ *  screen's thesis is the SIZE of this queue, so it must never hide behind
+ *  a permanently cramped scrollbox. See `expanded` below. */
+const PREVIEW_COUNT = 8;
 
 interface ISuppliersPendingQueueProps {
   /**
@@ -15,6 +21,11 @@ interface ISuppliersPendingQueueProps {
    */
   items: IPendingSupplier[] | null;
   hasError?: boolean;
+  /** Gates the "Cadastrar" button the same way the page gates "Novo
+   *  fornecedor" (`usePermission("supplier", "create")`) — a view-only role
+   *  must not reach the creation flow through the queue when the top button
+   *  already denies it. */
+  canCreate: boolean;
   /** Task 7 wires this to `SupplierFormDialog`, opened with the pending
    *  name prefilled as the corporate name. */
   onRegister: (pending: IPendingSupplier) => void;
@@ -34,8 +45,11 @@ interface ISuppliersPendingQueueProps {
 export function SuppliersPendingQueue({
   items,
   hasError = false,
+  canCreate,
   onRegister,
 }: ISuppliersPendingQueueProps) {
+  const [expanded, setExpanded] = useState(false);
+
   if (hasError) {
     return (
       <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
@@ -64,6 +78,9 @@ export function SuppliersPendingQueue({
   // element, it exists only while there is a gap to close.
   if (items.length === 0) return null;
 
+  const hasMore = items.length > PREVIEW_COUNT;
+  const visibleItems = expanded ? items : items.slice(0, PREVIEW_COUNT);
+
   return (
     <section aria-labelledby="suppliers-pending-queue-title">
       <h2
@@ -75,8 +92,14 @@ export function SuppliersPendingQueue({
       </h2>
       <p className="mb-3 text-xs text-muted-foreground">{COPY.subtitle}</p>
 
-      <div className="max-h-64 overflow-y-auto rounded-xl border border-border bg-card">
-        {items.map((pending) => (
+      {/* No inner scrollbox: a bounded preview (`PREVIEW_COUNT` rows) plus an
+          "Ver todos os N" control that expands the list IN PLACE, letting
+          the section grow and the outer page area handle it. A cramped
+          scrollbox would hide exactly what this queue exists to show — the
+          size of the gap between registered suppliers and loose catalog
+          names. */}
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        {visibleItems.map((pending) => (
           <div
             key={pending.key}
             className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 last:border-b-0"
@@ -94,18 +117,30 @@ export function SuppliersPendingQueue({
                 </span>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0"
-              onClick={() => onRegister(pending)}
-            >
-              <Icon icon="mdi:plus" size={14} />
-              {COPY.register}
-            </Button>
+            {canCreate && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => onRegister(pending)}
+              >
+                <Icon icon="mdi:plus" size={14} />
+                {COPY.register}
+              </Button>
+            )}
           </div>
         ))}
       </div>
+
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 text-xs font-semibold text-primary hover:underline"
+        >
+          {expanded ? COPY.showLess : COPY.viewAll(items.length)}
+        </button>
+      )}
     </section>
   );
 }

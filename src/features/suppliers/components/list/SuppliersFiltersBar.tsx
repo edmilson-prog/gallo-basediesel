@@ -4,6 +4,7 @@ import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { SUPPLIERS_STRINGS } from "../../i18n/pt-BR";
 import { nextSort, type ISuppliersSort, type SupplierSortBy } from "../../utils/sort";
+import { asKnownCategory } from "../../utils/supplierDisplay";
 import { SuppliersSearch } from "./SuppliersSearch";
 
 const COPY = SUPPLIERS_STRINGS;
@@ -46,8 +47,14 @@ export function SuppliersFiltersBar({
   onCreate,
   hasError = false,
 }: ISuppliersFiltersBarProps) {
+  // Normalized the same way the table labels a row's category: an
+  // XML-imported supplier's `category` is `null` by construction, and it
+  // must count under the same chip its row reads ("Peças"), never vanish
+  // from every count while still showing that label.
   const countFor = (key: (typeof CATEGORIES)[number]) =>
-    key === "all" ? suppliers.length : suppliers.filter((s) => s.category === key).length;
+    key === "all"
+      ? suppliers.length
+      : suppliers.filter((s) => asKnownCategory(s.category) === key).length;
 
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2">

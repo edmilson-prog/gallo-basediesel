@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ISupplier } from "@/shared/types";
 import { FETCH_ALL_PAGE_SIZE, useSuppliersProvider } from "@/providers/data";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
+import { asKnownCategory } from "../utils/supplierDisplay";
 
 export interface ISuppliersListFilters {
   search: string;
@@ -34,7 +35,14 @@ export function useSuppliersList(filters: ISuppliersListFilters) {
 
   const all: ISupplier[] = query.data?.data ?? [];
   const visible = all.filter((s) => {
-    if (filters.category !== "all" && s.category !== filters.category) return false;
+    // Normalized the same way `SuppliersTable`/`SuppliersFiltersBar` display
+    // and count categories: an XML-imported supplier's `category` is `null`
+    // by construction (the Tally migration leaves it blank on purpose), and
+    // it must filter into the same "Peças" bucket its row is labeled with —
+    // never silently drop out of every category filter.
+    if (filters.category !== "all" && asKnownCategory(s.category) !== filters.category) {
+      return false;
+    }
     if (!filters.search.trim()) return true;
     const needle = fold(filters.search);
     const haystack = fold(`${s.corporateName} ${s.tradeName ?? ""} ${s.cnpj}`);

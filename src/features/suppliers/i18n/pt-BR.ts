@@ -28,6 +28,10 @@ export const SUPPLIERS_STRINGS = {
       "Nomes do catálogo sem fornecedor cadastrado — cada um vira um cadastro com um clique.",
     partsCount: (count: number) => (count === 1 ? "1 peça vinculada" : `${count} peças vinculadas`),
     register: "Cadastrar",
+    /** Expand control below the preview — states the total in words, which
+     *  is what actually communicates the size of the backlog. */
+    viewAll: (count: number) => `Ver todos os ${count}`,
+    showLess: "Mostrar menos",
     /** Shown instead of the list when the queue's own fetch failed — same
      *  discipline as the table's `error`: never let a failure read as "a
      *  fila está vazia". */

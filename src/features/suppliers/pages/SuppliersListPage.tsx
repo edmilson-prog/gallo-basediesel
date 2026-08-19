@@ -223,6 +223,7 @@ export function SuppliersListPage() {
             <SuppliersPendingQueue
               items={pending}
               hasError={pendingHasError}
+              canCreate={canCreate}
               onRegister={handleRegisterPending}
             />
           </div>
