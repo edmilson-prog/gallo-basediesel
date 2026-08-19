@@ -181,6 +181,50 @@ export const APP_NAV_GROUPS: INavGroup[] = [
     ],
   },
   {
+    // The kit (`ui_kits/financeiro/fin-shell.jsx`) puts FINANCEIRO right after
+    // COMERCIAL; Suprimentos (Tally) has since taken that slot, so this group
+    // now sits right after it instead. It opens with what exists: Fornecedores
+    // plus the four items that used to sit inside Gestão. The other six
+    // screens of the kit (Contas a receber, Contas a pagar, Previsibilidade,
+    // KPIs and the two chart pages) join as they are implemented — a menu
+    // entry that leads nowhere is worse than an absent one.
+    label: "Financeiro",
+    items: [
+      {
+        label: "Fornecedores",
+        icon: "mdi:domain",
+        to: ROUTES.FINANCEIRO_FORNECEDORES,
+        permission: { resource: "supplier" },
+      },
+      {
+        label: "Fluxo de Caixa",
+        icon: "mdi:cash-flow",
+        to: ROUTES.GESTAO_CAIXA,
+        permission: { resource: "cashflow" },
+      },
+      {
+        label: "Despesas",
+        icon: "mdi:cash-remove",
+        to: ROUTES.GESTAO_DESPESAS,
+        permission: { resource: "expense" },
+      },
+      {
+        label: "Comissões",
+        icon: "mdi:cash-multiple",
+        to: ROUTES.GESTAO_COMISSOES,
+        // Kept on roles: Gestor holds `approve` but not `view` on commission.
+        roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
+      },
+      {
+        label: "DRE Gerencial",
+        icon: "mdi:file-chart",
+        to: ROUTES.GESTAO_DRE,
+        // Owner-only by product decision (matrix grants Gestor/Financeiro view).
+        roles: ["Owner"],
+      },
+    ],
+  },
+  {
     label: "SDR",
     items: [
       {
@@ -268,36 +312,10 @@ export const APP_NAV_GROUPS: INavGroup[] = [
         roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
       },
       {
-        label: "Comissões",
-        icon: "mdi:cash-multiple",
-        to: ROUTES.GESTAO_COMISSOES,
-        // Kept on roles: Gestor holds `approve` but not `view` on commission.
-        roles: ["Owner", "Gestor", "Vendedor", "Financeiro"],
-      },
-      {
-        label: "DRE Gerencial",
-        icon: "mdi:file-chart",
-        to: ROUTES.GESTAO_DRE,
-        // Owner-only by product decision (matrix grants Gestor/Financeiro view).
-        roles: ["Owner"],
-      },
-      {
         label: "Rentabilidade",
         icon: "mdi:scale-balance",
         to: ROUTES.GESTAO_RENTABILIDADE,
         roles: ["Owner"],
-      },
-      {
-        label: "Despesas",
-        icon: "mdi:cash-remove",
-        to: ROUTES.GESTAO_DESPESAS,
-        permission: { resource: "expense" },
-      },
-      {
-        label: "Fluxo de Caixa",
-        icon: "mdi:cash-flow",
-        to: ROUTES.GESTAO_CAIXA,
-        permission: { resource: "cashflow" },
       },
       {
         label: "Estoque",

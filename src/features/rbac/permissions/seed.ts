@@ -69,6 +69,7 @@ const RESOURCE_LABELS: Record<ResourceName, string> = {
   dre: "DRE Gerencial",
   expense: "Despesas",
   cashflow: "Fluxo de Caixa",
+  supplier: "Fornecedores",
   profitability: "Rentabilidade",
   inventory: "Estoque",
   customer_service_analytics: "Análise de Atendimento",
@@ -134,6 +135,7 @@ const RESOURCE_GROUPS: Record<ResourceName, string> = {
   dre: "Financeiro",
   expense: "Financeiro",
   cashflow: "Financeiro",
+  supplier: "Financeiro",
   profitability: "Financeiro",
   inventory: "Financeiro",
   // E-commerce

@@ -64,6 +64,7 @@ const OWNER_ENTRIES: ScopedActions[] = [
   p("dre", ["view", "edit"], "all"),
   p("expense", CRUD, "all"),
   p("cashflow", ["view", "create"], "all"),
+  p("supplier", CRUD, "all"),
   p("profitability", ["view"], "all"),
   p("inventory", ["view", "edit"], "all"),
   p("customer_service_analytics", ["view"], "all"),
@@ -132,6 +133,7 @@ const GESTOR_ENTRIES: ScopedActions[] = [
   // Gestor: read-only on financials (PRD-054 / PRD-055).
   p("expense", ["view"], "store"),
   p("cashflow", ["view"], "store"),
+  p("supplier", ["view", "create", "edit"], "store"),
   p("profitability", ["view"], "store"),
   // `edit` unlocks Estoque (análise) — stock policy is store operation.
   p("inventory", ["view", "edit"], "store"),
@@ -254,6 +256,7 @@ const FINANCEIRO_ENTRIES: ScopedActions[] = [
   // Financeiro: full expense CRUD + cash flow management (PRD-054 / PRD-055).
   p("expense", CRUD, "store"),
   p("cashflow", ["view", "create"], "store"),
+  p("supplier", ["view", "create", "edit"], "store"),
   p("profitability", ["view"], "store"),
   p("inventory", ["view"], "store"),
   p("customer_service_analytics", ["view"], "store"),

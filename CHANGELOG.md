@@ -4,6 +4,20 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.185.0] — Counterpart · 2026-08-19
+
+**O fornecedor que a nota fiscal cadastra sozinho, desde ontem, ganha agora uma tela própria. Um grupo FINANCEIRO aparece no menu, entre Suprimentos e SDR, e abre em Fornecedores — reunindo ali também Fluxo de Caixa, Despesas, Comissões e DRE Gerencial, que só trocaram de prateleira: os links continuam os mesmos de sempre. Cadastrar um fornecedor novo começa pelo CNPJ: a Receita Federal preenche sozinha a razão social, o telefone e a cidade, o sistema barra cadastrar o mesmo CNPJ duas vezes, e nunca trava o cadastro só porque a Receita está fora do ar. Abaixo da tabela, uma fila mostra os nomes de fornecedor que já existem soltos no catálogo — cerca de 124, nenhum com CNPJ — e por isso nenhum deles virou cadastro: a fila só aponta o trabalho que falta, com um botão que abre o formulário já com o nome preenchido, e cada linha some assim que o cadastro correspondente existir.**
+
+### Added
+
+- **Grupo FINANCEIRO no menu lateral**, logo depois de Suprimentos — abre em **Fornecedores** e reúne **Fluxo de Caixa**, **Despesas**, **Comissões** e **DRE Gerencial**, que vieram de dentro de Gestão sem trocar de endereço.
+- **Tela de Fornecedores** — faixa de indicadores, filtro por categoria, ordenação, a busca padrão da casa, e uma tabela com colunas redimensionáveis e configuráveis pelo clique-direito do cabeçalho.
+- **Cartão lateral do fornecedor selecionado** — o que a empresa compra dele e as notas de entrada mais recentes, sem sair da lista.
+- **Ficha completa em gaveta**, com as compras mês a mês do fornecedor.
+- **Cadastro CNPJ-first** — a Receita Federal preenche razão social, telefone e cidade sozinha (só os campos ainda vazios), o mesmo CNPJ não pode ser cadastrado duas vezes, e a Receita fora do ar nunca impede o cadastro de seguir.
+- **Fila de cadastro pendente**, abaixo da tabela — os nomes de fornecedor que já existem soltos no catálogo de peças, sem CNPJ e por isso sem cadastro correspondente. Cada linha mostra o nome e quantas peças o referenciam, com um botão que abre o cadastro já com o nome preenchido; a linha some quando um cadastro equivalente passa a existir.
+
+> A tela ainda não mostra quanto se deve a cada fornecedor — "Em aberto", "Vence esta semana" e "Prazo médio de pagamento" dependem de um contas a pagar que ainda não existe. Enquanto isso, a ficha completa diz isso em palavras, em vez de mostrar R$ 0,00.
 ## [0.184.0] — Thread · 2026-08-19
 
 **O Histórico da ficha do cliente parecia quebrado: abria quase vazio, muitas vezes com uma linha só dizendo "Conversa criada". Não estava quebrado — estava registrando fielmente um assunto estreito demais. Ele anotava apenas mudanças de status e de responsável, então uma conversa que o vendedor abriu e resolveu na mesma tarde rendia uma linha. E quase metade das conversas da base é anterior ao dia em que esse registro passou a funcionar: essas não apareciam de jeito nenhum. Agora o histórico mostra o atendimento inteiro — quantas mensagens foram trocadas e a última delas, as anotações, quem assumiu, quando encerrou — e as conversas antigas voltaram para a lista.**
