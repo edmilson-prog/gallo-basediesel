@@ -7,18 +7,35 @@ import { cn } from "@/lib/utils";
 import { useModelKits } from "@/features/model-kits/hooks/useModelKits";
 import { findKitsForVehicle } from "@/features/model-kits/utils/modelKitMatching";
 import { computeRecommendations } from "../../utils/maintenanceRules";
+import { VehicleInvite } from "../VehicleInvite";
 import { VEHICLE_STRINGS } from "../../i18n/pt-BR";
 
 const COPY = VEHICLE_STRINGS.detail.recommendations;
 const SECTION_COPY = VEHICLE_STRINGS.detail.sections;
+const INVITE_COPY = VEHICLE_STRINGS.detail.invites;
+const HEALTH_COPY = VEHICLE_STRINGS.detail.health;
 
 export interface IMaintenanceRecommendationsProps {
   vehicle: IVehicle;
+  /** Opens the km modal — offered when there is no odometer to measure against. */
+  onUpdateKm?: () => void;
+  onAddService?: () => void;
+  /** Stack the cards in one column — for the narrow "Próximas ações" slot. */
+  compact?: boolean;
+  /** The caller already labelled the block (e.g. "Próximas ações"). */
+  hideHeading?: boolean;
 }
 
-export function MaintenanceRecommendations({ vehicle }: IMaintenanceRecommendationsProps) {
+export function MaintenanceRecommendations({
+  vehicle,
+  onUpdateKm,
+  onAddService,
+  compact = false,
+  hideHeading = false,
+}: IMaintenanceRecommendationsProps) {
   const navigate = useNavigate();
   const recommendations = useMemo(() => computeRecommendations(vehicle), [vehicle]);
+  const hasKm = typeof vehicle.currentKm === "number";
 
   // Resolve applicable filter kit for this vehicle (RF-014).
   const modelKitsQuery = useModelKits({});
@@ -33,16 +50,38 @@ export function MaintenanceRecommendations({ vehicle }: IMaintenanceRecommendati
 
   return (
     <section className="space-y-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        {SECTION_COPY.recommendations}
-      </h2>
-      {recommendations.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/20 px-4 py-6 text-center">
-          <Icon icon="mdi:check-circle-outline" size={20} className="text-severity-success" />
+      {!hideHeading && (
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          {SECTION_COPY.recommendations}
+        </h2>
+      )}
+
+      {!hasKm ? (
+        // No odometer, no ruler: saying "nenhuma recomendação" here would read
+        // as "nothing to do", when the truth is "nothing can be computed yet".
+        <VehicleInvite
+          compact
+          icon="mdi:wrench-outline"
+          title={INVITE_COPY.recsTitle}
+          description={INVITE_COPY.recsDescription}
+          action={
+            onUpdateKm
+              ? { icon: "mdi:counter", label: HEALTH_COPY.unknownCta, onClick: onUpdateKm }
+              : undefined
+          }
+          secondary={
+            onAddService
+              ? { label: VEHICLE_STRINGS.detail.addService, onClick: onAddService }
+              : undefined
+          }
+        />
+      ) : recommendations.length === 0 ? (
+        <div className="flex items-center gap-2.5 rounded-md border border-dashed border-border bg-muted/20 px-4 py-3">
+          <Icon icon="mdi:check-circle-outline" size={18} className="text-severity-success" />
           <p className="text-xs text-muted-foreground">{COPY.empty}</p>
         </div>
       ) : (
-        <ul className="grid gap-2 md:grid-cols-2">
+        <ul className={cn("grid gap-2", !compact && "md:grid-cols-2")}>
           {recommendations.map((rec) => {
             const isOverdue = rec.remainingKm <= 0;
             const isFilterCard = rec.rule.key === "filters";
@@ -61,9 +100,10 @@ export function MaintenanceRecommendations({ vehicle }: IMaintenanceRecommendati
                   <Icon
                     icon={isOverdue ? "mdi:alert-octagon" : "mdi:alert-circle-outline"}
                     size={18}
-                    className={
-                      isOverdue ? "text-destructive" : "text-severity-warning"
-                    }
+                    className={cn(
+                      "shrink-0",
+                      isOverdue ? "text-destructive" : "text-severity-warning",
+                    )}
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-foreground">{rec.rule.label}</p>

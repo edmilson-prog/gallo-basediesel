@@ -1,4 +1,8 @@
 import type { VehicleCadastroStatus } from "@/shared/types";
+import type { VehicleHealthStatus } from "./vehicleHealth";
+import { VEHICLE_STRINGS } from "../i18n/pt-BR";
+
+const HEALTH_COPY = VEHICLE_STRINGS.detail.health;
 
 export const BRAND_ICON: Record<string, string> = {
   Volvo: "mdi:truck-fast",
@@ -22,6 +26,37 @@ export const STATUS_LABEL: Record<VehicleCadastroStatus, string> = {
   aprovado: "Aprovado",
   pendente: "Pendente",
   rejeitado: "Rejeitado",
+};
+
+/** Label, color and icon for each health state — never color alone. */
+export const HEALTH_STATUS_META: Record<
+  VehicleHealthStatus,
+  { label: string; text: string; dot: string; icon: string }
+> = {
+  unknown: {
+    label: HEALTH_COPY.unknown,
+    text: "text-muted-foreground",
+    dot: "bg-muted-foreground/40",
+    icon: "mdi:help-circle-outline",
+  },
+  ok: {
+    label: HEALTH_COPY.ok,
+    text: "text-severity-success",
+    dot: "bg-severity-success",
+    icon: "mdi:check-circle-outline",
+  },
+  attention: {
+    label: HEALTH_COPY.attention,
+    text: "text-severity-warning",
+    dot: "bg-severity-warning",
+    icon: "mdi:alert-circle-outline",
+  },
+  overdue: {
+    label: HEALTH_COPY.overdue,
+    text: "text-destructive",
+    dot: "bg-destructive",
+    icon: "mdi:alert-octagon-outline",
+  },
 };
 
 export function formatKm(km?: number): string {

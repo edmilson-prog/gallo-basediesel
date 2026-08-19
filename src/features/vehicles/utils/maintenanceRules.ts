@@ -56,8 +56,19 @@ export interface IMaintenanceRecommendation {
   lastServiceKm: number | null;
 }
 
+/**
+ * Rules that are overdue or due soon for this vehicle.
+ *
+ * Returns `[]` when `currentKm` is unknown: the ruler measures the *distance*
+ * between the last service and today's odometer, and without an odometer there
+ * is no distance to measure. Treating a blank km as `0` (the previous
+ * behaviour) made every imported vehicle report a perfect "100 · Em dia" —
+ * a verdict built on no data at all. Callers must handle the empty result as
+ * "sem dados", not as "em dia" — see {@link computeHealth}.
+ */
 export function computeRecommendations(vehicle: IVehicle): IMaintenanceRecommendation[] {
-  const currentKm = vehicle.currentKm ?? 0;
+  const currentKm = vehicle.currentKm;
+  if (typeof currentKm !== "number") return [];
   return MAINTENANCE_RULES.map((rule) => {
     const matching = vehicle.serviceHistory
       .filter((entry) => entry.parts.some((p) => rule.match.test(p)) && entry.km !== undefined)

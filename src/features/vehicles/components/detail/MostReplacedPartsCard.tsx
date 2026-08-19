@@ -2,16 +2,24 @@ import type { IVehicle } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { rankParts } from "../../utils/partsRanking";
+import { VehicleInvite } from "../VehicleInvite";
 import { VEHICLE_STRINGS } from "../../i18n/pt-BR";
 
 const COPY = VEHICLE_STRINGS.detail.parts;
+const INVITE_COPY = VEHICLE_STRINGS.detail.invites;
 
 export interface IMostReplacedPartsCardProps {
   vehicle: IVehicle;
+  /** Offered when the ranking is empty — the first service entry seeds it. */
+  onAddService?: () => void;
   className?: string;
 }
 
-export function MostReplacedPartsCard({ vehicle, className }: IMostReplacedPartsCardProps) {
+export function MostReplacedPartsCard({
+  vehicle,
+  onAddService,
+  className,
+}: IMostReplacedPartsCardProps) {
   const ranked = rankParts(vehicle);
   const max = ranked[0]?.count ?? 1;
 
@@ -22,7 +30,21 @@ export function MostReplacedPartsCard({ vehicle, className }: IMostReplacedParts
         {COPY.title}
       </h2>
       {ranked.length === 0 ? (
-        <p className="py-6 text-center text-xs text-muted-foreground">{COPY.empty}</p>
+        <VehicleInvite
+          compact
+          icon="mdi:package-variant"
+          title={INVITE_COPY.partsTitle}
+          description={INVITE_COPY.partsDescription}
+          action={
+            onAddService
+              ? {
+                  icon: "mdi:wrench",
+                  label: VEHICLE_STRINGS.detail.addService,
+                  onClick: onAddService,
+                }
+              : undefined
+          }
+        />
       ) : (
         <ul className="space-y-2.5">
           {ranked.map((part) => (

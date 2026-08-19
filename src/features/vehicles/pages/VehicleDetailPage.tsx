@@ -26,13 +26,16 @@ import { VehicleDetailHeader } from "../components/detail/VehicleDetailHeader";
 import { VehicleStatusBanner } from "../components/detail/VehicleStatusBanner";
 import { VehicleStatStrip } from "../components/detail/VehicleStatStrip";
 import { VehicleHistorySection } from "../components/detail/VehicleHistorySection";
+import { VehicleLayoutProntuario } from "../components/detail/layouts/VehicleLayoutProntuario";
 import { VehicleLayoutHealth } from "../components/detail/layouts/VehicleLayoutHealth";
 import { VehicleLayoutRails } from "../components/detail/layouts/VehicleLayoutRails";
 import { VehicleLayoutBento } from "../components/detail/layouts/VehicleLayoutBento";
 import type { IVehicleLayoutProps } from "../components/detail/layouts/types";
 import { EditVehicleModal } from "../components/EditVehicleModal";
 import { AddServiceEntryModal } from "../components/detail/AddServiceEntryModal";
+import { UpdateKmModal } from "../components/detail/UpdateKmModal";
 import { LinkModelDialog } from "../components/detail/LinkModelDialog";
+import { layoutOwnsFactsAndHistory } from "../config/layout";
 import { VEHICLE_STRINGS } from "../i18n/pt-BR";
 
 export function VehicleDetailPage() {
@@ -48,6 +51,7 @@ export function VehicleDetailPage() {
   const [serviceOpen, setServiceOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [kmOpen, setKmOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const historyRef = useRef<HTMLDivElement>(null);
   const now = useMemo(() => new Date(), []);
@@ -117,7 +121,13 @@ export function VehicleDetailPage() {
     onUpdated: () => void detail.invalidate(),
     onSeeFullHistory: goToFullHistory,
     onRequestLinkModel: () => setLinkOpen(true),
+    onUpdateKm: () => setKmOpen(true),
+    onEdit: () => setEditOpen(true),
   };
+
+  // Prontuário fuses the stat strip into its facts band and the two history
+  // sections into one timeline, so the shell must not render either around it.
+  const ownsFactsAndHistory = layoutOwnsFactsAndHistory(layout);
 
   return (
     <div className="flex min-h-full flex-col bg-background">
@@ -127,6 +137,7 @@ export function VehicleDetailPage() {
         onEdit={() => setEditOpen(true)}
         onAddService={() => setServiceOpen(true)}
         onRequestLinkModel={() => setLinkOpen(true)}
+        onUpdateKm={() => setKmOpen(true)}
         layout={layout}
         onLayoutChange={setLayout}
       />
@@ -139,18 +150,21 @@ export function VehicleDetailPage() {
           onReject={() => setRejectOpen(true)}
         />
 
-        <VehicleStatStrip vehicle={vehicle} now={now} />
+        {!ownsFactsAndHistory && <VehicleStatStrip vehicle={vehicle} now={now} />}
 
+        {layout === "prontuario" && <VehicleLayoutProntuario {...layoutProps} />}
         {layout === "health" && <VehicleLayoutHealth {...layoutProps} />}
         {layout === "rails" && <VehicleLayoutRails {...layoutProps} />}
         {layout === "bento" && <VehicleLayoutBento {...layoutProps} />}
 
-        <VehicleHistorySection
-          ref={historyRef}
-          vehicle={vehicle}
-          canEdit={canEdit}
-          onAddService={() => setServiceOpen(true)}
-        />
+        {!ownsFactsAndHistory && (
+          <VehicleHistorySection
+            ref={historyRef}
+            vehicle={vehicle}
+            canEdit={canEdit}
+            onAddService={() => setServiceOpen(true)}
+          />
+        )}
       </div>
 
       <EditVehicleModal
@@ -164,6 +178,13 @@ export function VehicleDetailPage() {
         open={serviceOpen}
         vehicle={vehicle}
         onClose={() => setServiceOpen(false)}
+        onSaved={() => void detail.invalidate()}
+      />
+
+      <UpdateKmModal
+        open={kmOpen}
+        vehicle={vehicle}
+        onClose={() => setKmOpen(false)}
         onSaved={() => void detail.invalidate()}
       />
 

@@ -1,13 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { IVehicle, IVehicleServiceEntry } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateBR } from "@/shared/utils/format";
+import { VehicleInvite } from "../VehicleInvite";
 import { VEHICLE_STRINGS } from "../../i18n/pt-BR";
 
 const COPY = VEHICLE_STRINGS.detail.history;
 const SECTION_COPY = VEHICLE_STRINGS.detail.sections;
+const INVITE_COPY = VEHICLE_STRINGS.detail.invites;
 
 export interface IServiceHistoryTimelineProps {
   vehicle: IVehicle;
@@ -17,6 +19,14 @@ export interface IServiceHistoryTimelineProps {
   limit?: number;
   /** Heading override (defaults to the section title). */
   title?: string;
+  /** Hide the heading entirely — the card around it already carries one. */
+  hideHeading?: boolean;
+  /**
+   * Expand the remaining entries in place instead of pointing at a separate
+   * "histórico completo" section. This is what lets one timeline replace the
+   * recent/complete pair.
+   */
+  expandable?: boolean;
   /** Shown as a "see all" button when the list is truncated by `limit`. */
   onSeeAll?: () => void;
 }
@@ -27,43 +37,37 @@ export function ServiceHistoryTimeline({
   onAddService,
   limit,
   title,
+  hideHeading = false,
+  expandable = false,
   onSeeAll,
 }: IServiceHistoryTimelineProps) {
+  const [showAll, setShowAll] = useState(false);
   const sorted = useMemo<IVehicleServiceEntry[]>(
     () => [...vehicle.serviceHistory].sort((a, b) => b.date.localeCompare(a.date)),
     [vehicle.serviceHistory],
   );
-  const visible = typeof limit === "number" ? sorted.slice(0, limit) : sorted;
-  const truncated = typeof limit === "number" && sorted.length > limit;
+  const capped = typeof limit === "number" && !(expandable && showAll);
+  const visible = capped ? sorted.slice(0, limit) : sorted;
+  const truncated = capped && sorted.length > (limit as number);
 
   return (
     <section className="space-y-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        {title ?? SECTION_COPY.history}
-      </h2>
+      {!hideHeading && (
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          {title ?? SECTION_COPY.history}
+        </h2>
+      )}
       {sorted.length === 0 ? (
-        <div className="rounded-md border border-dashed border-border bg-muted/20 px-5 py-5">
-          <ol aria-hidden="true" className="mb-4 space-y-3 border-l border-border pl-4">
-            {[0, 1, 2].map((i) => (
-              <li key={i} className="relative">
-                <span className="absolute -left-[21px] top-0.5 h-3 w-3 rounded-full border border-border bg-muted/50" />
-                <div className="space-y-1.5">
-                  <div className="h-2.5 w-2/5 rounded bg-foreground/[0.06]" />
-                  <div className="h-2.5 w-3/5 rounded bg-foreground/[0.03]" />
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="max-w-sm text-xs text-muted-foreground">{COPY.emptyAutoHint}</p>
-            {canEdit && onAddService && (
-              <Button size="sm" onClick={onAddService}>
-                <Icon icon="mdi:wrench" size={14} />
-                {COPY.emptyCta}
-              </Button>
-            )}
-          </div>
-        </div>
+        <VehicleInvite
+          icon="mdi:history"
+          title={INVITE_COPY.historyTitle}
+          description={INVITE_COPY.historyDescription}
+          action={
+            canEdit && onAddService
+              ? { icon: "mdi:wrench", label: INVITE_COPY.historyCta, onClick: onAddService }
+              : undefined
+          }
+        />
       ) : (
         <>
           <ol className="relative space-y-3 border-l border-border pl-4">
@@ -104,12 +108,25 @@ export function ServiceHistoryTimeline({
               </li>
             ))}
           </ol>
-          {truncated && onSeeAll && (
-            <Button variant="ghost" size="sm" className="text-xs" onClick={onSeeAll}>
-              {COPY.seeAll}
-              <Icon icon="mdi:arrow-down" size={14} />
-            </Button>
-          )}
+          {expandable
+            ? (truncated || showAll) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setShowAll((s) => !s)}
+                >
+                  {showAll ? COPY.showLess : COPY.showAll(sorted.length)}
+                  <Icon icon={showAll ? "mdi:chevron-up" : "mdi:chevron-down"} size={14} />
+                </Button>
+              )
+            : truncated &&
+              onSeeAll && (
+                <Button variant="ghost" size="sm" className="text-xs" onClick={onSeeAll}>
+                  {COPY.seeAll}
+                  <Icon icon="mdi:arrow-down" size={14} />
+                </Button>
+              )}
         </>
       )}
     </section>

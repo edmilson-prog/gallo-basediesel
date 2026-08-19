@@ -38,6 +38,8 @@ export interface IListVehiclesParams extends IPaginationParams {
   yearMax?: number;
   cadastroStatus?: IVehicle["cadastroStatus"];
   cadastroStatuses?: IVehicle["cadastroStatus"][];
+  withoutKm?: boolean;
+  withoutModel?: boolean;
   storeId?: ID;
   storeIds?: ID[];
   sellerIds?: ID[];
@@ -145,6 +147,8 @@ export const vehiclesApi = {
           const set = new Set(params.cadastroStatuses);
           all = all.filter((v) => set.has(v.cadastroStatus));
         }
+        if (params.withoutKm) all = all.filter((v) => typeof v.currentKm !== "number");
+        if (params.withoutModel) all = all.filter((v) => v.modelId == null);
         if (params.storeId) {
           all = all.filter((v) => getCustomerStoreId(v.customerId) === params.storeId);
         }

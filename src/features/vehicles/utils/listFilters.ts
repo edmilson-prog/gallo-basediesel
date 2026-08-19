@@ -18,6 +18,10 @@ export interface IVehiclesListFilters {
   yearMax?: number;
   customerId?: ID;
   cadastroStatuses: VehicleCadastroStatus[];
+  /** Enrichment queue: only vehicles with no odometer reading. */
+  withoutKm: boolean;
+  /** Enrichment queue: only vehicles with no canonical model linked. */
+  withoutModel: boolean;
   storeIds: ID[];
   sellerIds: ID[];
   search: string;
@@ -28,6 +32,8 @@ export const EMPTY_FILTERS: IVehiclesListFilters = {
   model: "",
   engine: "",
   cadastroStatuses: [],
+  withoutKm: false,
+  withoutModel: false,
   storeIds: [],
   sellerIds: [],
   search: "",
@@ -56,6 +62,8 @@ export function toListParams(
     yearMax: filters.yearMax,
     customerId: filters.customerId,
     cadastroStatuses: filters.cadastroStatuses.length > 0 ? filters.cadastroStatuses : undefined,
+    withoutKm: filters.withoutKm ? true : undefined,
+    withoutModel: filters.withoutModel ? true : undefined,
     storeIds: filters.storeIds.length > 0 ? filters.storeIds : undefined,
     sellerIds: filters.sellerIds.length > 0 ? filters.sellerIds : undefined,
     search: filters.search.trim() ? filters.search.trim() : undefined,
@@ -72,6 +80,8 @@ export function countActiveFilters(filters: IVehiclesListFilters): number {
   if (filters.yearMin !== undefined || filters.yearMax !== undefined) n += 1;
   if (filters.customerId) n += 1;
   if (filters.cadastroStatuses.length > 0) n += 1;
+  if (filters.withoutKm) n += 1;
+  if (filters.withoutModel) n += 1;
   if (filters.storeIds.length > 0) n += 1;
   if (filters.sellerIds.length > 0) n += 1;
   return n;

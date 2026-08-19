@@ -25,23 +25,30 @@ export interface IVehicleStatStripProps {
 /** Full-width KPI strip mirroring the customer detail pattern (hairline cells). */
 export function VehicleStatStrip({ vehicle, now = new Date() }: IVehicleStatStripProps) {
   const next = nextMaintenance(vehicle);
-  const { overdueCount } = computeHealth(vehicle);
+  const { overdueCount, status } = computeHealth(vehicle);
   const last = lastServiceEntry(vehicle);
   const recency = last ? daysSince(last.date, now) : null;
   const usage = usagePerYear(vehicle, now);
+  // No odometer, no ruler: "Em dia" / "Nenhuma" would be a verdict the data
+  // cannot support — the same lie the health ring refuses to tell.
+  const unmeasured = status === "unknown";
 
   const cells: IStatCell[] = [
     { icon: "mdi:counter", label: COPY.currentKm, value: formatKm(vehicle.currentKm) },
     {
       icon: "mdi:wrench-clock",
       label: COPY.nextMaintenance,
-      value: next ? COPY.nextMaintenanceValue(next.remainingKm, next.label) : COPY.nextNone,
-      accent: next ? "warn" : undefined,
+      value: unmeasured
+        ? COPY.noKm
+        : next
+          ? COPY.nextMaintenanceValue(next.remainingKm, next.label)
+          : COPY.nextNone,
+      accent: !unmeasured && next ? "warn" : undefined,
     },
     {
       icon: "mdi:alert-octagon-outline",
       label: COPY.overdue,
-      value: overdueCount > 0 ? String(overdueCount) : COPY.overdueNone,
+      value: unmeasured ? COPY.empty : overdueCount > 0 ? String(overdueCount) : COPY.overdueNone,
       accent: overdueCount > 0 ? "danger" : undefined,
     },
     {

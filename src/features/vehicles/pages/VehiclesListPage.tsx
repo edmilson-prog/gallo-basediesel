@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ICustomer, ID, ISeller, VehicleCadastroStatus } from "@/shared/types";
+import type { ICustomer, ID, ISeller } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,12 +29,15 @@ import { useSellersProvider } from "@/providers/data/hooks/useSellersProvider";
 import { auditLog } from "@/features/rbac/utils/auditLog";
 import { VehiclesHeader } from "../components/list/VehiclesHeader";
 import { VehiclesFiltersBar } from "../components/list/VehiclesFiltersBar";
+import { VehiclesQueueChips } from "../components/list/VehiclesQueueChips";
 import { VehiclesTable } from "../components/list/VehiclesTable";
 import { VehiclesPagination } from "../components/list/VehiclesPagination";
 import { VehiclesBulkActionsBar } from "../components/list/VehiclesBulkActionsBar";
 import { NewVehicleModal } from "../components/NewVehicleModal";
+import { VehicleInvite } from "../components/VehicleInvite";
 import { useVehiclesUrlState } from "../hooks/useVehiclesUrlState";
 import { useVehiclesList } from "../hooks/useVehiclesList";
+import { useVehiclesQueueCounts } from "../hooks/useVehiclesQueueCounts";
 import { useCadastroMode } from "../hooks/useCadastroMode";
 import {
   OPTIONAL_COLUMNS,
@@ -42,6 +45,7 @@ import {
   writeVisibleOptional,
   type OptionalColumn,
 } from "../utils/columns";
+import type { IVehiclesListFilters } from "../utils/listFilters";
 import { VEHICLE_STRINGS } from "../i18n/pt-BR";
 
 export function VehiclesListPage() {
@@ -58,6 +62,11 @@ export function VehiclesListPage() {
   const url = useVehiclesUrlState();
   const { filters, sort, page, pageSize } = url;
   const list = useVehiclesList(filters, sort, page, pageSize);
+  const queueCounts = useVehiclesQueueCounts({
+    storeIds: filters.storeIds,
+    sellerIds: filters.sellerIds,
+    customerId: filters.customerId,
+  });
 
   const vehiclesProvider = useVehiclesProvider();
   const customersProvider = useCustomersProvider();
@@ -129,14 +138,17 @@ export function VehiclesListPage() {
     });
   }, []);
 
+  // Bulk actions only ever act on pending registrations, so selection only
+  // ever reaches them — selecting an approved row would promise an action
+  // that silently does nothing.
   const toggleAllInPage = useCallback(
     (checked: boolean) => {
       setSelectedIds((prev) => {
         const next = new Set(prev);
-        if (checked) {
-          list.data.forEach((v) => next.add(v.id));
-        } else {
-          list.data.forEach((v) => next.delete(v.id));
+        for (const v of list.data) {
+          if (v.cadastroStatus !== "pendente") continue;
+          if (checked) next.add(v.id);
+          else next.delete(v.id);
         }
         return next;
       });
@@ -185,6 +197,39 @@ export function VehiclesListPage() {
     [navigate],
   );
 
+  const refreshLists = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["vehicles-list"] }),
+      queryClient.invalidateQueries({ queryKey: ["vehicles-queue-count"] }),
+    ]);
+  }, [queryClient]);
+
+  const approveVehicles = useCallback(
+    async (ids: ID[]) => {
+      for (const id of ids) {
+        const before = list.data.find((v) => v.id === id);
+        await vehiclesProvider.update(id, { cadastroStatus: "aprovado" });
+        auditLog({
+          action: "vehicle.approved",
+          resource: "vehicle",
+          resourceId: id,
+          before: { cadastroStatus: before?.cadastroStatus },
+          after: { cadastroStatus: "aprovado" },
+        });
+      }
+      await refreshLists();
+      toast.success(VEHICLE_STRINGS.bulk.approveSuccess(ids.length));
+    },
+    [list.data, vehiclesProvider, refreshLists],
+  );
+
+  const handleApproveOne = useCallback(
+    async (id: ID) => {
+      await approveVehicles([id]);
+    },
+    [approveVehicles],
+  );
+
   const handleBulkApprove = useCallback(async () => {
     const ids = Array.from(selectedIds).filter((id) => {
       const v = list.data.find((x) => x.id === id);
@@ -194,21 +239,9 @@ export function VehiclesListPage() {
       toast.info("Nenhum veículo pendente selecionado.");
       return;
     }
-    for (const id of ids) {
-      const before = list.data.find((v) => v.id === id);
-      await vehiclesProvider.update(id, { cadastroStatus: "aprovado" });
-      auditLog({
-        action: "vehicle.approved",
-        resource: "vehicle",
-        resourceId: id,
-        before: { cadastroStatus: before?.cadastroStatus },
-        after: { cadastroStatus: "aprovado" },
-      });
-    }
-    await queryClient.invalidateQueries({ queryKey: ["vehicles-list"] });
-    toast.success(VEHICLE_STRINGS.bulk.approveSuccess(ids.length));
+    await approveVehicles(ids);
     clearSelection();
-  }, [selectedIds, list.data, vehiclesProvider, queryClient, clearSelection]);
+  }, [selectedIds, list.data, approveVehicles, clearSelection]);
 
   const handleBulkReject = useCallback(async () => {
     const ids = Array.from(selectedIds).filter((id) => {
@@ -231,12 +264,12 @@ export function VehiclesListPage() {
         after: { cadastroStatus: "rejeitado", reason: rejectReason || undefined },
       });
     }
-    await queryClient.invalidateQueries({ queryKey: ["vehicles-list"] });
+    await refreshLists();
     toast.success(VEHICLE_STRINGS.bulk.rejectSuccess(ids.length));
     setRejectReason("");
     setRejectOpen(false);
     clearSelection();
-  }, [selectedIds, list.data, vehiclesProvider, queryClient, rejectReason, clearSelection]);
+  }, [selectedIds, list.data, vehiclesProvider, refreshLists, rejectReason, clearSelection]);
 
   const showEmptyState = !list.isLoading && list.data.length === 0;
 
@@ -254,6 +287,13 @@ export function VehiclesListPage() {
           onSearchChange={(q) => url.setSearch(q)}
           canCreate={effectiveCanCreate}
           onCreate={() => setNewOpen(true)}
+          queueSlot={
+            <VehiclesQueueChips
+              filters={filters}
+              patch={(p) => url.patchFilters(p)}
+              counts={queueCounts}
+            />
+          }
           filtersSlot={
             <VehiclesFiltersBar
               filters={filters}
@@ -304,6 +344,7 @@ export function VehiclesListPage() {
               customersById={customersById}
               sellersById={sellersById}
               onSelectVehicle={goToDetail}
+              onApproveOne={canApprove ? (id) => void handleApproveOne(id) : undefined}
               canSelect={canApprove}
               visibleColumns={visibleColumns}
               onToggleColumn={toggleColumn}
@@ -361,17 +402,7 @@ export function VehiclesListPage() {
   );
 }
 
-function hasAnyFilter(filters: {
-  brands: string[];
-  model: string;
-  engine: string;
-  yearMin?: number;
-  yearMax?: number;
-  cadastroStatuses: VehicleCadastroStatus[];
-  storeIds: ID[];
-  sellerIds: ID[];
-  search: string;
-}): boolean {
+function hasAnyFilter(filters: IVehiclesListFilters): boolean {
   return (
     filters.brands.length > 0 ||
     filters.model.trim().length > 0 ||
@@ -379,6 +410,8 @@ function hasAnyFilter(filters: {
     filters.yearMin !== undefined ||
     filters.yearMax !== undefined ||
     filters.cadastroStatuses.length > 0 ||
+    filters.withoutKm ||
+    filters.withoutModel ||
     filters.storeIds.length > 0 ||
     filters.sellerIds.length > 0 ||
     filters.search.trim().length > 0
@@ -400,27 +433,28 @@ function EmptyState({ hasFilters, hasSearch, searchTerm, onClear, onCreate }: IE
       ? VEHICLE_STRINGS.list.emptyTitle
       : "Nenhum veículo cadastrado";
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-      <div className="grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">
-        <Icon icon="mdi:truck-remove-outline" size={24} />
-      </div>
-      <div className="space-y-1">
-        <p className="text-sm font-semibold text-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground">{VEHICLE_STRINGS.list.emptyDescription}</p>
-      </div>
-      <div className="flex gap-2">
-        {(hasFilters || hasSearch) && (
-          <Button variant="outline" size="sm" onClick={onClear}>
-            Limpar filtros
-          </Button>
-        )}
-        {onCreate && (
-          <Button size="sm" onClick={onCreate}>
-            <Icon icon="mdi:plus" size={16} />
-            {VEHICLE_STRINGS.list.addButton}
-          </Button>
-        )}
-      </div>
+    <div className="flex h-full items-center justify-center px-6 py-12">
+      <VehicleInvite
+        icon="mdi:truck-remove-outline"
+        title={title}
+        description={VEHICLE_STRINGS.list.emptyDescription}
+        action={
+          hasFilters || hasSearch
+            ? {
+                icon: "mdi:close-circle-outline",
+                label: VEHICLE_STRINGS.detail.invites.listEmptyCta,
+                onClick: onClear,
+              }
+            : onCreate
+              ? { icon: "mdi:plus", label: VEHICLE_STRINGS.list.addButton, onClick: onCreate }
+              : undefined
+        }
+        secondary={
+          (hasFilters || hasSearch) && onCreate
+            ? { icon: "mdi:plus", label: VEHICLE_STRINGS.list.addButton, onClick: onCreate }
+            : undefined
+        }
+      />
     </div>
   );
 }
