@@ -1,21 +1,21 @@
--- PRD-217 (Provenance) Fase 2 — propagação do customer_id e leitura do backfill.
+-- PRD-217 (Provenance) Phase 2 — propagates customer_id and reads the backfill.
 --
--- Três objetos:
---   1. convert_lead_mark recriada com a RN-05 (carimba customer_id nos toques);
---   2. ad_backfill_delivery_window — fonte PRECISA do backfill;
---   3. ad_backfill_orphan_conversations — fonte APROXIMADA do backfill.
+-- Three objects:
+--   1. convert_lead_mark recreated with RN-05 (stamps customer_id on the touches);
+--   2. ad_backfill_delivery_window — PRECISE source for the backfill;
+--   3. ad_backfill_orphan_conversations — APPROXIMATE source for the backfill.
 --
--- As duas últimas só LEEM. A escrita continua sendo exclusividade de
--- record_ad_touch (Fase 1), que é idempotente pelos índices únicos.
+-- The last two only READ. Writing remains the exclusive job of
+-- record_ad_touch (Phase 1), which is idempotent via its unique indexes.
 
--- ── RN-05: propagação na conversão ─────────────────────────────────────────
--- Corpo idêntico ao que roda em produção (pg_get_functiondef, 2026-08-18) mais
--- o update final. As guardas de loja e autorização são o controle de acesso da
--- conversão: não alterar.
+-- ── RN-05: propagation on conversion ────────────────────────────────────────
+-- Body identical to what runs in production (pg_get_functiondef, 2026-08-18) plus
+-- the final update. The store and authorization guards are the access control
+-- for the conversion: do not change them.
 --
--- O update passa por cima da RLS de ad_touches de propósito e por construção:
--- a tabela não tem `force row level security` e pertence a postgres, e esta
--- função é SECURITY DEFINER do mesmo dono. Verificado no catálogo.
+-- The update bypasses ad_touches' RLS on purpose, and does so by construction:
+-- the table has no `force row level security` and is owned by postgres, and
+-- this function is SECURITY DEFINER under the same owner. Verified against the catalog.
 create or replace function public.convert_lead_mark(
   p_lead_id     uuid,
   p_customer_id uuid,
@@ -69,18 +69,19 @@ begin
 end;
 $function$;
 
--- ── Backfill, fonte precisa ────────────────────────────────────────────────
--- webhook_deliveries guarda o payload cru do WAHA desde 19/07/2026. Cada nó
--- externalAdReply carrega uma thumbnail base64 (~2,8 KB) que ninguém lê: a
--- função a descarta antes de devolver.
+-- ── Backfill, precise source ────────────────────────────────────────────────
+-- webhook_deliveries stores the raw WAHA payload since 19/07/2026. Each
+-- externalAdReply node carries a base64 thumbnail (~2.8 KB) that nobody reads:
+-- the function strips it before returning.
 --
--- Por que existe em vez de a query viver no script: PostgREST não expressa
--- coalesce de caminho jsonb, e trazer 127 mil payloads crus para o cliente é
--- inviável. Por que é por janela: varrer a tabela inteira de uma vez estoura o
--- statement_timeout (medido — 1 dia custa ~1,5 s; o script janela por dia).
+-- Why this exists instead of the query living in the script: PostgREST cannot
+-- express a jsonb-path coalesce, and shipping 127 thousand raw payloads to the
+-- client is not viable. Why it is windowed: scanning the whole table at once
+-- blows the statement_timeout (measured — one day costs ~1.5 s; the script
+-- windows by day).
 --
--- Os três caminhos NÃO são hipotéticos: extendedTextMessage (277) e
--- imageMessage (2) foram ambos observados em produção numa amostra de 8 dias.
+-- The three paths are NOT hypothetical: extendedTextMessage (277) and
+-- imageMessage (2) were both observed in production in an 8-day sample.
 create or replace function public.ad_backfill_delivery_window(
   p_from timestamptz,
   p_to   timestamptz
@@ -139,17 +140,17 @@ revoke all on function public.ad_backfill_delivery_window(timestamptz, timestamp
 grant execute on function public.ad_backfill_delivery_window(timestamptz, timestamptz)
   to service_role;
 
--- ── Backfill, fonte aproximada ─────────────────────────────────────────────
--- conversations.ad_referral guarda apenas o ÚLTIMO anúncio (o webhook
--- sobrescreve), e a data do clique se perdeu: reconstruímos um toque por
--- conversa datado pela criação da conversa. Daí origin='backfill_conversation'
--- na chamada e o aviso da RN-06 em qualquer série temporal.
+-- ── Backfill, approximate source ────────────────────────────────────────────
+-- conversations.ad_referral only stores the LAST ad (the webhook
+-- overwrites it), and the click's date is lost: we reconstruct one touch per
+-- conversation, dated by the conversation's creation. Hence origin='backfill_conversation'
+-- in the call, and the RN-06 warning on any time series.
 --
--- "sem nenhum toque" é a guarda que impede datar o anúncio mais RECENTE com a
--- data mais ANTIGA numa conversa que já recebeu um toque preciso.
+-- "no touch at all" is the guard that keeps the most RECENT ad from being
+-- dated with the OLDEST date in a conversation that already got a precise touch.
 --
--- Sem limite de propósito: o conjunto é limitado pelas conversas com
--- ad_referral (975 em 2026-08-18) e encolhe a cada execução.
+-- No limit on purpose: the set is bounded by the conversations that have
+-- ad_referral (975 as of 2026-08-18) and shrinks with every run.
 create or replace function public.ad_backfill_orphan_conversations()
 returns table (
   conversation_id uuid,
