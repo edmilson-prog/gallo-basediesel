@@ -23,7 +23,7 @@ Valem para **todas** as tasks.
 - **Segredo nenhum no código.** `VITE_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` vêm de `.env.local` (já copiado para esta worktree, gitignored).
 - **Trava de segurança obrigatória em script que escreve em produção**: sem `AD_BACKFILL_DRY_RUN=yes` ou `AD_BACKFILL_CONFIRM_WRITE=yes` o script aborta na primeira linha.
 - **TypeScript `strict`.** Interfaces de domínio prefixadas com `I`. Sem `any`.
-- **Comentários e identificadores em inglês; texto de console/relatório em português do Brasil com acentuação correta.**
+- **Identificadores em inglês; texto de console/relatório em português do Brasil com acentuação correta.** **Comentários seguem o arquivo:** em `src/` a convenção da casa é inglês; em `scripts/` é português (precedente: os 13 scripts que já existem). Corrigido em 19/08 — a redação anterior mandava comentar `scripts/backfill-ad-touches.ts` em inglês, contra o precedente do próprio diretório.
 - Gate local da casa: `bun run test` + `bun run build`. `bunx tsc --noEmit` tem baseline pré-existente (~376 erros) — avaliar **só por delta** nos arquivos criados nesta branch.
 - Nada de `git stash`. Commits atômicos, Conventional Commits em inglês.
 
@@ -955,28 +955,72 @@ Esperado: sucesso. (É o gate real de CI; `bun run build` não faz type-check.)
 - [ ] **Step 3: Type-check por delta**
 
 ```bash
-bunx tsc --noEmit 2>&1 | grep -E "src/features/ads|scripts/backfill-ad-touches" ; echo "delta acima (vazio = ok)"
+bunx tsc --noEmit 2>&1 | grep "src/features/ads" ; echo "delta de src/ acima (vazio = ok)"
 ```
+
+⚠️ **`scripts/` está FORA do `include` do `tsconfig.json`** (`["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "eslint.config.js"]`). Filtrar a saída do `tsc` por `scripts/` devolve zero **por exclusão, não por aprovação** — o arquivo nunca entrou no programa. Type-checar o script à parte, com a severidade do projeto:
+
+```bash
+bunx tsc --noEmit --strict --noUncheckedIndexedAccess --target es2022 --module esnext --moduleResolution bundler --skipLibCheck scripts/backfill-ad-touches.ts
+```
+
+Esperado: **só** `TS2339` em `import.meta.dir` (Bun-ism que outros 13 scripts do repo já usam; não há `@types/bun` instalado, e por isso `--types bun` aborta com `TS2688`).
 
 - [ ] **Step 4: Lint**
 
 ```bash
-bun run lint
+bunx eslint scripts/backfill-ad-touches.ts src/features/ads
 ```
 
-Esperado: sem erro novo nos arquivos desta branch.
+Esperado: limpo. **Não** usar `bun run lint` aqui: no Windows, com `autocrlf`, ele devolve ~429k avisos de `Delete ␍` no repo inteiro e afoga qualquer sinal real.
 
 - [ ] **Step 5 (GATED — OK explícito do dono): rodar o backfill em produção**
 
+**5a. Simulação primeiro.** Escreve zero — nem toque, nem `audit_logs` — e devolve o mesmo relatório que a execução real devolveria:
+
+```bash
+AD_BACKFILL_DRY_RUN=yes bun run scripts/backfill-ad-touches.ts
+```
+
+**5b. Execução real**, só depois de conferir o relatório da simulação:
+
 ```bash
 AD_BACKFILL_CONFIRM_WRITE=yes bun run scripts/backfill-ad-touches.ts
+```
+
+Três coisas a saber antes de rodar:
+
+- **Sem flags de data.** O backfill completo é `--phase all` (o default) **sem** `--from`/`--to`. A combinação `--phase all --from/--to` é **bloqueada pelo script**: a passada aproximada não recebe recorte de data, então ela varreria todas as órfãs e carimbaria data aproximada — de forma irreversível — em conversas que a passada precisa ainda não mediu. Para uma rodada com janela recortada, use `--phase delivery --from ... --to ...`.
+- **O relatório é datado.** O arquivo é `scratchpad/ad-touches-backfill-report-<timestamp ISO da execução>.md` — a simulação e a execução real geram arquivos distintos, e uma segunda rodada não apaga o registro da primeira.
+- **Rodar duas vezes não duplica** (RN-01): `record_ad_touch` faz `on conflict do nothing`. Mas no **dry-run** o contador de "toques" conta tentativas, não inserções — o rótulo no relatório diz isso.
+
+**5c. Reconciliar as datas de `ads` (obrigatório depois da execução real).** `record_ad_touch` mantém `ads.first_seen_at`/`last_seen_at`, mas ao criar uma linha nova ela usa `now()` — então os anúncios criados pelo backfill nascem com a data **de hoje**, não a do primeiro toque histórico. Um passo de SQL corrige:
+
+```sql
+update public.ads a
+   set first_seen_at = t.first_occ,
+       last_seen_at  = greatest(t.last_occ, a.last_seen_at)
+  from (select ad_id, min(occurred_at) as first_occ, max(occurred_at) as last_occ
+          from public.ad_touches group by ad_id) t
+ where t.ad_id = a.id and t.first_occ < a.first_seen_at;
 ```
 
 - [ ] **Step 6 (GATED): fechar o gate da Fase 2**
 
 Três conferências, todas exigidas pelo PRD:
 
-1. **Contagem antes/depois** — do relatório em `scratchpad/ad-touches-backfill-report.md`.
+1. **Contagem antes/depois** — do relatório datado em `scratchpad/ad-touches-backfill-report-<timestamp>.md`.
+
+   **Números esperados**, medidos em produção na revisão de 18/08 (se a realidade divergir muito, pare e investigue antes de seguir):
+
+   | O quê | Esperado |
+   |---|---|
+   | conversas com `ad_referral` e sem toque, **antes** | 969 |
+   | cobertas pela passada **precisa** (`backfill_delivery`) | 871 |
+   | cobertas pela passada **aproximada** (`backfill_conversation`) | 98 |
+   | chamadas de `record_ad_touch` na passada precisa | ~926 (mais que 871: há conversa com mais de uma entrega) |
+   | linhas em `public.ads`, antes → depois | 3 → 5 |
+   | conversas com `ad_referral` **sem** `sourceId` | 0 |
 
 2. **Nenhuma conversa com `ad_referral` ficou sem toque:**
 
@@ -1016,6 +1060,11 @@ select id, lead_id, customer_id, origin from public.ad_touches where lead_id = '
 Esperado: `customer_id` preenchido em **todos** os toques daquele lead.
 
 E conferir que a RN-05 **não** sobrescreve: rodar `convert_lead_mark` de novo para o mesmo lead apontando outro cliente **não pode** mudar o `customer_id` já gravado.
+
+**Duas observações a registrar no relatório do gate** (não são pendências, são limites conhecidos):
+
+- **RN-04 / cobertura retroativa.** Os toques reconstruídos copiam os vínculos **atuais** da conversa (`lead_id`, `customer_id`). Um lead que já virou cliente **antes** do backfill não passa por `convert_lead_mark` de novo, então o `customer_id` do toque vem do que a conversa carrega hoje. Medição de 18/08: **0** conversas com `ad_referral` cujo lead já foi convertido e cuja conversa continua sem `customer_id` — ou seja, hoje esse buraco é vazio. Vale re-medir na hora de rodar.
+- **Corrida com o webhook ao vivo.** Uma mensagem com `externalAdReply` que chegue enquanto o backfill roda pode ser gravada pelos dois caminhos. `record_ad_touch` faz `on conflict do nothing` no `message_id`, então o pior caso é a segunda gravação virar no-op. Não exige janela de manutenção.
 
 - [ ] **Step 7: Abrir o PR**
 
