@@ -20,8 +20,6 @@ const PRE_REGISTRO_MARKER = Date.parse("2026-07-04T01:43:17.000Z");
 const PREVIEW_MAX_LENGTH = 120;
 
 export const mockActivityProvider: IActivityProvider = {
-  getCustomerActivity: (customerId) => conversationActivityApi.getByCustomer(customerId),
-
   async getCustomerTimeline(customerId: ID): Promise<ICustomerTimelinePayload> {
     const events = await conversationActivityApi.getByCustomer(customerId);
     const byConversation = new Map<ID, typeof events>();
