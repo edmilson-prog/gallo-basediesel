@@ -1007,10 +1007,28 @@ Três coisas a saber antes de rodar:
 ```sql
 update public.ads a
    set first_seen_at = t.first_occ,
-       last_seen_at  = greatest(t.last_occ, a.last_seen_at)
+       last_seen_at  = t.last_occ
   from (select ad_id, min(occurred_at) as first_occ, max(occurred_at) as last_occ
           from public.ad_touches group by ad_id) t
- where t.ad_id = a.id and t.first_occ < a.first_seen_at;
+ where t.ad_id = a.id
+   and (a.first_seen_at <> t.first_occ or a.last_seen_at <> t.last_occ);
+```
+
+⚠️ **Corrigido em 19/08, depois de rodar.** A primeira versão deste passo usava `greatest(t.last_occ, a.last_seen_at)` no `last_seen_at` e filtrava só por `t.first_occ < a.first_seen_at` — a intenção era não regredir um valor legitimamente mais novo. Só que num anúncio **criado pelo próprio backfill** o `last_seen_at` já nasce com a data de hoje, então o `greatest` **preservava justamente o valor errado**: dois dos cinco anúncios ficaram marcando 19/08 com clique único de 18/07 e 24/07 — um mês de mentira. Todo clique observado tem um toque (o descartado por `on conflict do nothing` é duplicata de um que já está lá), então `max(occurred_at)` **é** o último clique real: sem `greatest`.
+
+Conferência depois de rodar — as três têm de dar zero:
+
+```sql
+select
+  (select count(*) from public.ads a
+     join (select ad_id, min(occurred_at) f, max(occurred_at) l
+             from public.ad_touches group by ad_id) t on t.ad_id = a.id
+    where a.first_seen_at <> t.f or a.last_seen_at <> t.l) as datas_divergentes,
+  (select count(*) from public.ads a
+     where not exists (select 1 from public.ad_touches t where t.ad_id = a.id)) as anuncio_sem_toque,
+  (select count(*) from public.conversations c
+     where c.ad_referral is not null
+       and not exists (select 1 from public.ad_touches t where t.conversation_id = c.id)) as orfas_restantes;
 ```
 
 - [ ] **Step 6 (GATED): fechar o gate da Fase 2**
