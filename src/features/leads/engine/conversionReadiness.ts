@@ -127,7 +127,14 @@ function looksLikePushName(name: string | null | undefined): boolean {
   return trimmed.split(/\s+/).length === 1;
 }
 
-function addressLabel(lead: ILead): string | null {
+/**
+ * The address as the checklist counts it: city and/or UF, or nothing.
+ *
+ * Exported because the Receita autofill has to ask the same question before it
+ * decides whether the address row is answered — a second rule there would let a
+ * lookup overwrite an address this file already considers filled.
+ */
+export function conversionAddressLabel(lead: Pick<ILead, "address">): string | null {
   const address = lead.address;
   if (!address) return null;
   const city = address.city?.trim();
@@ -140,7 +147,7 @@ export function getConversionReadiness(lead: ILead): IConversionReadiness {
   const nameFilled = isConversionName(lead.name, lead.phone);
   const documentFilled = isConversionDocument(lead.document);
   const email = lead.email?.trim() ?? "";
-  const address = addressLabel(lead);
+  const address = conversionAddressLabel(lead);
 
   const fields: IConversionField[] = [
     {
