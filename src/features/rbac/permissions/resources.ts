@@ -40,6 +40,10 @@ export const RESOURCES = [
   "dre",
   "expense",
   "cashflow",
+  // Supplier — the money-out counterpart of `customer` (ui_kit financeiro).
+  // Carries payment terms and, once `payable` lands, purchase amounts: cost
+  // data, so it sits in the same band as `expense` and `cashflow`.
+  "supplier",
   "profitability",
   "inventory",
   "customer_service_analytics",

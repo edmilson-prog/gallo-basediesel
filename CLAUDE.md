@@ -32,7 +32,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Todo `apply_migration` via MCP **deve** ser exportado para `supabase/migrations/` no mesmo PR. **Mergear o PR não aplica a migration** — a aplicação em produção é manual e exige OK explícito do dono.
 - Mudou `src/providers/whatsapp/`? Rode `scripts/sync-whatsapp-shared.ts` (espelha os núcleos em `supabase/functions/_shared/whatsapp/`) e redeploye as Edge Functions afetadas.
 - Mudou `src/features/fiscal-notes/engine/{nfeKey,xml,nfeParser,costAllocation}.ts`? Rode `bun run sync:fiscal` (espelha em `supabase/functions/_shared/fiscal/`) e redeploye as Edge Functions de nota fiscal. Esses quatro módulos rodam em dois runtimes — **não podem depender de DOM**, porque o Deno não tem `DOMParser`.
-- Deploy de Edge Function: `npx supabase functions deploy <nome>` — também exige OK explícito do dono.
+- Deploy de Edge Function: **`bun run fn:deploy <nome>`** — também exige OK explícito do dono. Use o script, não o `npx supabase functions deploy` cru: o vínculo com o projeto vive em `supabase/.temp/project-ref` (gitignored, portanto ausente em todo clone e em toda worktree nova), e sem ele o CLI abre um "Select a project" que lista também o projeto **pausado** da conta — escolher errado falha com `status 'INACTIVE'`. O script já leva `--project-ref njizaasajkdqptlxddqn` (produção); o ref também está anotado em `supabase/config.toml`.
 
 > ⚠️ **Worktrees — IGNORAR.** A pasta `.claude/worktrees/` (qualquer caminho contendo `worktrees`) contém git worktrees isoladas de outras branches e **não faz parte da branch `main`**. Ao explorar, buscar (grep/glob), editar ou raciocinar sobre o código, **ignore completamente** esse diretório. Trabalhe apenas no diretório principal do projeto (sobretudo `src/`). Não relate, edite nem referencie arquivos dentro de `worktrees`.
 
@@ -101,7 +101,7 @@ Padrões arquiteturais que devem ser preservados ao implementar features:
 
 ## Versionamento e changelog
 
-- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Provenance` — v0.183.0). Cada bump ganha uma tag `vX.Y.Z` (lista completa: `git tag -l`).
+- **SemVer.** MINOR/MAJOR recebem **codinome em inglês** (atual: `Thread` — v0.184.0). Cada bump ganha uma tag `vX.Y.Z` (lista completa: `git tag -l`).
 - A versão vive **só** no `package.json` e é injetada em build como `__APP_VERSION__` (via `define` no `vite.config.ts`).
 - **`CHANGELOG.md` é também o changelog da UI** — os pre-scripts o copiam para `public/`, e a página "Sobre/Novidades" lê essa cópia. Não existe segundo arquivo de changelog.
 - Bump após PRD completo (obrigatório) ou quando solicitado para um acumulado de fixes diretos.

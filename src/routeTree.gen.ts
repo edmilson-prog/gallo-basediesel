@@ -134,6 +134,7 @@ import { Route as AppGestaoCarteiraAnaliticaRouteImport } from './routes/app.ges
 import { Route as AppGestaoCaixaRouteImport } from './routes/app.gestao.caixa'
 import { Route as AppGestaoAtendimentoAnaliseRouteImport } from './routes/app.gestao.atendimento-analise'
 import { Route as AppGestaoAbcRouteImport } from './routes/app.gestao.abc'
+import { Route as AppFinanceiroFornecedoresRouteImport } from './routes/app.financeiro.fornecedores'
 import { Route as AppConfiguracoesWhatsappRouteImport } from './routes/app.configuracoes.whatsapp'
 import { Route as AppConfiguracoesUsuariosRouteImport } from './routes/app.configuracoes.usuarios'
 import { Route as AppConfiguracoesToursRouteImport } from './routes/app.configuracoes.tours'
@@ -852,6 +853,12 @@ const AppGestaoAbcRoute = AppGestaoAbcRouteImport.update({
   path: '/gestao/abc',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFinanceiroFornecedoresRoute =
+  AppFinanceiroFornecedoresRouteImport.update({
+    id: '/financeiro/fornecedores',
+    path: '/financeiro/fornecedores',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConfiguracoesWhatsappRoute =
   AppConfiguracoesWhatsappRouteImport.update({
     id: '/configuracoes/whatsapp',
@@ -1455,6 +1462,7 @@ export interface FileRoutesByFullPath {
   '/app/configuracoes/tours': typeof AppConfiguracoesToursRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
+  '/app/financeiro/fornecedores': typeof AppFinanceiroFornecedoresRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
   '/app/gestao/atendimento-analise': typeof AppGestaoAtendimentoAnaliseRouteWithChildren
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
@@ -1651,6 +1659,7 @@ export interface FileRoutesByTo {
   '/app/configuracoes/tours': typeof AppConfiguracoesToursRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
+  '/app/financeiro/fornecedores': typeof AppFinanceiroFornecedoresRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
   '/app/gestao/carteira-analitica': typeof AppGestaoCarteiraAnaliticaRouteWithChildren
@@ -1859,6 +1868,7 @@ export interface FileRoutesById {
   '/app/configuracoes/tours': typeof AppConfiguracoesToursRoute
   '/app/configuracoes/usuarios': typeof AppConfiguracoesUsuariosRoute
   '/app/configuracoes/whatsapp': typeof AppConfiguracoesWhatsappRoute
+  '/app/financeiro/fornecedores': typeof AppFinanceiroFornecedoresRoute
   '/app/gestao/abc': typeof AppGestaoAbcRouteWithChildren
   '/app/gestao/atendimento-analise': typeof AppGestaoAtendimentoAnaliseRouteWithChildren
   '/app/gestao/caixa': typeof AppGestaoCaixaRoute
@@ -2076,6 +2086,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/tours'
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
+    | '/app/financeiro/fornecedores'
     | '/app/gestao/abc'
     | '/app/gestao/atendimento-analise'
     | '/app/gestao/caixa'
@@ -2272,6 +2283,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/tours'
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
+    | '/app/financeiro/fornecedores'
     | '/app/gestao/abc'
     | '/app/gestao/caixa'
     | '/app/gestao/carteira-analitica'
@@ -2479,6 +2491,7 @@ export interface FileRouteTypes {
     | '/app/configuracoes/tours'
     | '/app/configuracoes/usuarios'
     | '/app/configuracoes/whatsapp'
+    | '/app/financeiro/fornecedores'
     | '/app/gestao/abc'
     | '/app/gestao/atendimento-analise'
     | '/app/gestao/caixa'
@@ -3478,6 +3491,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGestaoAbcRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/financeiro/fornecedores': {
+      id: '/app/financeiro/fornecedores'
+      path: '/financeiro/fornecedores'
+      fullPath: '/app/financeiro/fornecedores'
+      preLoaderRoute: typeof AppFinanceiroFornecedoresRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/configuracoes/whatsapp': {
       id: '/app/configuracoes/whatsapp'
       path: '/configuracoes/whatsapp'
@@ -4450,6 +4470,7 @@ interface AppRouteChildren {
   AppConfiguracoesToursRoute: typeof AppConfiguracoesToursRoute
   AppConfiguracoesUsuariosRoute: typeof AppConfiguracoesUsuariosRoute
   AppConfiguracoesWhatsappRoute: typeof AppConfiguracoesWhatsappRoute
+  AppFinanceiroFornecedoresRoute: typeof AppFinanceiroFornecedoresRoute
   AppGestaoAbcRoute: typeof AppGestaoAbcRouteWithChildren
   AppGestaoAtendimentoAnaliseRoute: typeof AppGestaoAtendimentoAnaliseRouteWithChildren
   AppGestaoCaixaRoute: typeof AppGestaoCaixaRoute
@@ -4547,6 +4568,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesToursRoute: AppConfiguracoesToursRoute,
   AppConfiguracoesUsuariosRoute: AppConfiguracoesUsuariosRoute,
   AppConfiguracoesWhatsappRoute: AppConfiguracoesWhatsappRoute,
+  AppFinanceiroFornecedoresRoute: AppFinanceiroFornecedoresRoute,
   AppGestaoAbcRoute: AppGestaoAbcRouteWithChildren,
   AppGestaoAtendimentoAnaliseRoute:
     AppGestaoAtendimentoAnaliseRouteWithChildren,

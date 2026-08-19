@@ -4,6 +4,37 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.185.0] — Counterpart · 2026-08-19
+
+**O fornecedor que a nota fiscal cadastra sozinho, desde ontem, ganha agora uma tela própria. Um grupo FINANCEIRO aparece no menu, entre Suprimentos e SDR, e abre em Fornecedores — reunindo ali também Fluxo de Caixa, Despesas, Comissões e DRE Gerencial, que só trocaram de prateleira: os links continuam os mesmos de sempre. Cadastrar um fornecedor novo começa pelo CNPJ: a Receita Federal preenche sozinha a razão social, o telefone e a cidade, o sistema barra cadastrar o mesmo CNPJ duas vezes, e nunca trava o cadastro só porque a Receita está fora do ar. Abaixo da tabela, uma fila mostra os nomes de fornecedor que já existem soltos no catálogo — cerca de 124, nenhum com CNPJ — e por isso nenhum deles virou cadastro: a fila só aponta o trabalho que falta, com um botão que abre o formulário já com o nome preenchido, e cada linha some assim que o cadastro correspondente existir.**
+
+### Added
+
+- **Grupo FINANCEIRO no menu lateral**, logo depois de Suprimentos — abre em **Fornecedores** e reúne **Fluxo de Caixa**, **Despesas**, **Comissões** e **DRE Gerencial**, que vieram de dentro de Gestão sem trocar de endereço.
+- **Tela de Fornecedores** — faixa de indicadores, filtro por categoria, ordenação, a busca padrão da casa, e uma tabela com colunas redimensionáveis e configuráveis pelo clique-direito do cabeçalho.
+- **Cartão lateral do fornecedor selecionado** — o que a empresa compra dele e as notas de entrada mais recentes, sem sair da lista.
+- **Ficha completa em gaveta**, com as compras mês a mês do fornecedor.
+- **Cadastro CNPJ-first** — a Receita Federal preenche razão social, telefone e cidade sozinha (só os campos ainda vazios), o mesmo CNPJ não pode ser cadastrado duas vezes, e a Receita fora do ar nunca impede o cadastro de seguir.
+- **Fila de cadastro pendente**, abaixo da tabela — os nomes de fornecedor que já existem soltos no catálogo de peças, sem CNPJ e por isso sem cadastro correspondente. Cada linha mostra o nome e quantas peças o referenciam, com um botão que abre o cadastro já com o nome preenchido; a linha some quando um cadastro equivalente passa a existir.
+
+> A tela ainda não mostra quanto se deve a cada fornecedor — "Em aberto", "Vence esta semana" e "Prazo médio de pagamento" dependem de um contas a pagar que ainda não existe. Enquanto isso, a ficha completa diz isso em palavras, em vez de mostrar R$ 0,00.
+## [0.184.0] — Thread · 2026-08-19
+
+**O Histórico da ficha do cliente parecia quebrado: abria quase vazio, muitas vezes com uma linha só dizendo "Conversa criada". Não estava quebrado — estava registrando fielmente um assunto estreito demais. Ele anotava apenas mudanças de status e de responsável, então uma conversa que o vendedor abriu e resolveu na mesma tarde rendia uma linha. E quase metade das conversas da base é anterior ao dia em que esse registro passou a funcionar: essas não apareciam de jeito nenhum. Agora o histórico mostra o atendimento inteiro — quantas mensagens foram trocadas e a última delas, as anotações, quem assumiu, quando encerrou — e as conversas antigas voltaram para a lista.**
+
+### Added
+
+- **O histórico do cliente virou um fio com o atendimento inteiro** — cada conversa é um cartão, e dentro dele estão as mensagens trocadas (contadas, com a última à mostra), as anotações da equipe, quem assumiu, as transferências e o encerramento. Uma barra de filtros no topo — Tudo, Conversas, Notas, Histórico — deixa olhar uma camada de cada vez sem perder as conversas de vista: filtrar enxuga o cartão, nunca some com ele.
+- **As conversas anteriores ao início do registro voltaram para o histórico** — antes elas simplesmente não existiam nessa tela. Eram 1.077 conversas invisíveis, e 90 clientes cuja ficha abria completamente vazia; agora não há mais nenhum. Elas aparecem com a data de abertura e, quando encerradas, a de encerramento, avisando que o miolo não foi registrado na época — em vez de inventar um histórico que ninguém guardou.
+- **O orçamento agora sai de verdade por WhatsApp e por e-mail** — até aqui, "Salvar e enviar" apenas marcava o orçamento como enviado, e o botão de WhatsApp da ficha copiava um texto para você colar em algum lugar. Uma janela de envio mostra o destino de cada canal e deixa escolher; o WhatsApp sai pela instância que você seleciona e cai na conversa que já existe com aquele cliente. Orçamento acima do limite de desconto não é enviado por ali: esse continua indo para aprovação.
+- **Pré-visualizar e Duplicar no editor de orçamento** — a pré-visualização abre o orçamento como o cliente o recebe, sem custo, margem nem anotações internas, e é dela que sai o PDF (Imprimir → Salvar como PDF). Duplicar salva o que está na tela como rascunho e cria uma cópia com número próprio, levando você para a cópia.
+
+### Changed
+
+- **O editor de orçamento ficou igual ao modelo aprovado** — os números (total, subtotais, preços) passaram para a tipografia condensada do modelo, e as linhas de apoio — código OEM, marca, estoque, veículos — para a versão semicondensada. A faixa de cliente vazio deixou de ser um campo solto e virou um cartão, com o aviso de que o cliente é obrigatório e um botão que abre o cadastro rápido, já selecionando quem você acabou de cadastrar.
+
+> No fio do atendimento, orçamentos e pedidos já entram como acontecimento da conversa, mas ainda não há o que mostrar: a base praticamente não tem orçamento ou pedido ligado a uma conversa. Conforme a operação comercial for entrando na plataforma, eles passam a aparecer sozinhos no histórico, sem nada a reconfigurar.
+
 ## [0.183.0] — Provenance · 2026-08-18
 
 **Uma em cada cinco conversas nasce de um anúncio, e até agora o atendente só via disso um selo "Anúncio" com o título cortado no painel lateral — para ler o resto, tinha que passar o mouse por cima. Pior: quando o mesmo cliente voltava por outra campanha, o anúncio anterior era apagado, e não havia como recuperar. Agora a conversa abre mostrando o anúncio inteiro que trouxe a pessoa, e cada clique passa a ficar guardado em vez de sobrescrever o anterior.**

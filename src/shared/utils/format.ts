@@ -81,6 +81,14 @@ export function formatPercent(share: number | null | undefined, fractionDigits =
   })}%`;
 }
 
+/** Format an ISO date as Brazilian short date without the year (e.g. `"25/05"`). */
+export function formatShortDateBR(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
 /** Format an ISO date as Brazilian short date (e.g. `"25/05/2026"`). */
 export function formatDateBR(iso: string | null | undefined): string {
   if (!iso) return "—";

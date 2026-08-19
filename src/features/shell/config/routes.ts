@@ -34,6 +34,10 @@ export const ROUTES = {
   APP_INSIGHTS: "/app/insights",
   APP_STOREFRONT_ADMIN: "/app/storefront-admin",
 
+  // Financeiro (ui_kit `financeiro`). The four items moved out of Gestão keep
+  // their GESTAO_* URLs — renaming a route breaks saved links.
+  FINANCEIRO_FORNECEDORES: "/app/financeiro/fornecedores",
+
   // Gestão
   GESTAO_INICIO: "/app/gestao",
   GESTAO_VENDAS: "/app/gestao/vendas",

@@ -54,7 +54,9 @@ export function QuoteNotes({ notes, onNotes, variant = "rail" }: IQuoteNotesProp
         </span>
         <span className="ml-auto flex min-w-0 items-center gap-1.5">
           {!open && notes.trim() && (
-            <span className="max-w-32 truncate text-[11px] text-muted-foreground">{notes}</span>
+            <span className="max-w-32 truncate font-semicond text-[11.5px] text-muted-foreground">
+              {notes}
+            </span>
           )}
           <Icon
             icon={open ? "mdi:chevron-up" : "mdi:chevron-down"}

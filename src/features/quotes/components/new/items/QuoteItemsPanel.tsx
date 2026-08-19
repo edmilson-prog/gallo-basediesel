@@ -11,6 +11,7 @@ import { ItemAdder } from "./ItemAdder";
 import { KitSheet } from "./KitSheet";
 import { QuoteItemsTable } from "./QuoteItemsTable";
 import type { IFreeItemDraft } from "./FreeItemDraftRow";
+import type { IImportSelection } from "../../../engine/quoteImport";
 
 const EMPTY_DRAFT: IFreeItemDraft = { name: "", unitPrice: "0", quantity: 1 };
 
@@ -29,6 +30,8 @@ export interface IQuoteItemsPanelProps {
   onAddPart: (part: IPart, quantity?: number) => void;
   /** Commits an off-catalog line built in the draft row. */
   onAddFreeItem: (input: { name: string; unitPrice: number; quantity: number }) => void;
+  /** Commits an interpreted list (Importar) into the quote. */
+  onImport: (selection: IImportSelection) => void;
   /** Remounts the adder when it changes — clears the search on customer swap. */
   adderResetKey?: string;
 
@@ -70,6 +73,7 @@ export function QuoteItemsPanel({
   inQuoteQtyByPart,
   onAddPart,
   onAddFreeItem,
+  onImport,
   adderResetKey,
   rankedKits,
   kitsLoading,
@@ -161,6 +165,7 @@ export function QuoteItemsPanel({
           inQuoteQtyByPart={inQuoteQtyByPart}
           onAddPart={onAddPart}
           onAddFreeItemClick={startFreeDraft}
+          onImport={onImport}
         />
       </div>
 

@@ -1,0 +1,385 @@
+<title>Fio do Atendimento</title>
+
+<style>
+  /* ---- tokens: light é a base completa ---- */
+  :root {
+    --ground: #f7f4ee;
+    --surface: #fffdf9;
+    --ink: #1b1815;
+    --ink-soft: #4a443a;
+    --muted: #6f675a;
+    --rule: #ddd6c8;
+    --rule-soft: #eae4d8;
+    --accent: #96702a;
+    --accent-soft: #f0e6d2;
+    --ok: #2f7d4f;
+    --warn: #a8620a;
+    --crit: #a32020;
+    --shadow: 0 1px 2px rgba(27,24,21,.06), 0 8px 24px -12px rgba(27,24,21,.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #121210;
+      --surface: #1a1917;
+      --ink: #ece8e0;
+      --ink-soft: #c3bdb1;
+      --muted: #8d8577;
+      --rule: #2c2a26;
+      --rule-soft: #232220;
+      --accent: #c9a24a;
+      --accent-soft: #2a2419;
+      --ok: #4ade80;
+      --warn: #f59e0b;
+      --crit: #f87171;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #121210;
+    --surface: #1a1917;
+    --ink: #ece8e0;
+    --ink-soft: #c3bdb1;
+    --muted: #8d8577;
+    --rule: #2c2a26;
+    --rule-soft: #232220;
+    --accent: #c9a24a;
+    --accent-soft: #2a2419;
+    --ok: #4ade80;
+    --warn: #f59e0b;
+    --crit: #f87171;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  .col { max-width: 68ch; margin: 0 auto; }
+
+  /* ---- cabeçalho ---- */
+  header { padding: 72px 0 40px; border-bottom: 1px solid var(--rule); margin-bottom: 44px; }
+  .eyebrow {
+    font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
+    font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(38px, 6vw, 60px); line-height: 1.02; letter-spacing: -.03em;
+    font-weight: 700; margin: 0 0 20px; text-wrap: balance;
+  }
+  .deck { font-size: 19px; line-height: 1.5; color: var(--ink-soft); margin: 0; text-wrap: pretty; }
+  .deck strong { color: var(--ink); font-weight: 600; }
+
+  h2 {
+    font-size: 13px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 20px;
+    font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
+  }
+  h3 { font-size: 20px; letter-spacing: -.015em; margin: 0 0 8px; font-weight: 650; }
+  p { margin: 0 0 16px; text-wrap: pretty; }
+  section { margin-bottom: 64px; }
+  .lede { font-size: 17px; color: var(--ink-soft); }
+  code {
+    font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
+    font-size: .88em; background: var(--rule-soft); padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* ---- veredito ---- */
+  .verdict {
+    display: flex; gap: 16px; align-items: flex-start;
+    background: var(--surface); border: 1px solid var(--rule);
+    border-left: 3px solid var(--ok);
+    border-radius: 4px; padding: 18px 20px; margin: 0 0 12px;
+  }
+  .verdict .n {
+    font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
+    font-size: 30px; font-weight: 700; color: var(--ok); line-height: 1;
+    font-variant-numeric: tabular-nums; flex: 0 0 auto;
+  }
+  .verdict p { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .verdict strong { color: var(--ink); }
+
+  /* ---- métricas ---- */
+  .metrics { display: grid; gap: 2px; margin: 28px 0 0; }
+  .metric {
+    display: grid; grid-template-columns: 84px 1fr auto; gap: 16px; align-items: center;
+    padding: 14px 0; border-bottom: 1px solid var(--rule-soft);
+  }
+  .metric .pct {
+    font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
+    font-size: 26px; font-weight: 700; letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums; text-align: right;
+  }
+  .metric .bar { height: 6px; background: var(--rule-soft); border-radius: 99px; overflow: hidden; }
+  .metric .fill { height: 100%; border-radius: 99px; display: block; }
+  .metric .lab { font-size: 14px; color: var(--ink-soft); }
+  .metric .lab b { color: var(--ink); font-weight: 600; display: block; }
+  .metric .raw {
+    font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
+    font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .m-crit .pct { color: var(--crit); } .m-crit .fill { background: var(--crit); }
+  .m-warn .pct { color: var(--warn); } .m-warn .fill { background: var(--warn); }
+
+  /* ---- mockups: retrato fiel do produto, tema fixo de propósito ---- */
+  .shots { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; margin: 0 0 28px; }
+  .shot { flex: 0 0 auto; }
+  .shot-cap {
+    font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 10px; text-align: center;
+  }
+  .shot-cap b { color: var(--accent); }
+
+  .rail {
+    width: 360px; background: #0e0e0e; border: 1px solid #2a2a2a; border-radius: 8px;
+    padding: 11px; font-size: 12px; color: #e8e8e8; box-shadow: var(--shadow);
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+  .rail * { box-sizing: border-box; }
+  .filters { display: flex; gap: 4px; margin-bottom: 10px; }
+  .chip {
+    font-size: 10px; padding: 3px 9px; border-radius: 99px;
+    border: 1px solid #2a2a2a; color: #8a8a8a;
+  }
+  .chip.on { background: #c9a24a; color: #0e0e0e; border-color: #c9a24a; font-weight: 600; }
+  .gcard { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; margin-bottom: 8px; }
+  .ghead { display: flex; align-items: center; gap: 7px; padding: 9px 10px; }
+  .ghead .car { color: #8a8a8a; font-size: 10px; }
+  .gbadge { font-size: 9px; padding: 2px 7px; border-radius: 99px; border: 1px solid; white-space: nowrap; }
+  .b-att { color: #f87171; border-color: rgba(248,113,113,.4); background: rgba(248,113,113,.09); }
+  .b-res { color: #4ade80; border-color: rgba(74,222,128,.35); background: rgba(74,222,128,.09); }
+  .b-arq { color: #8a8a8a; border-color: #2a2a2a; background: rgba(255,255,255,.03); }
+  .gbody { padding: 0 10px 9px; }
+  .trail { border-left: 1px solid #2a2a2a; margin-left: 3px; padding-left: 13px; }
+  .node { display: flex; gap: 9px; padding: 5px 0; }
+  .dot { width: 7px; height: 7px; border-radius: 99px; background: #c9a24a; margin-top: 4px; flex: 0 0 auto; }
+  .dot.q { background: #6a6a6a; }
+  .dot.w { background: #25d366; }
+  .rail .dim { color: #8a8a8a; }
+  .rail .tiny { font-size: 10px; color: #8a8a8a; }
+  .gsum { font-size: 10px; color: #8a8a8a; padding: 0 10px 9px; }
+  .gnote {
+    background: rgba(201,162,74,.08); border-left: 2px solid #c9a24a;
+    padding: 4px 8px; border-radius: 0 4px 4px 0;
+  }
+  .flag { color: #f59e0b; }
+
+  /* ---- regras ---- */
+  .rules { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  .rule-item { background: var(--surface); padding: 20px 22px; display: grid; grid-template-columns: 32px 1fr; gap: 16px; }
+  .rule-item .num {
+    font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
+    font-size: 15px; font-weight: 700; color: var(--accent); padding-top: 2px;
+  }
+  .rule-item p { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .rule-item h3 { font-size: 17px; margin-bottom: 5px; }
+
+  /* ---- camadas técnicas ---- */
+  .layers { display: grid; gap: 12px; }
+  .layer {
+    display: grid; grid-template-columns: 108px 1fr; gap: 18px; align-items: start;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 16px 18px;
+  }
+  .layer .where {
+    font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
+    font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--accent); padding-top: 3px;
+  }
+  .layer p { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .layer b { color: var(--ink); }
+
+  .gate {
+    border: 1px solid var(--warn); background: var(--accent-soft);
+    border-radius: 4px; padding: 18px 20px; margin-top: 28px;
+  }
+  .gate h3 { color: var(--warn); font-size: 16px; }
+  .gate p:last-child { margin-bottom: 0; }
+
+  @media (max-width: 720px) {
+    .metric { grid-template-columns: 64px 1fr; }
+    .metric .raw { grid-column: 2; text-align: left; }
+    .layer, .rule-item { grid-template-columns: 1fr; gap: 8px; }
+  }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="col">
+    <p class="eyebrow">Diagnóstico + desenho · 18 ago 2026</p>
+    <h1>Fio do Atendimento</h1>
+    <p class="deck">O Histórico do cliente parecia quebrado. Não está — ele registra <strong>fielmente</strong> um modelo que quase não registra nada. Este é o diagnóstico medido em produção e a forma proposta para o painel.</p>
+  </div>
+</header>
+
+<section class="col">
+  <h2>O que a investigação achou</h2>
+  <div class="verdict">
+    <span class="n">0</span>
+    <p>divergências entre o status atual da conversa e o último evento gravado, em <strong>2.612 conversas</strong> conferidas. O trigger não perde transições — a captura está íntegra, e o último evento entrou durante a própria investigação.</p>
+  </div>
+  <p class="lede" style="margin-top:24px">O vazio vem de outro lugar. De dois, na verdade:</p>
+
+  <div class="metrics">
+    <div class="metric m-crit">
+      <span class="pct">46%</span>
+      <span class="lab"><b>das conversas nasceram antes do registro</b>O histórico começou em 04/07/2026 e o backfill de então gravou zero linha</span>
+      <span class="raw">2.269 / 4.881</span>
+    </div>
+    <div class="metric m-crit">
+      <span class="pct">47%</span>
+      <span class="lab"><b>das conversas novas têm um único evento</b>Nasceram e nunca mudaram de status nem de dono — “Conversa criada”, e só</span>
+      <span class="raw">1.221 / 2.612</span>
+    </div>
+    <div class="metric m-warn">
+      <span class="pct">19%</span>
+      <span class="lab"><b>dos clientes abrem o painel totalmente vazio</b>Conversa sem evento não vira card: a leitura cruza com a tabela de atividade</span>
+      <span class="raw">90 / 473</span>
+    </div>
+    <div class="metric m-warn">
+      <span class="pct">71%</span>
+      <span class="lab"><b>dos clientes veem no máximo duas linhas</b>Somando o painel vazio ao painel de uma ou duas entradas</span>
+      <span class="raw">334 / 473</span>
+    </div>
+  </div>
+
+  <p style="margin-top:28px">O modelo captura só o ciclo de vida da conversa — <code>created</code>, <code>status</code>, <code>assignment</code>, <code>reopen</code> e participantes. Mensagem, nota, orçamento e pedido ficam de fora. Uma conversa aberta pelo vendedor, que já nasce em atendimento e é resolvida na mesma tarde, produz exatamente uma linha.</p>
+</section>
+
+<section>
+  <div class="col"><h2>A forma proposta</h2>
+  <p class="lede">Cards por conversa — o atendimento continua sendo a unidade — com a barra de filtros que a Linha do tempo do lead já usa. Abaixo, o mesmo cliente em dois estados de filtro.</p>
+  </div>
+
+  <div class="shots" style="margin-top:32px">
+    <div class="shot">
+      <p class="shot-cap">Filtro: <b>Tudo</b></p>
+      <div class="rail">
+        <div class="filters"><span class="chip on">Tudo</span><span class="chip">Conversas</span><span class="chip">Notas</span><span class="chip">Histórico</span></div>
+
+        <div class="gcard">
+          <div class="ghead"><span class="car">⌄</span><strong>há 16 minutos</strong><span style="flex:1"></span><span class="gbadge b-att">Em atendimento</span></div>
+          <div class="gbody"><div class="trail">
+            <div class="node"><span class="dot w"></span><span><strong>24 mensagens</strong><span class="tiny" style="display:block">“Ô Tiago, esses dois filtros…” · há 4 min</span></span></div>
+            <div class="node"><span class="dot"></span><span><strong>Tiago</strong> <span class="dim">criou a conversa</span><span class="tiny" style="display:block">há 16 min</span></span></div>
+          </div></div>
+        </div>
+
+        <div class="gcard">
+          <div class="ghead"><span class="car">⌄</span><strong>12 de agosto</strong><span style="flex:1"></span><span class="gbadge b-res">Resolvida</span></div>
+          <div class="gbody"><div class="trail">
+            <div class="node"><span class="dot q"></span><span><span class="dim">Encerrada</span><span class="tiny" style="display:block">14/08 · 17:02</span></span></div>
+            <div class="node"><span class="dot"></span><span class="gnote"><strong>Nota</strong> — cliente pediu prazo p/ raccord<span class="tiny" style="display:block">Lucas · 12/08</span></span></div>
+            <div class="node"><span class="dot w"></span><span><span class="dim">18 mensagens</span><span class="tiny" style="display:block">12/08</span></span></div>
+            <div class="node"><span class="dot"></span><span><strong>Lucas</strong> <span class="dim">assumiu da fila</span><span class="tiny" style="display:block">12/08 · 09:31</span></span></div>
+          </div></div>
+          <div class="gsum">4 eventos · durou 2d 7h · com Lucas</div>
+        </div>
+
+        <div class="gcard">
+          <div class="ghead"><span class="car">›</span><span class="dim">3 de março</span><span style="flex:1"></span><span class="gbadge b-arq">Arquivada</span></div>
+          <div class="gsum"><span class="flag">⚠ anterior ao registro — só a abertura</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="shot">
+      <p class="shot-cap">Filtro: <b>Histórico</b></p>
+      <div class="rail">
+        <div class="filters"><span class="chip">Tudo</span><span class="chip">Conversas</span><span class="chip">Notas</span><span class="chip on">Histórico</span></div>
+
+        <div class="gcard">
+          <div class="ghead"><span class="car">⌄</span><strong>há 16 minutos</strong><span style="flex:1"></span><span class="gbadge b-att">Em atendimento</span></div>
+          <div class="gbody"><div class="trail">
+            <div class="node"><span class="dot"></span><span><strong>Tiago</strong> <span class="dim">criou a conversa</span><span class="tiny" style="display:block">há 16 min</span></span></div>
+          </div></div>
+        </div>
+
+        <div class="gcard">
+          <div class="ghead"><span class="car">⌄</span><strong>12 de agosto</strong><span style="flex:1"></span><span class="gbadge b-res">Resolvida</span></div>
+          <div class="gbody"><div class="trail">
+            <div class="node"><span class="dot q"></span><span><span class="dim">Encerrada</span><span class="tiny" style="display:block">14/08 · 17:02</span></span></div>
+            <div class="node"><span class="dot"></span><span><strong>Lucas</strong> <span class="dim">assumiu da fila</span><span class="tiny" style="display:block">12/08 · 09:31</span></span></div>
+          </div></div>
+          <div class="gsum">2 eventos · durou 2d 7h · com Lucas</div>
+        </div>
+
+        <div class="gcard">
+          <div class="ghead"><span class="car">›</span><span class="dim">3 de março</span><span style="flex:1"></span><span class="gbadge b-arq">Arquivada</span></div>
+          <div class="gsum"><span class="flag">⚠ anterior ao registro — só a abertura</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <p>Filtrar <b>encolhe</b> o card em vez de sumir com ele: as mensagens e a nota saem, o atendimento permanece à vista. A conversa de março continua fechada nos dois estados, declarando que não há timeline em vez de fingir uma.</p>
+  </div>
+</section>
+
+<section class="col">
+  <h2>As três regras aprovadas</h2>
+  <div class="rules">
+    <div class="rule-item">
+      <span class="num">1</span>
+      <div>
+        <h3>O card sobrevive ao filtro</h3>
+        <p>Filtrar enxuga o conteúdo, nunca remove a conversa da lista. O atendimento segue sendo a unidade de leitura e nenhuma conversa some de vista.</p>
+      </div>
+    </div>
+    <div class="rule-item">
+      <span class="num">2</span>
+      <div>
+        <h3>Mensagens entram agregadas</h3>
+        <p>“24 mensagens” com a prévia da última, não 24 linhas. São 217.445 mensagens na base — enfileirar uma a uma afogaria o fio. O clique abre a conversa.</p>
+      </div>
+    </div>
+    <div class="rule-item">
+      <span class="num">3</span>
+      <div>
+        <h3>Conversa pré-registro aparece, fechada</h3>
+        <p><b>1.077</b> conversas que nunca foram tocadas desde então passam a existir no painel, como card colapsado com aviso — hoje somem por completo. Outras <b>1.192</b> já aparecem com timeline parcial e ganham o mesmo aviso: o que falta nelas é o começo, não o todo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="col">
+  <h2>Como fica montado</h2>
+  <p class="lede">A divisão segue o que cada camada faz bem — e uma medição: agregar mensagens roda em <em>index only scan</em> dentro do banco, mas pagaria RLS por linha se fosse feita pelo cliente.</p>
+  <div class="layers" style="margin-top:24px">
+    <div class="layer">
+      <span class="where">Banco</span>
+      <p>Nova função <b>get_customer_timeline</b> devolvendo JSONB: conversas, seus eventos, o agregado de mensagens e o sinalizador de pré-registro. A função atual fica intacta — desligar é parar de chamar.</p>
+    </div>
+    <div class="layer">
+      <span class="where">Trigger</span>
+      <p>Passa a capturar o que hoje escapa — nota, orçamento, pedido, etiqueta, troca de carteira. Vale só <b>daqui pra frente</b>; não reescreve o passado.</p>
+    </div>
+    <div class="layer">
+      <span class="where">Backfill</span>
+      <p>Migration separada e reversível que sintetiza a abertura de <b>1.077</b> conversas órfãs (e o encerramento de 25) a partir de colunas reais. O passado vira <b>uma linha honesta</b>, não uma timeline inventada.</p>
+    </div>
+    <div class="layer">
+      <span class="where">Engine</span>
+      <p>Composição, ordenação e as três regras viram função pura testada com Vitest. É onde o comportamento fica verificável sem subir tela.</p>
+    </div>
+  </div>
+
+  <div class="gate">
+    <h3>Antes de qualquer código</h3>
+    <p>Isto ainda é desenho. O próximo passo é a spec escrita, depois o plano de implementação — nada entra no repositório antes disso.</p>
+    <p>Duas migrations nascem daqui, e neste projeto <b>mergear o PR não aplica migration</b>: a aplicação em produção é manual e depende de autorização explícita. A ordem correta é migration primeiro, merge depois.</p>
+  </div>
+</section>
+
+</div>

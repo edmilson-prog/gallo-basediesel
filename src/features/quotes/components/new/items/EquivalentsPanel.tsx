@@ -47,11 +47,13 @@ export function EquivalentsPanel({ part, allParts, onSwap }: IEquivalentsPanelPr
                   </span>
                 )}
               </p>
-              <p className="truncate text-[11px] text-muted-foreground">
+              <p className="truncate font-semicond text-[11px] text-muted-foreground">
                 OEM {eq.oemCodes[0] ?? "—"} · {eq.brand} · SKU {eq.sku}
               </p>
             </div>
-            <span className={`inline-flex shrink-0 items-center gap-1 text-[11px] ${stock.textClassName}`}>
+            <span
+              className={`inline-flex shrink-0 items-center gap-1 text-[11px] ${stock.textClassName}`}
+            >
               <span className={`h-1.5 w-1.5 rounded-full ${stock.dotClassName}`} />
               {stock.label}
             </span>

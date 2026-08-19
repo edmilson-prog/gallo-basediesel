@@ -1,0 +1,162 @@
+import type { ISupplier, ISupplierStats } from "@/shared/types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/Icon";
+import { formatBRL, formatShortDateBR } from "@/shared/utils/format";
+import { supplierCompleteness } from "../../engine/completeness";
+import { SUPPLIERS_STRINGS } from "../../i18n/pt-BR";
+import { asKnownCategory, CATEGORY_LABEL, initials } from "../../utils/supplierDisplay";
+import { SupplierMetric } from "../SupplierMetric";
+
+const COPY = SUPPLIERS_STRINGS;
+
+interface ISupplierRailProps {
+  supplier: ISupplier | null;
+  stats: ISupplierStats | null;
+  canEdit: boolean;
+  onOpenSheet: () => void;
+  onEdit: () => void;
+}
+
+/**
+ * Identity + metrics rail for the selected supplier row. `stats` is `null`
+ * while `useSuppliersStatsIndex` is still loading, and also while its batch
+ * query is disabled because neither the "parts" nor the "purchases" column
+ * is visible — it does not mean the supplier has no stats. The 2×2 metrics
+ * read "—" for either case; the "Últimas entradas" section below instead
+ * distinguishes loading from empty, same three-way split as `SupplierSheet`.
+ * The "Em aberto" metric from the design kit is absent on purpose: it needs
+ * the `payable` entity, which does not exist yet.
+ */
+export function SupplierRail({
+  supplier,
+  stats,
+  canEdit,
+  onOpenSheet,
+  onEdit,
+}: ISupplierRailProps) {
+  if (!supplier) {
+    return (
+      <aside className="rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+        {COPY.rail.emptySelection}
+      </aside>
+    );
+  }
+
+  const completeness = supplierCompleteness(supplier);
+
+  return (
+    <aside className="grid gap-3">
+      <section className="rounded-xl border border-border bg-card p-4">
+        <div className="mb-3.5 flex items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/15 text-sm font-bold text-primary">
+            {initials(supplier.corporateName)}
+          </span>
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-bold leading-tight text-foreground">
+              {supplier.corporateName}
+            </h2>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              <Badge variant="secondary">
+                {CATEGORY_LABEL[asKnownCategory(supplier.category)]}
+              </Badge>
+              {supplier.paymentTerms && <Badge variant="outline">{supplier.paymentTerms}</Badge>}
+              {!supplier.createdFromXml && completeness.percent === 0 && (
+                <Badge>{COPY.newBadge}</Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3.5 border-t border-border pt-3.5">
+          <SupplierMetric
+            label={COPY.kpis.linkedParts}
+            value={stats ? String(stats.linkedParts) : "—"}
+          />
+          <SupplierMetric
+            label={COPY.kpis.purchases}
+            value={formatBRL(stats?.purchasesLast12Months)}
+          />
+          <SupplierMetric
+            label={COPY.kpis.leadTime}
+            value={
+              supplier.leadTimeDays === undefined
+                ? "—"
+                : `${supplier.leadTimeDays} ${COPY.kpis.leadTimeUnit}`
+            }
+          />
+          <SupplierMetric
+            label={COPY.columns.contact}
+            // `||`, not `??`: a cleared field can be stored as `""`, and an
+            // empty string must fall back to the placeholder same as absent.
+            value={supplier.contactName || "—"}
+            sub={supplier.contactPhone}
+          />
+        </div>
+
+        <div className="mt-4 flex gap-2">
+          <Button size="sm" className="flex-1" onClick={onOpenSheet}>
+            <Icon icon="mdi:arrow-expand" size={15} />
+            {COPY.actions.fullSheet}
+          </Button>
+          {canEdit && (
+            <Button size="sm" variant="outline" onClick={onEdit} aria-label={COPY.actions.edit}>
+              <Icon icon="mdi:pencil" size={15} />
+            </Button>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card">
+        <h3 className="flex items-center gap-2 border-b border-border px-4 py-3 text-[13px] font-bold text-foreground">
+          <Icon icon="mdi:package-variant" size={15} className="text-muted-foreground" />
+          {COPY.rail.suppliedItems}
+        </h3>
+        <div className="flex flex-wrap gap-1.5 p-4">
+          {supplier.suppliedItems?.length ? (
+            supplier.suppliedItems.map((item) => (
+              <Badge key={item} variant="outline">
+                {item}
+              </Badge>
+            ))
+          ) : (
+            <p className="text-xs text-muted-foreground">{COPY.empty.items}</p>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card">
+        <h3 className="flex items-center gap-2 border-b border-border px-4 py-3 text-[13px] font-bold text-foreground">
+          <Icon icon="mdi:file-document-outline" size={15} className="text-muted-foreground" />
+          {COPY.rail.lastEntries}
+        </h3>
+        <div className="p-4">
+          {stats === null ? (
+            <p className="text-xs text-muted-foreground">{COPY.sheet.statsLoading}</p>
+          ) : stats.lastEntries.length ? (
+            <ul className="grid">
+              {stats.lastEntries.slice(0, 4).map((entry, index) => (
+                <li
+                  key={`${entry.partId}-${entry.invoiceNumber ?? index}`}
+                  className="flex items-center gap-2.5 border-b border-border py-2 last:border-b-0"
+                >
+                  <span className="w-16 shrink-0 text-[11px] text-muted-foreground">
+                    {formatShortDateBR(entry.invoiceDate)}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                    {entry.invoiceNumber ?? entry.partName}
+                  </span>
+                  <span className="shrink-0 text-xs font-bold text-foreground">
+                    {formatBRL(entry.cost * (entry.quantity || 1))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground">{COPY.empty.entries}</p>
+          )}
+        </div>
+      </section>
+    </aside>
+  );
+}
