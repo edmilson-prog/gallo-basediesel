@@ -623,6 +623,9 @@ export function QuoteEditor() {
               onChange={setCustomer}
               sellerIdFilter={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
               vehicles={vehicles}
+              storeId={storeId}
+              defaultSellerId={isManagerOrOwner ? null : (currentUser?.sellerId ?? null)}
+              sellerLocked={!isManagerOrOwner}
             />
           )}
 

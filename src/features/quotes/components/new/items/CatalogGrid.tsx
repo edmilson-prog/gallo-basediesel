@@ -115,7 +115,7 @@ function CatalogCard({
       }`}
     >
       <div className="flex items-center gap-2">
-        <span className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
+        <span className="truncate font-semicond text-[10.5px] uppercase tracking-wider text-muted-foreground">
           {getCategoryLabel(part.category)}
         </span>
         <span
@@ -127,7 +127,7 @@ function CatalogCard({
       </div>
       <p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">{part.name}</p>
       <div className="flex items-end gap-2">
-        <span className="min-w-0 truncate text-[11px] text-muted-foreground">
+        <span className="min-w-0 truncate font-semicond text-[11px] text-muted-foreground">
           {part.sku}
           {inQuoteQty > 0 && (
             <span className="text-severity-success">
@@ -138,7 +138,7 @@ function CatalogCard({
           )}
         </span>
         <span
-          className={`ml-auto shrink-0 text-base font-semibold tabular-nums ${
+          className={`ml-auto shrink-0 font-display text-base font-extrabold tabular-nums ${
             part.unitPrice > 0 ? "text-foreground" : "text-muted-foreground"
           }`}
         >

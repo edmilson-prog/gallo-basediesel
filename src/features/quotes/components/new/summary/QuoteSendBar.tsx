@@ -40,7 +40,7 @@ export function QuoteSendBar({
         <Icon icon={needsApproval ? "mdi:shield-alert-outline" : "mdi:send-outline"} size={16} />
         {needsApproval ? "Salvar e solicitar aprovação" : "Salvar e enviar"}
       </Button>
-      <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+      <p className="flex items-center justify-center gap-1.5 font-semicond text-[11.5px] text-muted-foreground">
         <Icon icon="mdi:whatsapp" size={13} />
         {needsApproval
           ? "segue como rascunho até o gestor aprovar"

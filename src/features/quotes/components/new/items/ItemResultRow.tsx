@@ -54,7 +54,7 @@ export function ItemResultRow({
               </span>
             )}
           </p>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="truncate font-semicond text-[11.5px] text-muted-foreground">
             OEM {part.oemCodes[0] ?? "—"} · SKU {part.sku} · {part.brand} ·{" "}
             <span className={stock.textClassName}>{stock.label}</span>
           </p>
@@ -65,7 +65,7 @@ export function ItemResultRow({
           {/* A catalogued part with no price still sells — it just cannot be
               priced yet, so say so instead of showing a convincing R$ 0,00. */}
           <p
-            className={`text-sm font-semibold tabular-nums ${
+            className={`font-display text-[15px] font-extrabold tabular-nums ${
               part.unitPrice > 0 ? "" : "text-muted-foreground"
             }`}
           >
