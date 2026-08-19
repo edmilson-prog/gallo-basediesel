@@ -135,21 +135,20 @@ Conversas ordenadas por `created_at` desc; `events` por `at` asc dentro de cada 
 
 **Prévia da mensagem:** truncada em 120 caracteres no banco, para não trafegar corpo de mensagem inteiro. Mensagens sem texto (mídia pura) entram com preview vazio e o tipo de mídia é resolvido na UI.
 
-### 3.2 Trigger — novos tipos de evento
+### 3.2 Trigger para `note`/`quote`/`order` — CORTADO por decisão
 
-Amplia a captura para o que hoje escapa. Vale **só daqui pra frente** — nenhuma dessas mudanças reescreve o passado.
+O desenho original previa uma terceira migration, que ampliaria o trigger para gravar eventos de tipo `note`, `quote` e `order` em `conversation_activity`. **Ela foi cortada e não existe.** Não há migration de trigger nesta entrega — o rollout tem duas migrations, não três (§8).
 
-| Novo tipo | Origem | Trigger |
-|---|---|---|
-| `note` | `conversation_notes` | novo, `AFTER INSERT` |
-| `quote` | `quotes` (quando `conversation_id` não é nulo) | novo, `AFTER INSERT` |
-| `order` | `orders` (quando `conversation_id` não é nulo) | novo, `AFTER INSERT` |
+**Por que foi cortada.** Nota, orçamento e pedido **já chegam ao fio**: a RPC `get_customer_timeline` lê `conversation_notes`, `quotes` e `orders` diretamente, por `conversation_id` (ver o payload da §3.1). Um trigger que gravasse os mesmos fatos em `conversation_activity` produziria **contagem dobrada** — cada nota apareceria uma vez como evento e outra vez como nota lida da tabela de origem, e o `itemCount` do card contaria as duas.
 
-O `CHECK` de `conversation_activity.type` precisa ser ampliado na mesma migration — hoje ele já diverge da migration original (o banco aceita `participant_add`/`participant_remove`, que o CHECK de `20260703170000` não previa). A migration deve ler o CHECK vigente no banco antes de reescrevê-lo.
+A leitura direta ainda é estritamente melhor que o trigger em dois pontos:
+
+- **É retroativa.** O trigger valeria só daqui pra frente; a leitura direta já mostra toda nota, orçamento e pedido que existem hoje no banco, sem backfill nenhum.
+- **Carrega conteúdo.** O evento em `conversation_activity` teria só ponteiro e timestamp; a leitura direta traz o corpo da nota e o total do negócio, que é o que o card precisa renderizar.
+
+Consequência: o `CHECK` de `conversation_activity.type` **não é tocado** por esta entrega, e `conversation_notes` mantém `conversation_notes_notify_mentions` como seu único trigger.
 
 **Fora deste escopo (deliberado):** etiqueta e troca de carteira. Etiqueta muda com frequência alta e inundaria o fio; carteira é do cliente, não da conversa, e não tem card onde morar. Ambas ficam registradas como candidatas para uma fase seguinte.
-
-**Nota de acoplamento:** `conversation_notes` já carrega o trigger `conversation_notes_notify_mentions`. O novo trigger é independente e `AFTER INSERT`; não altera o existente.
 
 ### 3.3 Backfill — migration separada e reversível
 
@@ -255,8 +254,10 @@ Query key isolada — `["customer-timeline", customerId]`, distinta da atual `["
 
 A ordem importa e não é negociável neste projeto: **mergear PR não aplica migration**.
 
-1. Migration da RPC nova + novos triggers → aplicada manualmente, com OK explícito do dono.
-2. Migration do backfill → aplicada manualmente, com OK explícito do dono, e conferida por contagem.
+São **duas** migrations, nesta ordem — não há migration de trigger (§3.2):
+
+1. `20260818120000_get_customer_timeline.sql` (a RPC) → aplicada manualmente, com OK explícito do dono.
+2. `20260818122000_backfill_pre_registro.sql` (o backfill) → aplicada manualmente, com OK explícito do dono, e conferida por contagem.
 3. Merge do PR com engine + UI.
 4. Smoke pelo dono: cliente com conversa recente, cliente só com conversas antigas, e cliente sem conversa.
 

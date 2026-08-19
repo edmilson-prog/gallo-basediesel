@@ -502,122 +502,26 @@ git commit -m "feat(db): add get_customer_timeline RPC returning the folded payl
 
 ---
 
-### Task 3: Migration dos novos tipos de evento
+### Task 3: Migration dos novos tipos de evento — CORTADA
 
-**Files:**
-- Create: `supabase/migrations/20260818121000_activity_note_quote_order.sql`
+**Nada a fazer nesta task. Nenhum arquivo é criado.** A migration
+`20260818121000_activity_note_quote_order.sql` **não existe** e não deve ser
+escrita nem aplicada. O rollout desta entrega tem **duas** migrations: a RPC
+(Task 2) e o backfill (Task 4).
 
-**Interfaces:**
-- Consumes: `conversation_activity`, `conversation_notes`, `quotes`, `orders`, `current_seller_id()`.
-- Produces: triggers `conversation_note_activity_capture`, `quote_activity_capture`, `order_activity_capture`; tipos `note`, `quote`, `order` aceitos por `conversation_activity.type`.
+**Por que foi cortada.** Ela gravaria eventos `note`/`quote`/`order` em
+`conversation_activity` por trigger. Mas a RPC da Task 2 já lê
+`conversation_notes`, `quotes` e `orders` diretamente, por `conversation_id` —
+os mesmos fatos entrariam no card **duas vezes**, uma como evento e outra como
+nota/negócio lido da tabela de origem, dobrando também o `itemCount` do resumo.
 
-- [ ] **Step 1: Ler o CHECK vigente antes de reescrever**
+A leitura direta ainda ganha do trigger em dois pontos: é **retroativa** (o
+trigger só valeria daqui pra frente) e **carrega conteúdo** (corpo da nota,
+total do negócio), enquanto o evento teria só ponteiro e timestamp.
 
-Rode pelo MCP do Supabase:
-
-```sql
-select pg_get_constraintdef(oid) from pg_constraint
-where conrelid = 'public.conversation_activity'::regclass and contype = 'c';
-```
-
-O CHECK no banco **já diverge** da migration original (aceita `participant_add`/`participant_remove`). Copie a lista vigente e acrescente os três novos tipos — não recrie a lista de memória.
-
-- [ ] **Step 2: Escrever a migration**
-
-Crie `supabase/migrations/20260818121000_activity_note_quote_order.sql`:
-
-```sql
--- Widen the activity feed beyond conversation lifecycle: notes, quotes and
--- orders anchored to a conversation. Forward-looking only — nothing here
--- rewrites history.
-
-alter table public.conversation_activity
-  drop constraint if exists conversation_activity_type_check;
-
-alter table public.conversation_activity
-  add constraint conversation_activity_type_check check (type in (
-    'created','status','assignment','reopen',
-    'participant_add','participant_remove',
-    'note','quote','order'
-  ));
-
-create or replace function public.conversation_note_activity_capture()
-returns trigger
-language plpgsql
-security definer
-set search_path to ''
-as $$
-declare
-  v_actor uuid := public.current_seller_id();
-begin
-  insert into public.conversation_activity(
-    conversation_id, customer_id, lead_id, store_id, type,
-    actor_id, actor_kind, created_at)
-  select new.conversation_id, c.customer_id, c.lead_id, new.store_id, 'note',
-         v_actor, case when v_actor is null then 'system' else 'seller' end, new.created_at
-  from public.conversations c where c.id = new.conversation_id;
-  return new;
-end;
-$$;
-
-drop trigger if exists conversation_note_activity_capture on public.conversation_notes;
-create trigger conversation_note_activity_capture
-  after insert on public.conversation_notes
-  for each row execute function public.conversation_note_activity_capture();
-
-create or replace function public.deal_activity_capture()
-returns trigger
-language plpgsql
-security definer
-set search_path to ''
-as $$
-declare
-  v_actor uuid := public.current_seller_id();
-begin
-  -- Deals without a conversation have no card to live in; skip them.
-  if new.conversation_id is null then
-    return new;
-  end if;
-
-  insert into public.conversation_activity(
-    conversation_id, customer_id, lead_id, store_id, type,
-    actor_id, actor_kind, created_at)
-  select new.conversation_id, c.customer_id, c.lead_id, new.store_id, tg_argv[0],
-         v_actor, case when v_actor is null then 'system' else 'seller' end, new.created_at
-  from public.conversations c where c.id = new.conversation_id;
-  return new;
-end;
-$$;
-
-drop trigger if exists quote_activity_capture on public.quotes;
-create trigger quote_activity_capture
-  after insert on public.quotes
-  for each row execute function public.deal_activity_capture('quote');
-
-drop trigger if exists order_activity_capture on public.orders;
-create trigger order_activity_capture
-  after insert on public.orders
-  for each row execute function public.deal_activity_capture('order');
-```
-
-- [ ] **Step 3: Conferir que `conversation_notes` tem coluna `body` e `quotes`/`orders` têm `store_id`**
-
-Rode pelo MCP:
-
-```sql
-select table_name, column_name from information_schema.columns
-where table_schema='public' and table_name in ('conversation_notes','quotes','orders')
-  and column_name in ('body','text','store_id','conversation_id');
-```
-
-Ajuste a migration se algum nome divergir.
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add supabase/migrations/20260818121000_activity_note_quote_order.sql
-git commit -m "feat(db): capture note, quote and order as activity events"
-```
+Consequência: o `CHECK` de `conversation_activity.type` **não é tocado** por
+esta entrega, e `conversation_notes` mantém `conversation_notes_notify_mentions`
+como seu único trigger. Ver §3.2 do spec.
 
 ---
 
@@ -1092,7 +996,7 @@ git commit -m "refactor(attendance-history): retire the flat activity read path"
 ## Ordem de entrega
 
 1. Tasks 1 a 7 → PR aberto, build e suíte verdes.
-2. **Migrations aplicadas manualmente**, na ordem: RPC (Task 2) → triggers (Task 3) → backfill (Task 4), cada uma com OK explícito do dono, e a do backfill conferida pelo `SELECT` de sanidade.
+2. **As duas migrations aplicadas manualmente**, nesta ordem: `20260818120000_get_customer_timeline.sql` (RPC, Task 2) → `20260818122000_backfill_pre_registro.sql` (backfill, Task 4), cada uma com OK explícito do dono, e a do backfill conferida pelo `SELECT` de sanidade. Não há migration de trigger — a Task 3 foi cortada.
 3. Merge do PR.
 4. Smoke pelo dono: cliente com conversa recente, cliente só com conversas antigas, cliente sem conversa nenhuma, e um cliente onde o filtro esvazia todos os cards.
 
