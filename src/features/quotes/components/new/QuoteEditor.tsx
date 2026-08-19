@@ -648,12 +648,21 @@ export function QuoteEditor() {
         validUntil: created.validUntil,
       });
 
+      // The seller's note leads the WhatsApp body; the e-mail takes it as its
+      // opening line, server-side.
+      const whatsappText = channels.message ? `${channels.message}\n\n${text}` : text;
+
       const delivered: string[] = [];
       if (channels.whatsapp && customer && channels.accountId) {
         const account = accessibleConnectedAccounts.find((a) => a.id === channels.accountId);
         if (account) {
           try {
-            await sendWhatsApp({ storeId, customerId: customer.id, account, text });
+            await sendWhatsApp({
+              storeId,
+              customerId: customer.id,
+              account,
+              text: whatsappText,
+            });
             delivered.push("WhatsApp");
           } catch (err) {
             console.error(err);
@@ -663,7 +672,11 @@ export function QuoteEditor() {
       }
       if (channels.email) {
         try {
-          const result = await sendQuoteEmail(created.id, channels.emailTo || undefined);
+          const result = await sendQuoteEmail(
+            created.id,
+            channels.emailTo || undefined,
+            channels.message || undefined,
+          );
           if (result.sent) {
             delivered.push("e-mail");
           } else {
@@ -883,6 +896,7 @@ export function QuoteEditor() {
         customer={customer}
         lead={leadRecipient}
         items={items}
+        partsById={partsById}
         subtotal={totals.subtotal}
         discount={totals.discount}
         shipping={totals.shipping}
@@ -899,8 +913,11 @@ export function QuoteEditor() {
         customer={customer}
         lead={leadRecipient}
         accounts={accessibleConnectedAccounts}
+        total={totals.total}
+        validUntil={validUntil}
         submitting={submitting}
         onConfirm={(channels) => void handleConfirmSend(channels)}
+        onPreview={() => setPreviewOpen(true)}
       />
     </div>
   );

@@ -93,3 +93,21 @@ describe("buildQuoteEmailText", () => {
     expect(buildQuoteEmailText(base)).toBe(buildQuoteWhatsAppText(base));
   });
 });
+
+describe("the seller's own note", () => {
+  it("replaces the default opening line in the e-mail", () => {
+    const html = buildQuoteEmailHtml({ ...base, message: "Segue conforme combinado no balcão." });
+    expect(html).toContain("Segue conforme combinado no balcão.");
+    expect(html).not.toContain("segue o orçamento solicitado");
+  });
+
+  it("is escaped like every other name that reaches the e-mail", () => {
+    const html = buildQuoteEmailHtml({ ...base, message: "<img src=x onerror=alert(1)>" });
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;img");
+  });
+
+  it("does not touch the WhatsApp body — the composer prepends it there", () => {
+    expect(buildQuoteWhatsAppText({ ...base, message: "oi" })).toBe(buildQuoteWhatsAppText(base));
+  });
+});
