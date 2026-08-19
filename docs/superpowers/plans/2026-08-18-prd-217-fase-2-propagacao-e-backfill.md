@@ -1019,16 +1019,20 @@ Três conferências, todas exigidas pelo PRD:
 
 1. **Contagem antes/depois** — do relatório datado em `scratchpad/ad-touches-backfill-report-<timestamp>.md`.
 
-   **Números esperados**, medidos em produção na revisão de 18/08 (se a realidade divergir muito, pare e investigue antes de seguir):
+   **Números esperados**, medidos na **simulação de 19/08** (a estimativa de 18/08 dizia 871/98 — a simulação é a autoridade; se a realidade divergir muito destes, pare e investigue antes de seguir):
 
    | O quê | Esperado |
-   |---|---|
+   |---|---:|
    | conversas com `ad_referral` e sem toque, **antes** | 969 |
-   | cobertas pela passada **precisa** (`backfill_delivery`) | 871 |
-   | cobertas pela passada **aproximada** (`backfill_conversation`) | 98 |
-   | chamadas de `record_ad_touch` na passada precisa | ~926 (mais que 871: há conversa com mais de uma entrega) |
-   | linhas em `public.ads`, antes → depois | 3 → 5 |
-   | conversas com `ad_referral` **sem** `sourceId` | 0 |
+   | cobertas pela passada **precisa** (`backfill_delivery`) | 838 |
+   | cobertas pela passada **aproximada** (`backfill_conversation`) | 131 |
+   | conversas com `ad_referral` e sem toque, **depois** | **0** |
+   | chamadas de `record_ad_touch` na passada precisa | 930 (mais que 838: há conversa com mais de um clique) |
+   | chamadas na passada aproximada | 131 |
+   | linhas em `ad_touches`, antes → depois | 19 → ~1.061 |
+   | nó ilegível / `ad_referral` sem `sourceId` | 0 nas duas passadas |
+
+   A passada precisa toca **859** conversas distintas, não 838: as outras 21 são 19 que o webhook ao vivo já cobriu (a RN-01 as descarta com `on conflict do nothing`) e **2** que têm mensagem com anúncio mas `conversations.ad_referral` nulo — provenance que o gate nem enxerga e que o backfill recupera de brinde.
 
 2. **Nenhuma conversa com `ad_referral` ficou sem toque:**
 
