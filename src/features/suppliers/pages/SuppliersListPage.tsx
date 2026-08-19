@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ID, IPendingSupplier } from "@/shared/types";
 import { usePermission } from "@/features/rbac/hooks/usePermission";
@@ -7,11 +7,14 @@ import { useSuppliersProvider } from "@/providers/data";
 import { useCurrentStore } from "@/features/multistore/hooks/useCurrentStore";
 import { useSuppliersList, type ISuppliersListFilters } from "../hooks/useSuppliersList";
 import { useSuppliersStatsIndex } from "../hooks/useSuppliersStatsIndex";
+import { useSupplierStats } from "../hooks/useSupplierStats";
 import { supplierCompleteness } from "../engine/completeness";
 import { SuppliersKpiStrip } from "../components/list/SuppliersKpiStrip";
 import { SuppliersFiltersBar } from "../components/list/SuppliersFiltersBar";
 import { SuppliersTable } from "../components/list/SuppliersTable";
+import { SupplierRail } from "../components/list/SupplierRail";
 import { SuppliersPendingQueue } from "../components/list/SuppliersPendingQueue";
+import { SupplierSheet } from "../components/detail/SupplierSheet";
 import {
   OPTIONAL_COLUMNS,
   readVisibleOptional,
@@ -29,12 +32,13 @@ const COPY = SUPPLIERS_STRINGS;
 const PENDING_QUEUE_ANCHOR_ID = "suppliers-pending-queue";
 
 /**
- * The rail (Task 6), the sheet and the CNPJ-first form dialog (Task 7) are
- * not built here — this page reserves the rail's grid column and passes a
- * no-op for every callback that would otherwise open one of them.
+ * The CNPJ-first form dialog (Task 7) is not built here — the rail's edit
+ * button and the sheet's "Editar cadastro" take callbacks that this page
+ * passes as no-ops for now.
  */
 export function SuppliersListPage() {
   const canCreate = usePermission("supplier", "create");
+  const canEdit = usePermission("supplier", "edit");
   const provider = useSuppliersProvider();
   const { currentStoreId } = useCurrentStore();
 
@@ -43,6 +47,9 @@ export function SuppliersListPage() {
   const [category, setCategory] = useState<string>("all");
   const [sort, setSort] = useState<ISuppliersSort>({ by: "name", dir: "asc" });
   const [selectedId, setSelectedId] = useState<ID | null>(null);
+
+  // --- Gaveta "Ficha completa" ---
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   // --- Colunas visíveis (persistidas) ---
   const [visibleColumns, setVisibleColumns] = useState<Set<OptionalColumn>>(
@@ -120,6 +127,41 @@ export function SuppliersListPage() {
     });
     return sorted;
   }, [list.visible, sort, statsIndex]);
+
+  // A ficha lateral nunca fica vazia à toa: seleciona a primeira linha assim
+  // que a lista (já filtrada/ordenada) chega e nada foi escolhido ainda — e
+  // RE-seleciona quando o item escolhido sai de `tableRows` (filtro de
+  // categoria/busca mudou), para a linha destacada na tabela nunca divergir
+  // do fornecedor mostrado no rail. Uma seleção que CONTINUA presente na
+  // lista filtrada não é tocada.
+  useEffect(() => {
+    if (selectedId !== null && tableRows.some((s) => s.id === selectedId)) return;
+    const [first] = tableRows;
+    if (first) setSelectedId(first.id);
+  }, [selectedId, tableRows]);
+
+  // Deriva da MESMA lista que a tabela renderiza (`tableRows`, já filtrada e
+  // ordenada) — não de `list.visible` — para que a linha destacada na tabela
+  // e o fornecedor mostrado no rail nunca divirjam. O fallback para a
+  // primeira linha cobre o instante antes do efeito acima rodar.
+  const selectedSupplier = useMemo(
+    () => tableRows.find((s) => s.id === selectedId) ?? tableRows[0] ?? null,
+    [tableRows, selectedId],
+  );
+  const selectedStats = selectedSupplier ? (statsIndex?.get(selectedSupplier.id) ?? null) : null;
+
+  // A gaveta precisa que `stats` resolva mesmo quando as colunas "parts"/
+  // "purchases" estão escondidas (senão o índice em lote acima nunca busca
+  // nada e a gaveta fica "carregando" para sempre). Em vez de forçar o
+  // índice inteiro por causa de UMA ficha, busca só o fornecedor selecionado
+  // — e só quando o índice em lote ainda não tem esse id (evita refetch
+  // duplicado quando as colunas já estão visíveis).
+  const needsOwnStats = sheetOpen && selectedSupplier !== null && selectedStats === null;
+  const { stats: singleSupplierStats } = useSupplierStats(
+    selectedSupplier?.id ?? null,
+    needsOwnStats,
+  );
+  const sheetStats = selectedStats ?? singleSupplierStats;
 
   // A tabela expõe seu próprio container rolável (scrollRef) — a linha de
   // progresso o recebe explicitamente, igual ao CatalogListPage.
@@ -205,9 +247,20 @@ export function SuppliersListPage() {
             />
           </div>
 
-          {/* Coluna reservada para a ficha lateral (Task 6) — vazia de
-              propósito nesta tarefa. */}
-          <div className="min-h-0 min-w-0" />
+          {/* Coluna da ficha lateral — rola por conta própria, independente
+              da tabela; sem `DashboardLayout` não existe scroll de página
+              para um `sticky` grudar nela. */}
+          <div className="min-h-0 min-w-0 overflow-y-auto">
+            <SupplierRail
+              supplier={selectedSupplier}
+              stats={selectedStats}
+              canEdit={canEdit}
+              onOpenSheet={() => setSheetOpen(true)}
+              onEdit={() => {
+                // Task 7 liga isto ao `SupplierFormDialog`.
+              }}
+            />
+          </div>
         </div>
 
         {/* A fila fica ABAIXO da tabela, nunca atrás de uma aba: os dois
@@ -229,6 +282,18 @@ export function SuppliersListPage() {
           </div>
         )}
       </div>
+
+      <SupplierSheet
+        supplier={selectedSupplier}
+        stats={sheetStats}
+        open={sheetOpen}
+        canEdit={canEdit}
+        onClose={() => setSheetOpen(false)}
+        onEdit={() => {
+          // Task 7 liga isto ao `SupplierFormDialog` (fecha a gaveta e abre
+          // o diálogo no mesmo fornecedor).
+        }}
+      />
     </div>
   );
 }
