@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { conversationActivityApi } from "@/mocks";
-import type { IConversationActivityEvent } from "@/shared/types";
+import { upsert } from "@/mocks/store/mutations";
+import { selectMessagesByConversation } from "@/mocks/store/selectors";
+import type { IConversationActivityEvent, IMessage } from "@/shared/types";
 import { mockActivityProvider } from "./activity";
 
 /** Minimal, fully-specified event builder so each test only overrides what it cares about. */
@@ -21,6 +23,25 @@ function makeEvent(overrides: Partial<IConversationActivityEvent>): IConversatio
     conversationChannel: "whatsapp",
     conversationStatus: "aguardando",
     conversationCreatedAt: new Date(0).toISOString(),
+    ...overrides,
+  };
+}
+
+/**
+ * Minimal, fully-specified message builder. Writes straight into the mock
+ * store via `upsert` (the same mutation `messagesApi.send` uses under the
+ * hood) rather than the shared seed generator — these fixtures exist only to
+ * exercise `getCustomerTimeline`'s derivation, not to grow the seed dataset.
+ */
+function makeMessage(overrides: Partial<IMessage> & { conversationId: string }): IMessage {
+  return {
+    id: crypto.randomUUID(),
+    direction: "in",
+    authorType: "customer",
+    provider: "mock",
+    text: "",
+    status: "delivered",
+    sentAt: new Date(0).toISOString(),
     ...overrides,
   };
 }
@@ -167,5 +188,104 @@ describe("mockActivityProvider.getCustomerTimeline", () => {
 
     expect(payload.conversations).toHaveLength(1);
     expect(payload.conversations[0]!.status).toBe("resolvida");
+  });
+
+  it("derives messageCount and lastMessageAt from the real message store, not a hardcoded value", async () => {
+    const customerId = "cust-messages";
+    const conversationId = "conv-messages";
+    await conversationActivityApi.create(
+      makeEvent({
+        conversationId,
+        customerId,
+        type: "created",
+        createdAt: "2026-02-01T00:00:00.000Z",
+        conversationCreatedAt: "2026-02-01T00:00:00.000Z",
+      }),
+    );
+
+    const m1 = makeMessage({ conversationId, text: "oi", sentAt: "2026-02-01T00:05:00.000Z" });
+    const m2 = makeMessage({
+      conversationId,
+      text: "tudo bem?",
+      sentAt: "2026-02-01T00:10:00.000Z",
+    });
+    const m3 = makeMessage({
+      conversationId,
+      text: "combinado",
+      sentAt: "2026-02-01T00:15:00.000Z",
+    });
+    upsert("messages", m1);
+    upsert("messages", m2);
+    upsert("messages", m3);
+
+    // Read the expected count from the same accessor the provider itself
+    // uses, so this isn't a hardcoded number disconnected from the real
+    // source — it's a genuine cross-check against the mock's message store.
+    const expectedCount = selectMessagesByConversation(conversationId).length;
+    expect(expectedCount).toBe(3);
+
+    const payload = await mockActivityProvider.getCustomerTimeline(customerId);
+    const conv = payload.conversations.find((c) => c.id === conversationId)!;
+
+    expect(conv.messageCount).toBe(expectedCount);
+    expect(conv.lastMessageAt).toBe(m3.sentAt);
+    expect(conv.lastMessagePreview).toBe("combinado");
+  });
+
+  it("flags preRegistro true for a conversation created before the marker, false for one after", async () => {
+    const customerId = "cust-pre-registro";
+    // 2026-07-04T01:43:17Z is the exact cutover instant the RPC backfill
+    // uses (supabase/migrations/20260818120000_get_customer_timeline.sql and
+    // .../20260818122000_backfill_pre_registro.sql). The seed dataset has no
+    // conversation before it (daysAgo(30, now) never reaches back that far),
+    // so this fixture is constructed explicitly rather than relying on seed
+    // data — per the ruling, the shared generator is out of scope to change.
+    const before = makeEvent({
+      conversationId: "conv-before-marker",
+      customerId,
+      type: "created",
+      createdAt: "2026-07-01T00:00:00.000Z",
+      conversationCreatedAt: "2026-07-01T00:00:00.000Z",
+    });
+    const after = makeEvent({
+      conversationId: "conv-after-marker",
+      customerId,
+      type: "created",
+      createdAt: "2026-07-10T00:00:00.000Z",
+      conversationCreatedAt: "2026-07-10T00:00:00.000Z",
+    });
+    await conversationActivityApi.create(before);
+    await conversationActivityApi.create(after);
+
+    const payload = await mockActivityProvider.getCustomerTimeline(customerId);
+    const convBefore = payload.conversations.find((c) => c.id === "conv-before-marker")!;
+    const convAfter = payload.conversations.find((c) => c.id === "conv-after-marker")!;
+
+    expect(convBefore.preRegistro).toBe(true);
+    expect(convAfter.preRegistro).toBe(false);
+  });
+
+  it("truncates lastMessagePreview to 120 characters, matching the RPC's left(text, 120)", async () => {
+    const customerId = "cust-long-preview";
+    const conversationId = "conv-long-preview";
+    await conversationActivityApi.create(
+      makeEvent({
+        conversationId,
+        customerId,
+        type: "created",
+        createdAt: "2026-03-01T00:00:00.000Z",
+        conversationCreatedAt: "2026-03-01T00:00:00.000Z",
+      }),
+    );
+
+    const longText = "Peça disponível em estoque, ".repeat(10); // > 120 chars
+    expect(longText.length).toBeGreaterThan(120);
+    upsert("messages", makeMessage({ conversationId, text: longText }));
+
+    const payload = await mockActivityProvider.getCustomerTimeline(customerId);
+    const conv = payload.conversations.find((c) => c.id === conversationId)!;
+
+    expect(conv.lastMessagePreview).toHaveLength(120);
+    expect(conv.lastMessagePreview).toBe(longText.slice(0, 120));
   });
 });

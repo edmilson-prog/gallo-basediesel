@@ -12,6 +12,13 @@ import { mockConversationNotesProvider } from "./conversationNotes";
 // so their opening is unrecoverable and the UI must warn about it.
 const PRE_REGISTRO_MARKER = Date.parse("2026-07-04T01:43:17.000Z");
 
+// Mirrors the RPC's `left(coalesce(m.text, ''), 120)` (see
+// supabase/migrations/20260818120000_get_customer_timeline.sql:50) so mock
+// mode can't show a longer preview than production ever would. Truncated
+// here, at the call site — `getMessagePreview` is shared with other callers
+// (e.g. the Inbox list) that must keep their current, untruncated behavior.
+const PREVIEW_MAX_LENGTH = 120;
+
 export const mockActivityProvider: IActivityProvider = {
   getCustomerActivity: (customerId) => conversationActivityApi.getByCustomer(customerId),
 
@@ -70,7 +77,7 @@ export const mockActivityProvider: IActivityProvider = {
           preRegistro: Date.parse(createdAt) < PRE_REGISTRO_MARKER,
           messageCount: messages.length,
           lastMessageAt: lastMessage?.sentAt ?? null,
-          lastMessagePreview: getMessagePreview(lastMessage),
+          lastMessagePreview: getMessagePreview(lastMessage).slice(0, PREVIEW_MAX_LENGTH),
           events: list,
           notes,
           // Out of scope for this round: `IQuote`/`IOrder` both carry an optional
