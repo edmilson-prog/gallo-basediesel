@@ -330,7 +330,7 @@ select count(*) as rows, count(distinct message_id) as msgs
 from public.ad_backfill_delivery_window('2026-08-17'::timestamptz, '2026-08-18'::timestamptz);
 ```
 
-Esperado: 38 linhas, 38 mensagens distintas (medido nesta sessão).
+Esperado: algumas dezenas de linhas, com `rows = msgs` (uma linha por mensagem, sem duplicata). Duas medições no mesmo dia deram 38 e 36 — o número exato deriva com a retenção; o que o gate confere é a igualdade das duas contagens.
 
 - conferir a fonte aproximada:
 
