@@ -18,9 +18,10 @@ import { extractWahaAdReferral, type IWahaMessagePayload } from "@/providers/wha
  * Only the `extendedTextMessage` branch is built here: the wrapper exists to
  * reach the mapping, and the three real branches all converge on it.
  *
- * Returns undefined for anything unusable — including a node with no
- * `sourceID`, which has no natural key and could never be catalogued in `ads`
- * (PRD-217 RN-01).
+ * Returns undefined for anything unusable — including a node with no usable
+ * `sourceID` (missing, empty, or not a string — the jsonb column stored in
+ * `webhook_deliveries` guarantees none of that), since without a string key
+ * the node could never be catalogued in `ads` (PRD-217 RN-01).
  */
 export function adReferralFromStoredNode(node: unknown): IAdReferral | undefined {
   if (typeof node !== "object" || node === null) return undefined;
@@ -30,6 +31,6 @@ export function adReferralFromStoredNode(node: unknown): IAdReferral | undefined
   } as unknown as IWahaMessagePayload;
 
   const referral = extractWahaAdReferral(payload);
-  if (!referral?.sourceId?.trim()) return undefined;
+  if (typeof referral?.sourceId !== "string" || referral.sourceId.trim() === "") return undefined;
   return referral;
 }

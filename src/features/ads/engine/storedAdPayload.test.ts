@@ -70,4 +70,15 @@ describe("adReferralFromStoredNode", () => {
     const { sourceID: _dropped, ...withoutSourceId } = FIXTURE_COMPLETE;
     expect(adReferralFromStoredNode(withoutSourceId)).toBeUndefined();
   });
+
+  it("devolve undefined quando sourceID vem como número — jsonb não garante o tipo, e não deve lançar", () => {
+    const nodeWithNumericSourceId = {
+      title: "Filtro UFI: original de fábrica para sua caminhonete ou van diesel",
+      body: "CATALISADORES COM FILTRO ORIGINAL E ENVIO PARA TODO O BRASIL!",
+      sourceID: 120238998853430275,
+      sourceType: "ad",
+    };
+    expect(() => adReferralFromStoredNode(nodeWithNumericSourceId)).not.toThrow();
+    expect(adReferralFromStoredNode(nodeWithNumericSourceId)).toBeUndefined();
+  });
 });
