@@ -50,6 +50,7 @@ import { QuoteSendBar } from "./summary/QuoteSendBar";
 import { QuotePreviewDialog } from "./preview/QuotePreviewDialog";
 import { QuoteSendDialog, type IQuoteSendChannels } from "./send/QuoteSendDialog";
 import { buildQuoteWhatsAppText } from "../../engine/quoteMessage";
+import type { IImportSelection } from "../../engine/quoteImport";
 import { useSendQuoteWhatsApp } from "../../hooks/useSendQuoteWhatsApp";
 import { sendQuoteEmail } from "../../api/sendQuoteEmail";
 import { useAccessibleConnectedAccounts } from "@/features/conversations/hooks/useAccessibleConnectedAccounts";
@@ -356,6 +357,39 @@ export function QuoteEditor() {
     setItems((prev) => [...prev, item]);
     setHighlightId(item.id);
   };
+  /**
+   * Everything the seller confirmed in Importar, added in one step so a single
+   * Desfazer undoes the whole list — a twelve-line paste is one decision, not
+   * twelve.
+   */
+  const handleImport = (selection: IImportSelection) => {
+    const count = selection.catalog.length + selection.free.length;
+    if (count === 0) return;
+    const prevItems = items;
+
+    let next = items;
+    let lastId: ID | null = null;
+    for (const { partId, quantity } of selection.catalog) {
+      const part = partsById.get(partId);
+      if (!part) continue;
+      const result = addOrIncrementItem(next, part, quantity);
+      next = result.items;
+      lastId = result.affectedId;
+    }
+    for (const free of selection.free) {
+      const item = buildFreeItem(free);
+      next = [...next, item];
+      lastId = item.id;
+    }
+
+    setItems(next);
+    setHighlightId(lastId);
+    toast.success(
+      `${count} ${count === 1 ? "item adicionado" : "itens adicionados"} da importação.`,
+      { action: { label: "Desfazer", onClick: () => setItems(prevItems) } },
+    );
+  };
+
   const handleSwapEquivalent = (itemId: ID, equivalent: IPart) => {
     const result = swapItemPart(items, itemId, equivalent);
     setItems(result.items);
@@ -614,12 +648,21 @@ export function QuoteEditor() {
         validUntil: created.validUntil,
       });
 
+      // The seller's note leads the WhatsApp body; the e-mail takes it as its
+      // opening line, server-side.
+      const whatsappText = channels.message ? `${channels.message}\n\n${text}` : text;
+
       const delivered: string[] = [];
       if (channels.whatsapp && customer && channels.accountId) {
         const account = accessibleConnectedAccounts.find((a) => a.id === channels.accountId);
         if (account) {
           try {
-            await sendWhatsApp({ storeId, customerId: customer.id, account, text });
+            await sendWhatsApp({
+              storeId,
+              customerId: customer.id,
+              account,
+              text: whatsappText,
+            });
             delivered.push("WhatsApp");
           } catch (err) {
             console.error(err);
@@ -629,7 +672,11 @@ export function QuoteEditor() {
       }
       if (channels.email) {
         try {
-          const result = await sendQuoteEmail(created.id, channels.emailTo || undefined);
+          const result = await sendQuoteEmail(
+            created.id,
+            channels.emailTo || undefined,
+            channels.message || undefined,
+          );
           if (result.sent) {
             delivered.push("e-mail");
           } else {
@@ -780,6 +827,7 @@ export function QuoteEditor() {
             inQuoteQtyByPart={inQuoteQtyByPart}
             onAddPart={handleAddPart}
             onAddFreeItem={handleAddFreeItem}
+            onImport={handleImport}
             rankedKits={rankedKits}
             kitsLoading={modelKitsQuery.isLoading}
             onApplyKit={handleApplyKit}
@@ -848,6 +896,7 @@ export function QuoteEditor() {
         customer={customer}
         lead={leadRecipient}
         items={items}
+        partsById={partsById}
         subtotal={totals.subtotal}
         discount={totals.discount}
         shipping={totals.shipping}
@@ -864,8 +913,11 @@ export function QuoteEditor() {
         customer={customer}
         lead={leadRecipient}
         accounts={accessibleConnectedAccounts}
+        total={totals.total}
+        validUntil={validUntil}
         submitting={submitting}
         onConfirm={(channels) => void handleConfirmSend(channels)}
+        onPreview={() => setPreviewOpen(true)}
       />
     </div>
   );

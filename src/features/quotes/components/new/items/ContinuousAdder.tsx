@@ -1,6 +1,7 @@
 // src/features/quotes/components/new/items/ContinuousAdder.tsx
 import { useEffect, useRef, useState } from "react";
 import type { IOrder, IPart, IVehicle } from "@/shared/types";
+import type { IImportSelection } from "../../../engine/quoteImport";
 import { Icon } from "@/components/Icon";
 import { useItemSearch } from "../../../hooks/useItemSearch";
 import { ItemResultRow } from "./ItemResultRow";
@@ -14,6 +15,8 @@ export interface IAdderProps {
   onAddPart: (part: IPart, quantity?: number) => void;
   /** Opens the off-catalog draft row, seeded with the typed term when there is one. */
   onAddFreeItemClick: (name?: string) => void;
+  /** Commits an interpreted list into the quote, in one undoable step. */
+  onImport: (selection: IImportSelection) => void;
 }
 
 export interface IContinuousAdderProps extends IAdderProps {

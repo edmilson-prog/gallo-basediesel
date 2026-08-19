@@ -1,7 +1,7 @@
 // src/features/quotes/components/new/items/ItemAdder.tsx
 import type { QuoteAddMode } from "../../../types/editor";
 import { ContinuousAdder, type IAdderProps } from "./ContinuousAdder";
-import { QuickAddBar } from "./QuickAddBar";
+import { ImportPanel } from "./ImportPanel";
 import { CatalogGrid } from "./CatalogGrid";
 import { ModeSwitcher } from "./ModeSwitcher";
 
@@ -18,14 +18,15 @@ export interface IItemAdderProps extends IAdderProps {
  * their surface below.
  */
 export function ItemAdder({ mode, onModeChange, searchInputRef, ...adder }: IItemAdderProps) {
+  const { onImport, ...pickers } = adder;
   return (
     <div className="space-y-2.5">
       <div className="flex items-center gap-2.5">
         <ModeSwitcher value={mode} onChange={onModeChange} />
         {mode === "continuous" && <ContinuousAdder {...adder} inputRef={searchInputRef} />}
       </div>
-      {mode === "catalog" && <CatalogGrid {...adder} />}
-      {mode === "quick" && <QuickAddBar {...adder} />}
+      {mode === "catalog" && <CatalogGrid {...pickers} onImport={onImport} />}
+      {mode === "import" && <ImportPanel onImport={onImport} />}
     </div>
   );
 }

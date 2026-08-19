@@ -18,10 +18,14 @@ export interface ISendQuoteEmailResult {
  * Resolves with `sent: false` when the integration is off; only network and
  * authorization failures reject.
  */
-export async function sendQuoteEmail(quoteId: ID, to?: string): Promise<ISendQuoteEmailResult> {
+export async function sendQuoteEmail(
+  quoteId: ID,
+  to?: string,
+  message?: string,
+): Promise<ISendQuoteEmailResult> {
   const { data, error } = await getSupabaseClient().functions.invoke<ISendQuoteEmailResult>(
     "quote-send-email",
-    { body: { quoteId, ...(to ? { to } : {}) } },
+    { body: { quoteId, ...(to ? { to } : {}), ...(message ? { message } : {}) } },
   );
   if (error) {
     let detail: { error?: string } = {};

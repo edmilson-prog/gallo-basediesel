@@ -73,6 +73,7 @@ servePost(async (req, { log }) => {
   const body = await parseJsonBody(req);
   const quoteId = String(body.quoteId ?? "");
   const explicitTo = String(body.to ?? "").trim();
+  const message = String(body.message ?? "").trim();
   if (!quoteId) throw new HttpError(400, "missing quoteId");
 
   // Read through the caller's client: RLS is the authorization.
@@ -132,6 +133,7 @@ servePost(async (req, { log }) => {
     shipping: Number(quote.shipping ?? 0),
     total: Number(quote.total ?? 0),
     validUntil: String(quote.valid_until ?? ""),
+    ...(message ? { message } : {}),
   };
 
   const resolveSecret = createSecretResolver(admin);

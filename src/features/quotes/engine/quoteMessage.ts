@@ -24,6 +24,11 @@ export interface IQuoteMessageInput {
   total: number;
   /** ISO timestamp of the validity limit. */
   validUntil: string;
+  /**
+   * The seller's own note. Opens the e-mail in place of the default line; the
+   * WhatsApp body ignores it because the composer puts it ahead of the quote.
+   */
+  message?: string;
 }
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -88,6 +93,9 @@ export function buildQuoteEmailSubject(input: IQuoteMessageInput): string {
  */
 export function buildQuoteEmailHtml(input: IQuoteMessageInput): string {
   const store = escapeHtml(input.storeName ?? DEFAULT_STORE);
+  const opening =
+    input.message?.trim() ||
+    (input.customerName ? `Olá, ${input.customerName} — segue o orçamento solicitado.` : "");
   const rows = input.items
     .map(
       (item) => `<tr class="item" style="border-bottom:1px solid #e5e5e5">
@@ -110,7 +118,7 @@ export function buildQuoteEmailHtml(input: IQuoteMessageInput): string {
   <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e5;border-radius:10px;padding:24px">
     <p style="margin:0;font-size:20px;font-weight:800;text-transform:uppercase;color:#231F20">${store}</p>
     <p style="margin:4px 0 0;font-size:13px;color:#767678">Orçamento #${escapeHtml(input.number)} · válido até ${formatValidUntil(input.validUntil)}</p>
-    ${input.customerName ? `<p style="margin:16px 0 0;font-size:14px;color:#231F20">Olá, ${escapeHtml(input.customerName)} — segue o orçamento solicitado.</p>` : ""}
+    ${opening ? `<p style="margin:16px 0 0;font-size:14px;color:#231F20;line-height:1.6;white-space:pre-line">${escapeHtml(opening)}</p>` : ""}
 
     <table style="width:100%;border-collapse:collapse;margin-top:20px">
       <thead>
