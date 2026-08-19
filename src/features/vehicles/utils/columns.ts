@@ -1,22 +1,30 @@
 /**
  * Configurable columns for the vehicles list table.
  *
- * Mandatory column (always visible): brand (Marca / Modelo) — the row identifier.
- * Toggleable columns are persisted in `localStorage` under `gallo-vehicles-columns`.
+ * Mandatory column (always visible): vehicle (Veículo) — the row identifier,
+ * which folds year and engine into its subtitle so they no longer need columns
+ * of their own.
+ *
+ * `ficha` and `uso` replace the four columns that read `—` on almost every
+ * imported row (Ano, Motor, Km atual, Última manutenção): `ficha` states what
+ * the cadastro is missing, `uso` merges odometer and last service into one cell
+ * that collapses to a single "sem registros" when both are blank.
+ *
+ * Toggleable columns are persisted in `localStorage` under
+ * `gallo-vehicles-columns-v2` — the `-v2` suffix retires the previous column
+ * ids so an existing preference cannot hide the two new columns.
  */
 
 import { VEHICLE_STRINGS } from "../i18n/pt-BR";
 
-export const MANDATORY_COLUMNS = ["brand"] as const;
+export const MANDATORY_COLUMNS = ["vehicle"] as const;
 
 export const OPTIONAL_COLUMNS = [
-  "year",
-  "engine",
   "plate",
   "customer",
+  "ficha",
+  "usage",
   "seller",
-  "km",
-  "lastService",
   "cadastroStatus",
 ] as const;
 
@@ -26,38 +34,34 @@ export type ColumnId = (typeof MANDATORY_COLUMNS)[number] | OptionalColumn;
 const COPY = VEHICLE_STRINGS.list.columns;
 
 export const COLUMN_LABELS: Record<ColumnId, string> = {
-  brand: COPY.brand,
-  year: COPY.year,
-  engine: COPY.engine,
+  vehicle: COPY.vehicle,
   plate: COPY.plate,
   customer: COPY.customer,
+  ficha: COPY.ficha,
+  usage: COPY.usage,
   seller: COPY.seller,
-  km: COPY.km,
-  lastService: COPY.lastService,
   cadastroStatus: COPY.cadastroStatus,
 };
 
 export const DEFAULT_VISIBLE_OPTIONAL: OptionalColumn[] = [...OPTIONAL_COLUMNS];
 
-export const COLUMNS_LOCALSTORAGE_KEY = "gallo-vehicles-columns";
+export const COLUMNS_LOCALSTORAGE_KEY = "gallo-vehicles-columns-v2";
 
 /** Default column widths in pixels (resizable columns persist overrides). */
 export const DEFAULT_COLUMN_WIDTHS: Record<ColumnId, number> = {
-  brand: 260,
-  year: 80,
-  engine: 150,
-  plate: 120,
-  customer: 200,
-  seller: 160,
-  km: 120,
-  lastService: 150,
-  cadastroStatus: 120,
+  vehicle: 280,
+  plate: 110,
+  customer: 220,
+  ficha: 180,
+  usage: 180,
+  seller: 150,
+  cadastroStatus: 100,
 };
 
 /** Smallest width a column can be dragged to. */
 export const MIN_COLUMN_WIDTH = 64;
 
-export const COLUMN_WIDTHS_LOCALSTORAGE_KEY = "gallo-vehicles-column-widths";
+export const COLUMN_WIDTHS_LOCALSTORAGE_KEY = "gallo-vehicles-column-widths-v2";
 
 const ALL_COLUMN_IDS = [...MANDATORY_COLUMNS, ...OPTIONAL_COLUMNS] as readonly ColumnId[];
 

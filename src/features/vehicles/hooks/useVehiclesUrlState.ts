@@ -24,6 +24,9 @@ export interface IVehiclesListSearch {
   yearMax?: number;
   customer?: string;
   status?: string;
+  /** Enrichment-queue chips — present as "1" when on, absent when off. */
+  semKm?: string;
+  semModelo?: string;
   stores?: string;
   sellers?: string;
   q?: string;
@@ -71,6 +74,8 @@ export function validateVehiclesSearch(raw: Record<string, unknown>): IVehiclesL
   if (yMax !== undefined) out.yearMax = yMax;
   if (typeof raw.customer === "string" && raw.customer.length > 0) out.customer = raw.customer;
   if (typeof raw.status === "string" && raw.status.length > 0) out.status = raw.status;
+  if (raw.semKm === "1" || raw.semKm === true) out.semKm = "1";
+  if (raw.semModelo === "1" || raw.semModelo === true) out.semModelo = "1";
   if (typeof raw.stores === "string" && raw.stores.length > 0) out.stores = raw.stores;
   if (typeof raw.sellers === "string" && raw.sellers.length > 0) out.sellers = raw.sellers;
   if (typeof raw.q === "string" && raw.q.length > 0) out.q = raw.q;
@@ -115,6 +120,8 @@ function readFilters(search: IVehiclesListSearch): IVehiclesListFilters {
     yearMax: search.yearMax,
     customerId: search.customer,
     cadastroStatuses: parseStatuses(search.status),
+    withoutKm: search.semKm === "1",
+    withoutModel: search.semModelo === "1",
     storeIds: splitCsv(search.stores),
     sellerIds: splitCsv(search.sellers),
     search: search.q ?? "",
@@ -193,6 +200,8 @@ export function useVehiclesUrlState(): IVehiclesUrlState {
         yearMax: f.yearMax,
         customer: f.customerId ?? undefined,
         status: joinCsv(f.cadastroStatuses),
+        semKm: f.withoutKm ? "1" : undefined,
+        semModelo: f.withoutModel ? "1" : undefined,
         stores: joinCsv(f.storeIds),
         sellers: joinCsv(f.sellerIds),
         q: f.search?.trim() ? f.search.trim() : undefined,
@@ -227,6 +236,8 @@ export function useVehiclesUrlState(): IVehiclesUrlState {
         yearMax: undefined,
         customer: undefined,
         status: undefined,
+        semKm: undefined,
+        semModelo: undefined,
         stores: undefined,
         sellers: undefined,
         q: undefined,

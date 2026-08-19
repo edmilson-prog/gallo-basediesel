@@ -6,18 +6,21 @@ import { VEHICLE_DETAIL_LAYOUTS, type VehicleDetailLayout } from "../../config/l
 const COPY = VEHICLE_STRINGS.detail.layout;
 
 const ICONS: Record<VehicleDetailLayout, string> = {
+  prontuario: "mdi:clipboard-text-outline",
   health: "mdi:heart-pulse",
   rails: "mdi:view-split-vertical",
   bento: "mdi:view-grid-outline",
 };
 
 const LABELS: Record<VehicleDetailLayout, string> = {
+  prontuario: COPY.prontuario,
   health: COPY.health,
   rails: COPY.rails,
   bento: COPY.bento,
 };
 
 const HINTS: Record<VehicleDetailLayout, string> = {
+  prontuario: COPY.prontuarioHint,
   health: COPY.healthHint,
   rails: COPY.railsHint,
   bento: COPY.bentoHint,

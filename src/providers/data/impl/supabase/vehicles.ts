@@ -130,6 +130,8 @@ export const supabaseVehiclesProvider: IVehiclesProvider = {
       if (params.cadastroStatus) query = query.eq("cadastro_status", params.cadastroStatus);
       if (params.cadastroStatuses && params.cadastroStatuses.length > 0)
         query = query.in("cadastro_status", params.cadastroStatuses);
+      if (params.withoutKm) query = query.is("current_km", null);
+      if (params.withoutModel) query = query.is("model_id", null);
       if (params.search) {
         const q = params.search.trim();
         if (q.length > 0) {

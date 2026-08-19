@@ -29,6 +29,10 @@ export interface IListVehiclesParams extends IPaginationParams {
   yearMax?: number;
   cadastroStatus?: IVehicle["cadastroStatus"];
   cadastroStatuses?: IVehicle["cadastroStatus"][];
+  /** Only vehicles with no odometer reading — the km enrichment queue. */
+  withoutKm?: boolean;
+  /** Only vehicles with no canonical model linked (no compatible parts, no kit). */
+  withoutModel?: boolean;
   storeId?: ID;
   storeIds?: ID[];
   sellerIds?: ID[];

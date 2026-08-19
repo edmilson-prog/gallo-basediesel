@@ -14,7 +14,9 @@ export interface IVehiclesHeaderProps {
   onSearchChange: (q: string) => void;
   canCreate: boolean;
   onCreate: () => void;
-  /** Filter controls rendered inline, between the title and the search field. */
+  /** Enrichment-queue chips — rendered right after the title, ahead of the filters. */
+  queueSlot?: ReactNode;
+  /** Filter controls rendered inline, between the queue chips and the search field. */
   filtersSlot?: ReactNode;
 }
 
@@ -24,6 +26,7 @@ export function VehiclesHeader({
   onSearchChange,
   canCreate,
   onCreate,
+  queueSlot,
   filtersSlot,
 }: IVehiclesHeaderProps) {
   const searchRef = useRef<HTMLInputElement | null>(null);
@@ -54,6 +57,8 @@ export function VehiclesHeader({
           {COPY.subtitle(total)}
         </Badge>
       </div>
+
+      {queueSlot}
 
       {filtersSlot}
 

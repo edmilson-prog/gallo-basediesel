@@ -43,10 +43,9 @@ export function VehiclesFiltersBar({
   isManagerOrOwner,
   className,
 }: IVehiclesFiltersBarProps) {
+  // "Pendentes" now lives in the header's queue chips, alongside the two other
+  // enrichment backlogs it belongs with — see VehiclesQueueChips.
   const activeCount = countActiveFilters(filters);
-
-  const onlyPending =
-    filters.cadastroStatuses.length === 1 && filters.cadastroStatuses[0] === "pendente";
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -116,22 +115,6 @@ export function VehiclesFiltersBar({
             onChange={(next) => patch({ storeIds: next as ID[] })}
           />
         )}
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={onlyPending ? "default" : "outline"}
-              size="sm"
-              aria-pressed={onlyPending}
-              className="h-8 gap-1.5 text-xs"
-              onClick={() => patch({ cadastroStatuses: onlyPending ? [] : ["pendente"] })}
-            >
-              <Icon icon="mdi:clock-alert-outline" size={14} />
-              {COPY.pendingShortcut}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Mostrar apenas veículos com cadastro pendente</TooltipContent>
-        </Tooltip>
 
         <div className="flex items-center gap-2">
           {activeCount > 0 && (
