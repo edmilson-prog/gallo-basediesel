@@ -29,7 +29,7 @@
 // --phase conversation sozinho pode duplicar toques (nenhum índice de dedupe
 // colapsa o par precisa+aproximada) — exige AD_BACKFILL_ALLOW_CONVERSATION_ONLY=yes.
 //
-// Gate: a migration 20260819000000_ad_provenance_phase2.sql TEM de estar
+// Gate: a migration 20260819105101_ad_provenance_phase2.sql TEM de estar
 // aplicada antes da escrita real — as duas RPCs de leitura nascem lá.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -450,7 +450,7 @@ async function main(): Promise<void> {
     throw new Error(
       `${err instanceof Error ? err.message : String(err)}\n\n` +
         `Dica: "Could not find the function" aqui quase sempre significa que a migration ` +
-        `supabase/migrations/20260819000000_ad_provenance_phase2.sql ainda NÃO foi aplicada ` +
+        `supabase/migrations/20260819105101_ad_provenance_phase2.sql ainda NÃO foi aplicada ` +
         `neste banco — no PostgREST uma função ausente chega como 404, não como erro de SQL.`,
       { cause: err },
     );

@@ -84,7 +84,7 @@ Esses números são a base do plano e servem de referência para o gate. Não pr
 ## Task 1: Migration — RN-05 e as duas RPCs de leitura
 
 **Files:**
-- Create: `supabase/migrations/20260819000000_ad_provenance_phase2.sql`
+- Create: `supabase/migrations/20260819000000_ad_provenance_phase2.sql` — **renomeado para `20260819105101_ad_provenance_phase2.sql` em 19/08**, quando o MCP aplicou e carimbou a própria versão (era o previsto na Global Constraint).
 
 **Interfaces:**
 - Consumes: `public.ad_touches`, `public.ads`, `public.record_ad_touch` (Fase 1, migration `20260818230121_ad_provenance.sql`, já aplicada em produção)
