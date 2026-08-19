@@ -5,6 +5,7 @@ export const mockVehiclesProvider: IVehiclesProvider = {
   list: (params) => vehiclesApi.list(params),
   get: (id) => vehiclesApi.get(id),
   listByCustomer: (customerId) => vehiclesApi.listByCustomer(customerId),
+  listBrands: () => vehiclesApi.listBrands(),
   create: (input) => vehiclesApi.create(input),
   update: (id, patch) => vehiclesApi.update(id, patch),
   delete: (id) => vehiclesApi.delete(id),

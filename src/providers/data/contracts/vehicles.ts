@@ -58,6 +58,13 @@ export interface IVehiclesProvider {
   list(params?: IListVehiclesParams): Promise<IPaginatedResult<IVehicle>>;
   get(id: ID): Promise<IVehicle>;
   listByCustomer(customerId: ID): Promise<IVehicle[]>;
+  /**
+   * Distinct `brand` values actually present in the caller's visible fleet,
+   * for the Marca pickers. Subject to the same RLS as `list`, so a seller sees
+   * the brands of their own wallet. No guaranteed order — callers merge it
+   * with the static fallback and sort (see `mergeBrandOptions`).
+   */
+  listBrands(): Promise<string[]>;
   create(input: Omit<IVehicle, "id" | "createdAt" | "serviceHistory">): Promise<IVehicle>;
   update(id: ID, patch: Partial<IVehicle>): Promise<IVehicle>;
   delete(id: ID): Promise<void>;

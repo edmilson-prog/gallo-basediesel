@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { IVehicle } from "@/shared/types";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/select";
 import { useVehiclesProvider } from "@/providers/data/hooks/useVehiclesProvider";
 import { auditLog } from "@/features/rbac/utils/auditLog";
-import { VEHICLE_BRANDS } from "../utils/listFilters";
+import { mergeBrandOptions } from "../utils/vehicleBrands";
+import { useVehicleBrandOptions } from "../hooks/useVehicleBrandOptions";
 
 export interface IEditVehicleModalProps {
   open: boolean;
@@ -39,6 +40,11 @@ export function EditVehicleModal({ open, vehicle, onClose, onSaved }: IEditVehic
   const [plate, setPlate] = useState(vehicle.plate ?? "");
   const [vin, setVin] = useState(vehicle.vin ?? "");
   const [busy, setBusy] = useState(false);
+  const { brands } = useVehicleBrandOptions();
+  // The vehicle's own brand is folded in so a marque outside the known
+  // vocabulary still renders in the trigger instead of a blank field — an
+  // untouched save must never look like a deliberate change.
+  const brandOptions = useMemo(() => mergeBrandOptions([...brands, brand]), [brands, brand]);
 
   useEffect(() => {
     if (!open) return;
@@ -114,12 +120,11 @@ export function EditVehicleModal({ open, vehicle, onClose, onSaved }: IEditVehic
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {VEHICLE_BRANDS.map((b) => (
+                    {brandOptions.map((b) => (
                       <SelectItem key={b} value={b}>
                         {b}
                       </SelectItem>
                     ))}
-                    <SelectItem value="Outro">Outro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
