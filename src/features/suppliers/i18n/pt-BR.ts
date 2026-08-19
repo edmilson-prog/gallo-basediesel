@@ -14,7 +14,24 @@ export const SUPPLIERS_STRINGS = {
     purchases: "Compras 12 meses",
     leadTime: "Prazo médio de entrega",
     leadTimeUnit: "dias",
-    withDocumentHint: "clique para ver quem falta",
+    // Shown under "Pendentes de cadastro" when the queue has items — points
+    // at the queue section below the table, not at a filter (the queue is
+    // never hidden behind one; see `pendingQueue` below).
+    pendingHint: "clique para ver a fila",
+  },
+  /** `SuppliersPendingQueue` — names loose in the catalog with no matching
+   *  registered supplier yet. Sits below the table, its own section, never
+   *  a tab: the point is seeing both sets at once. */
+  pendingQueue: {
+    title: (count: number) => `Pendentes de cadastro (${count})`,
+    subtitle:
+      "Nomes do catálogo sem fornecedor cadastrado — cada um vira um cadastro com um clique.",
+    partsCount: (count: number) => (count === 1 ? "1 peça vinculada" : `${count} peças vinculadas`),
+    register: "Cadastrar",
+    /** Shown instead of the list when the queue's own fetch failed — same
+     *  discipline as the table's `error`: never let a failure read as "a
+     *  fila está vazia". */
+    error: "Não foi possível carregar a fila de pendentes.",
   },
   categories: {
     all: "Todos",
