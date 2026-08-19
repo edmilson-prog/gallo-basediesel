@@ -48,6 +48,43 @@ um dos portões abrir:
 dono do cliente. Só **Owner/Gestor** mudam o dono via `/app/carteira` ou no
 detalhe do cliente.
 
+### E a ESCRITA? (2026-08-19)
+
+Os 2 portões acima descrevem **leitura**. A escrita segue uma regra própria, e
+ela **não** é "só o dono":
+
+> **Quem atende, edita — quem atende, não vira dono.**
+
+O atendente designado de uma conversa pode **editar os dados** do lead ancorado
+nela (nome, CPF/CNPJ, e-mail, endereço, tags, etapa de funil), exatamente como
+já podia **convertê-lo** em cliente. O que ele **não** pode é mexer em
+`leads.seller_id` nem carimbar `converted_to_customer_id` na mão — isso continua
+sendo de **Owner/Gestor** (ou do dono), e a conversão passa obrigatoriamente pela
+RPC `convert_lead_mark`.
+
+Concretamente, as três autorizações que precisam continuar dizendo a mesma coisa:
+
+| Camada | Onde | Expressão |
+|---|---|---|
+| RLS leitura | `leads_select`, `lead_funnel_entries_select` | `is_staff() OR dono OR seller_handles_lead()` |
+| RLS escrita | `leads_update`, `lead_funnel_entries_update` | idem (desde `20260819210000`) |
+| RPC | `convert_lead_mark` | idem (desde `20260723190000`) |
+| Front | `canConvertLead` / `canEditFunnels` | `canEditLeadStore OR (canEditLeadOwn AND (isLeadOwner OR isAssignee))` |
+
+**Por que isso está escrito aqui:** entre 06/2026 e 08/2026 a escrita ficou para
+trás. `seller_handles_lead` entrou só no `SELECT` (migration `20260614183000`,
+deliberadamente read-only à época), a RPC de conversão passou a aceitá-lo em
+07/2026, o painel do Atendimento passou a oferecer edição inline em 08/2026 — e
+o `UPDATE` nunca foi junto. O sintoma foi um **406 mudo**: RLS que nega um
+`UPDATE` não levanta `42501`, ela casa **zero linhas**; com `.single()` do
+PostgREST em cima, isso vira `406 Not Acceptable` e a UI só consegue dizer
+"Não foi possível salvar a alteração.". O atendente conseguia **converter** o
+lead em cliente mas não conseguia preencher o CNPJ que a própria conversão exige.
+
+**Regra prática:** ao adicionar um ramo novo a uma policy `_select`, decida
+explicitamente o que acontece com a `_update`/`_insert`/`_delete` irmã — e
+escreva a decisão. Silêncio aqui reaparece como 406 meses depois.
+
 ---
 
 ## 2. A arquitetura: uma função é o portão
@@ -272,3 +309,52 @@ tabela era MAIS restritiva que os próprios bytes. Superconjunto algébrico das
 policies antigas (todo ramo antigo embutia o filtro RLS de `conversations`,
 que É `can_access_conversation`) ⇒ nenhuma persona perde acesso. Ramo de
 carteira inalterado (probe indexado, 0,17ms).
+
+## leads / lead_funnel_entries (2026-08-19 — fix do 406 mudo ao salvar no painel)
+
+Incidente: atendente não-staff (`seller_internal`) abria a conversa, o painel
+lateral carregava o lead inteiro, e **todo** salvamento inline respondia 406 —
+CPF/CNPJ, nome, e-mail, endereço, tags, e as etapas do bloco "Funis". Owner e
+Gestor não reproduziam.
+
+Causa: **assimetria entre a policy de leitura e a de escrita**. `leads_select` e
+`lead_funnel_entries_select` já tinham o ramo `seller_handles_lead()` desde
+`20260614183000`; os `_update` irmãos nunca ganharam. Medido em produção com o
+JWT do atendente: `select` devolve 1 linha, `update` afeta **0**. RLS que nega
+`UPDATE` não levanta `42501` — ela simplesmente não casa a linha; com
+`.select().single()` do PostgREST em cima (`impl/supabase/leads.ts`,
+`leadFunnels.ts`), zero linhas vira `406 Not Acceptable`, e `useLeadPatch`
+engole a exceção e mostra o toast genérico. Daí "406 mudo": nem o usuário nem o
+console diziam "permissão".
+
+O que tornava o estado absurdo: `convert_lead_mark` (`20260723190000`) **já**
+autorizava `seller_handles_lead()`. O atendente podia converter o lead em
+cliente, mas não podia preencher o CNPJ que o checklist de conversão exige —
+deadlock completo.
+
+Fix na migration `20260819210000_rls_lead_handler_can_write.sql`: os dois
+`_update` passam a espelhar os `_select` (cláusula puramente aditiva; helper
+coberto por `idx_conversations_lead_assigned`, e os dois ramos baratos
+short-circuitam antes dele). Junto vai o trigger `leads_guard_owner_change`,
+porque `with check` **não enxerga a linha OLD** e `seller_handles_lead()` depende
+de `conversations.assigned_seller_id`, não de `leads.seller_id`: sem a guarda, o
+atendente satisfaria a policy reescrevendo o próprio `seller_id` e moveria o lead
+de carteira (e, via `leads_sync_funnel_entries`, as participações junto). A
+guarda repõe o invariante que a policy deixou de conseguir expressar, e isenta
+`service_role`/`SECURITY DEFINER` por `current_user` — o `waha-webhook` carimba
+`seller_id` na primeira resposta e não pode ser barrado.
+
+`lead_funnel_entries` não precisa de guarda própria: `guard_lead_funnel_entry_update`
+(`20260723121000`) já re-deriva `store_id`/`seller_id` do lead e torna
+`lead_id`/`funnel_id` imutáveis — sobram `stage_id` e `estimated_value`.
+
+⚠️ **Fora do escopo do fix, mas conhecido:** `customers_update` tem a mesma
+assimetria em relação a `customers_select` (que inclui
+`seller_accessible_customer_ids()`). Hoje não há caminho de execução — a única
+escrita de cliente alcançável pelo Atendimento é staff-only (`ConversationHeader`,
+"marcar WhatsApp válido"). Vira bug no dia em que o painel do cliente ganhar
+edição inline. Também conhecido: `lead_funnel_entries_insert/_delete`
+("Adicionar ao funil" / "Remover do funil") continuam barrando o atendente, mas
+por outro motivo — o trigger `derive_lead_funnel_entry_owner` carimba o dono do
+**lead** antes do `with check` rodar. Consertar exige decidir de quem é uma
+participação criada por um atendente: decisão de produto, PR próprio.
