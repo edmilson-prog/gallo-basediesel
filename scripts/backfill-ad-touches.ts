@@ -106,6 +106,16 @@ if (TO_FLAG !== undefined && Number.isNaN(new Date(TO_FLAG).getTime())) {
 if (FROM_FLAG !== undefined && TO_FLAG !== undefined && new Date(FROM_FLAG) >= new Date(TO_FLAG)) {
   throw new Error("--from precisa ser anterior a --to.");
 }
+// --to omitido cai no padrão "agora" dentro de main() — e esse padrão não
+// depende de I/O (diferente do padrão de --from, que só é resolvido depois
+// de consultar webhook_deliveries). Por isso dá para fechar aqui, sem I/O,
+// o caso de --from bem-formado mas já no futuro/presente: sem esta checagem,
+// um --from digitado errado (ex.: ano trocado) só falharia dentro do try de
+// main() e geraria uma linha de audit_logs sem nenhuma escrita tentada — o
+// mesmo ruído que a validação acima já existe para evitar.
+if (FROM_FLAG !== undefined && TO_FLAG === undefined && new Date(FROM_FLAG) >= new Date()) {
+  throw new Error("--from precisa ser anterior a agora (--to não informado usa o padrão 'agora').");
+}
 
 // ===== Row shapes ============================================================
 
@@ -230,15 +240,19 @@ async function runDeliveryPass(
       }
 
       const rows = (data ?? []) as DeliveryRow[];
-      if (rows.length > 0 && rows[0].message_id === previousFirstKey) {
+      // rows[0] é `DeliveryRow | undefined` sob noUncheckedIndexedAccess — o
+      // encadeamento opcional evita o TS2532 sem perder a checagem de página
+      // vazia (firstKey só fica undefined quando rows está vazio).
+      const firstKey = rows[0]?.message_id;
+      if (firstKey !== undefined && firstKey === previousFirstKey) {
         throw new Error(
           `Janela ${windowFrom.toISOString()} → ${windowTo.toISOString()} (offset ${offset}): a paginação não ` +
-            `avançou — a página nova veio com a mesma primeira linha (message_id=${rows[0].message_id}) da ` +
-            `anterior. limit/offset aparentemente não foram aplicados a esta chamada de RPC; abortando para ` +
-            `não reprocessar as mesmas linhas indefinidamente.`,
+            `avançou — a página nova veio com a mesma primeira linha (message_id=${firstKey}) da anterior. ` +
+            `limit/offset aparentemente não foram aplicados a esta chamada de RPC; abortando para não ` +
+            `reprocessar as mesmas linhas indefinidamente.`,
         );
       }
-      if (rows.length > 0) previousFirstKey = rows[0].message_id;
+      if (firstKey !== undefined) previousFirstKey = firstKey;
       counters.scanned += rows.length;
 
       for (const row of rows) {
@@ -298,15 +312,17 @@ async function fetchAllOrphanConversations(): Promise<OrphanRow[]> {
       throw new Error(`Fonte aproximada falhou ao paginar (offset ${offset}): ${error.message}`);
     }
     const page = (data ?? []) as OrphanRow[];
-    if (page.length > 0 && page[0].conversation_id === previousFirstKey) {
+    // page[0] é `OrphanRow | undefined` sob noUncheckedIndexedAccess — mesma
+    // razão do comentário na passada A.
+    const firstKey = page[0]?.conversation_id;
+    if (firstKey !== undefined && firstKey === previousFirstKey) {
       throw new Error(
         `Fonte aproximada (offset ${offset}): a paginação não avançou — a página nova veio com a mesma ` +
-          `primeira linha (conversation_id=${page[0].conversation_id}) da anterior. limit/offset ` +
-          `aparentemente não foram aplicados a esta chamada de RPC; abortando para não reprocessar as ` +
-          `mesmas linhas indefinidamente.`,
+          `primeira linha (conversation_id=${firstKey}) da anterior. limit/offset aparentemente não foram ` +
+          `aplicados a esta chamada de RPC; abortando para não reprocessar as mesmas linhas indefinidamente.`,
       );
     }
-    if (page.length > 0) previousFirstKey = page[0].conversation_id;
+    if (firstKey !== undefined) previousFirstKey = firstKey;
     rows.push(...page);
     if (page.length < PAGE_SIZE) break;
     offset += PAGE_SIZE;
