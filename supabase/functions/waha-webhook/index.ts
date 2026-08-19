@@ -1376,6 +1376,41 @@ Deno.serve(async (req) => {
         .eq("id", conversationId);
     }
 
+    // ===== Ad provenance (PRD-217) ===========================================
+    // The ad_referral writes above OVERWRITE the previous origin; record_ad_touch
+    // APPENDS instead, so a customer returning through another campaign keeps
+    // both. This webhook has its own flow and does NOT import the shared
+    // _shared/whatsapp/webhook/core.ts contract (where the twin call lives), so
+    // the call has to be repeated here by hand — and it must be, because in
+    // production every conversation carrying an ad arrives through WAHA.
+    //
+    // Placed after markProcessed() (mirroring core.ts) and wrapped in its OWN
+    // try/catch that swallows everything: attribution is best-effort and must
+    // never change the webhook response nor skip the media download below.
+    // messageId is a locally generated uuid and the insert above returns early
+    // on failure, so the row always exists by the time we get here.
+    if (parsed.adReferral) {
+      try {
+        const { error: adTouchErr } = await admin.rpc("record_ad_touch", {
+          p_conversation_id: conversationId,
+          p_message_id: messageId,
+          p_occurred_at: parsed.timestamp,
+          p_referral: parsed.adReferral,
+          p_origin: "webhook",
+        });
+        if (adTouchErr) throw new Error(adTouchErr.message);
+      } catch (err) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            msg: "waha webhook: ad touch record failed",
+            conversationId,
+            error: err instanceof Error ? err.message : String(err),
+          }),
+        );
+      }
+    }
+
     // ===== Media (separate step, never fails the webhook response) ============
     if (parsed.mediaId) {
       await attachMedia(parsed.mediaId, conversationId, messageId, parsed.contentType === "audio");
