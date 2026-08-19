@@ -13,11 +13,15 @@
 // Rodar de novo não duplica — devolve null e o script conta como "já existia".
 //
 // Simulação (ZERO escrita):
-//   AD_BACKFILL_DRY_RUN=yes bun run scripts/backfill-ad-touches.ts
+//   POSIX:      AD_BACKFILL_DRY_RUN=yes bun run scripts/backfill-ad-touches.ts
+//   PowerShell: $env:AD_BACKFILL_DRY_RUN="yes"; bun run scripts/backfill-ad-touches.ts
 // Escrita real (atrás do gate do dono):
-//   AD_BACKFILL_CONFIRM_WRITE=yes bun run scripts/backfill-ad-touches.ts
+//   POSIX:      AD_BACKFILL_CONFIRM_WRITE=yes bun run scripts/backfill-ad-touches.ts
+//   PowerShell: $env:AD_BACKFILL_CONFIRM_WRITE="yes"; bun run scripts/backfill-ad-touches.ts
 //
 // Flags: --from ISO  --to ISO  --window-hours N  --phase delivery|conversation|all
+// --phase conversation sozinho pode duplicar toques (nenhum índice de dedupe
+// colapsa o par precisa+aproximada) — exige AD_BACKFILL_ALLOW_CONVERSATION_ONLY=yes.
 //
 // Gate: a migration 20260819000000_ad_provenance_phase2.sql TEM de estar
 // aplicada antes da escrita real — as duas RPCs de leitura nascem lá.
@@ -51,6 +55,13 @@ const SCRATCHPAD = join(ROOT, "scratchpad");
 const STORE_MATRIZ = "00000000-0000-0000-0000-000000000001";
 const AUDIT_ACTOR = "622d1d2c-0223-4133-91cd-0264c1fc29aa"; // Edmilson (operador)
 
+// PostgREST devolve no máximo 1.000 linhas por resposta, mesmo com a service
+// role key — é teto do servidor, não da chave. A passada aproximada já está em
+// 969 linhas hoje (2026-08-18) e cresce a cada conversa nova por anúncio: sem
+// paginar, o corte é SILENCIOSO (sem erro, relatório limpo, toques faltando).
+// 500 dá margem folgada para crescer sem estourar de novo tão cedo.
+const PAGE_SIZE = 500;
+
 // ===== Args ==================================================================
 
 function flag(name: string): string | undefined {
@@ -65,6 +76,18 @@ if (!Number.isFinite(WINDOW_HOURS) || WINDOW_HOURS <= 0) {
 const PHASE = flag("phase") ?? "all";
 if (!["all", "delivery", "conversation"].includes(PHASE)) {
   throw new Error("--phase aceita: all | delivery | conversation");
+}
+// Rodar só a passada aproximada sem a precisa antes cria toques duplicados:
+// nenhum dos dois índices únicos de dedupe da Fase 1 colapsa esse par (um é
+// parcial em message_id, que o toque aproximado não tem; o outro depende de
+// occurred_at, que difere entre o clique real e a data da conversa). E o gate
+// reportaria sucesso mesmo assim. Exige confirmação explícita e separada.
+if (PHASE === "conversation" && process.env.AD_BACKFILL_ALLOW_CONVERSATION_ONLY !== "yes") {
+  throw new Error(
+    "Passada aproximada isolada pode duplicar toques (ver comentário acima do parse de --phase). " +
+      "Rode --phase all (ordem correta: precisa → aproximada) ou, se tiver certeza de que a passada " +
+      "precisa já cobriu esta janela, confirme com AD_BACKFILL_ALLOW_CONVERSATION_ONLY=yes.",
+  );
 }
 
 // ===== Row shapes ============================================================
@@ -105,6 +128,11 @@ const failures: string[] = [];
 /**
  * record_ad_touch devolve o uuid do toque criado, ou null quando o toque já
  * existia (redelivery ou re-execução do backfill) — null é sucesso, não erro.
+ *
+ * `dryRunCoveredByDelivery`, quando passado, recebe o conversation_id de toda
+ * chamada em modo simulação — usado só pela passada precisa (ver seu uso em
+ * runConversationPass) para a passada aproximada não projetar em cima do que
+ * a precisa já teria coberto num run real.
  */
 async function recordTouch(
   counters: PassCounters,
@@ -115,9 +143,11 @@ async function recordTouch(
     referral: unknown;
     origin: "backfill_delivery" | "backfill_conversation";
   },
+  dryRunCoveredByDelivery?: Set<string>,
 ): Promise<void> {
   if (DRY_RUN) {
     counters.inserted += 1;
+    dryRunCoveredByDelivery?.add(args.conversationId);
     return;
   }
   const { data, error } = await sb.rpc("record_ad_touch", {
@@ -138,61 +168,116 @@ async function recordTouch(
 
 // ===== Passada A — fonte precisa ============================================
 
-async function runDeliveryPass(from: Date, to: Date): Promise<PassCounters> {
-  const counters = emptyCounters();
+/**
+ * `counters` é mutado in-place (em vez de retornado) para que, se uma janela
+ * lançar (ex.: statement_timeout), o progresso das janelas já processadas
+ * continue visível no relatório e no audit_logs escritos pelo catch em main().
+ */
+async function runDeliveryPass(
+  from: Date,
+  to: Date,
+  counters: PassCounters,
+  dryRunCoveredByDelivery: Set<string>,
+): Promise<void> {
   const stepMs = WINDOW_HOURS * 3600 * 1000;
 
   for (let cursor = from.getTime(); cursor < to.getTime(); cursor += stepMs) {
     const windowFrom = new Date(cursor);
     const windowTo = new Date(Math.min(cursor + stepMs, to.getTime()));
 
-    const { data, error } = await sb.rpc("ad_backfill_delivery_window", {
-      p_from: windowFrom.toISOString(),
-      p_to: windowTo.toISOString(),
-    });
-    if (error) {
-      throw new Error(
-        `Janela ${windowFrom.toISOString()} → ${windowTo.toISOString()} falhou: ${error.message}. ` +
-          `Se for statement_timeout, reduza --window-hours e rode de novo (é idempotente).`,
-      );
-    }
-
-    const rows = (data ?? []) as DeliveryRow[];
-    counters.scanned += rows.length;
-
-    for (const row of rows) {
-      const referral = adReferralFromStoredNode(row.external_ad_reply);
-      if (!referral) {
-        counters.unparseable += 1;
-        continue;
+    // Pagina DENTRO da janela: o conjunto de origem (webhook_deliveries) é
+    // histórico e não muda enquanto lemos, então .range() em cima da RPC é
+    // seguro aqui (diferente da passada B — ver comentário lá).
+    let offset = 0;
+    for (;;) {
+      const { data, error } = await sb
+        .rpc("ad_backfill_delivery_window", {
+          p_from: windowFrom.toISOString(),
+          p_to: windowTo.toISOString(),
+        })
+        .order("message_id", { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (error) {
+        throw new Error(
+          `Janela ${windowFrom.toISOString()} → ${windowTo.toISOString()} (offset ${offset}) falhou: ${error.message}. ` +
+            `Se for statement_timeout, reduza --window-hours e rode de novo (é idempotente).`,
+        );
       }
-      await recordTouch(counters, {
-        conversationId: row.conversation_id,
-        messageId: row.message_id,
-        occurredAt: row.occurred_at,
-        referral,
-        origin: "backfill_delivery",
-      });
+
+      const rows = (data ?? []) as DeliveryRow[];
+      counters.scanned += rows.length;
+
+      for (const row of rows) {
+        const referral = adReferralFromStoredNode(row.external_ad_reply);
+        if (!referral) {
+          counters.unparseable += 1;
+          continue;
+        }
+        await recordTouch(
+          counters,
+          {
+            conversationId: row.conversation_id,
+            messageId: row.message_id,
+            occurredAt: row.occurred_at,
+            referral,
+            origin: "backfill_delivery",
+          },
+          dryRunCoveredByDelivery,
+        );
+      }
+
+      if (rows.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
     }
 
     console.log(
       `  [precisa] ${windowFrom.toISOString().slice(0, 10)} — ` +
-        `${rows.length} mensagens, ${counters.inserted} toques novos até aqui`,
+        `${counters.scanned} mensagens varridas até aqui, ${counters.inserted} toques novos até aqui`,
     );
   }
-
-  return counters;
 }
 
 // ===== Passada B — fonte aproximada =========================================
 
-async function runConversationPass(): Promise<PassCounters> {
-  const counters = emptyCounters();
+/**
+ * Pagina a RPC até o fim e acumula tudo num array ANTES de devolver. A RPC
+ * filtra por "não existe toque ainda", então qualquer gravação nossa encolhe
+ * o conjunto de origem — paginar enquanto grava pularia registros na página
+ * seguinte (o offset avançaria sobre um conjunto que já mudou). Esse bug é
+ * pior que truncar: parece funcionar e some silenciosamente com uma fatia.
+ */
+async function fetchAllOrphanConversations(): Promise<OrphanRow[]> {
+  const rows: OrphanRow[] = [];
+  let offset = 0;
+  for (;;) {
+    const { data, error } = await sb
+      .rpc("ad_backfill_orphan_conversations")
+      .order("conversation_id", { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (error) {
+      throw new Error(`Fonte aproximada falhou ao paginar (offset ${offset}): ${error.message}`);
+    }
+    const page = (data ?? []) as OrphanRow[];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+  return rows;
+}
 
-  const { data, error } = await sb.rpc("ad_backfill_orphan_conversations");
-  if (error) throw new Error(`Fonte aproximada falhou: ${error.message}`);
+async function runConversationPass(
+  counters: PassCounters,
+  dryRunCoveredByDelivery: Set<string>,
+): Promise<void> {
+  const allRows = await fetchAllOrphanConversations();
 
-  const rows = (data ?? []) as OrphanRow[];
+  // Em simulação, a passada precisa não grava nada de verdade — então esta
+  // consulta ainda vê como órfã toda conversa que a precisa projetou cobrir.
+  // Descontamos aqui para a contagem refletir o que o run REAL produziria.
+  const rows =
+    DRY_RUN && PHASE === "all"
+      ? allRows.filter((row) => !dryRunCoveredByDelivery.has(row.conversation_id))
+      : allRows;
   counters.scanned = rows.length;
 
   for (const [index, row] of rows.entries()) {
@@ -214,8 +299,6 @@ async function runConversationPass(): Promise<PassCounters> {
       console.log(`  [aproximada] ${index + 1}/${rows.length}…`);
     }
   }
-
-  return counters;
 }
 
 // ===== Contagens de conferência =============================================
@@ -227,9 +310,7 @@ async function countTable(table: string): Promise<number> {
 }
 
 async function countOrphanConversations(): Promise<number> {
-  const { data, error } = await sb.rpc("ad_backfill_orphan_conversations");
-  if (error) throw error;
-  return ((data ?? []) as OrphanRow[]).length;
+  return (await fetchAllOrphanConversations()).length;
 }
 
 // ===== Main ==================================================================
@@ -249,36 +330,51 @@ async function main(): Promise<void> {
       `${before.orphanConversations} conversas com anúncio e sem toque.\n`,
   );
 
-  let delivery = emptyCounters();
-  if (PHASE === "all" || PHASE === "delivery") {
-    // A retenção real de webhook_deliveries manda: sem --from/--to, varre da
-    // entrega mais antiga até agora.
-    const { data: bounds, error: boundsErr } = await sb
-      .from("webhook_deliveries")
-      .select("created_at")
-      .order("created_at", { ascending: true })
-      .limit(1);
-    if (boundsErr) throw boundsErr;
+  const delivery = emptyCounters();
+  const conversation = emptyCounters();
+  const dryRunCoveredByDelivery = new Set<string>();
+  let runError: unknown = null;
 
-    const from = new Date(flag("from") ?? bounds?.[0]?.created_at ?? new Date().toISOString());
-    const to = new Date(flag("to") ?? new Date().toISOString());
-    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from >= to) {
-      throw new Error("--from/--to inválidos: precisam ser ISO e --from anterior a --to.");
+  // As duas passadas ficam num try/catch (em vez de deixar uma janela ruim
+  // derrubar o processo sem rastro): se algo lançar no meio — ex.: janela 12
+  // de 31 estoura statement_timeout —, capturamos aqui, seguimos para o
+  // relatório e o audit_logs com o progresso PARCIAL já acumulado nos
+  // counters (mutados in-place pelas duas funções acima) e relançamos no
+  // final, depois de registrar, para o operador ver a falha.
+  try {
+    if (PHASE === "all" || PHASE === "delivery") {
+      // A retenção real de webhook_deliveries manda: sem --from/--to, varre da
+      // entrega mais antiga até agora.
+      const { data: bounds, error: boundsErr } = await sb
+        .from("webhook_deliveries")
+        .select("created_at")
+        .order("created_at", { ascending: true })
+        .limit(1);
+      if (boundsErr) throw boundsErr;
+
+      const from = new Date(flag("from") ?? bounds?.[0]?.created_at ?? new Date().toISOString());
+      const to = new Date(flag("to") ?? new Date().toISOString());
+      if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from >= to) {
+        throw new Error("--from/--to inválidos: precisam ser ISO e --from anterior a --to.");
+      }
+
+      console.log(
+        `Passada PRECISA: ${from.toISOString()} → ${to.toISOString()}, ` +
+          `janelas de ${WINDOW_HOURS}h`,
+      );
+      await runDeliveryPass(from, to, delivery, dryRunCoveredByDelivery);
+      console.log("");
     }
 
-    console.log(
-      `Passada PRECISA: ${from.toISOString()} → ${to.toISOString()}, ` +
-        `janelas de ${WINDOW_HOURS}h`,
-    );
-    delivery = await runDeliveryPass(from, to);
-    console.log("");
-  }
-
-  let conversation = emptyCounters();
-  if (PHASE === "all" || PHASE === "conversation") {
-    console.log("Passada APROXIMADA (data da conversa, não do clique — RN-06)");
-    conversation = await runConversationPass();
-    console.log("");
+    if (PHASE === "all" || PHASE === "conversation") {
+      console.log("Passada APROXIMADA (data da conversa, não do clique — RN-06)");
+      await runConversationPass(conversation, dryRunCoveredByDelivery);
+      console.log("");
+    }
+  } catch (err) {
+    runError = err;
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`\n✖ Execução interrompida: ${message}\n`);
   }
 
   const after = {
@@ -289,7 +385,27 @@ async function main(): Promise<void> {
 
   // ----- Relatório -----------------------------------------------------------
   mkdirSync(SCRATCHPAD, { recursive: true });
+  const interruptedSection = runError
+    ? [
+        `## ⚠️ Execução interrompida`,
+        ``,
+        `Os números abaixo são **parciais** — a execução abortou antes de terminar.`,
+        ``,
+        `Erro: ${runError instanceof Error ? runError.message : String(runError)}`,
+        ``,
+      ]
+    : [];
+  const dryRunProjectionNote =
+    DRY_RUN && PHASE === "all" && dryRunCoveredByDelivery.size > 0
+      ? [
+          `> ℹ️ Simulação: esta contagem já é uma projeção líquida — desconta as ` +
+            `${dryRunCoveredByDelivery.size} conversas que a passada precisa projetou cobrir ` +
+            `(num run real a passada aproximada não as veria mais como órfãs).`,
+          ``,
+        ]
+      : [];
   const md = [
+    ...interruptedSection,
     `# Backfill de toques de anúncio (PRD-217 Fase 2)`,
     ``,
     `Execução: ${new Date().toISOString()} — modo **${DRY_RUN ? "simulação" : "escrita real"}**`,
@@ -312,6 +428,7 @@ async function main(): Promise<void> {
     ``,
     `> ⚠️ RN-06: a data destes toques é a da **conversa**, não a do clique.`,
     ``,
+    ...dryRunProjectionNote,
     `- conversas varridas: ${conversation.scanned}`,
     `- toques novos: ${conversation.inserted}`,
     `- já existiam: ${conversation.alreadyThere}`,
@@ -326,10 +443,17 @@ async function main(): Promise<void> {
 
   if (DRY_RUN) {
     console.log("\nSimulação: nada foi gravado. Para valer, use AD_BACKFILL_CONFIRM_WRITE=yes.");
+    if (runError) {
+      process.exitCode = 1;
+      throw runError;
+    }
     return;
   }
 
   // ----- Audit ---------------------------------------------------------------
+  // Escrito também quando a execução acima abortou (runError setado): é
+  // exatamente o cenário do I2 — toques já gravados em produção antes do
+  // erro não podem ficar sem rastro de auditoria.
   const auditRows = [
     {
       id: crypto.randomUUID(),
@@ -340,12 +464,27 @@ async function main(): Promise<void> {
       resource_id: STORE_MATRIZ,
       timestamp: new Date().toISOString(),
       before,
-      after: { ...after, delivery, conversation, phase: PHASE, window_hours: WINDOW_HOURS },
+      after: {
+        ...after,
+        delivery,
+        conversation,
+        phase: PHASE,
+        window_hours: WINDOW_HOURS,
+        interrupted: Boolean(runError),
+        interruption_reason: runError instanceof Error ? runError.message : (runError ?? null),
+      },
     },
   ];
   const { error: auditErr } = await sb.from("audit_logs").insert(auditRows);
   if (auditErr) {
     console.error("FALHA NO AUDIT — replay manual:", JSON.stringify(auditRows));
+    process.exitCode = 1;
+    if (runError) {
+      throw new Error(
+        `${auditErr.message} (a execução já havia abortado antes com: ` +
+          `${runError instanceof Error ? runError.message : String(runError)})`,
+      );
+    }
     throw auditErr;
   }
 
@@ -354,9 +493,16 @@ async function main(): Promise<void> {
       `\n⚠️ Ainda restam ${after.orphanConversations} conversas com anúncio e sem toque — ` +
         `o gate da Fase 2 pede ZERO. Investigue antes de fechar.`,
     );
+    process.exitCode = 1;
   }
   if (failures.length) {
     console.warn(`\n⚠️ ${failures.length} falhas — o script é idempotente, pode rodar de novo.`);
+    process.exitCode = 1;
+  }
+
+  if (runError) {
+    process.exitCode = 1;
+    throw runError;
   }
 }
 
