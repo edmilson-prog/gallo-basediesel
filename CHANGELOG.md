@@ -4,6 +4,30 @@ All notable changes to **GALLO BASE DIESEL** are documented here.
 Format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
 
+## [0.183.0] — Provenance · 2026-08-18
+
+**Uma em cada cinco conversas nasce de um anúncio, e até agora o atendente só via disso um selo "Anúncio" com o título cortado no painel lateral — para ler o resto, tinha que passar o mouse por cima. Pior: quando o mesmo cliente voltava por outra campanha, o anúncio anterior era apagado, e não havia como recuperar. Agora a conversa abre mostrando o anúncio inteiro que trouxe a pessoa, e cada clique passa a ficar guardado em vez de sobrescrever o anterior.**
+
+### Added
+
+- **A conversa abre mostrando de qual anúncio o cliente veio** — no topo do histórico, um cartão traz o título do anúncio, o texto completo (recolhido em três linhas, com "ver mais"), se era vídeo ou imagem, os links para o anúncio e para a publicação, e o código da campanha, que você copia com um clique. Vale para as conversas que já existiam: nada precisou ser recadastrado.
+- **O cartão não se confunde com uma anotação da equipe** — ele usa cor própria, diferente do amarelo das anotações internas, porque descreve o cliente e não é recado escrito por um colega.
+- **Todos os anúncios pelos quais um contato passou ficam guardados** — antes, voltar por uma campanha diferente apagava a anterior em definitivo. Agora cada clique vira um registro, com data e a conversa em que aconteceu, e a plataforma sabe quantas vezes e por quais anúncios aquela pessoa chegou.
+
+### Changed
+
+- **O histórico de atendimento tem um caminho só** — o botão "Histórico" do cabeçalho da conversa saiu, porque a aba "Histórico" da ficha do cliente, que fica ao lado na mesma coluna, já mostrava exatamente a mesma coisa.
+
+### Fixed
+
+- **Orçamento em rascunho volta a salvar** — salvar dava erro e o rascunho se perdia. Os itens do orçamento agora recebem o código de identificação no momento de gravar, e não mais um código provisório da tela.
+- **A descrição digitada não some mais ao escolher o tipo do item avulso** — quem escrevia "troca de bicos" e depois clicava em "Mão de obra" perdia o texto. Agora o tipo entra como prefixo da descrição, e trocar de tipo troca só o prefixo.
+- **O painel de peças equivalentes mostra a diferença de preço** — em verde quando a equivalente é mais barata, em destaque quando é mais cara, junto do código do fabricante e da etiqueta Original/Equivalente. Sem a diferença, o vendedor comparava dois preços de cabeça, que era justamente o trabalho que o painel deveria poupar.
+- **Peças vindas de um kit aparecem marcadas na lista do orçamento**, para não se confundirem com as adicionadas uma a uma.
+- **O botão da sugestão de kit diz o que realmente faz** — passou de "Aplicar" para "Ver e aplicar", porque ele abre o kit para você conferir antes, e não aplica nada sozinho.
+
+> A base para medir campanha já está no ar e guardando desde hoje, mas as telas que leem esse histórico — o rastro na ficha do cliente e o painel de desempenho por anúncio — ainda estão por vir. Enquanto isso, o registro se acumula: quando as telas chegarem, já haverá história para mostrar.
+
 ## [0.182.1] — Chevron · 2026-08-18
 
 **Duas das quatro formas de a nota fiscal chegar sozinha na plataforma — a caixa de e-mail monitorada e a consulta à Receita — dependem de uma credencial cadastrada. Só que não havia onde cadastrá-la: a tela de Chaves & API não listava nenhuma das duas. Pior, quando a origem era ligada sem a credencial, a mensagem de erro mandava cadastrar num lugar que o sistema nem chegava a consultar — quem seguisse a instrução ficaria rodando em círculo. Agora as duas aparecem na tela, e o sistema lê exatamente de onde você cadastrou.**
