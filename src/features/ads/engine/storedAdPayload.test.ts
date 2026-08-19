@@ -48,8 +48,12 @@ describe("adReferralFromStoredNode", () => {
 
   it("normaliza o mediaType numérico do WAHA (2 = vídeo)", () => {
     expect(adReferralFromStoredNode(FIXTURE_COMPLETE)?.mediaType).toBe("video");
-    expect(adReferralFromStoredNode({ ...FIXTURE_COMPLETE, mediaType: 1 })?.mediaType).toBe("image");
-    expect(adReferralFromStoredNode({ ...FIXTURE_COMPLETE, mediaType: 99 })?.mediaType).toBeUndefined();
+    expect(adReferralFromStoredNode({ ...FIXTURE_COMPLETE, mediaType: 1 })?.mediaType).toBe(
+      "image",
+    );
+    expect(
+      adReferralFromStoredNode({ ...FIXTURE_COMPLETE, mediaType: 99 })?.mediaType,
+    ).toBeUndefined();
   });
 
   it("aceita o nó sem sourceURL — sourceUrl fica indefinido, o resto sobrevive", () => {
@@ -75,7 +79,8 @@ describe("adReferralFromStoredNode", () => {
     const nodeWithNumericSourceId = {
       title: "Filtro UFI: original de fábrica para sua caminhonete ou van diesel",
       body: "CATALISADORES COM FILTRO ORIGINAL E ENVIO PARA TODO O BRASIL!",
-      sourceID: 120238998853430275,
+      // Value only exercises the wrong type (number, not string) — magnitude/precision don't matter here.
+      sourceID: 120238998853430,
       sourceType: "ad",
     };
     expect(() => adReferralFromStoredNode(nodeWithNumericSourceId)).not.toThrow();
