@@ -1,4 +1,10 @@
-import type { ID, IMessage, IMessageReplyRef, MessageMediaType } from "@/shared/types";
+import type {
+  ID,
+  IMessage,
+  IMessageReactions,
+  IMessageReplyRef,
+  MessageMediaType,
+} from "@/shared/types";
 import type {
   IListMessagesForAnalyticsParams,
   IListMessagesParams,
@@ -55,13 +61,14 @@ interface MessageRow {
   transcription_status: IMessage["transcriptionStatus"] | null;
   reply_to: IMessageReplyRef | null;
   created_at: string;
+  reactions: IMessageReactions | null;
 }
 
 const TABLE = "messages";
 const COLUMNS =
   "id, conversation_id, direction, author_type, author_id, provider, text, media_type, " +
   "media_url, media_filename, status, sent_at, delivered_at, read_at, failure_reason, failure_code, " +
-  "transcription, transcription_status, reply_to, created_at";
+  "transcription, transcription_status, reply_to, created_at, reactions";
 /** Cap on ids per `.in("conversation_id", …)` so the request-line length stays
  *  well under the edge's URL limit (~39 chars/id encoded → 120 ids ≈ 4.7 KB). */
 const ANALYTICS_IN_CHUNK_SIZE = 120;
@@ -96,6 +103,7 @@ function rowToMessage(row: MessageRow): IMessage {
     failureCode: row.failure_code ?? undefined,
     transcription: row.transcription ?? undefined,
     transcriptionStatus: row.transcription_status ?? undefined,
+    reactions: row.reactions ?? undefined,
   };
 }
 

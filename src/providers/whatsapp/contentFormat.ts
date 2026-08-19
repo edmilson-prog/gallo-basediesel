@@ -194,3 +194,64 @@ export function encodeBaileysLocation(node: IBaileysLocationNode): string {
 export function encodeBaileysContact(node: IBaileysContactNode): string {
   return encodeContact({ name: node.displayName, phone: phoneFromVCard(node.vcard) });
 }
+
+/**
+ * A PIX key shared through WhatsApp's payment button. WhatsApp sends these as
+ * a static-key share: the amount field exists in the payload but is always
+ * zero, so it is deliberately not modelled here (see the design doc).
+ */
+export interface IPaymentContent {
+  /** Who receives — the payload's `merchant_name`. */
+  merchant?: string;
+  /** The PIX key itself, unformatted. */
+  key?: string;
+  /** CNPJ | CPF | EMAIL | PHONE | EVP. */
+  keyType?: string;
+}
+
+/**
+ * Payment → canonical text: `"<merchant>\n<keyType>:<key>"`. The `:` separator
+ * is ALWAYS emitted when there is a key — even with an empty `keyType`, giving
+ * `":<key>"` — so the format is deterministic: {@link decodePayment} never has
+ * to guess whether a leading segment is a type or part of the key itself (a
+ * key that happens to contain a colon, e.g. an EVP-adjacent future format,
+ * would otherwise be corrupted on the round-trip). The key always sits on the
+ * LAST line so a merchant name carrying a colon can't be mistaken for it.
+ * Without a key there is nothing to show, so the result is empty — callers
+ * treat that as "not a payment".
+ */
+export function encodePayment(content: IPaymentContent): string {
+  const key = oneLine(content.key);
+  if (!key) return "";
+  const merchant = oneLine(content.merchant);
+  const keyType = oneLine(content.keyType);
+  const keyLine = `${keyType}:${key}`;
+  return merchant ? `${merchant}\n${keyLine}` : keyLine;
+}
+
+/**
+ * Inverse of {@link encodePayment}. The last line is always the key line and,
+ * for text produced by {@link encodePayment}, always carries the type
+ * separator — even when the type is empty — so splitting on the FIRST colon
+ * is unambiguous; an empty type normalizes to `undefined`. A last line with
+ * NO colon at all (text that didn't come from our encode) is tolerated and
+ * treated as the key in full.
+ */
+export function decodePayment(text: string): IPaymentContent {
+  const lines = (text ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return {};
+  const keyLine = lines[lines.length - 1] as string;
+  const merchant = lines.slice(0, -1).join(" ") || undefined;
+  // First colon only: EVP keys are UUIDs and e-mail keys carry none, but a
+  // future key format containing one must not lose its tail.
+  const separator = keyLine.indexOf(":");
+  if (separator === -1) return { merchant, key: keyLine };
+  return {
+    merchant,
+    keyType: keyLine.slice(0, separator) || undefined,
+    key: keyLine.slice(separator + 1),
+  };
+}

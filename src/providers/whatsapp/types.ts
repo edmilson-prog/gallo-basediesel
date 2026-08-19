@@ -31,6 +31,7 @@ export type InboundContentType =
   | "document"
   | "location"
   | "contact"
+  | "payment"
   | "unknown";
 
 /** Media kinds accepted for outbound sends. */
@@ -51,6 +52,7 @@ export const MEDIA_DISCRIMINATOR_TYPES = [
   "document",
   "location",
   "contact",
+  "payment",
 ] as const;
 
 // ===== Send inputs ==========================================================

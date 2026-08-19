@@ -160,4 +160,16 @@ describe("getMessagePreview — structured shares", () => {
   it("still renders plain text for non-media messages", () => {
     expect(getMessagePreview(msg({ text: "olá, tudo bem?" }))).toBe("olá, tudo bem?");
   });
+
+  it("shows the PIX recipient in the list preview", () => {
+    expect(
+      getMessagePreview(msg({ mediaType: "payment", text: "Gallo Base Diesel\nCNPJ:32990725000160" })),
+    ).toBe("💳 Gallo Base Diesel");
+  });
+
+  it("falls back to the generic PIX label when no recipient came through", () => {
+    expect(getMessagePreview(msg({ mediaType: "payment", text: "CNPJ:32990725000160" }))).toBe(
+      INBOX_STRINGS.mediaPreview.payment,
+    );
+  });
 });

@@ -11,6 +11,7 @@ import { useMediaStorageProvider } from "@/providers/data";
 const NON_ARCHIVABLE_MEDIA_TYPES: ReadonlySet<MessageMediaType> = new Set([
   "location",
   "contact",
+  "payment",
 ]);
 
 /** What to do with a single inbound message's potential media. */

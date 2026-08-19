@@ -30,6 +30,7 @@ export interface IMessageRealtimeRow {
   failure_code: string | null;
   transcription: string | null;
   transcription_status: IMessage["transcriptionStatus"] | null;
+  reactions: IMessage["reactions"] | null;
   reply_to: IMessageReplyRef | null;
 }
 
@@ -77,6 +78,11 @@ export function rowToMessage(row: IMessageRealtimeRow): IMessage {
     failureCode: row.failure_code ?? undefined,
     transcription: row.transcription ?? undefined,
     transcriptionStatus: row.transcription_status ?? undefined,
+    // Mapped from the row (never a fixed `undefined`): `payload.new` always
+    // carries the full current row, so a status-only ack UPDATE still carries
+    // the reaction value unchanged — a fixed `undefined` here would clear the
+    // chip on every such transition.
+    reactions: row.reactions ?? undefined,
   };
 }
 
@@ -94,7 +100,9 @@ export function rowToMessage(row: IMessageRealtimeRow): IMessage {
  * Mock source: no-op — the Fase-1 simulator drives the demo.
  *
  * Takes `apply` directly (instead of the ConversationContext) so the page can
- * wire it before the provider mounts.
+ * wire it before the provider mounts. `apply`'s second argument flags an
+ * UPDATE event so a stale row outside the loaded pages (e.g. a reaction on a
+ * months-old message) isn't misapplied as a new row (see `applyRealtimeRow`).
  *
  * Fallback (`syncLatest`): the `messages` postgres_changes channel can miss
  * INSERTs on this high-volume table — its per-row RLS evaluation over
@@ -118,7 +126,7 @@ export function rowToMessage(row: IMessageRealtimeRow): IMessage {
  */
 export function useRealtimeMessages(
   conversationId: ID,
-  apply: (row: IMessage) => void,
+  apply: (row: IMessage, isUpdate?: boolean) => void,
   syncLatest?: () => void | Promise<void>,
 ): void {
   useEffect(() => {
@@ -128,7 +136,7 @@ export function useRealtimeMessages(
     const offMessages = subscribeToTable("messages", (payload) => {
       const row = payload.new as Partial<IMessageRealtimeRow> | null;
       if (!messageRowMatches(row, conversationId)) return;
-      apply(rowToMessage(row as IMessageRealtimeRow));
+      apply(rowToMessage(row as IMessageRealtimeRow), payload.eventType === "UPDATE");
     });
 
     // Fallback: catch-up via the reliable conversations channel (debounced).

@@ -25,7 +25,13 @@ import type {
   IOutboundEcho,
   IAdReferral,
 } from "../types";
-import { encodeContact, encodeLocation, nameFromVCard, phoneFromVCard } from "../contentFormat";
+import {
+  encodeContact,
+  encodeLocation,
+  encodePayment,
+  nameFromVCard,
+  phoneFromVCard,
+} from "../contentFormat";
 
 const NON_INDIVIDUAL_JID = /@(g\.us|broadcast|newsletter)$/;
 const LID_JID = /@lid$/;
@@ -79,11 +85,22 @@ interface IWahaTemplateMessage {
   hydratedTemplate?: { hydratedContentText?: string };
 }
 
+/** WhatsApp's payment button. The readable payload is a JSON STRING nested in
+ *  `buttonParamsJSON` — confirmed against real captures (2026-07-16/21). */
+interface IWahaNativeFlowButton {
+  name?: string;
+  buttonParamsJSON?: string;
+}
+interface IWahaInteractiveMessage {
+  InteractiveMessage?: { NativeFlowMessage?: { buttons?: IWahaNativeFlowButton[] } };
+}
+
 interface IWahaGoMessageBody {
   extendedTextMessage?: { contextInfo?: IWahaContextInfo };
   imageMessage?: { contextInfo?: IWahaContextInfo };
   videoMessage?: { contextInfo?: IWahaContextInfo };
   templateMessage?: IWahaTemplateMessage;
+  interactiveMessage?: IWahaInteractiveMessage;
   /** Any other whatsmeow message kind (albumMessage, protocolMessage,
    *  interactiveMessage, …). Not modelled individually — the index signature
    *  exists so {@link wahaMessageKind} can NAME an unhandled kind when
@@ -223,6 +240,63 @@ export function wahaMessageKind(payload: IWahaMessagePayload): string | undefine
   return Object.keys(message).find((key) => key !== "messageContextInfo");
 }
 
+/** Narrows third-party JSON to a plain object before reading properties off
+ *  it — `JSON.parse` returns `unknown`, and a documented shape (object) is
+ *  only ever a HINT for third-party data, never a guarantee. Excludes `null`
+ *  (`typeof null === "object"`) and arrays, neither of which support named
+ *  property reads the way this module needs. */
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** A property read from third-party JSON, kept only when it is actually a
+ *  string. WhatsApp's payment payload documents `key`/`key_type`/
+ *  `merchant_name` as strings, but nothing stops a malformed envelope from
+ *  putting a number there instead (real-world case: `key` arriving as a bare
+ *  CNPJ integer) — passing that straight to `encodePayment` would throw
+ *  inside `oneLine`'s `.replace()`. Silently dropping the field (instead of
+ *  stringifying it) keeps the degrade obvious: a coerced number could read as
+ *  a legitimate key when it was actually a parsing mistake upstream. */
+function asJsonString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+/** Canonical payment text for a shared PIX key, or undefined when the envelope
+ *  carries no usable key. `buttonParamsJSON` is third-party data — parsed
+ *  inside a try/catch and never trusted against its declared TypeScript shape
+ *  past that point, so every read down to the individual PIX fields is
+ *  guarded at runtime. Malformed JSON, a non-array `buttons`/`payment_settings`,
+ *  a missing `pix_static_code`, or a non-string field all degrade to
+ *  "not a payment" — this function must NEVER throw, since an uncaught
+ *  exception here propagates out of parseWahaMessageEvent and makes the
+ *  webhook discard the WHOLE message, not just the payment card. */
+function extractWahaPaymentText(payload: IWahaMessagePayload): string | undefined {
+  const buttons =
+    payload._data?.Message?.interactiveMessage?.InteractiveMessage?.NativeFlowMessage?.buttons;
+  const button = Array.isArray(buttons)
+    ? buttons.find((candidate) => candidate?.name === "payment_info")
+    : undefined;
+  const raw = button?.buttonParamsJSON;
+  if (!raw) return undefined;
+  let params: unknown;
+  try {
+    params = JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+  const settings = isJsonObject(params) ? params.payment_settings : undefined;
+  const firstSetting = Array.isArray(settings) ? settings[0] : undefined;
+  const pix = isJsonObject(firstSetting) ? firstSetting.pix_static_code : undefined;
+  if (!isJsonObject(pix)) return undefined;
+  return (
+    encodePayment({
+      merchant: asJsonString(pix.merchant_name),
+      key: asJsonString(pix.key),
+      keyType: asJsonString(pix.key_type),
+    }) || undefined
+  );
+}
+
 export function extractContent(payload: IWahaMessagePayload): IParsedContent {
   if (payload.hasMedia && payload.media?.url) {
     return {
@@ -268,6 +342,13 @@ export function extractContent(payload: IWahaMessagePayload): IParsedContent {
   const locationText = extractWahaLocationText(payload);
   if (locationText) {
     return { contentType: "location", text: locationText };
+  }
+  // A PIX key shared through WhatsApp's payment button. Deliberately ignores
+  // the payload's amount/items: they are always zero/empty on these static-key
+  // shares, and rendering "R$ 0,00" would be worse than omitting it.
+  const paymentText = extractWahaPaymentText(payload);
+  if (paymentText) {
+    return { contentType: "payment", text: paymentText };
   }
   // Template broadcasts carry their text ONLY inside `_data` — `body` is null.
   const templateText = extractWahaTemplateText(payload);

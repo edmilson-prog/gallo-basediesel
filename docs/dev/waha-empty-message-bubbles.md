@@ -189,9 +189,11 @@ placeholder, mas o banco continua ganhando ~5–8 linhas vazias por dia.
 - **Limpeza das 20.733 linhas legadas.** A camada 2 resolve o sintoma visual sem
   tocar em produção. Um `DELETE` exigiria backup e aprovação explícita.
 - **Backfill das 54 recuperáveis.** Volume irrelevante perto do total.
-- **Renderizar a cobrança PIX do `interactiveMessage`.** Hoje ela sobrevive como
-  placeholder — visível, mas sem detalhe. Renderizar `payment_info` (valor,
-  chave, status) é follow-up de produto, não deste bugfix.
+- ~~**Renderizar a cobrança PIX do `interactiveMessage`.**~~ Feito em
+  2026-07-21 — ver `docs/dev/waha-payment-and-reactions.md` (card
+  `PaymentBubble.tsx` com recebedor + chave formatada + botão "Copiar
+  chave"; valor/status seguem fora de escopo, o WhatsApp só compartilha a
+  chave estática).
 - **Texto secundário dos templates** (`Title`, `hydratedButtons`,
   `hydratedFooterText`). Não causa balão vazio; só deixa a prévia mais pobre.
 

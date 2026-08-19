@@ -10,7 +10,7 @@ import type {
   LeadTemperature,
 } from "@/shared/types";
 import { hashHue, initialsFrom, isPhoneLikeName } from "@/shared/utils/avatar";
-import { decodeContact, decodeLocation } from "@/providers/whatsapp/contentFormat";
+import { decodeContact, decodeLocation, decodePayment } from "@/providers/whatsapp/contentFormat";
 import { isContentFreeMessage } from "../engine/contentFreeMessage";
 import { INBOX_STRINGS, STRUCTURED_PREVIEW_ICON } from "../i18n/pt-BR";
 
@@ -149,6 +149,10 @@ export function getMessagePreview(message: IMessage | null): string {
   if (message.mediaType === "location") {
     const { name } = decodeLocation(message.text);
     return name ? `${STRUCTURED_PREVIEW_ICON.location} ${name}` : INBOX_STRINGS.mediaPreview.location;
+  }
+  if (message.mediaType === "payment") {
+    const { merchant } = decodePayment(message.text);
+    return merchant ? `${STRUCTURED_PREVIEW_ICON.payment} ${merchant}` : INBOX_STRINGS.mediaPreview.payment;
   }
   if (message.mediaType) {
     return INBOX_STRINGS.mediaPreview[message.mediaType] ?? "📎 Anexo";

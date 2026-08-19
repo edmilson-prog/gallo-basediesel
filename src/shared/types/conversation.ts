@@ -225,11 +225,11 @@ export type MessageStatus = "queued" | "sent" | "delivered" | "read" | "failed";
 /**
  * Discriminator for a message's non-text content, when present.
  *
- * The first five are binary media (carry a `mediaUrl`). `location` and `contact`
- * are STRUCTURED content — no binary payload, no `mediaUrl`: their data lives
- * encoded in `text` (see `@/providers/whatsapp/contentFormat`). They reuse this
- * column purely as a render discriminator, so anything keyed on "has binary
- * media" (archival, signing, the media gallery) must exclude them explicitly.
+ * The first five are binary media (carry a `mediaUrl`). `location`, `contact`,
+ * and `payment` are STRUCTURED content — no binary payload, no `mediaUrl`: their
+ * data lives encoded in `text` (see `@/providers/whatsapp/contentFormat`). They
+ * reuse this column purely as a render discriminator, so anything keyed on "has
+ * binary media" (archival, signing, the media gallery) must exclude them explicitly.
  */
 export type MessageMediaType =
   | "image"
@@ -238,7 +238,24 @@ export type MessageMediaType =
   | "document"
   | "sticker"
   | "location"
-  | "contact";
+  | "contact"
+  | "payment";
+
+/** One person's reaction to a message. */
+export interface IMessageReaction {
+  emoji: string;
+  at: ISO8601;
+}
+
+/**
+ * Reactions on a message, keyed by side. A 1:1 conversation has at most two
+ * reactors, so fixed slots beat a list. `customer` is the other party — a
+ * customer OR a lead.
+ */
+export interface IMessageReactions {
+  customer?: IMessageReaction;
+  seller?: IMessageReaction;
+}
 
 /**
  * Mensagem citada por outra (reply/quote).
@@ -305,6 +322,8 @@ export interface IMessage {
   transcription?: string;
   /** 'pending' while transcribing, 'done' when `transcription` is set, 'failed' on error/budget/disabled. Undefined = not applicable (non-audio, old message, or feature was off on arrival). */
   transcriptionStatus?: "pending" | "done" | "failed";
+  /** Reactions attached to this message. Absent when nobody reacted. */
+  reactions?: IMessageReactions;
 }
 
 /** WhatsApp provider engine. */

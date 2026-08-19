@@ -11,7 +11,11 @@
  * variant (`📍 <name>`) and the generic fallback label (`📍 Localização`) can
  * never drift to different icons. Used by `getMessagePreview`.
  */
-export const STRUCTURED_PREVIEW_ICON = { contact: "👤", location: "📍" } as const;
+export const STRUCTURED_PREVIEW_ICON = {
+  contact: "👤",
+  location: "📍",
+  payment: "💳",
+} as const;
 
 export const INBOX_STRINGS = {
   pageTitle: "Conversas",
@@ -152,6 +156,7 @@ export const INBOX_STRINGS = {
     sticker: "🌟 Sticker",
     location: `${STRUCTURED_PREVIEW_ICON.location} Localização`,
     contact: `${STRUCTURED_PREVIEW_ICON.contact} Contato`,
+    payment: `${STRUCTURED_PREVIEW_ICON.payment} Chave PIX`,
     /** Message that reached us with no readable content — see UnsupportedBubble. */
     unsupported: "Mensagem não suportada",
   },
@@ -340,6 +345,10 @@ export const CONVERSATION_STRINGS = {
   },
   sdrBadge: "🤖 SDR",
   sdrBubbleTooltip: "Mensagem enviada pelo agente SDR",
+  reactions: {
+    fromCustomer: "Reação do cliente",
+    fromSeller: "Reação da loja",
+  },
   templateBadge: "Template",
   retry: "Tentar novamente",
   reprocess: "Reprocessar",
@@ -383,6 +392,13 @@ export const CONVERSATION_STRINGS = {
     label: "Localização",
     openMap: "Ver no mapa",
     noCoords: "Sem coordenadas",
+  },
+  payment: {
+    label: "Chave PIX",
+    copy: "Copiar chave",
+    copied: "Chave PIX copiada",
+    copyError: "Não foi possível copiar a chave PIX",
+    noKey: "Chave não informada",
   },
   contact: {
     label: "Contato",
