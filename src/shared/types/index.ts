@@ -208,6 +208,10 @@ export type {
   IConversationRescue,
   AbsenceKind,
   ConversationRescueStatus,
+  ICustomerTimelineNote,
+  ICustomerTimelineDeal,
+  ICustomerTimelineConversation,
+  ICustomerTimelinePayload,
 } from "./conversation";
 
 // Conversation notes (internal attendant board)
