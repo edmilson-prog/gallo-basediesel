@@ -48,6 +48,12 @@ import { QuoteConditions } from "./summary/QuoteConditions";
 import { QuoteNotes } from "./summary/QuoteNotes";
 import { QuoteSendBar } from "./summary/QuoteSendBar";
 import { QuotePreviewDialog } from "./preview/QuotePreviewDialog";
+import { QuoteSendDialog, type IQuoteSendChannels } from "./send/QuoteSendDialog";
+import { buildQuoteWhatsAppText } from "../../engine/quoteMessage";
+import { useSendQuoteWhatsApp } from "../../hooks/useSendQuoteWhatsApp";
+import { sendQuoteEmail } from "../../api/sendQuoteEmail";
+import { useAccessibleConnectedAccounts } from "@/features/conversations/hooks/useAccessibleConnectedAccounts";
+import { getCustomerName } from "@/features/customers/utils/customerDisplay";
 
 function addDays(d: Date, days: number): Date {
   const out = new Date(d);
@@ -146,6 +152,10 @@ export function QuoteEditor() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
+  // Instances this seller may send from - only fetched when the dialog opens.
+  const { accessibleConnectedAccounts } = useAccessibleConnectedAccounts(storeId, sendOpen);
+  const sendWhatsApp = useSendQuoteWhatsApp();
 
   const draftInput = useMemo(
     () => ({
@@ -526,29 +536,118 @@ export function QuoteEditor() {
     }
   };
 
+  /** Persists the quote under a fresh number and audits it. */
+  const persistQuote = async (status: IQuote["status"]): Promise<IQuote> => {
+    const all = await provider.list({ pageSize: 1000 });
+    const number = generateQuoteNumber(all.data, storeId);
+    const created = await provider.create(buildQuoteInput(status, number));
+    auditLog({
+      action: "quote_create",
+      resource: "quote",
+      resourceId: created.id,
+      after: { number: created.number, total: created.total, status: created.status },
+    });
+    await queryClient.invalidateQueries({ queryKey: ["quotes-list"] });
+    return created;
+  };
+
   const handleSave = async (sendNow: boolean) => {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
     try {
-      const all = await provider.list({ pageSize: 1000 });
-      const number = generateQuoteNumber(all.data, storeId);
       const status: IQuote["status"] = sendNow && !needsJustification ? "enviado" : "rascunho";
-      const created = await provider.create(buildQuoteInput(status, number));
-      auditLog({
-        action: "quote_create",
-        resource: "quote",
-        resourceId: created.id,
-        after: { number: created.number, total: created.total, status: created.status },
-      });
-      await queryClient.invalidateQueries({ queryKey: ["quotes-list"] });
+      const created = await persistQuote(status);
       toast.success(
         sendNow && status === "enviado"
-          ? `Orçamento #${number} enviado.`
+          ? `Orçamento #${created.number} enviado.`
           : needsJustification
-            ? `Orçamento #${number} aguardando aprovação do gestor.`
-            : `Rascunho #${number} salvo.`,
+            ? `Orçamento #${created.number} aguardando aprovação do gestor.`
+            : `Rascunho #${created.number} salvo.`,
       );
       clearDraft();
+      void navigate({ to: "/app/orcamentos/$id", params: { id: created.id } });
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao salvar orçamento. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /**
+   * "Salvar e enviar": a quote over the discount limit goes to the manager
+   * instead of the customer, so it skips the channel dialog entirely.
+   */
+  const handleSaveSend = () => {
+    if (!canSubmit || submitting) return;
+    if (needsJustification) {
+      void handleSave(true);
+      return;
+    }
+    setSendOpen(true);
+  };
+
+  /**
+   * Saves the quote and delivers it through the chosen channels. A channel
+   * that fails does not take the other one down with it, and neither takes
+   * down the save - the quote is already persisted by then, and each outcome
+   * is reported on its own.
+   */
+  const handleConfirmSend = async (channels: IQuoteSendChannels) => {
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
+    try {
+      const created = await persistQuote("enviado");
+      const text = buildQuoteWhatsAppText({
+        number: created.number,
+        customerName: customer ? getCustomerName(customer) : (leadRecipient?.name ?? undefined),
+        storeName: currentStore?.name,
+        items: items.map((it) => ({
+          partName: it.partName,
+          quantity: it.quantity,
+          total: it.total,
+        })),
+        subtotal: created.subtotal,
+        discount: created.discount,
+        shipping: created.shipping,
+        total: created.total,
+        validUntil: created.validUntil,
+      });
+
+      const delivered: string[] = [];
+      if (channels.whatsapp && customer && channels.accountId) {
+        const account = accessibleConnectedAccounts.find((a) => a.id === channels.accountId);
+        if (account) {
+          try {
+            await sendWhatsApp({ storeId, customerId: customer.id, account, text });
+            delivered.push("WhatsApp");
+          } catch (err) {
+            console.error(err);
+            toast.error("Orçamento salvo, mas o envio por WhatsApp falhou.");
+          }
+        }
+      }
+      if (channels.email) {
+        try {
+          const result = await sendQuoteEmail(created.id, channels.emailTo || undefined);
+          if (result.sent) {
+            delivered.push("e-mail");
+          } else {
+            toast.warning(result.note ?? "E-mail não configurado — orçamento salvo mesmo assim.");
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error("Orçamento salvo, mas o envio por e-mail falhou.");
+        }
+      }
+
+      toast.success(
+        delivered.length > 0
+          ? `Orçamento #${created.number} enviado por ${delivered.join(" e ")}.`
+          : `Orçamento #${created.number} salvo — nenhum canal confirmou o envio.`,
+      );
+      clearDraft();
+      setSendOpen(false);
       void navigate({ to: "/app/orcamentos/$id", params: { id: created.id } });
     } catch (err) {
       console.error(err);
@@ -617,7 +716,7 @@ export function QuoteEditor() {
         submitting={submitting}
         needsApproval={needsJustification}
         onSaveDraft={() => void handleSave(false)}
-        onSaveSend={() => void handleSave(true)}
+        onSaveSend={handleSaveSend}
         onPreview={() => setPreviewOpen(true)}
         savedAt={savedAt}
       />
@@ -729,7 +828,7 @@ export function QuoteEditor() {
               submitting={submitting}
               needsApproval={needsJustification}
               blocker={blocker}
-              onSaveSend={() => void handleSave(true)}
+              onSaveSend={handleSaveSend}
               onDuplicate={() => void handleDuplicate()}
             />
           </aside>
@@ -757,6 +856,16 @@ export function QuoteEditor() {
         paymentTerms={paymentTerms}
         validUntil={validUntil}
         sellerName={currentUser?.displayName}
+      />
+
+      <QuoteSendDialog
+        open={sendOpen}
+        onOpenChange={setSendOpen}
+        customer={customer}
+        lead={leadRecipient}
+        accounts={accessibleConnectedAccounts}
+        submitting={submitting}
+        onConfirm={(channels) => void handleConfirmSend(channels)}
       />
     </div>
   );
