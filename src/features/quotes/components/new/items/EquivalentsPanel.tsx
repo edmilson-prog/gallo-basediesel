@@ -30,21 +30,47 @@ export function EquivalentsPanel({ part, allParts, onSwap }: IEquivalentsPanelPr
     <ul className="divide-y divide-border">
       {equivalents.map((eq) => {
         const stock = stockBadge(eq);
+        // What swapping actually costs or saves — the reason this panel exists.
+        const delta = eq.unitPrice - part.unitPrice;
         return (
           <li key={eq.id} className="flex items-center justify-between gap-3 px-3 py-2">
             <div className="min-w-0">
-              <p className="truncate text-xs font-medium text-foreground">
-                {eq.name}
-                <span className="ml-1.5 text-[10px] text-muted-foreground">· {eq.brand}</span>
+              <p className="flex items-center gap-1.5 truncate text-xs font-medium text-foreground">
+                <span className="truncate">{eq.name}</span>
+                {eq.isOriginal ? (
+                  <span className="shrink-0 rounded border border-primary/30 bg-primary/10 px-1 text-[10px] font-semibold text-primary">
+                    Original
+                  </span>
+                ) : (
+                  <span className="shrink-0 rounded border border-border px-1 text-[10px] font-medium text-muted-foreground">
+                    Equivalente
+                  </span>
+                )}
               </p>
-              <p className="truncate text-[11px] text-muted-foreground">
-                SKU {eq.sku} · <span className={stock.textClassName}>{stock.label}</span>
+              <p className="truncate font-semicond text-[11px] text-muted-foreground">
+                OEM {eq.oemCodes[0] ?? "—"} · {eq.brand} · SKU {eq.sku}
               </p>
             </div>
+            <span
+              className={`inline-flex shrink-0 items-center gap-1 text-[11px] ${stock.textClassName}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${stock.dotClassName}`} />
+              {stock.label}
+            </span>
             <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold tabular-nums">
-                {moneyFormatter.format(eq.unitPrice)}
-              </span>
+              <div className="text-right">
+                <p className="text-xs font-semibold tabular-nums text-foreground">
+                  {moneyFormatter.format(eq.unitPrice)}
+                </p>
+                <p
+                  className={`text-[11px] tabular-nums ${
+                    delta < 0 ? "text-severity-success" : "text-severity-warning"
+                  }`}
+                >
+                  {delta < 0 ? "−" : "+"}
+                  {moneyFormatter.format(Math.abs(delta))}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => onSwap(eq)}

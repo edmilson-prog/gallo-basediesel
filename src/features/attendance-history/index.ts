@@ -2,14 +2,13 @@
 export { AttendanceHistoryPanel } from "./components/AttendanceHistoryPanel";
 export type { IAttendanceHistoryPanelProps } from "./components/AttendanceHistoryPanel";
 // Hooks
-export { useCustomerActivity } from "./hooks/useCustomerActivity";
+export { useCustomerTimeline } from "./hooks/useCustomerTimeline";
 // Engines (pure)
 export {
-  buildAttendanceTimeline,
-  type IConversationTimeline,
-  type ITimelineNode,
-  type ITimelineSummary,
-} from "./engine/attendanceTimeline";
+  buildCustomerTimeline,
+  type TimelineFilter,
+  type ITimelineCard,
+} from "./engine/customerTimeline";
 // Utils (pure)
 export { formatDuration } from "./utils/formatDuration";
 // i18n

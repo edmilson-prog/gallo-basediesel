@@ -64,7 +64,8 @@ export function PWAQuickQuotePage() {
         );
       }
       const item: IQuoteItem = {
-        id: `qi-${partId}-${Date.now()}`,
+        // Plain uuid: `quote_items.id` is a uuid column.
+        id: crypto.randomUUID(),
         partId,
         partSku: sku,
         partName: name,

@@ -45,6 +45,8 @@ export interface IQuoteItemsPanelProps {
   onPatch: (id: ID, patch: Partial<IQuoteItem>) => void;
   onRemove: (id: ID) => void;
   onSwapEquivalent: (itemId: ID, equivalent: IPart) => void;
+  /** Ids of lines that came from a kit — they carry the `kit` tag. */
+  kitItemIds: Set<ID>;
   highlightId?: ID | null;
   partsById: Map<ID, IPart>;
   allParts: IPart[];
@@ -78,6 +80,7 @@ export function QuoteItemsPanel({
   onPatch,
   onRemove,
   onSwapEquivalent,
+  kitItemIds,
   highlightId,
   partsById,
   allParts,
@@ -136,7 +139,7 @@ export function QuoteItemsPanel({
             aria-expanded={sheetOpen}
             onClick={() => onOpenKitIdChange(sheetOpen ? undefined : null)}
           >
-            <Icon icon="mdi:air-filter" size={15} />
+            <Icon icon="lucide:boxes" size={15} />
             Kits
             {rankedKits.length > 0 && (
               <span className="ml-0.5 rounded bg-muted px-1 text-[10px] font-semibold tabular-nums text-muted-foreground">
@@ -188,6 +191,7 @@ export function QuoteItemsPanel({
           allParts={allParts}
           showMargin={showMargin}
           onSwapEquivalent={onSwapEquivalent}
+          kitItemIds={kitItemIds}
           density={density}
           onFocusSearch={focusSearch}
           grow={grow}

@@ -62,11 +62,12 @@ export async function createOrderFromQuote(
     );
   }
 
-  const orderItems: IOrderItem[] = quote.items.map((it, idx) => {
+  const orderItems: IOrderItem[] = quote.items.map((it) => {
     const unitCost = round(it.unitPrice * 0.7);
     const marginValue = round((it.unitPrice - unitCost) * it.quantity - it.discount);
     return {
-      id: `oi-${quote.id}-${idx + 1}`,
+      // Plain uuid: `order_items.id` is a uuid column.
+      id: crypto.randomUUID(),
       partId: it.partId,
       partSku: it.partSku,
       partName: it.partName,

@@ -31,6 +31,8 @@ export interface IQuoteItemsTableProps {
   showMargin: boolean;
   /** Swap an existing line for one of its equivalents. */
   onSwapEquivalent: (itemId: ID, equivalent: IPart) => void;
+  /** Ids of lines that came from a kit — they carry the `kit` tag. */
+  kitItemIds: Set<ID>;
   density: QuoteDensity;
   /** Focus the continuous search — the ghost row at the end of the table. */
   onFocusSearch: () => void;
@@ -59,6 +61,7 @@ export function QuoteItemsTable({
   allParts,
   showMargin,
   onSwapEquivalent,
+  kitItemIds,
   density,
   onFocusSearch,
   grow,
@@ -120,6 +123,7 @@ export function QuoteItemsTable({
               const stock = part ? stockBadge(part) : null;
               const hasEquivalents = (part?.equivalentPartIds.length ?? 0) > 0;
               const isExpanded = expandedId === it.id;
+              const fromKit = kitItemIds.has(it.id);
               const gross = it.quantity * it.unitPrice;
               return (
                 <Fragment key={it.id}>
@@ -146,8 +150,13 @@ export function QuoteItemsTable({
                               Equivalente
                             </span>
                           ))}
+                        {fromKit && (
+                          <span className="shrink-0 rounded border border-info/40 bg-info/10 px-1 text-[10px] font-semibold uppercase text-info">
+                            kit
+                          </span>
+                        )}
                       </p>
-                      <p className="truncate text-[11px] text-muted-foreground">
+                      <p className="truncate font-semicond text-[11.5px] text-muted-foreground">
                         {isFree ? (
                           <>sem cadastro</>
                         ) : part ? (
@@ -249,11 +258,11 @@ export function QuoteItemsTable({
                     </div>
 
                     <div className="text-right">
-                      <p className="text-[15px] font-semibold leading-tight tabular-nums text-foreground">
+                      <p className="font-display text-base font-extrabold leading-tight tabular-nums text-foreground">
                         {moneyFormatter.format(it.total)}
                       </p>
                       {it.discount > 0 && (
-                        <p className="text-[11px] tabular-nums text-muted-foreground line-through">
+                        <p className="font-semicond text-[11px] tabular-nums text-muted-foreground line-through">
                           {moneyFormatter.format(gross)}
                         </p>
                       )}
@@ -307,7 +316,9 @@ export function QuoteItemsTable({
                 >
                   <Icon icon="mdi:plus" size={14} />
                   Adicionar item
-                  <kbd className="rounded border border-border px-1.5 text-[11px]">/</kbd>
+                  <kbd className="rounded border border-border px-1.5 font-semicond text-[11px]">
+                    /
+                  </kbd>
                 </button>
                 <button
                   type="button"
@@ -324,7 +335,7 @@ export function QuoteItemsTable({
               <span className="col-span-4 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Subtotal dos itens
               </span>
-              <span className="text-right text-base font-semibold tabular-nums text-foreground">
+              <span className="text-right font-display text-[17px] font-extrabold tabular-nums text-foreground">
                 {moneyFormatter.format(subtotal)}
               </span>
             </div>

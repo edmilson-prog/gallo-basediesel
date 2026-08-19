@@ -19,6 +19,13 @@ export type QuoteOrigin = "sdr" | "vendedor" | "cliente_portal" | "ecommerce";
 export type QuotePaymentMethod = "pix" | "boleto" | "cartao" | "prazo" | "outro";
 
 /**
+ * Sentinel `partId` of a free (off-catalog) line — an item typed by hand that
+ * has no row in the catalog. Persisted as a NULL `part_id` (the column is a FK
+ * to `parts`), and restored to this sentinel on read.
+ */
+export const FREE_ITEM_PART_ID = "avulso";
+
+/**
  * Single line of a quote.
  * Carries snapshots of name/price/SKU so the quote stays stable even if the part later changes.
  */

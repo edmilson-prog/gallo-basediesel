@@ -14,11 +14,14 @@ export function CustomerAutocomplete({
   value,
   onChange,
   sellerIdFilter,
+  borderless = false,
 }: {
   value: ID | null;
   onChange: (customer: ICustomer | null) => void;
   /** When set, restrict suggestions to customers of this seller (own carteira). */
   sellerIdFilter?: ID | null;
+  /** Drops the field's own frame — it sits inside the customer band's card. */
+  borderless?: boolean;
 }) {
   const provider = useCustomersProvider();
   const [query, setQuery] = useState("");
@@ -83,14 +86,20 @@ export function CustomerAutocomplete({
   return (
     <div className="relative">
       <div className="relative">
-        <Icon
-          icon="mdi:magnify"
-          size={16}
-          className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-        />
+        {!borderless && (
+          <Icon
+            icon="mdi:magnify"
+            size={16}
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
+        )}
         <Input
           type="search"
-          className="pl-8"
+          className={
+            borderless
+              ? "h-7 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
+              : "pl-8"
+          }
           placeholder="Buscar cliente por nome, CNPJ/CPF…"
           value={query}
           onChange={(e) => {

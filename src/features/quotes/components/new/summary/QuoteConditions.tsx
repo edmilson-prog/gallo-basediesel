@@ -119,7 +119,7 @@ export function QuoteConditions({
             +{d} dias
           </button>
         ))}
-        <span className="text-[11px] text-muted-foreground">
+        <span className="font-semicond text-[11.5px] text-muted-foreground">
           padrão da loja: {defaultValidityDays} dias
         </span>
       </div>

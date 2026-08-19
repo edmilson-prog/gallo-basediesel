@@ -9,6 +9,8 @@ export interface IQuoteSendBarProps {
   /** What is still missing, written out. Null when the quote is ready. */
   blocker: string | null;
   onSaveSend: () => void;
+  /** Saves the quote and opens a copy of it as a fresh draft. */
+  onDuplicate: () => void;
 }
 
 /**
@@ -21,6 +23,7 @@ export function QuoteSendBar({
   needsApproval,
   blocker,
   onSaveSend,
+  onDuplicate,
 }: IQuoteSendBarProps) {
   return (
     <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-card/60 p-3.5">
@@ -30,17 +33,30 @@ export function QuoteSendBar({
           {blocker}
         </p>
       )}
-      <Button
-        type="button"
-        size="lg"
-        className="w-full"
-        disabled={!canSubmit || submitting}
-        onClick={onSaveSend}
-      >
-        <Icon icon={needsApproval ? "mdi:shield-alert-outline" : "mdi:send-outline"} size={16} />
-        {needsApproval ? "Salvar e solicitar aprovação" : "Salvar e enviar"}
-      </Button>
-      <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          size="lg"
+          variant="outline"
+          disabled={!canSubmit || submitting}
+          onClick={onDuplicate}
+          title="Salvar e duplicar — grava este orçamento e abre uma cópia"
+          aria-label="Salvar e duplicar"
+        >
+          <Icon icon="mdi:content-duplicate" size={16} />
+        </Button>
+        <Button
+          type="button"
+          size="lg"
+          className="flex-1"
+          disabled={!canSubmit || submitting}
+          onClick={onSaveSend}
+        >
+          <Icon icon={needsApproval ? "mdi:shield-alert-outline" : "mdi:send-outline"} size={16} />
+          {needsApproval ? "Salvar e solicitar aprovação" : "Salvar e enviar"}
+        </Button>
+      </div>
+      <p className="flex items-center justify-center gap-1.5 font-semicond text-[11.5px] text-muted-foreground">
         <Icon icon="mdi:whatsapp" size={13} />
         {needsApproval
           ? "segue como rascunho até o gestor aprovar"

@@ -14,7 +14,9 @@ import type {
 } from "@/shared/types";
 import type { IListOrdersParams, IOrdersProvider } from "../../contracts/orders";
 import type { IPaginatedResult } from "../../contracts/_shared";
+import { FREE_ITEM_PART_ID } from "@/shared/types";
 import { getSupabaseClient } from "@/shared/lib/supabase";
+import { isUuid } from "./_ids";
 import { fetchLargePage } from "./_pagination";
 
 /**
@@ -35,7 +37,8 @@ import { fetchLargePage } from "./_pagination";
 interface OrderItemRow {
   id: string;
   order_id: string;
-  part_id: string;
+  /** NULL for a free (off-catalog) line — the column is a FK to `parts`. */
+  part_id: string | null;
   part_sku: string;
   part_name: string;
   quantity: number;
@@ -104,10 +107,10 @@ const COLUMNS =
   "cancel_reason, internal_notes, customer_notes, commission_preview, notes, shipping_quote, " +
   `created_at, updated_at, order_items(${ITEM_COLUMNS})`;
 
-function rowToOrderItem(row: OrderItemRow): IOrderItem {
+export function rowToOrderItem(row: OrderItemRow): IOrderItem {
   return {
     id: row.id,
-    partId: row.part_id,
+    partId: row.part_id ?? FREE_ITEM_PART_ID,
     partSku: row.part_sku,
     partName: row.part_name,
     quantity: row.quantity,
@@ -167,12 +170,24 @@ function rowToOrder(row: OrderRow): IOrder {
   };
 }
 
-/** Maps an order line onto a full insert row for the `order_items` table. */
-function itemToRow(item: IOrderItem, orderId: string): Record<string, unknown> {
+/**
+ * Maps an order line onto an insert row for the `order_items` table.
+ *
+ * `id` is a uuid column: a line converted from a quote carries a synthesized id
+ * ("oi-…") that Postgres rejects, so by default the database mints it. The line
+ * replacement in `update` re-inserts rows that already exist — it passes
+ * `preserveId` to keep their uuid, and anything that is not one is still dropped.
+ * A free line carries the `avulso` sentinel, which is not a part: stored as NULL.
+ */
+export function orderItemToRow(
+  item: IOrderItem,
+  orderId: string,
+  opts: { preserveId?: boolean } = {},
+): Record<string, unknown> {
   return {
-    id: item.id,
+    ...(opts.preserveId && isUuid(item.id) ? { id: item.id } : {}),
     order_id: orderId,
-    part_id: item.partId,
+    part_id: item.partId === FREE_ITEM_PART_ID ? null : item.partId,
     part_sku: item.partSku,
     part_name: item.partName,
     quantity: item.quantity,
@@ -343,10 +358,14 @@ export const supabaseOrdersProvider: IOrdersProvider = {
     if (insertError) throw new Error(`[supabase] orders.create failed: ${insertError.message}`);
 
     if (input.items.length > 0) {
-      const itemRows = input.items.map((item) => itemToRow(item, id));
+      const itemRows = input.items.map((item) => orderItemToRow(item, id));
       const { error: itemsError } = await supabase.from(ITEMS_TABLE).insert(itemRows);
-      if (itemsError)
+      if (itemsError) {
+        // No transaction spans the two inserts: drop the parent so a failed
+        // conversion leaves no itemless order behind.
+        await supabase.from(TABLE).delete().eq("id", id);
         throw new Error(`[supabase] orders.create (items) failed: ${itemsError.message}`);
+      }
     }
 
     return this.get(id);
@@ -369,7 +388,7 @@ export const supabaseOrdersProvider: IOrdersProvider = {
         throw new Error(`[supabase] orders.update (clear items) failed: ${deleteError.message}`);
 
       if (patch.items.length > 0) {
-        const itemRows = patch.items.map((item) => itemToRow(item, id));
+        const itemRows = patch.items.map((item) => orderItemToRow(item, id, { preserveId: true }));
         const { error: insertError } = await supabase.from(ITEMS_TABLE).insert(itemRows);
         if (insertError)
           throw new Error(`[supabase] orders.update (items) failed: ${insertError.message}`);

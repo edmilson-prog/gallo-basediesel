@@ -166,7 +166,7 @@ export function KitSheet({
                 >
                   <span className="truncate text-xs font-medium text-foreground">{k.name}</span>
                   <span className="flex flex-wrap items-center gap-1.5">
-                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 font-semicond text-[11px] text-muted-foreground">
                       <Icon icon={CATEGORY_ICON[k.category] ?? FALLBACK_CATEGORY_ICON} size={11} />
                       {CATEGORY_LABEL[k.category] ?? k.category} · {k.items.length}{" "}
                       {k.items.length === 1 ? "peça" : "peças"}
@@ -199,6 +199,10 @@ export function KitSheet({
               }`}
             >
               {kit.status}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
+              <Icon icon={CATEGORY_ICON[kit.category] ?? FALLBACK_CATEGORY_ICON} size={11} />
+              {CATEGORY_LABEL[kit.category] ?? kit.category}
             </span>
           </div>
 
@@ -272,7 +276,9 @@ export function KitSheet({
                   subtotal não {noPriceMarked === 1 ? "o" : "os"} inclui.
                 </span>
               )}
-              <span className="text-[11px] text-muted-foreground">preços do catálogo de hoje</span>
+              <span className="font-semicond text-[11px] text-muted-foreground">
+                preços do catálogo de hoje
+              </span>
             </div>
           </div>
 
@@ -281,7 +287,7 @@ export function KitSheet({
               {marked} de {lines.length} itens
             </span>
             <span
-              className="text-lg font-semibold tabular-nums text-foreground"
+              className="font-display text-[19px] font-extrabold tabular-nums text-foreground"
               aria-live="polite"
               aria-atomic="true"
             >
@@ -317,11 +323,11 @@ function SheetFrame({ children, onClose }: { children: React.ReactNode; onClose:
       className="overflow-hidden rounded-lg border border-border bg-background/40"
     >
       <header className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
-        <Icon icon="mdi:air-filter" size={14} className="text-primary" />
+        <Icon icon="lucide:boxes" size={14} className="text-primary" />
         <h3 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Kits
         </h3>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="font-semicond text-[11.5px] text-muted-foreground">
           opcionais vêm desmarcados — são sugestões
         </span>
         <button
@@ -402,7 +408,7 @@ function KitLine({
             </span>
           )}
         </div>
-        <p className="truncate text-[11px] text-muted-foreground">
+        <p className="truncate font-semicond text-[11px] text-muted-foreground">
           {line.part.sku}
           {line.note ? ` · ${line.note}` : ""}
         </p>

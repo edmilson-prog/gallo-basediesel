@@ -45,6 +45,7 @@ import { formatDateBR, formatDateTimeBR } from "@/shared/utils/format";
 import { useQuote } from "../hooks/useQuotesList";
 import { QuoteStatusBadge } from "../components/QuoteStatusBadge";
 import { generateQuoteNumber } from "../utils/quoteNumber";
+import { buildQuoteWhatsAppText } from "../engine/quoteMessage";
 import { quoteDetailStats, quoteStepperSteps } from "../utils/quoteDetailStats";
 import {
   QuoteActions,
@@ -55,41 +56,9 @@ import {
 } from "../components/detail/QuoteDetailBlocks";
 import { createOrderFromQuote } from "@/features/orders/api/createOrderFromQuote";
 
-const moneyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-});
-
 function customerName(c: ICustomer | undefined): string {
   if (!c) return "—";
   return c.type === "B2B" ? c.nomeFantasia || c.razaoSocial : c.fullName;
-}
-
-function buildWhatsappText(quote: IQuote, customer: ICustomer | undefined): string {
-  const lines = [
-    "🧾 Orçamento GALLO BASE DIESEL",
-    `Número: #${quote.number}`,
-    customer ? `Cliente: ${customerName(customer)}` : "",
-    "",
-    "Items:",
-    ...quote.items.map(
-      (it) => `• ${it.partName} (qtd ${it.quantity}) — ${moneyFormatter.format(it.total)}`,
-    ),
-    "",
-    `Subtotal: ${moneyFormatter.format(quote.subtotal)}`,
-    quote.discount > 0 ? `Desconto: -${moneyFormatter.format(quote.discount)}` : "",
-    `Frete: ${moneyFormatter.format(quote.shipping)}`,
-    `Total: ${moneyFormatter.format(quote.total)}`,
-    "",
-    `Válido até: ${dateFormatter.format(new Date(quote.validUntil))}`,
-  ];
-  return lines.filter(Boolean).join("\n");
 }
 
 export function QuoteDetailPage() {
@@ -314,7 +283,20 @@ export function QuoteDetailPage() {
 
   const handleWhatsappShare = () => {
     if (!quote) return;
-    const text = buildWhatsappText(quote, customerQuery.data);
+    const text = buildQuoteWhatsAppText({
+      number: quote.number,
+      customerName: customerQuery.data ? customerName(customerQuery.data) : undefined,
+      items: quote.items.map((it) => ({
+        partName: it.partName,
+        quantity: it.quantity,
+        total: it.total,
+      })),
+      subtotal: quote.subtotal,
+      discount: quote.discount,
+      shipping: quote.shipping,
+      total: quote.total,
+      validUntil: quote.validUntil,
+    });
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       void navigator.clipboard.writeText(text);
     }

@@ -107,6 +107,8 @@
   /* Tipografia */
   --font-display: "Saira Condensed", "Inter", system-ui, -apple-system, sans-serif;
   --font-body: "Barlow", "Inter", system-ui, -apple-system, sans-serif;
+  /* Semicondensada das sublinhas e legendas — `--font-semicond` do ui_kit. */
+  --font-semicond: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
 }
 
@@ -180,6 +182,7 @@
 
   --font-sans: var(--font-body);
   --font-display: var(--font-display);
+  --font-semicond: var(--font-semicond);
   --font-mono: var(--font-mono);
 }
 
@@ -467,5 +470,28 @@ html [data-sonner-toast][data-type="info"] {
 
   &::-webkit-scrollbar {
     display: none; /* Chrome / Safari / Opera */
+  }
+}
+
+/* -------- Impressão --------------------------------------------------- */
+/* A pré-visualização do orçamento É o documento impresso: ao imprimir, tudo
+   some menos ela, e o navegador cuida do "salvar como PDF". */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #quote-preview-print,
+  #quote-preview-print * {
+    visibility: visible;
+  }
+
+  #quote-preview-print {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    border: 0;
+    padding: 0;
+    background: transparent;
   }
 }

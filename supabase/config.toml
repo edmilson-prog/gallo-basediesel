@@ -1,0 +1,21 @@
+# Supabase CLI — GALLO BASE DIESEL
+#
+# `project_id` registra o ref do projeto de PRODUÇÃO no repositório, para que
+# ele deixe de existir só na cabeça de quem deploya:
+#
+#   njizaasajkdqptlxddqn = Gallo Base Diesel   (produção — é este)
+#   mzgxynwuajzyezenvngr = AILA Automação      (PAUSADO; deploy nele dá 404
+#                                               "status 'INACTIVE'")
+#
+# ⚠️ Este arquivo NÃO escolhe o projeto sozinho. Quem o CLI obedece é
+# `supabase/.temp/project-ref`, que é gitignored — ou seja, cada clone e cada
+# git worktree nasce SEM vínculo, e `functions deploy` abre um "Select a
+# project" com os dois projetos acima. Foi assim que o deploy de
+# `quote-send-email` foi parar no projeto pausado em 18/08/2026.
+#
+# Para não depender do prompt, deploye pelo script que já leva o ref:
+#
+#   bun run fn:deploy <nome-da-funcao>
+#
+# ou vincule a worktree uma vez: `npx supabase link --project-ref njizaasajkdqptlxddqn`
+project_id = "njizaasajkdqptlxddqn"

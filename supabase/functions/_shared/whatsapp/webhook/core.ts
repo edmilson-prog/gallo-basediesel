@@ -21,6 +21,7 @@ import { parseOpenWaInbound } from "../openwa/parser.ts";
 import type { IWhatsAppProvider } from "../IWhatsAppProvider.ts";
 import type { IInboundMessage, IInboundStatus, IOutboundEcho, IAdReferral } from "../types.ts";
 import { MEDIA_DISCRIMINATOR_TYPES } from "../types.ts";
+import { buildAdTouchInput, type IAdTouchInput } from "./adTouch.ts";
 
 export interface IAccountRecord {
   id: string;
@@ -147,6 +148,13 @@ export interface IWebhookDb {
    *  overwrites conversations.ad_referral with the LATEST inbound referral
    *  seen. Only ever called when parsed.adReferral is present. */
   setConversationAdReferral(conversationId: string, adReferral: IAdReferral): Promise<void>;
+  /**
+   * Best-effort provenance write (PRD-217): appends ONE row per ad click and
+   * never overwrites — the counterpart of setConversationAdReferral, which
+   * keeps only the latest. Idempotent on the database side, so a redelivered
+   * event is a no-op rather than a duplicate.
+   */
+  recordAdTouch(input: IAdTouchInput): Promise<void>;
   /**
    * Reopens a closed (resolvida/arquivada) conversation on customer inbound
    * (spec 2026-07-03 §1.5): status→'aguardando', unassigns the owner, bumps
@@ -875,6 +883,27 @@ export async function processWebhookEvent(args: IProcessArgs): Promise<IProcessR
         conversationId: conversation.id,
         detail: error instanceof Error ? error.message : String(error),
       });
+    }
+
+    // Provenance history (PRD-217): the touch is APPENDED, never overwritten,
+    // so a customer returning through another campaign keeps both. Its own
+    // try/catch — a failure here must not cost us the overwrite above, and
+    // vice versa.
+    const touch = buildAdTouchInput({
+      conversationId: conversation.id,
+      messageId: message.id,
+      occurredAt: parsed.timestamp,
+      referral: parsed.adReferral,
+    });
+    if (touch) {
+      try {
+        await db.recordAdTouch(touch);
+      } catch (error) {
+        warn("ad-touch record failed", {
+          conversationId: conversation.id,
+          detail: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   }
 
