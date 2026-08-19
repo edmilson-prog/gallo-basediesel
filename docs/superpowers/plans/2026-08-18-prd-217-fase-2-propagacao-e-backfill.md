@@ -964,7 +964,15 @@ bunx tsc --noEmit 2>&1 | grep "src/features/ads" ; echo "delta de src/ acima (va
 bunx tsc --noEmit --strict --noUncheckedIndexedAccess --target es2022 --module esnext --moduleResolution bundler --skipLibCheck scripts/backfill-ad-touches.ts
 ```
 
-Esperado: **só** `TS2339` em `import.meta.dir` (Bun-ism que outros 13 scripts do repo já usam; não há `@types/bun` instalado, e por isso `--types bun` aborta com `TS2688`).
+Esperado, exatamente estas três linhas:
+
+```
+scripts/backfill-ad-touches.ts(59,31): error TS2339: Property 'dir' does not exist on type 'ImportMeta'.
+src/features/ads/engine/storedAdPayload.ts(1,34): error TS2307: Cannot find module '@/providers/whatsapp/types' …
+src/features/ads/engine/storedAdPayload.ts(2,65): error TS2307: Cannot find module '@/providers/whatsapp/waha/parser' …
+```
+
+O `TS2339` é o Bun-ism `import.meta.dir`, que outros 13 scripts do repo já usam (não há `@types/bun` instalado — e é por isso que `--types bun` aborta com `TS2688`). Os dois `TS2307` são **artefato da invocação avulsa**, que não herda o `paths` do `tsconfig.json` e por isso não resolve o alias `@/`; o arquivo mora em `src/` e o `tsc` do projeto (Step 3, primeiro comando) o cobre com zero erro. Qualquer linha **além** dessas três é regressão.
 
 - [ ] **Step 4: Lint**
 
