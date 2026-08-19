@@ -619,7 +619,13 @@ export type {
 } from "./nps";
 
 // Notas fiscais de entrada (PRD-216 "Tally")
-export type { ISupplier } from "./supplier";
+export type {
+  ISupplier,
+  ISupplierEntry,
+  ISupplierStats,
+  IPendingSupplier,
+  SupplierPaymentMethod,
+} from "./supplier";
 export type {
   FiscalNoteStatus,
   FiscalNoteOrigin,
