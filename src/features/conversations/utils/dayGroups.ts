@@ -1,5 +1,6 @@
-import type { IMessage, IConversationNote } from "@/shared/types";
+import type { IMessage, IConversationNote, IAdReferral } from "@/shared/types";
 import { CONVERSATION_STRINGS } from "../i18n/pt-BR";
+import { buildAdReferralView, type IAdReferralView } from "../engine/adReferral";
 
 const MS_PER_DAY = 86_400_000;
 
@@ -99,8 +100,9 @@ export interface INoteRow {
   note: IConversationNote;
 }
 
-/** A message, an internal note, or a day separator — the unified thread. */
-export type ThreadRow = IDaySeparator | IMessageRow | INoteRow;
+/** A message, an internal note, the ad-origin card, or a day separator — the
+ *  unified thread. */
+export type ThreadRow = IDaySeparator | IMessageRow | INoteRow | IAdReferralRow;
 
 /**
  * Merge messages (sorted ascending by `sentAt`) with internal notes (by
@@ -141,4 +143,27 @@ export function buildThreadRows(
     rows.push(item.row);
   }
   return rows;
+}
+
+export interface IAdReferralRow {
+  kind: "adReferral";
+  id: string;
+  view: IAdReferralView;
+}
+
+/**
+ * Prepends the ad-origin card to a thread built by `buildThreadRows`, ahead of
+ * the first day separator: the referral describes how the conversation STARTED,
+ * so it reads before anything that was said.
+ *
+ * Returns the very same array when there is nothing worth showing, so the
+ * caller's `useMemo` keeps its reference and React skips the re-render.
+ */
+export function prependAdReferralRow(
+  rows: ThreadRow[],
+  referral: IAdReferral | undefined | null,
+): ThreadRow[] {
+  const view = buildAdReferralView(referral);
+  if (!view) return rows;
+  return [{ kind: "adReferral", id: "ad-referral", view }, ...rows];
 }

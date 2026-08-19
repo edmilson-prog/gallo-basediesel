@@ -592,6 +592,21 @@ export const CONVERSATION_STRINGS = {
   },
 
   // Internal attendant notes pinned to the conversation (board + @mentions).
+  // Ad-origin card rendered at the head of the thread when the conversation
+  // began (or most recently resumed) through a Click-to-WhatsApp ad.
+  adReferralCard: {
+    label: "Origem · Anúncio",
+    mediaImage: "imagem",
+    mediaVideo: "vídeo",
+    showMore: "ver mais",
+    showLess: "ver menos",
+    openAd: "Abrir anúncio",
+    openPost: "Ver publicação",
+    adIdPrefix: "ID",
+    copyId: "Copiar o ID do anúncio",
+    idCopied: "ID do anúncio copiado.",
+    copyFailed: "Não foi possível copiar o ID.",
+  },
   conversationNotes: {
     entryTooltip: "Anotações da conversa",
     panelTitle: "Anotações",
