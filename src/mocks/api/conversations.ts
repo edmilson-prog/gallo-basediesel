@@ -190,6 +190,24 @@ function applyNonSearchFilters(
  *  `clear_conversation_participants_on_close` (migration 20260704120000). */
 const TERMINAL_STATUSES = new Set(["resolvida", "arquivada"]);
 
+/**
+ * `closedAt` patch for a status transition, mirroring the `conversations.closed_at`
+ * column the timeline RPC reads: stamped when the conversation enters a terminal
+ * status, cleared when it leaves one. Returns an empty patch when the transition
+ * does not cross the terminal boundary, so re-saving a closed conversation never
+ * moves its closing instant.
+ */
+function closedAtPatch(
+  previousStatus: IConversation["status"] | undefined,
+  nextStatus: IConversation["status"],
+): Pick<IConversation, "closedAt"> | Record<string, never> {
+  const wasClosed = previousStatus !== undefined && TERMINAL_STATUSES.has(previousStatus);
+  const isClosed = TERMINAL_STATUSES.has(nextStatus);
+  if (isClosed && !wasClosed) return { closedAt: new Date().toISOString() };
+  if (!isClosed && wasClosed) return { closedAt: undefined };
+  return {};
+}
+
 /** Statuses still "open" for the idle-conversation summary (spec 2026-07-16). */
 const IDLE_ACTIVE_STATUSES = new Set<IConversation["status"]>([
   "aguardando",
@@ -353,7 +371,10 @@ export const conversationsApi = {
   async update(id: ID, patch: Partial<IConversation>): Promise<IConversation> {
     return runApi("conversationsApi", "update", () => {
       const before = getMockState().conversations.find((c) => c.id === id) ?? null;
-      const updated = patchById("conversations", id, patch);
+      const updated = patchById("conversations", id, {
+        ...patch,
+        ...(patch.status ? closedAtPatch(before?.status, patch.status) : {}),
+      });
       if (!updated) throw new MockNotFoundError("conversation", id);
       // Mirrors trg_clear_participants_on_close: any status transition into a
       // terminal state clears collaborators (the trigger fires on UPDATE OF
@@ -413,7 +434,10 @@ export const conversationsApi = {
   async archive(id: ID): Promise<void> {
     return runApi("conversationsApi", "archive", () => {
       const before = getMockState().conversations.find((c) => c.id === id) ?? null;
-      const updated = patchById("conversations", id, { status: "arquivada" });
+      const updated = patchById("conversations", id, {
+        status: "arquivada",
+        ...closedAtPatch(before?.status, "arquivada"),
+      });
       // Mirrors trg_clear_participants_on_close (see update()).
       if (updated && before?.status !== "arquivada") clearConversationParticipantsSync(id);
     });
@@ -427,6 +451,7 @@ export const conversationsApi = {
         status,
         assignedSellerId: undefined,
         isSdrActive: false,
+        ...closedAtPatch(before.status, status),
       });
       if (!updated) throw new MockNotFoundError("conversation", id);
       clearConversationParticipantsSync(id);

@@ -54,6 +54,12 @@ export interface IConversation {
   /** WhatsApp account this conversation is bound to (when channel is whatsapp). */
   whatsappAccountId?: ID;
   status: ConversationStatus;
+  /**
+   * Instant the conversation entered a terminal status (`resolvida`/`arquivada`),
+   * mirroring the `conversations.closed_at` column the timeline RPC reads. Cleared
+   * when the conversation is reopened. Absent while it is still open.
+   */
+  closedAt?: ISO8601;
   /** Whether the SDR agent is currently driving this conversation. */
   isSdrActive: boolean;
   tags: string[];
