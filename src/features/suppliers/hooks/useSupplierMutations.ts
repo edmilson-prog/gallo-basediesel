@@ -20,8 +20,16 @@ export function useSupplierMutations() {
   const create = useMutation<ISupplier, Error, ICreateSupplierInput>({
     mutationFn: (input) => provider.create(input),
     onSuccess: (supplier) => {
-      void invalidate();
       toast.success(COPY.created(supplier.corporateName));
+      // Returned (not `void`-ed away like `update`/`archive` below) so
+      // `mutateAsync` doesn't settle until the "suppliers" queries have
+      // actually refetched. `SupplierFormDialog`'s caller selects the new
+      // row by id the instant `mutateAsync` resolves (the pending queue's
+      // "Cadastrar" → cadastro → select-the-new-supplier flow) — that only
+      // works once `useSuppliersList`'s cache actually contains it. Mirrors
+      // `CustomersListPage.handleCreateCustomer`'s
+      // `await list.invalidate(); url.setSelectedId(created.id);`.
+      return invalidate();
     },
     onError: (error) => toast.error(error.message),
   });
