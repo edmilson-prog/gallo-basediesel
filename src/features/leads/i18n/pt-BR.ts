@@ -657,6 +657,26 @@ export const LEADS_STRINGS = {
       addressZip: "CEP",
       saved: (label: string) => `${label} salvo.`,
       phoneReadOnly: "O telefone vem da conversa e não é editado aqui.",
+      /** Consulta do CNPJ na Receita, dentro do editor do campo documento. */
+      receita: {
+        checking: "Consultando a Receita…",
+        notFound: "CNPJ não encontrado na Receita. Dá para salvar assim mesmo.",
+        offline: "Não foi possível consultar a Receita agora.",
+        retry: "Tentar de novo",
+        unknownSituation: "Situação desconhecida",
+        inactiveWarning: "Empresa não está ativa na Receita — confirme antes de converter.",
+        fieldNames: {
+          name: "nome",
+          email: "e-mail",
+          address: "endereço",
+        },
+        willFillTitle: "Preenche junto",
+        applyName: (name: string) => `Usar “${name}” como nome`,
+        savedWithAutofill: (count: number) =>
+          count === 1
+            ? "CPF ou CNPJ salvo e 1 campo preenchido."
+            : `CPF ou CNPJ salvo e ${count} campos preenchidos.`,
+      },
     },
     funnel: {
       title: "Funil",

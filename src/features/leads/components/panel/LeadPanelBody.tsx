@@ -138,13 +138,20 @@ export function LeadPanelBody({
    * next navigation.
    */
   const saveField = async (changes: Partial<ILead>): Promise<boolean> => {
-    const field = Object.keys(changes)[0] ?? "lead";
+    const keys = Object.keys(changes);
+    // The row being edited is the FIRST key — the document editor relies on it
+    // (see `buildDocumentSaveChanges`), because a Receita lookup writes the
+    // rows it filled in the same call. The extra ones go in the confirmation
+    // rather than being left to change on their own behind the popover.
+    const field = keys[0] ?? "lead";
+    const label = COPY.conversion.fields[field as keyof typeof COPY.conversion.fields] ?? field;
     const ok = await patch(changes, {
       field: `conversion-${field}`,
       action: `lead.${field}_changed`,
-      success: COPY.conversion.saved(
-        COPY.conversion.fields[field as keyof typeof COPY.conversion.fields] ?? field,
-      ),
+      success:
+        keys.length > 1 && field === "document"
+          ? COPY.conversion.receita.savedWithAutofill(keys.length - 1)
+          : COPY.conversion.saved(label),
     });
     if (ok) onConversationChanged?.();
     return ok;

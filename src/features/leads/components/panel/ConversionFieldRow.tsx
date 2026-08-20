@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ICustomerAddress, ILead } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
@@ -6,11 +6,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { formatCnpj, formatCpf, onlyDigits } from "@/features/customers/utils/cnpjCpf";
+import { useDebounce } from "@/shared/hooks/useDebounce";
+import { formatCnpj, formatCpf, isValidCnpj, onlyDigits } from "@/features/customers/utils/cnpjCpf";
+import { useMinhaReceita } from "@/features/customers/hooks/useMinhaReceita";
 import { LEADS_STRINGS } from "../../i18n/pt-BR";
 import { isConversionDocument, type IConversionField } from "../../engine/conversionReadiness";
+import {
+  buildDocumentSaveChanges,
+  deriveReceitaLookupState,
+  planReceitaAutofill,
+} from "../../engine/receitaAutofill";
+import { LeadReceitaCard } from "./LeadReceitaCard";
 
 const COPY = LEADS_STRINGS.panel.conversion;
+
+/** Keystroke settle time before the Receita lookup fires. Matches "Novo cliente". */
+const LOOKUP_DEBOUNCE_MS = 450;
+/** How long the save waits on the Receita before letting the seller through anyway. */
+const LOOKUP_PATIENCE_MS = 3500;
 
 /** Mask as the seller types: 11 digits or fewer reads as a CPF, more as a CNPJ. */
 function maskDocument(raw: string): string {
@@ -131,7 +144,11 @@ export function ConversionFieldRow({
           {summary}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-72 p-3">
+      {/* The document editor carries the Receita's answer, which needs the room. */}
+      <PopoverContent
+        align="end"
+        className={cn("p-3", field.id === "document" ? "w-[300px]" : "w-72")}
+      >
         <FieldEditor
           field={field}
           lead={lead}
@@ -165,12 +182,89 @@ function FieldEditor({
     lead.address ?? { street: "", number: "", district: "", city: "", state: "", zipCode: "" },
   );
   const [error, setError] = useState<string | null>(null);
+  const [useNameSuggestion, setUseNameSuggestion] = useState(false);
 
   // No effect re-seeding this from `lead`. Radix unmounts the popover's content
   // on close, so every open already starts from the current lead — and a
   // background refetch (a realtime participant change, say) hands us a NEW lead
   // object with the same values, which such an effect would use to wipe what
   // the seller is halfway through typing.
+
+  const isDocumentField = field.id === "document";
+  const {
+    lookup: lookupCnpj,
+    reset: resetCnpj,
+    status: cnpjStatus,
+    data: cnpjData,
+  } = useMinhaReceita();
+  const debouncedDocument = useDebounce(document, LOOKUP_DEBOUNCE_MS);
+  const documentDigits = onlyDigits(document);
+  /**
+   * The CNPJ the current lookup was fired for. Tracked separately from the
+   * debounced value because they disagree for exactly one render — the one
+   * between the debounce landing and this effect running — and during it every
+   * status on hand still describes the PREVIOUS number.
+   */
+  const [requestedCnpj, setRequestedCnpj] = useState<string | null>(null);
+  const [waitedTooLong, setWaitedTooLong] = useState(false);
+
+  // CNPJ only: a CPF has no public lookup, and the Receita answers 404 for one.
+  useEffect(() => {
+    if (!isDocumentField) return;
+    const target = onlyDigits(debouncedDocument);
+    if (target.length !== 14 || !isValidCnpj(target)) {
+      setRequestedCnpj(null);
+      resetCnpj();
+      return;
+    }
+    setRequestedCnpj(target);
+    void lookupCnpj(target);
+  }, [isDocumentField, debouncedDocument, lookupCnpj, resetCnpj]);
+
+  // Editing the number retracts an accepted name suggestion — it belonged to
+  // the company the PREVIOUS CNPJ named — and restarts the patience timer.
+  useEffect(() => {
+    setUseNameSuggestion(false);
+    setWaitedTooLong(false);
+  }, [documentDigits]);
+
+  const receitaState = isDocumentField
+    ? deriveReceitaLookupState({
+        typed: document,
+        requestedCnpj,
+        status: cnpjStatus,
+        loadedCnpj: cnpjData?.cnpj ?? null,
+      })
+    : "idle";
+
+  const company = receitaState === "found" ? cnpjData : null;
+  const plan = useMemo(
+    () => (company ? planReceitaAutofill(lead, company) : null),
+    [company, lead],
+  );
+
+  /**
+   * The save waits on the Receita, but not forever. Without a ceiling the only
+   * way out of `checking` is Cancel — which, because Radix unmounts the
+   * popover's content, throws away the number the seller just typed. A slow
+   * mirror (or a response that resolves after being superseded) would otherwise
+   * hold the button hostage for the full 8-second timeout, or for good.
+   */
+  useEffect(() => {
+    if (receitaState !== "checking") return;
+    const timer = window.setTimeout(() => setWaitedTooLong(true), LOOKUP_PATIENCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [receitaState]);
+
+  /**
+   * Waiting is only worth blocking the save for when the number on screen is a
+   * NEW one — that is the write whose autofill would be lost. Reopening the row
+   * on a document the lead already has never blocks at all.
+   */
+  const waitingForReceita =
+    receitaState === "checking" &&
+    !waitedTooLong &&
+    documentDigits !== onlyDigits(lead.document ?? "");
 
   const submit = async () => {
     setError(null);
@@ -184,7 +278,10 @@ function FieldEditor({
       // number needs a way back to "not informed".
       if (!digits) return onSave({ document: undefined });
       if (!isConversionDocument(digits)) return setError(COPY.invalidDocument);
-      return onSave({ document: digits });
+      // Everything the Receita answered for goes out in the SAME write: one
+      // round trip, one refetch, and a checklist that jumps to its real score
+      // instead of climbing a row at a time.
+      return onSave(buildDocumentSaveChanges(digits, plan, useNameSuggestion));
     }
     if (field.id === "email") {
       const trimmed = email.trim();
@@ -221,14 +318,55 @@ function FieldEditor({
       )}
 
       {field.id === "document" && (
-        <Input
-          autoFocus
-          inputMode="numeric"
-          value={document}
-          onChange={(e) => setDocument(maskDocument(e.target.value))}
-          placeholder="000.000.000-00"
-          className="h-8"
-        />
+        <>
+          <div className="relative">
+            <Input
+              autoFocus
+              inputMode="numeric"
+              value={document}
+              onChange={(e) => setDocument(maskDocument(e.target.value))}
+              placeholder="000.000.000-00"
+              className="h-8 pr-8"
+            />
+            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
+              {receitaState === "checking" && (
+                <Icon
+                  icon="mdi:loading"
+                  size={14}
+                  className="animate-spin text-muted-foreground motion-reduce:animate-none"
+                  aria-hidden
+                />
+              )}
+              {receitaState === "found" && (
+                <Icon
+                  icon="mdi:check-decagram"
+                  size={14}
+                  className="text-severity-success"
+                  aria-hidden
+                />
+              )}
+              {receitaState === "notfound" && (
+                <Icon
+                  icon="mdi:magnify-remove-outline"
+                  size={14}
+                  className="text-severity-critical"
+                  aria-hidden
+                />
+              )}
+              {receitaState === "offline" && (
+                <Icon icon="mdi:wifi-off" size={14} className="text-muted-foreground" aria-hidden />
+              )}
+            </span>
+          </div>
+          <LeadReceitaCard
+            state={receitaState}
+            company={company}
+            plan={plan}
+            useNameSuggestion={useNameSuggestion}
+            onToggleNameSuggestion={() => setUseNameSuggestion((v) => !v)}
+            onRetry={() => void lookupCnpj(document)}
+          />
+        </>
       )}
 
       {field.id === "email" && (
@@ -287,7 +425,17 @@ function FieldEditor({
         <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
           {COPY.cancel}
         </Button>
-        <Button type="submit" size="sm">
+        {/* Saving mid-lookup would drop the autofill the seller is about to be
+            offered — the wait is the whole reason the panel calls the Receita.
+            `title`/`aria-label` carry the reason: a disabled button that says
+            nothing is the same dead end for a screen reader as for anyone. */}
+        <Button
+          type="submit"
+          size="sm"
+          disabled={waitingForReceita}
+          title={waitingForReceita ? COPY.receita.checking : undefined}
+          aria-label={waitingForReceita ? `${COPY.save} — ${COPY.receita.checking}` : undefined}
+        >
           {COPY.save}
         </Button>
       </div>
