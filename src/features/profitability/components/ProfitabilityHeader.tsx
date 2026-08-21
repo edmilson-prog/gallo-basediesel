@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PROFITABILITY_STRINGS as S } from "../i18n/pt-BR";
+import { useCategoryDescriptors } from "@/features/catalog/hooks/useCategoryDescriptors";
 
 export interface IProfitabilityHeaderProps {
   monthKey: string;
@@ -39,19 +40,6 @@ const MONTHS_PT = [
   "Dezembro",
 ];
 
-const CATEGORY_OPTIONS: { value: PartCategory; label: string }[] = [
-  { value: "filtro", label: "Filtro" },
-  { value: "freio", label: "Freio" },
-  { value: "correia", label: "Correia" },
-  { value: "motor", label: "Motor" },
-  { value: "embreagem", label: "Embreagem" },
-  { value: "eletrica", label: "Elétrica" },
-  { value: "transmissao", label: "Transmissão" },
-  { value: "suspensao", label: "Suspensão" },
-  { value: "arrefecimento", label: "Arrefecimento" },
-  { value: "lubrificante", label: "Lubrificante" },
-];
-
 function labelForMonth(key: string): string {
   const [y, m] = key.split("-").map(Number);
   if (!y || !m) return key;
@@ -59,6 +47,9 @@ function labelForMonth(key: string): string {
 }
 
 export function ProfitabilityHeader(props: IProfitabilityHeaderProps) {
+  // The taxonomy is data: a family created in the catalog has to be
+  // offered here too, otherwise the URL filter applies with a blank control.
+  const { active: categoryOptions } = useCategoryDescriptors();
   return (
     <header className="flex flex-col gap-4 border-b border-border pb-5">
       <div className="flex items-start justify-between gap-3">
@@ -111,7 +102,7 @@ export function ProfitabilityHeader(props: IProfitabilityHeaderProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{S.filterCategoryAll}</SelectItem>
-              {CATEGORY_OPTIONS.map((opt) => (
+              {categoryOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>

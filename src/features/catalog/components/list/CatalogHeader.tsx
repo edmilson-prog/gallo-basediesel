@@ -12,6 +12,8 @@ export interface ICatalogHeaderProps {
   onSearchChange: (q: string) => void;
   canCreate: boolean;
   onCreate: () => void;
+  /** Opens the category manager drawer. */
+  onOpenCategories: () => void;
 }
 
 export function CatalogHeader({
@@ -20,6 +22,7 @@ export function CatalogHeader({
   onSearchChange,
   canCreate,
   onCreate,
+  onOpenCategories,
 }: ICatalogHeaderProps) {
   const [local, setLocal] = useState(searchValue);
   const timerRef = useRef<number | null>(null);
@@ -114,6 +117,11 @@ export function CatalogHeader({
             /
           </kbd>
         </div>
+
+        <Button variant="outline" size="sm" className="shrink-0" onClick={onOpenCategories}>
+          <Icon icon="mdi:shape-outline" size={16} />
+          {CATALOG_STRINGS.categories.trigger}
+        </Button>
 
         <TooltipProvider delayDuration={200}>
           <Tooltip>

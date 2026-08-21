@@ -16,6 +16,7 @@ import type { PartCategory } from "@/shared/types/part-identification";
 import { useStoresProvider, useSellersProvider } from "@/providers/data";
 import { SALES_ANALYTICS_STRINGS as S } from "../i18n/pt-BR";
 import type { ISalesFiltersState, SalesChannel, SalesPeriodPreset } from "../hooks/useSalesFilters";
+import { useCategoryDescriptors } from "@/features/catalog/hooks/useCategoryDescriptors";
 
 export interface ISalesHeaderProps {
   filters: ISalesFiltersState;
@@ -41,19 +42,6 @@ const PERIOD_OPTIONS: { value: SalesPeriodPreset; label: string }[] = [
   { value: "ytd", label: S.periodYtd },
 ];
 
-const CATEGORY_OPTIONS: { value: PartCategory; label: string }[] = [
-  { value: "filtro", label: "Filtro" },
-  { value: "freio", label: "Freio" },
-  { value: "correia", label: "Correia" },
-  { value: "motor", label: "Motor" },
-  { value: "embreagem", label: "Embreagem" },
-  { value: "eletrica", label: "Elétrica" },
-  { value: "transmissao", label: "Transmissão" },
-  { value: "suspensao", label: "Suspensão" },
-  { value: "arrefecimento", label: "Arrefecimento" },
-  { value: "lubrificante", label: "Lubrificante" },
-];
-
 const CHANNEL_OPTIONS: { value: SalesChannel; label: string }[] = [
   { value: "whatsapp", label: S.channelLabelWhatsapp },
   { value: "manual", label: S.channelLabelManual },
@@ -75,6 +63,9 @@ export function SalesHeader({
   onChannel,
   onReset,
 }: ISalesHeaderProps) {
+  // The taxonomy is data: a family created in the catalog has to be
+  // offered here too, otherwise the URL filter applies with a blank control.
+  const { active: categoryOptions } = useCategoryDescriptors();
   const storesProvider = useStoresProvider();
   const sellersProvider = useSellersProvider();
   const [stores, setStores] = useState<IStore[]>([]);
@@ -114,7 +105,7 @@ export function SalesHeader({
   const categoryLabel =
     filters.category === "all"
       ? S.filterAllCategories
-      : (CATEGORY_OPTIONS.find((o) => o.value === filters.category)?.label ?? filters.category);
+      : (categoryOptions.find((o) => o.value === filters.category)?.label ?? filters.category);
   const brandLabel = filters.vehicleBrand === "all" ? S.filterAllBrands : filters.vehicleBrand;
   const channelLabel =
     filters.channel === "all"
@@ -226,7 +217,7 @@ export function SalesHeader({
               onValueChange={(v) => onCategory(v as PartCategory | "all")}
             >
               <DropdownMenuRadioItem value="all">{S.filterAllCategories}</DropdownMenuRadioItem>
-              {CATEGORY_OPTIONS.map((opt) => (
+              {categoryOptions.map((opt) => (
                 <DropdownMenuRadioItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </DropdownMenuRadioItem>

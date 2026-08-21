@@ -35,6 +35,8 @@ export interface ICatalogTableProps {
   visibleColumns: Set<OptionalColumn>;
   onToggleColumn: (id: OptionalColumn) => void;
   onShowAllColumns: () => void;
+  /** Columns this role may toggle — permission-gated ones never reach the menu. */
+  availableColumns?: readonly OptionalColumn[];
   /** Exposes the inner scroll container (drives the header progress line). */
   scrollRef?: (el: HTMLDivElement | null) => void;
   selectedIds: Set<ID>;
@@ -87,6 +89,7 @@ export function CatalogTable({
   visibleColumns,
   onToggleColumn,
   onShowAllColumns,
+  availableColumns,
   scrollRef,
   selectedIds,
   onToggleRow,
@@ -250,6 +253,7 @@ export function CatalogTable({
                     visible={visibleColumns}
                     onToggle={onToggleColumn}
                     onShowAll={onShowAllColumns}
+                    available={availableColumns}
                   />
                 </th>
               </tr>
@@ -258,6 +262,7 @@ export function CatalogTable({
               visible={visibleColumns}
               onToggle={onToggleColumn}
               onShowAll={onShowAllColumns}
+              available={availableColumns}
             />
           </ContextMenu>
         </thead>

@@ -46,6 +46,9 @@ export type {
   IListMessagesForAnalyticsParams,
   IPartsProvider,
   IListPartsParams,
+  IPartCategoriesProvider,
+  IListPartCategoriesParams,
+  ISavePartCategoryInput,
   IQuotesProvider,
   IListQuotesParams,
   IOrdersProvider,
@@ -162,6 +165,7 @@ export { useLeadFunnelsProvider } from "./hooks/useLeadFunnelsProvider";
 export { useConversationsProvider } from "./hooks/useConversationsProvider";
 export { useMessagesProvider } from "./hooks/useMessagesProvider";
 export { usePartsProvider } from "./hooks/usePartsProvider";
+export { usePartCategoriesProvider } from "./hooks/usePartCategoriesProvider";
 export { useQuotesProvider } from "./hooks/useQuotesProvider";
 export { useOrdersProvider } from "./hooks/useOrdersProvider";
 export { useCommissionsProvider } from "./hooks/useCommissionsProvider";

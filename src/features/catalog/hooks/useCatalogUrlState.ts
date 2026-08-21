@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import type { PartCategory } from "@/shared/types";
 import { usePersistedListSearch } from "@/shared/hooks/usePersistedListSearch";
+import { isCategorySlug } from "@/features/catalog/utils/categories";
 import {
   DEFAULT_PAGE_SIZE,
   DEFAULT_SORT,
@@ -20,19 +20,6 @@ import {
   type StockBucket,
 } from "../utils/listFilters";
 import { DEFAULT_COVERAGE, isCoverageBucket, type CoverageBucket } from "../utils/completeness";
-
-const VALID_CATEGORIES = new Set<PartCategory>([
-  "filtro",
-  "freio",
-  "correia",
-  "motor",
-  "embreagem",
-  "eletrica",
-  "transmissao",
-  "suspensao",
-  "arrefecimento",
-  "lubrificante",
-]);
 
 const VALID_STOCK = new Set<StockBucket>(["any", "in_stock", "low", "zero", "restock"]);
 const VALID_STATUS = new Set<StatusBucket>(["any", "active", "inactive"]);
@@ -134,9 +121,7 @@ function joinCsv(values: string[] | undefined): string | undefined {
 }
 
 function readFilters(search: ICatalogListSearch): ICatalogListFilters {
-  const categories = splitCsv(search.cats).filter((c): c is PartCategory =>
-    VALID_CATEGORIES.has(c as PartCategory),
-  );
+  const categories = splitCsv(search.cats).filter(isCategorySlug);
   const status = (
     search.status && VALID_STATUS.has(search.status as StatusBucket) ? search.status : "active"
   ) as StatusBucket;
@@ -198,6 +183,12 @@ export interface ICatalogUrlState {
   setSort: (sort: ICatalogListSort) => void;
   setView: (view: CatalogView) => void;
   setCoverage: (coverage: CoverageBucket) => void;
+  /**
+   * View and coverage in a single navigation. Two consecutive setters would
+   * both read the same `prev` search object and the last one would win, so the
+   * triage shortcut has to write them together.
+   */
+  setViewAndCoverage: (view: CatalogView, coverage: CoverageBucket) => void;
   setPage: (page: number) => void;
   setPageSize: (size: CatalogPageSize) => void;
   setSearch: (q: string) => void;
@@ -271,6 +262,12 @@ export function useCatalogUrlState(): ICatalogUrlState {
     setView: (next) => apply({ view: next === DEFAULT_VIEW ? undefined : next }),
     setCoverage: (next) =>
       apply({ cov: next === DEFAULT_COVERAGE ? undefined : next, page: undefined }),
+    setViewAndCoverage: (nextView, nextCoverage) =>
+      apply({
+        view: nextView === DEFAULT_VIEW ? undefined : nextView,
+        cov: nextCoverage === DEFAULT_COVERAGE ? undefined : nextCoverage,
+        page: undefined,
+      }),
     setPage: (p) => apply({ page: p <= 1 ? undefined : p }),
     setPageSize: (size) =>
       apply({ pageSize: size === DEFAULT_PAGE_SIZE ? undefined : size, page: undefined }),

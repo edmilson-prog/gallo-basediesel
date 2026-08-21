@@ -2,23 +2,11 @@ import { useCallback, useMemo } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import type { ID } from "@/shared/types";
 import type { PartCategory } from "@/shared/types/part-identification";
+import { isCategorySlug } from "@/features/catalog/utils/categories";
 
 export type ProfitabilityTab = "product" | "category" | "customer" | "seller";
 
 const VALID_TABS = new Set<ProfitabilityTab>(["product", "category", "customer", "seller"]);
-
-const VALID_CATEGORY = new Set<PartCategory>([
-  "filtro",
-  "freio",
-  "correia",
-  "motor",
-  "embreagem",
-  "eletrica",
-  "transmissao",
-  "suspensao",
-  "arrefecimento",
-  "lubrificante",
-]);
 
 export interface IProfitabilityFiltersSearch {
   mes?: string;
@@ -52,9 +40,7 @@ export function validateProfitabilitySearch(
   const out: IProfitabilityFiltersSearch = {};
   if (typeof raw.mes === "string" && /^\d{4}-\d{2}$/.test(raw.mes)) out.mes = raw.mes;
   if (typeof raw.vendedor === "string" && raw.vendedor.length > 0) out.vendedor = raw.vendedor;
-  if (typeof raw.categoria === "string" && VALID_CATEGORY.has(raw.categoria as PartCategory)) {
-    out.categoria = raw.categoria;
-  }
+  if (isCategorySlug(raw.categoria)) out.categoria = raw.categoria;
   if (typeof raw.marca === "string" && raw.marca.length > 0) out.marca = raw.marca;
   if (typeof raw.aba === "string" && VALID_TABS.has(raw.aba as ProfitabilityTab)) {
     out.aba = raw.aba;

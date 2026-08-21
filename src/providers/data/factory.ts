@@ -8,6 +8,7 @@ import { mockLeadFunnelsProvider } from "./impl/mock/leadFunnels";
 import { mockConversationsProvider } from "./impl/mock/conversations";
 import { mockMessagesProvider } from "./impl/mock/messages";
 import { mockPartsProvider } from "./impl/mock/parts";
+import { mockPartCategoriesProvider } from "./impl/mock/partCategories";
 import { mockQuotesProvider } from "./impl/mock/quotes";
 import { mockOrdersProvider } from "./impl/mock/orders";
 import { mockCommissionsProvider } from "./impl/mock/commissions";
@@ -68,6 +69,7 @@ import { supabaseLeadFunnelsProvider } from "./impl/supabase/leadFunnels";
 import { supabaseConversationsProvider } from "./impl/supabase/conversations";
 import { supabaseMessagesProvider } from "./impl/supabase/messages";
 import { supabasePartsProvider } from "./impl/supabase/parts";
+import { supabasePartCategoriesProvider } from "./impl/supabase/partCategories";
 import { supabaseQuotesProvider } from "./impl/supabase/quotes";
 import { supabaseOrdersProvider } from "./impl/supabase/orders";
 import { supabaseCommissionsProvider } from "./impl/supabase/commissions";
@@ -161,6 +163,7 @@ const mockProviders: IDataProviders = {
   conversations: mockConversationsProvider,
   messages: mockMessagesProvider,
   parts: mockPartsProvider,
+  partCategories: mockPartCategoriesProvider,
   quotes: mockQuotesProvider,
   orders: mockOrdersProvider,
   commissions: mockCommissionsProvider,
@@ -223,6 +226,7 @@ const supabaseProviders: IDataProviders = {
   conversations: supabaseConversationsProvider,
   messages: supabaseMessagesProvider,
   parts: supabasePartsProvider,
+  partCategories: supabasePartCategoriesProvider,
   quotes: supabaseQuotesProvider,
   orders: supabaseOrdersProvider,
   commissions: supabaseCommissionsProvider,

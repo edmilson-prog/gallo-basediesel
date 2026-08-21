@@ -12,11 +12,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
-import {
-  getCategoryLabel,
-  getSubcategoriesFor,
-  PART_CATEGORY_DESCRIPTORS,
-} from "../../utils/categories";
+import { getCategoryLabel, getSubcategoriesFor } from "../../utils/categories";
+import { useCategoryDescriptors } from "../../hooks/useCategoryDescriptors";
 import type { IPartDraft, IPartDraftErrors } from "../../utils/draft";
 import { PartImage } from "../PartImage";
 import { PartChip } from "./PartChip";
@@ -182,7 +179,8 @@ function PartIdentityEditor({
   sefazStatus,
   sefazCheckedAt,
 }: IPartIdentityEditorProps) {
-  const subOptions = getSubcategoriesFor(draft.category);
+  const { descriptors, active: categoryOptions } = useCategoryDescriptors();
+  const subOptions = getSubcategoriesFor(draft.category, descriptors);
 
   return (
     <div className="rounded-xl border border-border bg-card p-[18px]">
@@ -233,7 +231,7 @@ function PartIdentityEditor({
               <SelectValue placeholder="Selecione…" />
             </SelectTrigger>
             <SelectContent>
-              {PART_CATEGORY_DESCRIPTORS.map((d) => (
+              {categoryOptions.map((d) => (
                 <SelectItem key={d.value} value={d.value}>
                   {d.label}
                 </SelectItem>

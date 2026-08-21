@@ -15,7 +15,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { CATALOG_STRINGS } from "../../i18n/pt-BR";
-import { PART_CATEGORY_DESCRIPTORS, getSubcategoriesFor } from "../../utils/categories";
+import { getSubcategoriesFor } from "../../utils/categories";
+import { useCategoryDescriptors } from "../../hooks/useCategoryDescriptors";
 import {
   activeFilterCount,
   type CatalogView,
@@ -53,9 +54,13 @@ export function CatalogFiltersBar({
   onViewChange,
 }: ICatalogFiltersBarProps) {
   const count = activeFilterCount(filters);
+  const { descriptors, active: categoryOptions } = useCategoryDescriptors();
   const subOptions = useMemo(
-    () => (filters.categories.length === 1 ? getSubcategoriesFor(filters.categories[0]) : []),
-    [filters.categories],
+    () =>
+      filters.categories.length === 1
+        ? getSubcategoriesFor(filters.categories[0], descriptors)
+        : [],
+    [filters.categories, descriptors],
   );
 
   const toggleCategory = (value: PartCategory, checked: boolean) => {
@@ -96,7 +101,7 @@ export function CatalogFiltersBar({
         </PopoverTrigger>
         <PopoverContent align="start" className="w-64 p-2">
           <div className="max-h-72 space-y-1 overflow-y-auto">
-            {PART_CATEGORY_DESCRIPTORS.map((descriptor) => {
+            {categoryOptions.map((descriptor) => {
               const checked = filters.categories.includes(descriptor.value);
               return (
                 <label

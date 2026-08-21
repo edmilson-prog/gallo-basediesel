@@ -2,7 +2,8 @@ import type { PartCategory } from "@/shared/types";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 import { CATALOG_STRINGS } from "../../../i18n/pt-BR";
-import { PART_CATEGORY_DESCRIPTORS, getSubcategoriesFor } from "../../../utils/categories";
+import { getSubcategoriesFor } from "../../../utils/categories";
+import { useCategoryDescriptors } from "../../../hooks/useCategoryDescriptors";
 
 const COPY = CATALOG_STRINGS.newPart.category;
 
@@ -33,7 +34,8 @@ export function PartCategoryGrid({
   onSubcategoryChange,
   invalid,
 }: IPartCategoryGridProps) {
-  const subcategories = getSubcategoriesFor(category);
+  const { descriptors, active: categoryOptions } = useCategoryDescriptors();
+  const subcategories = getSubcategoriesFor(category, descriptors);
 
   const pickCategory = (value: PartCategory) => {
     const next = category === value ? undefined : value;
@@ -53,7 +55,7 @@ export function PartCategoryGrid({
         role="group"
         aria-label={COPY.groupLabel}
       >
-        {PART_CATEGORY_DESCRIPTORS.map((descriptor) => {
+        {categoryOptions.map((descriptor) => {
           const selected = category === descriptor.value;
           return (
             <button

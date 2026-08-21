@@ -25,14 +25,21 @@ interface IColumnsMenuProps {
   visible: Set<OptionalColumn>;
   onToggle: (id: OptionalColumn) => void;
   onShowAll: () => void;
+  /** Columns this role may toggle — permission-gated ones never appear. */
+  available?: readonly OptionalColumn[];
 }
 
-function isAllVisible(visible: Set<OptionalColumn>): boolean {
-  return OPTIONAL_COLUMNS.every((id) => visible.has(id));
+function isAllVisible(visible: Set<OptionalColumn>, available: readonly OptionalColumn[]): boolean {
+  return available.every((id) => visible.has(id));
 }
 
 /** Gear button + dropdown. Self-contained trigger; lives in the table header actions cell. */
-export function CatalogColumnsDropdown({ visible, onToggle, onShowAll }: IColumnsMenuProps) {
+export function CatalogColumnsDropdown({
+  visible,
+  onToggle,
+  onShowAll,
+  available = OPTIONAL_COLUMNS,
+}: IColumnsMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -50,7 +57,7 @@ export function CatalogColumnsDropdown({ visible, onToggle, onShowAll }: IColumn
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel>{COPY.title}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {OPTIONAL_COLUMNS.map((id) => (
+        {available.map((id) => (
           <DropdownMenuCheckboxItem
             key={id}
             checked={visible.has(id)}
@@ -61,7 +68,7 @@ export function CatalogColumnsDropdown({ visible, onToggle, onShowAll }: IColumn
           </DropdownMenuCheckboxItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem disabled={isAllVisible(visible)} onSelect={() => onShowAll()}>
+        <DropdownMenuItem disabled={isAllVisible(visible, available)} onSelect={() => onShowAll()}>
           <Icon icon="mdi:eye-outline" size={14} />
           {COPY.showAll}
         </DropdownMenuItem>
@@ -71,12 +78,17 @@ export function CatalogColumnsDropdown({ visible, onToggle, onShowAll }: IColumn
 }
 
 /** Context-menu content only — the trigger wraps the header row in CatalogTable. */
-export function CatalogColumnsContextContent({ visible, onToggle, onShowAll }: IColumnsMenuProps) {
+export function CatalogColumnsContextContent({
+  visible,
+  onToggle,
+  onShowAll,
+  available = OPTIONAL_COLUMNS,
+}: IColumnsMenuProps) {
   return (
     <ContextMenuContent className="w-52">
       <ContextMenuLabel>{COPY.title}</ContextMenuLabel>
       <ContextMenuSeparator />
-      {OPTIONAL_COLUMNS.map((id) => (
+      {available.map((id) => (
         <ContextMenuCheckboxItem
           key={id}
           checked={visible.has(id)}
@@ -87,7 +99,7 @@ export function CatalogColumnsContextContent({ visible, onToggle, onShowAll }: I
         </ContextMenuCheckboxItem>
       ))}
       <ContextMenuSeparator />
-      <ContextMenuItem disabled={isAllVisible(visible)} onSelect={() => onShowAll()}>
+      <ContextMenuItem disabled={isAllVisible(visible, available)} onSelect={() => onShowAll()}>
         <Icon icon="mdi:eye-outline" size={14} />
         {COPY.showAll}
       </ContextMenuItem>

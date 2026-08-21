@@ -13,6 +13,7 @@ import type { ILeadFunnelsProvider } from "./leadFunnels";
 import type { IConversationsProvider } from "./conversations";
 import type { IMessagesProvider } from "./messages";
 import type { IPartsProvider } from "./parts";
+import type { IPartCategoriesProvider } from "./partCategories";
 import type { IQuotesProvider } from "./quotes";
 import type { IOrdersProvider } from "./orders";
 import type { ICommissionsProvider } from "./commissions";
@@ -105,6 +106,11 @@ export type {
   IListMessagesForAnalyticsParams,
 } from "./messages";
 export type { IPartsProvider, IListPartsParams } from "./parts";
+export type {
+  IPartCategoriesProvider,
+  IListPartCategoriesParams,
+  ISavePartCategoryInput,
+} from "./partCategories";
 export type { IQuotesProvider, IListQuotesParams } from "./quotes";
 export type { IOrdersProvider, IListOrdersParams } from "./orders";
 export type { ICommissionsProvider, IListCommissionsParams } from "./commissions";
@@ -234,6 +240,7 @@ export interface IDataProviders {
   conversations: IConversationsProvider;
   messages: IMessagesProvider;
   parts: IPartsProvider;
+  partCategories: IPartCategoriesProvider;
   quotes: IQuotesProvider;
   orders: IOrdersProvider;
   commissions: ICommissionsProvider;
