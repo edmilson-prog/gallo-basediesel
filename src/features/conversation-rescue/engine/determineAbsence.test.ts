@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { determineAbsence } from "./determineAbsence";
 
 const NOW = new Date("2026-07-17T15:00:00-03:00");
+const MAX_WAIT_HOURS = 24;
 
 describe("determineAbsence", () => {
   it("returns null when the seller is online and within schedule", () => {
@@ -11,6 +12,7 @@ describe("determineAbsence", () => {
       awaitingReplySince: "2026-07-17T14:50:00-03:00",
       now: NOW,
       temporaryAbsenceGraceMinutes: 15,
+      maxClientWaitHours: MAX_WAIT_HOURS,
     });
     expect(result).toBeNull();
   });
@@ -22,6 +24,7 @@ describe("determineAbsence", () => {
       awaitingReplySince: "2026-07-17T14:59:30-03:00",
       now: NOW,
       temporaryAbsenceGraceMinutes: 15,
+      maxClientWaitHours: MAX_WAIT_HOURS,
     });
     expect(result).toBe("schedule");
   });
@@ -33,6 +36,7 @@ describe("determineAbsence", () => {
       awaitingReplySince: "2026-07-17T14:50:00-03:00", // 10 min ago
       now: NOW,
       temporaryAbsenceGraceMinutes: 15,
+      maxClientWaitHours: MAX_WAIT_HOURS,
     });
     expect(result).toBeNull();
   });
@@ -44,6 +48,7 @@ describe("determineAbsence", () => {
       awaitingReplySince: "2026-07-17T14:44:00-03:00", // 16 min ago
       now: NOW,
       temporaryAbsenceGraceMinutes: 15,
+      maxClientWaitHours: MAX_WAIT_HOURS,
     });
     expect(result).toBe("temporary");
   });
@@ -54,6 +59,7 @@ describe("determineAbsence", () => {
       awaitingReplySince: "2026-07-17T14:44:00-03:00",
       now: NOW,
       temporaryAbsenceGraceMinutes: 15,
+      maxClientWaitHours: MAX_WAIT_HOURS,
     };
     expect(determineAbsence({ ...base, availability: "ocupado" })).toBe("temporary");
     expect(determineAbsence({ ...base, availability: "offline" })).toBe("temporary");
@@ -66,7 +72,44 @@ describe("determineAbsence", () => {
       awaitingReplySince: "2026-07-17T14:45:00-03:00", // exactly 15 min ago
       now: NOW,
       temporaryAbsenceGraceMinutes: 15,
+      maxClientWaitHours: MAX_WAIT_HOURS,
     });
     expect(result).toBe("temporary");
+  });
+
+  it("returns null when the client has waited longer than maxClientWaitHours (stale backlog — temporary case)", () => {
+    const result = determineAbsence({
+      isWithinSchedule: true,
+      availability: "offline",
+      awaitingReplySince: "2026-07-15T15:00:00-03:00", // 48h ago
+      now: NOW,
+      temporaryAbsenceGraceMinutes: 15,
+      maxClientWaitHours: MAX_WAIT_HOURS,
+    });
+    expect(result).toBeNull();
+  });
+
+  it("the max-wait window also suppresses 'schedule' absences (incident 2026-07-18)", () => {
+    const result = determineAbsence({
+      isWithinSchedule: false,
+      availability: "offline",
+      awaitingReplySince: "2026-05-10T09:00:00-03:00", // months-old backlog
+      now: NOW,
+      temporaryAbsenceGraceMinutes: 15,
+      maxClientWaitHours: MAX_WAIT_HOURS,
+    });
+    expect(result).toBeNull();
+  });
+
+  it("is inclusive at the max-wait boundary — exactly maxClientWaitHours still qualifies", () => {
+    const result = determineAbsence({
+      isWithinSchedule: false,
+      availability: "offline",
+      awaitingReplySince: "2026-07-16T15:00:00-03:00", // exactly 24h ago
+      now: NOW,
+      temporaryAbsenceGraceMinutes: 15,
+      maxClientWaitHours: MAX_WAIT_HOURS,
+    });
+    expect(result).toBe("schedule");
   });
 });

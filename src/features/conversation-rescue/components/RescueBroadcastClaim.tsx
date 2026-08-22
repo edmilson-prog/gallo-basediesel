@@ -1,9 +1,14 @@
+import { useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/useAuth";
 import { useRescueBroadcastQueue } from "../hooks/useRescueBroadcastQueue";
+
+/** Visual cap (incident 2026-07-18): the panel must never take over the
+ * screen — show a few cards and fold the rest behind "Mostrar mais". */
+const MAX_VISIBLE = 3;
 
 /**
  * Floating panel for online sellers showing every conversation currently
@@ -14,17 +19,21 @@ export function RescueBroadcastClaim() {
   const { currentUser } = useAuth();
   const queue = useRescueBroadcastQueue();
   const navigate = useNavigate();
+  const [showAll, setShowAll] = useState(false);
 
   if (!currentUser) return null;
   if (queue.entries.length === 0) return null;
+
+  const visible = showAll ? queue.entries : queue.entries.slice(0, MAX_VISIBLE);
+  const hiddenCount = queue.entries.length - visible.length;
 
   return (
     <div
       role="region"
       aria-label="Conversas aguardando resgate"
-      className="fixed bottom-20 right-4 z-50 flex w-72 flex-col gap-2 md:bottom-4"
+      className="fixed bottom-20 right-4 z-50 flex max-h-[70vh] w-72 flex-col gap-2 overflow-y-auto md:bottom-4"
     >
-      {queue.entries.map(({ rescue, age }) => (
+      {visible.map(({ rescue, age }) => (
         <div
           key={rescue.id}
           className="rounded-md border border-severity-warning/40 bg-severity-warning/10 p-3 shadow-lg ring-1 ring-severity-warning/20"
@@ -61,6 +70,21 @@ export function RescueBroadcastClaim() {
           </div>
         </div>
       ))}
+      {hiddenCount > 0 && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-severity-warning/40 bg-severity-warning/10 text-severity-warning hover:bg-severity-warning/20"
+          onClick={() => setShowAll(true)}
+        >
+          Mostrar mais {hiddenCount} conversa{hiddenCount > 1 ? "s" : ""}
+        </Button>
+      )}
+      {showAll && queue.entries.length > MAX_VISIBLE && (
+        <Button variant="ghost" size="sm" onClick={() => setShowAll(false)}>
+          Mostrar menos
+        </Button>
+      )}
     </div>
   );
 }
