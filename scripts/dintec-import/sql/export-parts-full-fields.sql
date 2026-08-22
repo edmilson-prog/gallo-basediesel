@@ -1,10 +1,16 @@
 -- scripts/dintec-import/sql/export-parts-full-fields.sql
--- Export dos produtos DINTEC ativos e identificáveis (REFERENCIA ou
--- PRODUTOECOMMERCE.DESCRICAO preenchidos) para CSV bruto delimitado por ';'.
--- Rodar via isql embedded (ver docs/db/GUIA-BANCO-TURBO-DIESEL.md §3):
---   isql.exe -user SYSDBA -password masterkey -ch WIN1252 -i export-parts-full-fields.sql "D:\claude\dintec\TURBO_DIESEL.FDB"
+-- Export dos produtos DINTEC ativos e identificáveis para CSV bruto delimitado
+-- por ';'. "Identificável" = tem REFERENCIA, OU descrição em PRODUTOECOMMERCE,
+-- OU nome em SUGESTAO (ver o WHERE no fim do arquivo).
+-- Rodar via isql embedded (ver docs/db/GUIA-BANCO-TURBO-DIESEL.md §3), a partir
+-- da RAIZ do projeto — o OUTPUT abaixo é relativo ao diretório corrente:
+--   isql.exe -user SYSDBA -password masterkey -ch WIN1252 -i scripts/dintec-import/sql/export-parts-full-fields.sql "D:\claude\dintec\TURBO_DIESEL.FDB"
+-- O nome vindo de SUGESTAO NÃO sai por aqui: ele tem cardinalidade N por
+-- produto e o JOIN necessário estoura o sort do Firebird embedded ("sort error:
+-- not enough memory"). Sai no export irmão export-sugestao-names.sql, e o
+-- desempate acontece no TypeScript (engine pickSugestaoName).
 SET HEADING OFF;
-OUTPUT 'D:\claude\gallo-basediesel\.claude\worktrees\dintec-import-pilot\scratchpad\dintec-parts-raw.txt';
+OUTPUT 'scratchpad/dintec-parts-raw.txt';
 SELECT CAST(
   CAST(p.CODPRO AS VARCHAR(10)) || ';' ||
   '"' || COALESCE(REPLACE(REPLACE(REPLACE(TRIM(p.REFERENCIA),'"','""'),ASCII_CHAR(13),' '),ASCII_CHAR(10),' '),'') || '";' ||
@@ -56,6 +62,12 @@ LEFT JOIN (
 ) pfmin ON pfmin.CODPRO = p.CODPRO
 LEFT JOIN FORNECEDOR f ON f.COD = pfmin.CODFORNEC
 WHERE p.ATIVO = 'SIM'
-  AND (CHAR_LENGTH(TRIM(COALESCE(p.REFERENCIA,''))) > 0 OR CHAR_LENGTH(TRIM(COALESCE(e.DESCRICAO,''))) > 0)
+  AND (CHAR_LENGTH(TRIM(COALESCE(p.REFERENCIA,''))) > 0
+    OR CHAR_LENGTH(TRIM(COALESCE(e.DESCRICAO,''))) > 0
+    -- Terceira fonte de identidade: o "Nome Produto" que o balcão vê na tela do
+    -- DINTEC. EXISTS (e não JOIN) de propósito — usa índice, não materializa.
+    OR EXISTS (SELECT 1 FROM SUGESTAO s
+               WHERE s.CODPRO_SUGESTAO = p.CODPRO
+                 AND CHAR_LENGTH(TRIM(COALESCE(s.NOME,''))) > 0))
 ORDER BY p.CODPRO;
 OUTPUT;

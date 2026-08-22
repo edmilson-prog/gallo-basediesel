@@ -1,7 +1,10 @@
 // scripts/dintec-import/run-parts-dintec-import.ts
 // Cria produtos a partir do export do Firebird DINTEC (Task 5) — só CRIA,
-// nunca enriquece (nenhum produto DINTEC pré-existe na plataforma; ver
-// design spec 2026-07-13, Fonte 1). Idempotente por dintec_codpro.
+// nunca enriquece (ver design spec 2026-07-13, Fonte 1). Idempotente por
+// dintec_codpro: rodar de novo só cria o que ainda falta.
+//
+// 2026-08-14 — o export ganhou SUGESTAO.NOME como terceira fonte de nome, o
+// que amplia o escopo de 2.514 para 3.741 produtos ativos identificáveis.
 //
 // Dry-run (zero escrita, só relatório):
 //   DINTEC_DRY_RUN=yes bun run scripts/dintec-import/run-parts-dintec-import.ts
@@ -10,7 +13,11 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
-import { buildDintecPriceTables, parseAplicacaoText } from "../../src/features/dintec-import/engine";
+import {
+  buildDintecPriceTables,
+  parseAplicacaoText,
+  pickSugestaoName,
+} from "../../src/features/dintec-import/engine";
 
 const DRY_RUN = process.env.DINTEC_DRY_RUN === "yes";
 if (!DRY_RUN && process.env.DINTEC_CONFIRM_WRITE !== "yes") {
@@ -55,6 +62,16 @@ interface DintecPartRow {
   estMaximo: string;
   aplicacao: string;
   fornecedorNome: string;
+}
+
+/** Uma linha do export de SUGESTAO — já agrupada por (produto, nome) no SQL,
+ *  com a contagem de ocorrências que serve de peso no desempate. */
+interface SugestaoRow {
+  codpro: number;
+  nome: string;
+  marca: string;
+  aplicacao: string;
+  ocorrencias: number;
 }
 
 // Quote-aware split: the SQL export (export-parts-full-fields.sql) wraps every
@@ -141,6 +158,38 @@ function loadDintecParts(path: string): DintecPartRow[] {
   });
 }
 
+/** Carrega o export de SUGESTAO e reduz a um nome por produto, aplicando
+ *  pickSugestaoName. Produtos ausentes do arquivo simplesmente não entram no
+ *  Map — quem não tem nome em SUGESTAO já foi filtrado fora do export
+ *  principal pelo EXISTS, então nunca chega aqui sem outra fonte de nome. */
+function loadSugestao(path: string): Map<number, SugestaoRow> {
+  const lines = readLines(path);
+  lines.shift();
+  const byCodpro = new Map<number, SugestaoRow[]>();
+  for (const line of lines) {
+    const c = parseCsvLine(line);
+    const codpro = Number(c[0]);
+    if (!Number.isFinite(codpro)) continue;
+    const nome = (c[1] || "").trim();
+    if (!nome) continue;
+    const list = byCodpro.get(codpro);
+    const row: SugestaoRow = {
+      codpro,
+      nome,
+      marca: c[2] || "",
+      aplicacao: c[3] || "",
+      ocorrencias: Number(c[4]) || 0,
+    };
+    if (list) list.push(row);
+    else byCodpro.set(codpro, [row]);
+  }
+  const winners = new Map<number, SugestaoRow>();
+  for (const [codpro, candidates] of byCodpro) {
+    winners.set(codpro, pickSugestaoName(candidates));
+  }
+  return winners;
+}
+
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
@@ -160,15 +209,24 @@ function textOrNull(s: string): string | null {
 
 /** Builds the display name — same chain used everywhere else in this import
  *  epic: prefer the richer source, fall back gracefully. Never empty because
- *  this script's Firebird scope is already filtered to rows that have one. */
-function buildName(row: DintecPartRow): string {
+ *  this script's Firebird scope is already filtered to rows that have one.
+ *
+ *  SUGESTAO.NOME entra como último elo, não como primeiro, de propósito: os
+ *  2.514 produtos já importados são pulados pela âncora de idempotência, então
+ *  reordenar a cadeia não os corrigiria — só mudaria silenciosamente o nome de
+ *  futuras linhas com REFERENCIA. Melhorar o nome de quem já está na plataforma
+ *  (1.681 candidatos, vários hoje com código cru como nome) é um passe de
+ *  enriquecimento separado, não deste script, que só cria. */
+function buildName(row: DintecPartRow, sugestao: SugestaoRow | undefined): string {
   const ref = textOrNull(row.referencia);
   const marca = textOrNull(row.marca);
   if (ref && marca) return `${ref} — ${marca}`;
   if (ref) return ref;
   const desc = textOrNull(row.descricaoEcommerce);
   if (desc) return desc;
-  throw new Error(`CODPRO ${row.codpro} sem referencia nem descricao — fora do escopo do export`);
+  const nomeSugestao = sugestao ? textOrNull(sugestao.nome) : null;
+  if (nomeSugestao) return nomeSugestao;
+  throw new Error(`CODPRO ${row.codpro} sem referencia, descricao nem sugestao — fora do escopo do export`);
 }
 
 async function main() {
@@ -177,6 +235,9 @@ async function main() {
 
   const rows = loadDintecParts(join(SCRATCHPAD, "dintec-parts.csv"));
   console.log(`CSV: ${rows.length} produtos DINTEC identificáveis`);
+
+  const sugestaoByCodpro = loadSugestao(join(SCRATCHPAD, "dintec-sugestao.csv"));
+  console.log(`SUGESTAO: nome resolvido para ${sugestaoByCodpro.size} produtos`);
 
   // Idempotency anchor: every CODPRO already imported is skipped — paginado,
   // mesma proteção do limite de 1000 linhas do PostgREST usada no import de
@@ -207,12 +268,37 @@ async function main() {
   console.log(`A criar: ${toCreate.length}`);
 
   if (DRY_RUN) {
+    // Quem depende só da SUGESTAO é exatamente a população que o export antigo
+    // descartava — separar aqui prova que a mudança fez o que prometeu, e um
+    // nome vazio vira erro agora (no dry-run) e não no meio da escrita.
+    const semNome: string[] = [];
+    let viaSugestao = 0;
+    const amostra: string[] = [];
+    for (const row of toCreate) {
+      const sug = sugestaoByCodpro.get(Number(row.codpro));
+      const soSugestao = !textOrNull(row.referencia) && !textOrNull(row.descricaoEcommerce);
+      try {
+        const nome = buildName(row, sug);
+        if (soSugestao) {
+          viaSugestao += 1;
+          if (amostra.length < 15) amostra.push(`  - ${row.codpro} → ${nome}`);
+        }
+      } catch {
+        semNome.push(row.codpro);
+      }
+    }
     const summary = [
       "# Import DINTEC de produtos — DRY-RUN (zero escrita)",
       "",
       `- Produtos no export: ${rows.length}`,
       `- Já importados (pulados): ${alreadyImported.size}`,
       `- A criar: ${toCreate.length}`,
+      `- Destes, com nome vindo só de SUGESTAO: ${viaSugestao}`,
+      `- Sem nome em nenhuma fonte (seriam erro na escrita): ${semNome.length}`,
+      ...(semNome.length > 0 ? ["", `CODPROs sem nome: ${semNome.slice(0, 30).join(", ")}`] : []),
+      "",
+      "Amostra dos que só existem graças à SUGESTAO:",
+      ...amostra,
     ].join("\n");
     writeFileSync(join(SCRATCHPAD, "dintec-parts-dryrun.md"), summary, "utf8");
     console.log(summary);
@@ -222,6 +308,7 @@ async function main() {
   // ===== WRITE MODE =====
   const createRows: Array<Record<string, unknown>> = [];
   for (const row of toCreate) {
+    const sug = sugestaoByCodpro.get(Number(row.codpro));
     const custo = numOrNull(row.custo);
     const priceTables = buildDintecPriceTables({
       custo,
@@ -235,7 +322,11 @@ async function main() {
     });
     const unitPrice = priceTables.find((t) => t.id === "varejo")?.price ?? custo ?? 0;
     const unitCost = custo ?? 0;
-    const { applicationNotes, crossReferences } = parseAplicacaoText(row.aplicacao);
+    // PRODUTO.APLICACAO manda; SUGESTAO só preenche o que o ERP deixou vazio —
+    // mesma regra fillIfEmpty do resto do épico, nunca sobrescreve o ERP.
+    const { applicationNotes, crossReferences } = parseAplicacaoText(
+      textOrNull(row.aplicacao) ?? sug?.aplicacao ?? "",
+    );
     const supplier = textOrNull(row.fornecedorNome) ?? "Não informado";
     const fiscal: Record<string, unknown> = {};
     const ncm = textOrNull(row.ncm);
@@ -249,13 +340,13 @@ async function main() {
 
     createRows.push({
       sku: row.codpro,
-      name: buildName(row),
+      name: buildName(row, sug),
       oem_codes: [],
       equivalent_part_ids: [],
       cross_references: crossReferences.length > 0 ? crossReferences : null,
       application_notes: applicationNotes ?? null,
       applications: [],
-      brand: textOrNull(row.marca) ?? "Não informado",
+      brand: textOrNull(row.marca) ?? (sug ? textOrNull(sug.marca) : null) ?? "Não informado",
       supplier,
       // category fica null de propósito: PartCategory é o enum fechado de 10
       // valores do extrator por palavra-chave (PRD-021), GRUPO.NOME não mapeia
